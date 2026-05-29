@@ -1,6 +1,6 @@
 import { ChangeEvent } from "react";
-import { Database, ImagePlus, Layers, LoaderCircle, Play, RefreshCcw, Sparkles, Upload } from "lucide-react";
-import type { BalanceState, BatchMode, ReferenceImage } from "@/lib/types";
+import { Database, ImagePlus, Layers, LoaderCircle, Play, Sparkles, Upload } from "lucide-react";
+import type { BatchMode, ReferenceImage } from "@/lib/types";
 import { estimateMegapixels, modelOptions } from "@/lib/pricing";
 
 type RunPanelProps = {
@@ -19,8 +19,6 @@ type RunPanelProps = {
   estimatedCredits: number;
   estimatedUsd: number;
   costLabel: string;
-  balance: BalanceState;
-  isCheckingBalance: boolean;
   isGenerating: boolean;
   error: string;
   onModelChange: (value: string) => void;
@@ -35,7 +33,6 @@ type RunPanelProps = {
   onReferenceUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   onReferenceFiles: (files: File[]) => void;
   onAddReferenceUrl: () => void;
-  onCheckBalance: () => void;
   onGenerate: () => void;
 };
 
@@ -50,17 +47,6 @@ export function RunPanel(props: RunPanelProps) {
       <div className="panelHeader">
         <h2>Run</h2>
         <Sparkles size={18} />
-      </div>
-
-      <div className="balanceBox">
-        <div>
-          <span>Balance</span>
-          <strong>{typeof props.balance.credits === "number" ? `${props.balance.credits.toFixed(2)} cr` : "server/local"}</strong>
-        </div>
-        <button onClick={props.onCheckBalance} disabled={props.isCheckingBalance || !props.balance}>
-          <RefreshCcw className={props.isCheckingBalance ? "spin" : ""} size={15} />
-          Check
-        </button>
       </div>
 
       <div className="costGrid">

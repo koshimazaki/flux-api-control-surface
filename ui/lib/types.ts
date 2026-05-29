@@ -16,7 +16,7 @@ export type ReferenceImage = {
 
 export type BatchMode = "current" | "library" | "permutations";
 
-export type DashboardTab = "assets" | "runs" | "mcp";
+export type DashboardTab = "assets" | "runs" | "collections" | "apis" | "mcp";
 
 export type AssetRecord = {
   id: string;
@@ -82,4 +82,27 @@ export type RunLogEntry = {
   height?: number;
   batchIndex?: number;
   batchTotal?: number;
+};
+
+export type TrainingCollectionItem = {
+  id: string;
+  source: "asset" | "file";
+  name: string;
+  fileName: string;
+  imageDataUrl: string;
+  mimeType: string;
+  prompt?: string;
+  caption: string;
+  assetId?: string;
+  addedAt: number;
+};
+
+export type TrainingCollection = {
+  id: string;
+  name: string;
+  triggerToken: string;
+  captionGuide: string;
+  createdAt: number;
+  updatedAt: number;
+  items: TrainingCollectionItem[];
 };

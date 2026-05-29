@@ -8,9 +8,15 @@ type TopBarProps = {
 export function TopBar({ apiKey, onApiKeyChange }: TopBarProps) {
   return (
     <header className="topbar">
-      <div>
-        <p className="eyebrow">BFL / FLUX.2</p>
-        <h1>BFL API Dashboard</h1>
+      <div className="topBarBrand">
+        <div className="brandMark" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="https://bfl.ai/brand/symbol-white.svg" alt="" />
+        </div>
+        <div className="brandCopy">
+          <p className="eyebrow">Black Forest Labs / FLUX.2</p>
+          <h1>BFL API Dashboard</h1>
+        </div>
       </div>
       <div className="keyBox">
         <KeyRound size={16} />

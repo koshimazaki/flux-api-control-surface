@@ -1,6 +1,8 @@
 "use client";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ApisPanel } from "@/components/apis-panel";
 import { AssetLibrary } from "@/components/asset-library";
+import { BackgroundShader } from "@/components/background-shader";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { DashboardTabs } from "@/components/dashboard-tabs";
 import { GenerationLog } from "@/components/generation-log";
@@ -10,7 +12,9 @@ import { PromptEditor } from "@/components/prompt-editor";
 import { PromptLibrary } from "@/components/prompt-library";
 import { RunPanel } from "@/components/run-panel";
 import { TopBar } from "@/components/top-bar";
+import { TrainingCollectionsPanel } from "@/components/training-collections-panel";
 import { BFL_LIBRARY_KEY, RUN_LOG_KEY, stripAssetForStorage } from "@/lib/asset-storage";
+import { copyText } from "@/lib/clipboard";
 import {
   downloadNameForAsset,
   extensionForAsset,
@@ -38,6 +42,14 @@ import { savePromptRecord, upsertPromptRecord } from "@/lib/dashboard-prompts";
 import { buildComboPrompt as buildComboPromptText, comboIdFromPrompts, uniqueText } from "@/lib/prompt-combo";
 import { defaultReferenceCue, downloadText, formatPrompt } from "@/lib/prompt-utils";
 import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions } from "@/lib/pricing";
+import {
+  captionInstructions,
+  collectionItemFromAsset,
+  collectionItemFromFile,
+  createTrainingCollection,
+  exportCollectionZip,
+  TRAINING_COLLECTIONS_KEY
+} from "@/lib/training-collections";
 import type {
   AssetRecord,
   AspectRatio,
@@ -46,8 +58,16 @@ import type {
   DashboardTab,
   PromptRecord,
   ReferenceImage,
-  RunLogEntry
+  RunLogEntry,
+  TrainingCollection
 } from "@/lib/types";
+
+type CaptionAgentJob = {
+  status: string;
+  jobDir?: string;
+  error?: string;
+};
+
 export default function Home() {
   const [apiKey, setApiKey] = useState("");
   const [prompts, setPrompts] = useState<PromptRecord[]>([]);
@@ -72,9 +92,15 @@ export default function Home() {
   const [gridSize, setGridSize] = useState(4);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
   const [selectedAsset, setSelectedAsset] = useState<AssetRecord | null>(null);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [trainingCollection, setTrainingCollection] = useState<TrainingCollection>(() =>
+    createTrainingCollection("Cyberflower LoRA pack")
+  );
+  const [captionJob, setCaptionJob] = useState<CaptionAgentJob | null>(null);
   const [metadataAssetId, setMetadataAssetId] = useState<string | null>(null);
   const [balance, setBalance] = useState<BalanceState>({ credits: null });
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
+  const [isSpawningCaptionAgent, setIsSpawningCaptionAgent] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
@@ -139,8 +165,11 @@ export default function Home() {
     try {
       const savedLog = localStorage.getItem(RUN_LOG_KEY);
       if (savedLog) setRunLog(JSON.parse(savedLog));
+      const savedCollection = localStorage.getItem(TRAINING_COLLECTIONS_KEY);
+      if (savedCollection) setTrainingCollection(JSON.parse(savedCollection));
     } catch {
       localStorage.removeItem(RUN_LOG_KEY);
+      localStorage.removeItem(TRAINING_COLLECTIONS_KEY);
     }
     let cancelled = false;
     loadStoredAssets()
@@ -161,6 +190,9 @@ export default function Home() {
   useEffect(() => {
     safeSetItem(RUN_LOG_KEY, JSON.stringify(runLog.slice(0, 200)));
   }, [runLog]);
+  useEffect(() => {
+    safeSetItem(TRAINING_COLLECTIONS_KEY, JSON.stringify(trainingCollection));
+  }, [trainingCollection]);
   function selectPromptRecord(record: PromptRecord) {
     setActiveId(record.id);
     setPromptText(formatPrompt(record.prompt));
@@ -319,6 +351,7 @@ export default function Home() {
   function deleteAsset(id: string) {
     removeAssetImage(id);
     setAssets((current) => current.filter((asset) => asset.id !== id));
+    setSelectedAssetIds((current) => current.filter((item) => item !== id));
     if (selectedAsset?.id === id) setSelectedAsset(null);
   }
   function sendAssetToPrompt(asset: AssetRecord) {
@@ -352,138 +385,247 @@ export default function Home() {
   function clearAssets() {
     removeAssetImages(assets);
     setAssets([]);
+    setSelectedAssetIds([]);
+  }
+  function toggleAssetSelection(id: string) {
+    setSelectedAssetIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  }
+  function addSelectedAssetsToCollection() {
+    const chosenAssets = assets.filter((asset) => selectedAssetIds.includes(asset.id));
+    if (!chosenAssets.length) return;
+    setTrainingCollection((current) => {
+      const existingAssetIds = new Set(current.items.map((item) => item.assetId).filter(Boolean));
+      const newItems = chosenAssets
+        .filter((asset) => !existingAssetIds.has(asset.id))
+        .map((asset) => collectionItemFromAsset(asset, current.triggerToken));
+      if (!newItems.length) return current;
+      return {
+        ...current,
+        items: [...current.items, ...newItems],
+        updatedAt: Date.now()
+      };
+    });
+    setSelectedAssetIds([]);
+    setActiveTab("collections");
+  }
+  async function addCollectionFiles(files: File[]) {
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    if (!imageFiles.length) return;
+    const newItems = await Promise.all(
+      imageFiles.map((file) => collectionItemFromFile(file, trainingCollection.triggerToken))
+    );
+    setTrainingCollection((current) => ({
+      ...current,
+      items: [...current.items, ...newItems],
+      updatedAt: Date.now()
+    }));
+    setActiveTab("collections");
+  }
+  function removeCollectionItem(id: string) {
+    setTrainingCollection((current) => ({
+      ...current,
+      items: current.items.filter((item) => item.id !== id),
+      updatedAt: Date.now()
+    }));
+  }
+  function updateCollectionCaption(id: string, caption: string) {
+    setTrainingCollection((current) => ({
+      ...current,
+      items: current.items.map((item) => (item.id === id ? { ...item, caption } : item)),
+      updatedAt: Date.now()
+    }));
+  }
+  async function exportTrainingZip() {
+    try {
+      await exportCollectionZip(trainingCollection);
+      setRecoveryMessage(`Exported ${trainingCollection.items.length} image LoRA collection ZIP.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not export collection ZIP.");
+    }
+  }
+  async function spawnCaptionAgent() {
+    if (!trainingCollection.items.length) return;
+    setIsSpawningCaptionAgent(true);
+    setCaptionJob({ status: "Preparing caption job" });
+    try {
+      const response = await fetch("/api/bfl_dashboard/v1/caption_agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collection: trainingCollection })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not prepare caption job");
+      const status = data.mode === "spawned"
+        ? `Spawned Codex caption agent${data.pid ? ` pid ${data.pid}` : ""}`
+        : "Prepared caption job";
+      setCaptionJob({ status, jobDir: data.jobDir });
+      setActiveTab("collections");
+    } catch (err) {
+      setCaptionJob({ status: "Caption job failed", error: err instanceof Error ? err.message : "Could not prepare caption job" });
+    } finally {
+      setIsSpawningCaptionAgent(false);
+    }
+  }
+  function copyCaptionBrief() {
+    void copyText(captionInstructions(trainingCollection));
   }
   return (
-    <main className="shell">
-      <TopBar apiKey={apiKey} onApiKeyChange={setApiKey} />
-      <DashboardStats
-        assetCount={assets.length}
-        runCount={runLog.length}
-        failedRunCount={failedRunCount}
-        totalActualCredits={totalActualCredits}
-        estimatedBatchCredits={batchTotalEstimate}
-        balanceCredits={balance.credits}
-        batchCount={batchCount}
-        promptTokens={promptTokens}
-        outputMegapixels={outputMegapixels}
-        lastRunAt={runLog[0]?.timestamp}
-      />
-      <section className="workspace">
-        <PromptLibrary
-          prompts={prompts}
-          activeId={activeId}
-          selectedIds={selectedComboIds}
-          onSelect={selectPrompt}
-          onToggleSelected={toggleComboPrompt}
-          onBuildCombo={createComboPrompt}
-          onExport={() => downloadText("bfl-flower-prompts.json", JSON.stringify(prompts, null, 2))}
-        />
-        <PromptEditor
-          activePrompt={activePrompt}
-          promptText={promptText}
-          onPromptChange={setPromptText}
-          onImport={importPromptJson}
-          onSave={savePrompt}
-          onReset={() => setPromptText(formatPrompt(activePrompt?.prompt || promptText))}
-        />
-        <RunPanel
-          model={model}
-          width={width}
-          height={height}
-          seed={seed}
-          promptUpsampling={promptUpsampling}
-          batchCount={batchCount}
-          batchMode={batchMode}
+    <>
+      <BackgroundShader />
+      <main className="shell">
+        <TopBar apiKey={apiKey} onApiKeyChange={setApiKey} />
+        <DashboardStats
+          assetCount={assets.length}
+          promptCount={prompts.length}
           selectedPromptCount={selectedComboIds.length}
-          batchProgress={batchProgress}
-          references={references}
-          referenceCue={referenceCue}
+          runCount={runLog.length}
+          failedRunCount={failedRunCount}
+          totalActualCredits={totalActualCredits}
+          estimatedBatchCredits={batchTotalEstimate}
+          balanceCredits={balance.credits}
+          batchCount={batchCount}
           promptTokens={promptTokens}
-          estimatedCredits={costEstimate.credits}
-          estimatedUsd={costEstimate.usd}
-          costLabel={costEstimate.label}
-          balance={balance}
+          outputMegapixels={outputMegapixels}
           isCheckingBalance={isCheckingBalance}
-          isGenerating={isGenerating}
-          error={error || balance.error || ""}
-          onModelChange={setModel}
-          onWidthChange={setWidth}
-          onHeightChange={setHeight}
-          onSeedChange={setSeed}
-          onPromptUpsamplingChange={setPromptUpsampling}
-          onBatchCountChange={(value) => setBatchCount(clampBatchCount(value))}
-          onBatchModeChange={setBatchMode}
-          onReferencesChange={setReferences}
-          onReferenceCueChange={setReferenceCue}
-          onReferenceUpload={onReferenceUpload}
-          onReferenceFiles={addReferenceFiles}
-          onAddReferenceUrl={addReferenceUrl}
+          lastRunAt={runLog[0]?.timestamp}
           onCheckBalance={checkBalance}
-          onGenerate={generate}
         />
-      </section>
-      {recoveryMessage && <p className="statusLine">{recoveryMessage}</p>}
-      <DashboardTabs
-        activeTab={activeTab}
-        assetCount={assets.length}
-        runCount={runLog.length}
-        onTabChange={setActiveTab}
-        assets={
-          <AssetLibrary
-            assets={assets}
-            filteredAssets={filteredAssets}
-            searchQuery={searchQuery}
-            gridSize={gridSize}
-            aspectRatio={aspectRatio}
-            metadataAssetId={metadataAssetId}
-            onSearchChange={setSearchQuery}
-            onGridSizeChange={setGridSize}
-            onAspectRatioChange={setAspectRatio}
-            onExport={() =>
-              downloadText("bfl-flower-assets.json", JSON.stringify(assets.map(stripAssetForStorage), null, 2))
-            }
-            onClear={clearAssets}
-            onRecover={recoverStoredAssets}
-            onToggleFavorite={toggleFavorite}
-            onSendToPrompt={sendAssetToPrompt}
-            onSendToReference={sendAssetToReference}
-            onToggleMetadata={(id) => setMetadataAssetId(metadataAssetId === id ? null : id)}
-            onOpen={setSelectedAsset}
-            onDownload={downloadAssetImage}
-            onDelete={deleteAsset}
+        <section className="workspace">
+          <PromptLibrary
+            prompts={prompts}
+            activeId={activeId}
+            selectedIds={selectedComboIds}
+            onSelect={selectPrompt}
+            onToggleSelected={toggleComboPrompt}
+            onBuildCombo={createComboPrompt}
+            onExport={() => downloadText("bfl-flower-prompts.json", JSON.stringify(prompts, null, 2))}
           />
-        }
-        runs={
-          <GenerationLog
-            entries={runLog}
-            onExport={() => downloadText("bfl-run-log.json", JSON.stringify(runLog, null, 2))}
-            onClear={() => setRunLog([])}
+          <PromptEditor
+            activePrompt={activePrompt}
+            promptText={promptText}
+            onPromptChange={setPromptText}
+            onImport={importPromptJson}
+            onSave={savePrompt}
+            onReset={() => setPromptText(formatPrompt(activePrompt?.prompt || promptText))}
           />
-        }
-        mcp={
-          <McpPanel
+          <RunPanel
             model={model}
             width={width}
             height={height}
+            seed={seed}
+            promptUpsampling={promptUpsampling}
             batchCount={batchCount}
             batchMode={batchMode}
-            selectedPromptIds={selectedComboIds}
-            runPlanPayload={runPlanPayload}
-            prompt={promptForRun}
+            selectedPromptCount={selectedComboIds.length}
+            batchProgress={batchProgress}
+            references={references}
+            referenceCue={referenceCue}
             promptTokens={promptTokens}
-            referencesCount={references.filter((reference) => Boolean(reference.value)).length}
-            balance={balance}
-            runLog={runLog}
+            estimatedCredits={costEstimate.credits}
+            estimatedUsd={costEstimate.usd}
+            costLabel={costEstimate.label}
+            isGenerating={isGenerating}
+            error={error || balance.error || ""}
+            onModelChange={setModel}
+            onWidthChange={setWidth}
+            onHeightChange={setHeight}
+            onSeedChange={setSeed}
+            onPromptUpsamplingChange={setPromptUpsampling}
+            onBatchCountChange={(value) => setBatchCount(clampBatchCount(value))}
+            onBatchModeChange={setBatchMode}
+            onReferencesChange={setReferences}
+            onReferenceCueChange={setReferenceCue}
+            onReferenceUpload={onReferenceUpload}
+            onReferenceFiles={addReferenceFiles}
+            onAddReferenceUrl={addReferenceUrl}
+            onGenerate={generate}
           />
-        }
-      />
-      <Lightbox
-        asset={selectedAsset}
-        onClose={() => setSelectedAsset(null)}
-        onSendToPrompt={sendAssetToPrompt}
-        onSendToReference={sendAssetToReference}
-        onDownload={downloadAssetImage}
-      />
-    </main>
+        </section>
+        {recoveryMessage && <p className="statusLine">{recoveryMessage}</p>}
+        <DashboardTabs
+          activeTab={activeTab}
+          assetCount={assets.length}
+          runCount={runLog.length}
+          collectionCount={trainingCollection.items.length}
+          onTabChange={setActiveTab}
+          assets={
+            <AssetLibrary
+              assets={assets}
+              filteredAssets={filteredAssets}
+              searchQuery={searchQuery}
+              gridSize={gridSize}
+              aspectRatio={aspectRatio}
+              metadataAssetId={metadataAssetId}
+              selectedAssetIds={selectedAssetIds}
+              onSearchChange={setSearchQuery}
+              onGridSizeChange={setGridSize}
+              onAspectRatioChange={setAspectRatio}
+              onExport={() =>
+                downloadText("bfl-flower-assets.json", JSON.stringify(assets.map(stripAssetForStorage), null, 2))
+              }
+              onClear={clearAssets}
+              onRecover={recoverStoredAssets}
+              onToggleFavorite={toggleFavorite}
+              onSendToPrompt={sendAssetToPrompt}
+              onSendToReference={sendAssetToReference}
+              onToggleSelected={toggleAssetSelection}
+              onToggleMetadata={(id) => setMetadataAssetId(metadataAssetId === id ? null : id)}
+              onOpen={setSelectedAsset}
+              onDownload={downloadAssetImage}
+              onDelete={deleteAsset}
+            />
+          }
+          runs={
+            <GenerationLog
+              entries={runLog}
+              onExport={() => downloadText("bfl-run-log.json", JSON.stringify(runLog, null, 2))}
+              onClear={() => setRunLog([])}
+            />
+          }
+          collections={
+            <TrainingCollectionsPanel
+              collection={trainingCollection}
+              selectedAssetCount={selectedAssetIds.length}
+              captionJob={captionJob}
+              isSpawningCaptionAgent={isSpawningCaptionAgent}
+              onCollectionChange={setTrainingCollection}
+              onAddSelectedAssets={addSelectedAssetsToCollection}
+              onAddFiles={addCollectionFiles}
+              onRemoveItem={removeCollectionItem}
+              onCaptionChange={updateCollectionCaption}
+              onExportZip={exportTrainingZip}
+              onSpawnCaptionAgent={spawnCaptionAgent}
+              onCopyCaptionPrompt={copyCaptionBrief}
+            />
+          }
+          apis={<ApisPanel captionJobPath={captionJob?.jobDir} />}
+          mcp={
+            <McpPanel
+              model={model}
+              width={width}
+              height={height}
+              batchCount={batchCount}
+              batchMode={batchMode}
+              selectedPromptIds={selectedComboIds}
+              runPlanPayload={runPlanPayload}
+              prompt={promptForRun}
+              promptTokens={promptTokens}
+              referencesCount={references.filter((reference) => Boolean(reference.value)).length}
+              balance={balance}
+              runLog={runLog}
+            />
+          }
+        />
+        <Lightbox
+          asset={selectedAsset}
+          onClose={() => setSelectedAsset(null)}
+          onSendToPrompt={sendAssetToPrompt}
+          onSendToReference={sendAssetToReference}
+          onDownload={downloadAssetImage}
+        />
+      </main>
+    </>
   );
 }
