@@ -2,7 +2,8 @@
 
 Token-protected Cloudflare Worker for durable BFL outputs.
 
-- R2 stores the generated PNG, `.prompt.txt`, and `.json` metadata.
+- R2 stores the generated PNG, `.prompt.txt`, and `.json` metadata under
+  `BFL-API/outputs/YYYY-MM-DD/`.
 - D1 stores searchable metadata for the dashboard and agents.
 - The local Next dashboard keeps the BFL API key local and syncs outputs here
   only when `BFL_ASSET_WORKER_URL` and `BFL_ASSET_WORKER_TOKEN` are configured.
@@ -39,3 +40,7 @@ BFL_ASSET_WORKER_TOKEN=the-same-token
 After that, every successful local BFL generation is saved locally and uploaded
 to R2/D1 automatically. `GET /api/outputs` merges remote archive rows with local
 filesystem outputs.
+
+The dashboard reads archived images back through the Worker and hydrates them as
+data URLs, so any R2-backed output can be sent into the reference slots for a new
+BFL prompt without exposing the bucket publicly.

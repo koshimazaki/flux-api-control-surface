@@ -42,6 +42,8 @@ type AssetRow = {
 };
 
 let schemaPromise: Promise<void> | null = null;
+const R2_ROOT_PREFIX = "BFL-API";
+const R2_OUTPUTS_PREFIX = `${R2_ROOT_PREFIX}/outputs`;
 
 function corsHeaders(request: Request, env: Env) {
   const origin = request.headers.get("origin") || "";
@@ -153,6 +155,7 @@ function numberOrNull(value: unknown) {
 function assetFromRow(row: AssetRow, request: Request) {
   const metadata = JSON.parse(row.metadata_json || "{}");
   const origin = new URL(request.url).origin;
+  const remoteImageUrl = `${origin}/api/assets/${encodeURIComponent(row.id)}/image`;
   return {
     id: row.id,
     title: row.title,
@@ -165,7 +168,7 @@ function assetFromRow(row: AssetRow, request: Request) {
     createdAt: row.created_at,
     timestamp: Date.parse(row.created_at),
     sampleUrl: row.sample_url,
-    imageUrl: `${origin}/api/assets/${encodeURIComponent(row.id)}/image`,
+    imageUrl: remoteImageUrl,
     payload: metadata.payload || {},
     runSettings: metadata.runSettings,
     costCredits: row.cost_credits,
@@ -177,6 +180,8 @@ function assetFromRow(row: AssetRow, request: Request) {
     remoteImageKey: row.r2_image_key,
     remotePromptKey: row.r2_prompt_key,
     remoteMetadataKey: row.r2_metadata_key,
+    remoteImageUrl,
+    r2RootPrefix: R2_ROOT_PREFIX,
     updatedAt: row.updated_at
   };
 }
@@ -198,15 +203,16 @@ async function uploadAsset(request: Request, env: Env) {
   const createdAt = runSettings.createdAt || metadata.createdAt || now;
   const date = createdAt.slice(0, 10);
   const fileBaseName = cleanSegment(body.fileBaseName || `${date}_${title}_${id}`) || id;
-  const imageKey = `outputs/${date}/${fileBaseName}.${image.extension}`;
-  const promptKey = `outputs/${date}/${fileBaseName}.prompt.txt`;
-  const metadataKey = `outputs/${date}/${fileBaseName}.json`;
+  const imageKey = `${R2_OUTPUTS_PREFIX}/${date}/${fileBaseName}.${image.extension}`;
+  const promptKey = `${R2_OUTPUTS_PREFIX}/${date}/${fileBaseName}.prompt.txt`;
+  const metadataKey = `${R2_OUTPUTS_PREFIX}/${date}/${fileBaseName}.json`;
   const metadataJson = JSON.stringify({
     ...metadata,
     remoteArchive: {
       imageKey,
       promptKey,
       metadataKey,
+      rootPrefix: R2_ROOT_PREFIX,
       syncedAt: now
     }
   });
@@ -288,6 +294,7 @@ async function uploadAsset(request: Request, env: Env) {
       r2ImageKey: imageKey,
       r2PromptKey: promptKey,
       r2MetadataKey: metadataKey,
+      r2RootPrefix: R2_ROOT_PREFIX,
       remoteImageUrl: `${new URL(request.url).origin}/api/assets/${encodeURIComponent(id)}/image`
     }
   });

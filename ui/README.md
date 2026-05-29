@@ -45,9 +45,13 @@ BFL_ASSET_WORKER_URL=https://bfl-api-assets.YOUR_SUBDOMAIN.workers.dev
 BFL_ASSET_WORKER_TOKEN=...
 ```
 
-The Worker stores images/prompts/metadata in R2 and writes searchable rows to D1.
-See `BFL/cloudflare/README.md` for bucket, database, migration, and deploy steps.
-If those env vars are missing, the dashboard simply stays filesystem-only.
+The Worker stores images/prompts/metadata in `BFL-API/outputs/YYYY-MM-DD/` on R2
+and writes searchable rows to D1. See `BFL/cloudflare/README.md` for bucket,
+database, migration, and deploy steps. If those env vars are missing, the
+dashboard simply stays filesystem-only.
+
+Archived R2 outputs are read back through the dashboard server as data URLs, so
+the existing "send image to references" button works for remote assets too.
 
 ## Balance + Cost
 

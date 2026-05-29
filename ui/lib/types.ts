@@ -52,6 +52,7 @@ export type AssetRecord = {
   remotePromptKey?: string | null;
   remoteMetadataKey?: string | null;
   remoteImageUrl?: string | null;
+  r2RootPrefix?: string | null;
 };
 
 export type AspectRatio = "free" | "1:1" | "16:9" | "4:3" | "3:4" | "9:16";

@@ -118,7 +118,8 @@ export function normalizeLibraryRecord(item: any): AssetRecord | null {
     remoteImageKey: item.remoteImageKey,
     remotePromptKey: item.remotePromptKey,
     remoteMetadataKey: item.remoteMetadataKey,
-    remoteImageUrl: item.remoteImageUrl
+    remoteImageUrl: item.remoteImageUrl,
+    r2RootPrefix: item.r2RootPrefix
   };
 }
 
@@ -181,6 +182,7 @@ export function toAimediaRecord(asset: AssetRecord) {
     remoteImageKey: asset.remoteImageKey,
     remotePromptKey: asset.remotePromptKey,
     remoteMetadataKey: asset.remoteMetadataKey,
-    remoteImageUrl: asset.remoteImageUrl
+    remoteImageUrl: asset.remoteImageUrl,
+    r2RootPrefix: asset.r2RootPrefix
   };
 }

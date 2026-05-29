@@ -143,6 +143,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                       remoteImageKey: asset.remoteImageKey,
                       remotePromptKey: asset.remotePromptKey,
                       remoteMetadataKey: asset.remoteMetadataKey,
+                      r2RootPrefix: asset.r2RootPrefix,
                       inputMp: asset.inputMp,
                       outputMp: asset.outputMp,
                       runSettings: asset.runSettings,

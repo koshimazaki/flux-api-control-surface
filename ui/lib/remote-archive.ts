@@ -30,6 +30,8 @@ type RemoteAsset = {
   remoteImageKey?: string | null;
   remotePromptKey?: string | null;
   remoteMetadataKey?: string | null;
+  remoteImageUrl?: string | null;
+  r2RootPrefix?: string | null;
 };
 
 export function remoteArchiveConfig(): RemoteArchiveConfig | null {
@@ -108,7 +110,9 @@ function assetFromRemote(row: RemoteAsset, imageDataUrl: string): AssetRecord {
     creditDelta: row.creditDelta ?? null,
     remoteImageKey: row.remoteImageKey ?? null,
     remotePromptKey: row.remotePromptKey ?? null,
-    remoteMetadataKey: row.remoteMetadataKey ?? null
+    remoteMetadataKey: row.remoteMetadataKey ?? null,
+    remoteImageUrl: row.remoteImageUrl || row.imageUrl || null,
+    r2RootPrefix: row.r2RootPrefix ?? null
   };
 }
 
@@ -146,6 +150,7 @@ export async function syncOutputToRemote(options: {
       r2ImageKey: string;
       r2PromptKey: string;
       r2MetadataKey: string;
+      r2RootPrefix: string;
       remoteImageUrl: string;
     };
   }>("/api/assets", {
