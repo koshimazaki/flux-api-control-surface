@@ -1,0 +1,134 @@
+{
+  "style_frame": "cinematic detailed film photography, botanical macro film still, shot on Kodak Portra 400, natural grain, plausible plant anatomy, high-frequency organic detail, natural imperfections, creamy optical bokeh",
+  "delivery_constraints": "clean unmarked label-free specimen image with a blank botanical background and plain continuous framing",
+  "species": [
+    {
+      "name": "passion flower",
+      "notes": "jungle tropical plant, engineered radial filaments, alien crown structure, purple-white tendrils, sacred cybernetic plant design"
+    },
+    {
+      "name": "sea anemone flower",
+      "notes": "underwater flower-like organism, soft tentacles, glowing colors, organic symmetry, strange living movement, alien aquatic flora"
+    },
+    {
+      "name": "crinoid sea lily",
+      "notes": "undersea flower-like animal, feathery radial arms, ancient alien symmetry, drifting aquatic crown form"
+    },
+    {
+      "name": "coral polyp bloom",
+      "notes": "reef organism behaving like a flower field, tiny glowing polyps, branching mineral skeleton, soft living mouths"
+    },
+    {
+      "name": "venus flower basket sponge",
+      "notes": "underwater glass lattice structure, delicate tubular cage, translucent silica geometry, alien bridal-veil texture"
+    },
+    {
+      "name": "rafflesia",
+      "notes": "jungle parasitic flower, huge fleshy red-orange spotted petals, creature-like bloom, horror sci-fi planet energy"
+    },
+    {
+      "name": "nepenthes tropical pitcher plant",
+      "notes": "living organic vessel, alien mouth shape, glowing liquid, wet tendrils, cinematic jungle close-up"
+    },
+    {
+      "name": "heliconia lobster claw plant",
+      "notes": "sharp sculptural bracts, saturated reds oranges and yellows, natural armor shapes, alien fin-like geometry"
+    },
+    {
+      "name": "victoria amazonica giant water lily",
+      "notes": "huge circular pads, ribbed underside, alien swamp temple atmosphere, floating architectural plant form"
+    },
+    {
+      "name": "tillandsia air plant",
+      "notes": "spiky rootless sculptural plant, floating biomechanical growth, silvery green arms, otherworldly epiphyte structure"
+    },
+    {
+      "name": "lithops living stones",
+      "notes": "tiny desert plants like alien eggs, stones, creature skin, cracked windows, surreal macro texture"
+    },
+    {
+      "name": "black bat flower",
+      "notes": "gothic alien flower, dark petals, long whisker-like tendrils, insect-like silhouette, deep shadow detail"
+    },
+    {
+      "name": "corpse flower amorphophallus titanum",
+      "notes": "massive fleshy architectural bloom, sci-fi jungle monument, ribbed spadix, strange organic scale"
+    },
+    {
+      "name": "strangler fig roots",
+      "notes": "twisting root architecture, organic cage shapes, cybernetic jungle form, tree-body lattice rather than flower"
+    },
+    {
+      "name": "king protea",
+      "notes": "large armored crown bloom, geometric bracts, dry mountain fynbos plant, sculptural ceremonial flower"
+    },
+    {
+      "name": "bird of paradise",
+      "notes": "angular tropical bloom, orange and blue beak-like structure, sharp leaf fins, kinetic alien bird-flower profile"
+    },
+    {
+      "name": "datura moonflower",
+      "notes": "night-blooming trumpet flower, poisonous sacred aura, pale folded cone, moonlit luminous petals"
+    },
+    {
+      "name": "hoya wax flower",
+      "notes": "cluster of tiny glossy star flowers, waxy porcelain surface, precise radial geometry, jewel-like macro detail"
+    },
+    {
+      "name": "ghost pipe monotropa",
+      "notes": "pale non-photosynthetic forest plant, translucent waxy stems, ghostly bowed flower, fungal alien woodland mood"
+    },
+    {
+      "name": "welwitschia mirabilis",
+      "notes": "ancient desert plant with two torn ribbon leaves, fossil-like survival form, strange alien ground-hugging body"
+    }
+  ],
+  "locations": [
+    "dark botanical laboratory",
+    "humid glasshouse",
+    "misty rainforest floor",
+    "controlled biodome chamber",
+    "moonlit conservatory",
+    "museum specimen table",
+    "alien swamp pool",
+    "cracked volcanic soil"
+  ],
+  "plant_forms": [
+    "nepenthes pitcher-vessel anatomy with a wet lip and inner glowing liquid",
+    "lithops living-stone skin with cracked translucent windows",
+    "strangler fig root-cage architecture wrapping around the bloom",
+    "victoria amazonica water-lily pad geometry with ribbed structural underside",
+    "tillandsia air-plant arms with rootless floating epiphyte structure",
+    "heliconia armor-bract fins with saturated tropical blade shapes",
+    "corpse-flower monument scale with a ribbed central spadix",
+    "sea-anemone tentacle movement and radial soft-body symmetry"
+  ],
+  "times_of_day": [
+    "early morning",
+    "golden hour",
+    "blue hour",
+    "moonlight",
+    "overcast daylight",
+    "late afternoon",
+    "night with controlled studio light",
+    "dawn mist"
+  ],
+  "shot_types": [
+    "extreme macro photograph",
+    "top-down botanical specimen photograph",
+    "cinematic close-up photograph",
+    "greenhouse documentary photograph",
+    "studio botanical portrait",
+    "scientific macro photograph"
+  ],
+  "lighting": [
+    "magic hour backlight with warm rim light",
+    "cinematic side light with backlit pollen dust",
+    "soft diffused museum light with warm highlights",
+    "shallow depth of field with creamy bokeh",
+    "moody cinematic low-key light on a dark background",
+    "natural lens bokeh with golden-hour haze",
+    "wet surface highlights under controlled film light",
+    "crisp silhouette with soft background falloff"
+  ]
+}

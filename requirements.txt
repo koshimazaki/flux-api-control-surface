@@ -1,0 +1,30 @@
+# BFL-specific deps — additions on top of root requirements.txt
+#
+# Track 1 (FLUX MCP asset generation): NO LOCAL DEPS — uses Codex/Claude MCP layer
+#   Register once via: codex mcp add FLUX --url https://mcp.bfl.ai
+#   Then call tools (generate_image, generate_variations, get_history, get_credits) from any Claude session.
+#
+# Track 2 (Klein style LoRA training): Self-hosted via AI-Toolkit
+#   git clone https://github.com/ostris/ai-toolkit.git
+#   cd ai-toolkit
+#   pip install -r requirements.txt
+#   # follow https://docs.bfl.ai/flux_2/flux2_klein_training_example for FLUX.2 Klein recipe
+
+# --- Beyond root requirements.txt ---
+
+# For programmatic batch generation via the MCP (e.g., feeding into LTX reference datasets)
+# — this is optional; mostly you'd call BFL MCP via Codex/Claude conversational flow.
+mcp>=1.0                     # Python MCP client for scripted access (alt: just use claude-code interactively)
+
+# AI-Toolkit deps (when running Klein training locally — most pulled in by ai-toolkit's own requirements.txt)
+toml>=0.10
+prodigyopt>=1.0              # Prodigy optimizer often used in ai-toolkit configs
+lycoris-lora>=2.2            # LyCORIS variants (LoCon, LoHA) — ai-toolkit supports these
+
+# Image processing helpers for caption generation
+# Pillow + transformers come from root
+google-genai>=1.0             # Gemini vision captioning helper for GlitchHunter/Klein datasets
+
+# --- Training-only on RunPod (commented) ---
+# bitsandbytes
+# xformers

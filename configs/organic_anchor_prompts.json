@@ -1,0 +1,74 @@
+[
+  {
+    "id": "flower_macro_001",
+    "domain": "flower",
+    "seed": 1101,
+    "prompt": "Macro photograph of a single translucent flower bloom, radial petals, visible pollen dust, clean dark background, centered composition, high detail, clean unmarked background"
+  },
+  {
+    "id": "flower_macro_002",
+    "domain": "flower",
+    "seed": 1102,
+    "prompt": "Close macro view of an exotic orchid-like flower, folded petals and organic symmetry, luminous color variation, shallow depth of field, clean unmarked background"
+  },
+  {
+    "id": "flower_macro_003",
+    "domain": "flower",
+    "seed": 1103,
+    "prompt": "Top-down botanical specimen image of a geometric flower rosette, many layered petals, crisp silhouette, neutral background, clean unmarked background"
+  },
+  {
+    "id": "flower_macro_004",
+    "domain": "flower",
+    "seed": 1104,
+    "prompt": "Extreme close-up of flower petals with dew, soft membrane texture, central bloom visible, high-resolution natural detail, clean unmarked background"
+  },
+  {
+    "id": "bacteria_macro_001",
+    "domain": "bacteria",
+    "seed": 1201,
+    "prompt": "Microscope-style image of a bacteria colony, branching cellular clusters, translucent membranes, organic growth pattern, scientific macro aesthetic, clean unmarked background"
+  },
+  {
+    "id": "bacteria_macro_002",
+    "domain": "bacteria",
+    "seed": 1202,
+    "prompt": "Abstract microscopic cells suspended in fluid, rounded bacteria forms, tiny cilia, soft internal glow, high-detail biological texture, clean unmarked background"
+  },
+  {
+    "id": "bacteria_macro_003",
+    "domain": "bacteria",
+    "seed": 1203,
+    "prompt": "Petri dish macro photograph of bacterial colony structures, radial growth rings, branching edges, clean laboratory lighting, clean unmarked background"
+  },
+  {
+    "id": "bacteria_macro_004",
+    "domain": "bacteria",
+    "seed": 1204,
+    "prompt": "High-detail cellular membrane landscape, clusters of rod-shaped and spherical bacteria, organic translucent material, clean unmarked background"
+  },
+  {
+    "id": "fabric_macro_001",
+    "domain": "fabric",
+    "seed": 1301,
+    "prompt": "Macro photograph of woven fabric, visible threads, folds and ripples, tactile fibers, clean studio lighting, high detail, clean unmarked background"
+  },
+  {
+    "id": "fabric_macro_002",
+    "domain": "fabric",
+    "seed": 1302,
+    "prompt": "Close-up of translucent silk fabric, layered folds, delicate fiber texture, flowing material surface, neutral background, clean unmarked background"
+  },
+  {
+    "id": "fabric_macro_003",
+    "domain": "fabric",
+    "seed": 1303,
+    "prompt": "Macro image of knitted textile structure, interlocking threads, deep folds, detailed woven geometry, clean unmarked background"
+  },
+  {
+    "id": "fabric_macro_004",
+    "domain": "fabric",
+    "seed": 1304,
+    "prompt": "Detailed fabric surface with stretched fibers and soft waves, material study, high-resolution tactile texture, clean unmarked background"
+  }
+]

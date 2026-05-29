@@ -1,0 +1,29 @@
+# Dependencies and builds
+ui/node_modules/
+ui/.next/
+ui/out/
+ui/*.tsbuildinfo
+
+# Python caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local outputs and generated media
+outputs/
+renders/
+samples/
+
+# Secrets and local env
+.env
+.env.local
+*.key
+secrets.json
+api_keys.txt
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.log
+logs/
