@@ -114,7 +114,11 @@ export function normalizeLibraryRecord(item: any): AssetRecord | null {
     creditDelta: item.creditDelta,
     localImagePath: item.localImagePath,
     localPromptPath: item.localPromptPath,
-    localMetadataPath: item.localMetadataPath
+    localMetadataPath: item.localMetadataPath,
+    remoteImageKey: item.remoteImageKey,
+    remotePromptKey: item.remotePromptKey,
+    remoteMetadataKey: item.remoteMetadataKey,
+    remoteImageUrl: item.remoteImageUrl
   };
 }
 
@@ -173,6 +177,10 @@ export function toAimediaRecord(asset: AssetRecord) {
     creditDelta: asset.creditDelta,
     localImagePath: asset.localImagePath,
     localPromptPath: asset.localPromptPath,
-    localMetadataPath: asset.localMetadataPath
+    localMetadataPath: asset.localMetadataPath,
+    remoteImageKey: asset.remoteImageKey,
+    remotePromptKey: asset.remotePromptKey,
+    remoteMetadataKey: asset.remoteMetadataKey,
+    remoteImageUrl: asset.remoteImageUrl
   };
 }

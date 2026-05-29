@@ -129,7 +129,11 @@ export function buildAssetRecord(
     creditDelta: data.submit?.creditDelta ?? null,
     localImagePath: data.outputFiles?.imagePath ?? null,
     localPromptPath: data.outputFiles?.promptPath ?? null,
-    localMetadataPath: data.outputFiles?.metadataPath ?? null
+    localMetadataPath: data.outputFiles?.metadataPath ?? null,
+    remoteImageKey: data.outputFiles?.remote?.outputFiles?.r2ImageKey ?? null,
+    remotePromptKey: data.outputFiles?.remote?.outputFiles?.r2PromptKey ?? null,
+    remoteMetadataKey: data.outputFiles?.remote?.outputFiles?.r2MetadataKey ?? null,
+    remoteImageUrl: data.outputFiles?.remote?.outputFiles?.remoteImageUrl ?? null
   };
 }
 

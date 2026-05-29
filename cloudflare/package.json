@@ -1,0 +1,19 @@
+{
+  "name": "bfl-api-assets-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "r2:create": "wrangler r2 bucket create bfl-api-outputs",
+    "d1:create": "wrangler d1 create bfl_api_assets",
+    "d1:migrate": "wrangler d1 migrations apply bfl_api_assets"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260528.1",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.95.0"
+  }
+}

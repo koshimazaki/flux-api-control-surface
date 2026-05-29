@@ -3,6 +3,9 @@ ui/node_modules/
 ui/.next/
 ui/out/
 ui/*.tsbuildinfo
+cloudflare/node_modules/
+cloudflare/.wrangler/
+cloudflare/.dev.vars
 
 # Python caches
 __pycache__/
@@ -11,9 +14,9 @@ __pycache__/
 venv/
 
 # Local outputs and generated media
-outputs/
-renders/
-samples/
+/outputs/
+/renders/
+/samples/
 
 # Secrets and local env
 .env

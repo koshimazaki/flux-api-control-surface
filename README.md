@@ -76,6 +76,11 @@ Open `http://localhost:3017` to edit the structured prompts, paste a BFL API
 key, add up to three reference images, generate, and review outputs in an
 AImedia-compatible local library (`nb2_generations`).
 
+Optional durable archive: configure the Worker in `cloudflare/` and set
+`BFL_ASSET_WORKER_URL` plus `BFL_ASSET_WORKER_TOKEN` in `ui/.env.local`. The
+dashboard will keep local files and also upload generated PNGs, prompts, and
+metadata to R2 with searchable D1 rows.
+
 Use an uploaded BFL Finetune / Klein LoRA from the API:
 
 ```bash

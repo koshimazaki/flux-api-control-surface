@@ -88,8 +88,10 @@ export function removeAssetImages(assets: AssetRecord[]) {
 
 export function extensionForAsset(asset: AssetRecord) {
   if (asset.localImagePath?.toLowerCase().endsWith(".png")) return "png";
+  if (asset.remoteImageKey?.toLowerCase().endsWith(".png")) return "png";
   if (asset.imageDataUrl?.startsWith("data:image/png")) return "png";
   if (asset.imageDataUrl?.startsWith("data:image/webp")) return "webp";
+  if (asset.remoteImageKey?.toLowerCase().endsWith(".webp")) return "webp";
   return "jpg";
 }
 

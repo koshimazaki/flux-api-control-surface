@@ -23,14 +23,31 @@ The BFL API key can be entered in the UI, but the safer local path is
 BFL_API_KEY=...
 ```
 
-The API routes read that server-side value when the UI field is blank. In a
-deployed environment, use platform secrets instead of browser storage.
+The API routes read that server-side value when the UI field is blank. Do not
+put `BFL_API_KEY` on an unprotected public deployment: public callers could
+spend your credits. For demos, keep BFL generation local and only expose the
+token-protected R2/D1 archive Worker.
 
 Completed generations are also written to:
 
 `BFL/outputs/bfl-api-dashboard/YYYY-MM-DD/`
 
 Each generation saves an image, `.prompt.txt`, and `.json` metadata file.
+
+## Optional R2 + D1 Archive
+
+The safer demo shape is local generation plus remote archive storage. The local
+dashboard keeps the BFL API key on your machine, then syncs successful outputs to
+a token-protected Cloudflare Worker:
+
+```bash
+BFL_ASSET_WORKER_URL=https://bfl-api-assets.YOUR_SUBDOMAIN.workers.dev
+BFL_ASSET_WORKER_TOKEN=...
+```
+
+The Worker stores images/prompts/metadata in R2 and writes searchable rows to D1.
+See `BFL/cloudflare/README.md` for bucket, database, migration, and deploy steps.
+If those env vars are missing, the dashboard simply stays filesystem-only.
 
 ## Balance + Cost
 
@@ -61,7 +78,8 @@ The UI is also an agent/MCP-facing local API:
   calls the local BFL route and saves image/prompt/metadata files.
 - `GET /api/mcp/manifest` describes the complete local route surface plus native
   FLUX MCP handoff options.
-- `GET /api/outputs` hydrates saved filesystem outputs back into the gallery.
+- `GET /api/outputs` hydrates saved filesystem outputs and, when configured,
+  archived R2/D1 outputs back into the gallery.
 
 ## MCP Note
 

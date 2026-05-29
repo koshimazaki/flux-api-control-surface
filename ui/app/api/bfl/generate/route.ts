@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { embedPngMetadata } from "@/lib/png-metadata";
+import { syncOutputToRemote } from "@/lib/remote-archive";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -182,7 +183,7 @@ async function saveOutputFiles(options: {
     writeFile(metadataPath, JSON.stringify(metadataWithFiles, null, 2), "utf8")
   ]);
 
-  return { imagePath, promptPath, metadataPath, outputDir };
+  return { imagePath, promptPath, metadataPath, outputDir, fileBaseName: baseName };
 }
 
 export async function POST(request: NextRequest) {
@@ -269,7 +270,7 @@ export async function POST(request: NextRequest) {
       extension === "png" ? embedPngMetadata(downloaded.buffer, metadata) : downloaded.buffer;
     const contentType = contentTypeForExtension(extension, downloaded.contentType);
     const imageDataUrl = `data:${contentType};base64,${imageBuffer.toString("base64")}`;
-    const outputFiles = await saveOutputFiles({
+    const localOutputFiles = await saveOutputFiles({
       id: submitted.id || `${Date.now()}`,
       title: body.title || "bfl-generation",
       prompt,
@@ -277,11 +278,32 @@ export async function POST(request: NextRequest) {
       extension,
       metadata
     });
+    let remoteOutput = null;
+    try {
+      remoteOutput = await syncOutputToRemote({
+        id: submitted.id || `${Date.now()}`,
+        title: body.title || "bfl-generation",
+        prompt,
+        imageBuffer,
+        contentType,
+        extension,
+        fileBaseName: localOutputFiles.fileBaseName,
+        metadata
+      });
+    } catch (error) {
+      remoteOutput = {
+        ok: false,
+        error: error instanceof Error ? error.message : "Remote archive sync failed"
+      };
+    }
 
     return NextResponse.json({
       ...metadata,
       imageDataUrl,
-      outputFiles
+      outputFiles: {
+        ...localOutputFiles,
+        remote: remoteOutput
+      }
     });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Generation failed", 500);

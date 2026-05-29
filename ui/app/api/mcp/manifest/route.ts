@@ -69,7 +69,7 @@ export async function GET() {
       {
         method: "POST",
         path: "/api/dashboard/batch",
-        purpose: "Plan or execute a sequential dashboard batch that saves image, prompt, and metadata files.",
+        purpose: "Plan or execute a sequential dashboard batch that saves image, prompt, and metadata locally and, when configured, to R2/D1.",
         sideEffects: "Only when execute=true",
         auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body.",
         example: {
@@ -86,7 +86,7 @@ export async function GET() {
       {
         method: "POST",
         path: "/api/bfl/generate",
-        purpose: "Call BFL HTTP API once, poll result, save files under BFL/outputs/bfl-api-dashboard/YYYY-MM-DD.",
+        purpose: "Call BFL HTTP API once, poll result, save files under BFL/outputs/bfl-api-dashboard/YYYY-MM-DD, and optionally sync the archive Worker.",
         sideEffects: true,
         auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body."
       },
@@ -100,7 +100,7 @@ export async function GET() {
       {
         method: "GET",
         path: "/api/outputs",
-        purpose: "Hydrate saved filesystem outputs back into the dashboard gallery.",
+        purpose: "Hydrate saved filesystem and configured R2/D1 archive outputs back into the dashboard gallery.",
         sideEffects: false
       },
       {
@@ -120,7 +120,7 @@ export async function GET() {
     recommendedFlows: [
       "Use /api/dashboard/context to discover prompts and outputs.",
       "Use /api/dashboard/run-plan for a dry-run request plan with costs.",
-      "Use /api/dashboard/batch with execute=true when the dashboard should save dataset files.",
+      "Use /api/dashboard/batch with execute=true when the dashboard should save dataset files and sync remote archive storage.",
       "Use native FLUX MCP directly when the MCP client should own generation/history/credits instead of this local dashboard."
     ],
     safety: {

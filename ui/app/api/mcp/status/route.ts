@@ -26,7 +26,7 @@ export async function GET() {
     bridge: {
       mode: "browser-http-api-plus-agent-handoff",
       reason:
-        "MCP OAuth and tool calls belong in an MCP-compatible client or a server-side proxy. This UI exposes local HTTP routes so agents can read prompts, plan batches, call BFL API routes, and recover outputs."
+        "MCP OAuth and tool calls belong in an MCP-compatible client or a server-side proxy. This UI exposes local HTTP routes so agents can read prompts, plan batches, call BFL API routes, sync remote archives, and recover outputs."
     }
   });
 }
