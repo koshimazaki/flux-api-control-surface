@@ -183,7 +183,7 @@ textarea {
   gap: 16px;
   border: 1px solid var(--line);
   background:
-    linear-gradient(135deg, rgba(243, 241, 230, 0.07), transparent 36%),
+    linear-gradient(90deg, rgba(85, 102, 89, 0.3), transparent 46%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.62));
   backdrop-filter: blur(20px);
   border-radius: 8px;
@@ -362,8 +362,9 @@ h2 {
   overflow: hidden;
 }
 
-/* prompt editor panel: green frame over transparent black */
-.editor {
+/* prompt editor + output library: green panel over transparent black */
+.editor,
+.assetsPanel {
   background:
     linear-gradient(180deg, rgba(85, 102, 89, 0.5), rgba(85, 102, 89, 0.22)),
     rgba(0, 0, 0, 0.32);
