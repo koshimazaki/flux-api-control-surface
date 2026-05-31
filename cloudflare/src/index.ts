@@ -17,6 +17,19 @@ type UploadBody = {
   metadata?: Record<string, any>;
 };
 
+type ImageUploadBody = Pick<UploadBody, "imageBase64" | "imageDataUrl" | "contentType" | "extension">;
+
+type ReferenceUploadBody = ImageUploadBody & {
+  id?: string;
+  setId?: string;
+  setName?: string;
+  title?: string;
+  fileName?: string;
+  prompt?: string;
+  caption?: string;
+  metadata?: Record<string, any>;
+};
+
 type AssetRow = {
   id: string;
   title: string;
@@ -41,9 +54,26 @@ type AssetRow = {
   updated_at: string;
 };
 
+type ReferenceRow = {
+  id: string;
+  set_id: string;
+  set_name: string | null;
+  title: string;
+  file_name: string;
+  prompt: string | null;
+  caption: string | null;
+  mime_type: string;
+  r2_image_key: string;
+  r2_metadata_key: string;
+  metadata_json: string;
+  created_at: string;
+  updated_at: string;
+};
+
 let schemaPromise: Promise<void> | null = null;
 const R2_ROOT_PREFIX = "BFL-API";
 const R2_OUTPUTS_PREFIX = `${R2_ROOT_PREFIX}/outputs`;
+const R2_REFERENCES_PREFIX = `${R2_ROOT_PREFIX}/references`;
 
 function corsHeaders(request: Request, env: Env) {
   const origin = request.headers.get("origin") || "";
@@ -114,7 +144,26 @@ async function ensureSchema(env: Env) {
         updated_at TEXT NOT NULL
       )`
     ).run(),
-    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_assets_created_at ON assets(created_at DESC)").run()
+    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_assets_created_at ON assets(created_at DESC)").run(),
+    env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS reference_items (
+        id TEXT PRIMARY KEY,
+        set_id TEXT NOT NULL,
+        set_name TEXT,
+        title TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        prompt TEXT,
+        caption TEXT,
+        mime_type TEXT NOT NULL,
+        r2_image_key TEXT NOT NULL,
+        r2_metadata_key TEXT NOT NULL,
+        metadata_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`
+    ).run(),
+    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_reference_items_set_id ON reference_items(set_id)").run(),
+    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_reference_items_created_at ON reference_items(created_at DESC)").run()
   ]).then(() => undefined);
   return schemaPromise;
 }
@@ -127,13 +176,18 @@ function cleanSegment(value: string) {
     .slice(0, 180);
 }
 
+function baseNameWithoutExtension(value: string) {
+  const clean = cleanSegment(value);
+  return clean.replace(/\.(png|jpe?g|webp)$/i, "") || clean || "image";
+}
+
 function extensionFor(contentType: string, requested?: string) {
   if (requested === "webp" || contentType.includes("webp")) return "webp";
   if (requested === "jpg" || requested === "jpeg" || contentType.includes("jpeg")) return "jpg";
   return "png";
 }
 
-function decodeImage(body: UploadBody) {
+function decodeImage(body: ImageUploadBody) {
   const dataUrl = body.imageDataUrl || "";
   const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
   const contentType = body.contentType || match?.[1] || "image/png";
@@ -356,6 +410,166 @@ async function deleteAsset(request: Request, env: Env, id: string) {
   return json(request, env, { ok: true, id });
 }
 
+function referenceFromRow(row: ReferenceRow, request: Request) {
+  const metadata = JSON.parse(row.metadata_json || "{}");
+  const origin = new URL(request.url).origin;
+  const imageUrl = `${origin}/api/references/${encodeURIComponent(row.id)}/image`;
+  return {
+    id: row.id,
+    setId: row.set_id,
+    setName: row.set_name,
+    title: row.title,
+    fileName: row.file_name,
+    prompt: row.prompt || "",
+    caption: row.caption || "",
+    mimeType: row.mime_type,
+    createdAt: row.created_at,
+    timestamp: Date.parse(row.created_at),
+    imageUrl,
+    remoteImageKey: row.r2_image_key,
+    remoteMetadataKey: row.r2_metadata_key,
+    r2RootPrefix: R2_ROOT_PREFIX,
+    metadata,
+    updatedAt: row.updated_at
+  };
+}
+
+async function uploadReference(request: Request, env: Env) {
+  await ensureSchema(env);
+  const body = (await request.json()) as ReferenceUploadBody;
+  const image = decodeImage(body);
+  const now = new Date().toISOString();
+  const id = body.id || crypto.randomUUID();
+  const setId = cleanSegment(body.setId || "reference-set") || "reference-set";
+  const title = body.title || body.fileName || "reference-image";
+  const fileName = body.fileName || `${baseNameWithoutExtension(title)}.${image.extension}`;
+  const fileBaseName = baseNameWithoutExtension(fileName || title || id);
+  const imageKey = `${R2_REFERENCES_PREFIX}/${setId}/images/${fileBaseName}.${image.extension}`;
+  const metadataKey = `${R2_REFERENCES_PREFIX}/${setId}/metadata/${fileBaseName}.json`;
+  const metadataJson = JSON.stringify({
+    ...(body.metadata || {}),
+    remoteArchive: {
+      imageKey,
+      metadataKey,
+      rootPrefix: R2_ROOT_PREFIX,
+      syncedAt: now
+    }
+  });
+
+  await Promise.all([
+    env.BFL_OUTPUTS.put(imageKey, image.bytes, {
+      httpMetadata: { contentType: image.contentType },
+      customMetadata: {
+        id,
+        setId,
+        title: title.slice(0, 120)
+      }
+    }),
+    env.BFL_OUTPUTS.put(metadataKey, metadataJson, {
+      httpMetadata: { contentType: "application/json; charset=utf-8" }
+    })
+  ]);
+
+  await env.DB.prepare(
+    `INSERT INTO reference_items (
+      id, set_id, set_name, title, file_name, prompt, caption, mime_type,
+      r2_image_key, r2_metadata_key, metadata_json, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      set_id = excluded.set_id,
+      set_name = excluded.set_name,
+      title = excluded.title,
+      file_name = excluded.file_name,
+      prompt = excluded.prompt,
+      caption = excluded.caption,
+      mime_type = excluded.mime_type,
+      r2_image_key = excluded.r2_image_key,
+      r2_metadata_key = excluded.r2_metadata_key,
+      metadata_json = excluded.metadata_json,
+      updated_at = excluded.updated_at`
+  )
+    .bind(
+      id,
+      setId,
+      body.setName || null,
+      title,
+      fileName,
+      body.prompt || null,
+      body.caption || null,
+      image.contentType,
+      imageKey,
+      metadataKey,
+      metadataJson,
+      now,
+      now
+    )
+    .run();
+
+  const row = await getReferenceRow(env, id);
+  return json(request, env, {
+    ok: true,
+    reference: row ? referenceFromRow(row, request) : { id, setId, title, fileName }
+  });
+}
+
+async function listReferences(request: Request, env: Env) {
+  await ensureSchema(env);
+  const url = new URL(request.url);
+  const limit = Math.max(1, Math.min(1000, Number(url.searchParams.get("limit")) || 500));
+  const setId = url.searchParams.get("setId");
+  const result = setId
+    ? await env.DB.prepare("SELECT * FROM reference_items WHERE set_id = ? ORDER BY created_at DESC LIMIT ?")
+        .bind(cleanSegment(setId), limit)
+        .run<ReferenceRow>()
+    : await env.DB.prepare("SELECT * FROM reference_items ORDER BY created_at DESC LIMIT ?")
+        .bind(limit)
+        .run<ReferenceRow>();
+
+  return json(request, env, {
+    ok: true,
+    count: result.results.length,
+    references: result.results.map((row) => referenceFromRow(row, request))
+  });
+}
+
+async function getReferenceRow(env: Env, id: string) {
+  await ensureSchema(env);
+  return env.DB.prepare("SELECT * FROM reference_items WHERE id = ?").bind(id).first<ReferenceRow>();
+}
+
+async function getReferenceMetadata(request: Request, env: Env, id: string) {
+  const row = await getReferenceRow(env, id);
+  if (!row) return json(request, env, { error: "Reference not found" }, 404);
+  return json(request, env, { ok: true, reference: referenceFromRow(row, request), metadata: JSON.parse(row.metadata_json) });
+}
+
+async function getReferenceImage(request: Request, env: Env, id: string) {
+  const row = await getReferenceRow(env, id);
+  if (!row) return json(request, env, { error: "Reference not found" }, 404);
+
+  const object = await env.BFL_OUTPUTS.get(row.r2_image_key);
+  if (!object) return json(request, env, { error: "R2 object not found", key: row.r2_image_key }, 404);
+
+  const headers = new Headers(corsHeaders(request, env));
+  object.writeHttpMetadata(headers);
+  headers.set("etag", object.httpEtag);
+  headers.set("cache-control", "private, max-age=3600");
+  return new Response(object.body, { headers });
+}
+
+async function deleteReference(request: Request, env: Env, id: string) {
+  const row = await getReferenceRow(env, id);
+  if (!row) return json(request, env, { error: "Reference not found" }, 404);
+
+  await Promise.all([
+    env.BFL_OUTPUTS.delete(row.r2_image_key),
+    env.BFL_OUTPUTS.delete(row.r2_metadata_key),
+    env.DB.prepare("DELETE FROM reference_items WHERE id = ?").bind(id).run()
+  ]);
+
+  return json(request, env, { ok: true, id });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "OPTIONS") {
@@ -372,6 +586,8 @@ export default {
 
     if (url.pathname === "/api/assets" && request.method === "POST") return uploadAsset(request, env);
     if (url.pathname === "/api/assets" && request.method === "GET") return listAssets(request, env);
+    if (url.pathname === "/api/references" && request.method === "POST") return uploadReference(request, env);
+    if (url.pathname === "/api/references" && request.method === "GET") return listReferences(request, env);
 
     const assetMatch = url.pathname.match(/^\/api\/assets\/([^/]+)(?:\/(image|prompt|metadata))?$/);
     if (assetMatch) {
@@ -380,6 +596,15 @@ export default {
       if (request.method === "GET" && kind) return getR2Object(request, env, id, kind);
       if (request.method === "GET") return getAssetMetadata(request, env, id);
       if (request.method === "DELETE") return deleteAsset(request, env, id);
+    }
+
+    const referenceMatch = url.pathname.match(/^\/api\/references\/([^/]+)(?:\/(image|metadata))?$/);
+    if (referenceMatch) {
+      const id = decodeURIComponent(referenceMatch[1]);
+      const kind = referenceMatch[2] as "image" | "metadata" | undefined;
+      if (request.method === "GET" && kind === "image") return getReferenceImage(request, env, id);
+      if (request.method === "GET") return getReferenceMetadata(request, env, id);
+      if (request.method === "DELETE") return deleteReference(request, env, id);
     }
 
     return json(request, env, { error: "Not found" }, 404);
