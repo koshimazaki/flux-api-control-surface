@@ -37,3 +37,23 @@ export async function POST(request: NextRequest) {
   await writeFile(promptsPath, `${JSON.stringify(records, null, 2)}\n`, "utf8");
   return NextResponse.json({ ok: true, record: saved, path: promptsPath });
 }
+
+export async function DELETE(request: NextRequest) {
+  const promptsPath = path.resolve(process.cwd(), "../configs/cybernetic_flower_flux2_prompts.json");
+  const id = request.nextUrl.searchParams.get("id")?.trim();
+
+  if (!id) {
+    return NextResponse.json({ error: "Prompt delete requires an id" }, { status: 400 });
+  }
+
+  const raw = await readFile(promptsPath, "utf8");
+  const records = JSON.parse(raw);
+  const nextRecords = records.filter((record: any) => record.id !== id);
+
+  if (nextRecords.length === records.length) {
+    return NextResponse.json({ error: `Prompt ${id} was not found` }, { status: 404 });
+  }
+
+  await writeFile(promptsPath, `${JSON.stringify(nextRecords, null, 2)}\n`, "utf8");
+  return NextResponse.json({ ok: true, id, path: promptsPath });
+}

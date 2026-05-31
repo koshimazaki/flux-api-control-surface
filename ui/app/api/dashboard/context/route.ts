@@ -51,6 +51,7 @@ export async function GET() {
       generate: "/api/bfl/generate",
       credits: "/api/bfl/credits",
       outputs: "/api/outputs",
+      referenceArchive: "/api/reference-archive",
       mcpStatus: "/api/mcp/status",
       mcpManifest: "/api/mcp/manifest"
     },

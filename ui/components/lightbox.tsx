@@ -11,12 +11,13 @@ type LightboxProps = {
 
 export function Lightbox({ asset, onClose, onSendToPrompt, onSendToReference, onDownload }: LightboxProps) {
   if (!asset) return null;
+  const imageSource = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
 
   return (
     <div className="lightbox" onClick={onClose}>
       <div className="lightboxInner" onClick={(event) => event.stopPropagation()}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={asset.imageDataUrl} alt={asset.title || asset.id} />
+        <img src={imageSource} alt={asset.title || asset.id} />
         <div className="lightboxMeta">
           <strong>{asset.title || asset.id}</strong>
           <span>

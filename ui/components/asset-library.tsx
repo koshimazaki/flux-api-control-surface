@@ -119,6 +119,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
             <div className="assetGrid" style={assetGridStyle}>
               {dateAssets.map((asset) => {
                 const isSelected = props.selectedAssetIds.includes(asset.id);
+                const imageSource = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
                 return (
                   <article className={isSelected ? "assetCard selectedAsset" : "assetCard"} key={asset.id}>
                     <button
@@ -130,7 +131,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                     </button>
                     <button className="assetImageButton" onClick={() => props.onOpen(asset)} style={getAspectStyle(props.aspectRatio)}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={asset.imageDataUrl} alt={asset.title || asset.id} />
+                      <img src={imageSource} alt={asset.title || asset.id} />
                     </button>
                     <div className="assetMeta">
                       <strong>{asset.title || asset.id}</strong>

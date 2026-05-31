@@ -1,7 +1,13 @@
-import { ChangeEvent } from "react";
-import { Database, ImagePlus, Layers, LoaderCircle, Play, Sparkles, Upload } from "lucide-react";
+import { Database, ImagePlus, Layers, LoaderCircle, Play, Sparkles, X } from "lucide-react";
 import type { BatchMode, ReferenceImage } from "@/lib/types";
 import { estimateMegapixels, modelOptions } from "@/lib/pricing";
+
+const REFERENCE_WEIGHT_STEPS = [
+  { label: "Hint", value: 0 },
+  { label: "Blend", value: 50 },
+  { label: "Strong", value: 80 },
+  { label: "Anchor", value: 100 }
+];
 
 type RunPanelProps = {
   model: string;
@@ -12,8 +18,12 @@ type RunPanelProps = {
   batchCount: number;
   batchMode: BatchMode;
   selectedPromptCount: number;
+  permutationPairCount: number;
   batchProgress: { current: number; total: number } | null;
   references: ReferenceImage[];
+  primaryReferenceUrl: string;
+  primaryReferencePreview?: string;
+  referenceWeight: number;
   referenceCue: string;
   promptTokens: number;
   estimatedCredits: number;
@@ -29,10 +39,12 @@ type RunPanelProps = {
   onBatchCountChange: (value: number) => void;
   onBatchModeChange: (value: BatchMode) => void;
   onReferencesChange: (value: ReferenceImage[]) => void;
+  onPrimaryReferenceUrlChange: (value: string) => void;
+  onPrimaryReferenceFiles: (files: File[]) => void;
+  onClearPrimaryReference: () => void;
+  onReferenceWeightChange: (value: number) => void;
   onReferenceCueChange: (value: string) => void;
-  onReferenceUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   onReferenceFiles: (files: File[]) => void;
-  onAddReferenceUrl: () => void;
   onGenerate: () => void;
 };
 
@@ -41,6 +53,14 @@ export function RunPanel(props: RunPanelProps) {
   const progressPct = props.batchProgress
     ? Math.max(0, Math.min(100, (props.batchProgress.current / props.batchProgress.total) * 100))
     : 0;
+  const referenceWeightIndex = REFERENCE_WEIGHT_STEPS.reduce(
+    (nearest, step, index) =>
+      Math.abs(step.value - props.referenceWeight) < Math.abs(REFERENCE_WEIGHT_STEPS[nearest].value - props.referenceWeight)
+        ? index
+        : nearest,
+    0
+  );
+  const referenceWeightLabel = REFERENCE_WEIGHT_STEPS[referenceWeightIndex].label;
 
   return (
     <aside className="panel controls">
@@ -116,7 +136,7 @@ export function RunPanel(props: RunPanelProps) {
             <input
               type="number"
               min={1}
-              max={50}
+              max={300}
               value={props.batchCount}
               onChange={(event) => props.onBatchCountChange(event.currentTarget.valueAsNumber)}
             />
@@ -127,11 +147,17 @@ export function RunPanel(props: RunPanelProps) {
               <option value="current">Current prompt</option>
               <option value="library">Prompt queue</option>
               <option value="permutations" disabled={props.selectedPromptCount < 2}>
-                Selected permutations ({props.selectedPromptCount})
+                Selected pairs ({props.permutationPairCount})
               </option>
             </select>
           </label>
         </div>
+        {props.batchMode === "permutations" && (
+          <div className="scriptCounter">
+            <strong>{props.permutationPairCount}</strong>
+            <span>selected prompt pair{props.permutationPairCount === 1 ? "" : "s"} available</span>
+          </div>
+        )}
         {props.batchProgress && (
           <div className="progressBox">
             <div className="progressTrack">
@@ -146,15 +172,11 @@ export function RunPanel(props: RunPanelProps) {
 
       <div className="referenceHeader">
         <span>References</span>
-        <div>
-          <label className="iconButton fileButton" title="Upload references">
-            <ImagePlus size={16} />
-            <input type="file" accept="image/*" multiple onChange={props.onReferenceUpload} />
-          </label>
-          <button className="iconButton" title="Add reference URL" onClick={props.onAddReferenceUrl}>
-            <Upload size={16} />
+        {(props.primaryReferencePreview || props.primaryReferenceUrl) && (
+          <button className="iconButton" title="Clear reference" onClick={props.onClearPrimaryReference}>
+            <X size={14} />
           </button>
-        </div>
+        )}
       </div>
 
       <div
@@ -169,18 +191,68 @@ export function RunPanel(props: RunPanelProps) {
         <span>Drop images here, or paste hosted URLs below</span>
       </div>
 
+      <div
+        className="referenceUrlBar"
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          event.preventDefault();
+          props.onPrimaryReferenceFiles(Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")));
+        }}
+      >
+        {props.primaryReferencePreview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={props.primaryReferencePreview} alt="Primary reference" />
+        ) : (
+          <ImagePlus size={16} />
+        )}
+        <input
+          value={props.primaryReferenceUrl}
+          onChange={(event) => props.onPrimaryReferenceUrlChange(event.target.value)}
+          placeholder="Reference image URL"
+        />
+      </div>
+
+      <div className="referenceWeightControl">
+        <div>
+          <span>Reference weight</span>
+          <strong>{referenceWeightLabel} · {props.referenceWeight}</strong>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={REFERENCE_WEIGHT_STEPS.length - 1}
+          step={1}
+          value={referenceWeightIndex}
+          onChange={(event) =>
+            props.onReferenceWeightChange(REFERENCE_WEIGHT_STEPS[Number(event.currentTarget.value)].value)
+          }
+        />
+        <div className="referenceWeightTicks">
+          {REFERENCE_WEIGHT_STEPS.map((step) => (
+            <button
+              type="button"
+              key={step.label}
+              className={step.value === props.referenceWeight ? "active" : ""}
+              onClick={() => props.onReferenceWeightChange(step.value)}
+            >
+              {step.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="referenceList">
-        {props.references.map((reference, index) => (
+        {props.references.slice(1).map((reference, index) => (
           <div className="referenceItem" key={reference.id}>
             {reference.value.startsWith("data:") ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={reference.value} alt={reference.name} />
             ) : (
-              <div className="referenceIndex">{index + 1}</div>
+              <div className="referenceIndex">{index + 2}</div>
             )}
             <input
               value={reference.value}
-              placeholder={`Image ${index + 1} URL or data URL`}
+              placeholder={`Image ${index + 2} URL or data URL`}
               onChange={(event) =>
                 props.onReferencesChange(
                   props.references.map((item) =>
@@ -205,7 +277,7 @@ export function RunPanel(props: RunPanelProps) {
         onChange={(event) => props.onReferenceCueChange(event.target.value)}
       />
 
-      <button className="generateButton" onClick={props.onGenerate} disabled={props.isGenerating}>
+      <button className="generateButton" onClick={() => props.onGenerate()} disabled={props.isGenerating}>
         {props.isGenerating ? <LoaderCircle className="spin" size={18} /> : <Play size={18} />}
         {props.isGenerating
           ? props.batchProgress

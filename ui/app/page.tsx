@@ -1,16 +1,19 @@
 "use client";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApisPanel } from "@/components/apis-panel";
 import { AssetLibrary } from "@/components/asset-library";
+import { AudioScriptPanel } from "@/components/audio-script-panel";
 import { BackgroundShader } from "@/components/background-shader";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { DashboardTabs } from "@/components/dashboard-tabs";
+import { DesignSystemPanel } from "@/components/design-system-panel";
 import { GenerationLog } from "@/components/generation-log";
 import { Lightbox } from "@/components/lightbox";
 import { McpPanel } from "@/components/mcp-panel";
 import { PromptEditor } from "@/components/prompt-editor";
 import { PromptLibrary } from "@/components/prompt-library";
 import { RunPanel } from "@/components/run-panel";
+import { ScriptPanel } from "@/components/script-panel";
 import { TopBar } from "@/components/top-bar";
 import { TrainingCollectionsPanel } from "@/components/training-collections-panel";
 import { BFL_LIBRARY_KEY, RUN_LOG_KEY, stripAssetForStorage } from "@/lib/asset-storage";
@@ -32,13 +35,17 @@ import {
   buildFailedRunLog,
   buildRunPlanPayload,
   clampBatchCount,
+  clampReferenceWeight,
   composePrompt,
+  countPairPermutations,
   executePlannedGeneration,
   fetchRunPlan,
   readReferenceFiles,
+  weightedReferenceCue,
   type BatchProgress
 } from "@/lib/dashboard-generation";
-import { savePromptRecord, upsertPromptRecord } from "@/lib/dashboard-prompts";
+import { deletePromptRecord, savePromptRecord, upsertPromptRecord } from "@/lib/dashboard-prompts";
+import { ALL_PROMPT_LIBRARY_ID, buildPromptLibraryOptions, promptLibraryId } from "@/lib/prompt-library-groups";
 import { buildComboPrompt as buildComboPromptText, comboIdFromPrompts, uniqueText } from "@/lib/prompt-combo";
 import { defaultReferenceCue, downloadText, formatPrompt } from "@/lib/prompt-utils";
 import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions } from "@/lib/pricing";
@@ -59,7 +66,8 @@ import type {
   PromptRecord,
   ReferenceImage,
   RunLogEntry,
-  TrainingCollection
+  TrainingCollection,
+  TrainingCollectionItem
 } from "@/lib/types";
 
 type CaptionAgentJob = {
@@ -72,9 +80,11 @@ export default function Home() {
   const [apiKey, setApiKey] = useState("");
   const [prompts, setPrompts] = useState<PromptRecord[]>([]);
   const [activeId, setActiveId] = useState("");
+  const [activePromptLibraryId, setActivePromptLibraryId] = useState(ALL_PROMPT_LIBRARY_ID);
   const [selectedComboIds, setSelectedComboIds] = useState<string[]>([]);
   const [promptText, setPromptText] = useState("");
   const [referenceCue, setReferenceCue] = useState(defaultReferenceCue);
+  const [referenceWeight, setReferenceWeight] = useState(80);
   const [references, setReferences] = useState<ReferenceImage[]>([]);
   const [model, setModel] = useState("pro-preview");
   const [width, setWidth] = useState(1024);
@@ -97,16 +107,31 @@ export default function Home() {
     createTrainingCollection("Cyberflower LoRA pack")
   );
   const [captionJob, setCaptionJob] = useState<CaptionAgentJob | null>(null);
+  const [remoteReferenceCount, setRemoteReferenceCount] = useState<number | null>(null);
   const [metadataAssetId, setMetadataAssetId] = useState<string | null>(null);
   const [balance, setBalance] = useState<BalanceState>({ credits: null });
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
   const [isSpawningCaptionAgent, setIsSpawningCaptionAgent] = useState(false);
+  const [isSyncingReferences, setIsSyncingReferences] = useState(false);
+  const [isImportingReferences, setIsImportingReferences] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const activePrompt = useMemo(
     () => prompts.find((prompt) => prompt.id === activeId),
     [activeId, prompts]
+  );
+  const promptLibraryOptions = useMemo(() => buildPromptLibraryOptions(prompts), [prompts]);
+  const visiblePrompts = useMemo(
+    () =>
+      activePromptLibraryId === ALL_PROMPT_LIBRARY_ID
+        ? prompts
+        : prompts.filter((prompt) => promptLibraryId(prompt) === activePromptLibraryId),
+    [activePromptLibraryId, prompts]
+  );
+  const effectiveReferenceCue = useMemo(
+    () => weightedReferenceCue(referenceCue, referenceWeight),
+    [referenceCue, referenceWeight]
   );
   const runPlanPayload = useMemo(
     () =>
@@ -121,14 +146,15 @@ export default function Home() {
         height,
         seed,
         promptUpsampling,
-        referenceCue,
+        referenceCue: effectiveReferenceCue,
+        referenceWeight,
         references
       }),
-    [activeId, batchCount, batchMode, height, model, promptText, promptUpsampling, referenceCue, references, seed, selectedComboIds, width]
+    [activeId, batchCount, batchMode, effectiveReferenceCue, height, model, promptText, promptUpsampling, referenceWeight, references, seed, selectedComboIds, width]
   );
   const promptForRun = useMemo(
-    () => composePrompt(promptText, references, referenceCue),
-    [promptText, referenceCue, references]
+    () => composePrompt(promptText, references, effectiveReferenceCue),
+    [promptText, effectiveReferenceCue, references]
   );
   const promptTokens = useMemo(() => estimateTokens(promptForRun), [promptForRun]);
   const costEstimate = useMemo(
@@ -145,6 +171,10 @@ export default function Home() {
     () => runLog.filter((entry) => entry.status === "failed").length,
     [runLog]
   );
+  const permutationPairCount = useMemo(
+    () => countPairPermutations(selectedComboIds.length),
+    [selectedComboIds.length]
+  );
   const filteredAssets = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return assets;
@@ -152,6 +182,9 @@ export default function Home() {
       `${asset.title || ""} ${asset.prompt} ${asset.model}`.toLowerCase().includes(query)
     );
   }, [assets, searchQuery]);
+  const primaryReference = references[0];
+  const primaryReferenceUrl = primaryReference?.value.startsWith("data:") ? "" : primaryReference?.value || "";
+  const primaryReferencePreview = primaryReference?.value || "";
   useEffect(() => {
     fetch("/api/prompts")
       .then((response) => response.json())
@@ -160,6 +193,9 @@ export default function Home() {
         if (records[0]) selectPromptRecord(records[0]);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Could not load prompts"));
+  }, []);
+  useEffect(() => {
+    void refreshReferenceArchiveCount();
   }, []);
   useEffect(() => {
     try {
@@ -202,6 +238,15 @@ export default function Home() {
     const record = prompts.find((item) => item.id === id);
     if (record) selectPromptRecord(record);
   }
+  function selectPromptLibrary(id: string) {
+    setActivePromptLibraryId(id);
+    const nextPrompts = id === ALL_PROMPT_LIBRARY_ID
+      ? prompts
+      : prompts.filter((prompt) => promptLibraryId(prompt) === id);
+    if (nextPrompts.length && !nextPrompts.some((prompt) => prompt.id === activeId)) {
+      selectPromptRecord(nextPrompts[0]);
+    }
+  }
   function toggleComboPrompt(id: string) {
     setSelectedComboIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
@@ -229,14 +274,44 @@ export default function Home() {
     setBatchMode("current");
     setError("");
   }
-  async function savePrompt() {
+  async function savePrompt(saveAsNew = false) {
     try {
-      const saved = await savePromptRecord(activePrompt, promptText, seed);
+      const saved = await savePromptRecord(activePrompt, promptText, seed, { saveAsNew });
       setPrompts((current) => upsertPromptRecord(current, saved));
+      setActivePromptLibraryId(promptLibraryId(saved));
       selectPromptRecord(saved);
-      setRecoveryMessage(`Saved ${saved.id} to cybernetic_flower_flux2_prompts.json.`);
+      setRecoveryMessage(
+        saveAsNew
+          ? `Saved ${saved.id} as a new prompt.`
+          : `Saved ${saved.id} to cybernetic_flower_flux2_prompts.json.`
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save prompt.");
+    }
+  }
+  async function deletePrompt() {
+    if (!activePrompt?.id) return;
+    const id = activePrompt.id;
+    try {
+      await deletePromptRecord(id);
+      const nextPrompts = prompts.filter((prompt) => prompt.id !== id);
+      const nextVisible = activePromptLibraryId === ALL_PROMPT_LIBRARY_ID
+        ? nextPrompts
+        : nextPrompts.filter((prompt) => promptLibraryId(prompt) === activePromptLibraryId);
+      const replacement = nextVisible[0] || nextPrompts[0];
+      setPrompts(nextPrompts);
+      setSelectedComboIds((current) => current.filter((item) => item !== id));
+      if (replacement) {
+        selectPromptRecord(replacement);
+      } else {
+        setActiveId("");
+        setPromptText("");
+        setSeed("");
+      }
+      setRecoveryMessage(`Deleted ${id}.`);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete prompt.");
     }
   }
   function importPromptJson() {
@@ -261,16 +336,28 @@ export default function Home() {
     const loaded = await readReferenceFiles(files.slice(0, slots));
     setReferences((current) => [...current, ...loaded].slice(0, 3));
   }
-  async function onReferenceUpload(event: ChangeEvent<HTMLInputElement>) {
-    await addReferenceFiles(Array.from(event.target.files || []));
-    event.target.value = "";
+  async function setPrimaryReferenceFiles(files: File[]) {
+    const [loaded] = await readReferenceFiles(files.slice(0, 1));
+    if (!loaded) return;
+    setReferences((current) => [loaded, ...current.slice(1)].slice(0, 3));
   }
-  function addReferenceUrl() {
-    if (references.length >= 3) return;
-    setReferences((current) => [
-      ...current,
-      { id: `url-${Date.now()}`, name: `Reference ${current.length + 1}`, value: "" }
-    ]);
+  function setPrimaryReferenceUrl(value: string) {
+    setReferences((current) => {
+      const rest = current.slice(1);
+      const trimmed = value.trim();
+      if (!trimmed) return rest;
+      return [
+        {
+          id: current[0]?.id || `url-${Date.now()}`,
+          name: current[0]?.name || "Reference 1",
+          value: trimmed
+        },
+        ...rest
+      ].slice(0, 3);
+    });
+  }
+  function clearPrimaryReference() {
+    setReferences((current) => current.slice(1));
   }
   async function checkBalance() {
     setIsCheckingBalance(true);
@@ -289,14 +376,14 @@ export default function Home() {
       setIsCheckingBalance(false);
     }
   }
-  async function generate() {
-    if (batchMode === "permutations" && selectedComboIds.length < 2) {
+  async function generate(payload = runPlanPayload, mode = batchMode) {
+    if (mode === "permutations" && selectedComboIds.length < 2) {
       setError("Select at least two prompts before running selected permutations.");
       return;
     }
     let items;
     try {
-      items = await fetchRunPlan(runPlanPayload);
+      items = await fetchRunPlan(payload);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not build run plan.");
       return;
@@ -332,6 +419,41 @@ export default function Home() {
       setIsGenerating(false);
       setBatchProgress(null);
     }
+  }
+  function selectAllPromptSources() {
+    setSelectedComboIds(prompts.map((prompt) => prompt.id));
+    setBatchMode("permutations");
+    setError("");
+  }
+  function clearPromptSources() {
+    setSelectedComboIds([]);
+    setError("");
+  }
+  async function runPermutationScript() {
+    const pairCount = countPairPermutations(selectedComboIds.length);
+    if (!pairCount) {
+      setError("Select at least two prompt sources before running the script.");
+      return;
+    }
+    const scriptCount = clampBatchCount(pairCount);
+    const scriptPayload = buildRunPlanPayload({
+      batchMode: "permutations",
+      batchCount: scriptCount,
+      activeId,
+      selectedPromptIds: selectedComboIds,
+      promptText,
+      model,
+      width,
+      height,
+      seed,
+      promptUpsampling,
+      referenceCue: effectiveReferenceCue,
+      referenceWeight,
+      references
+    });
+    setBatchMode("permutations");
+    setBatchCount(scriptCount);
+    await generate(scriptPayload, "permutations");
   }
   async function recoverStoredAssets() {
     const recovered = await recoverStoredAssetRecords(assets);
@@ -370,17 +492,43 @@ export default function Home() {
       {
         id: `asset-ref-${asset.id}-${Date.now()}`,
         name: asset.title || asset.id,
-        value: asset.imageDataUrl
+        value: asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url
       }
     ].slice(0, 3));
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  function downloadAssetImage(asset: AssetRecord) {
-    const anchor = document.createElement("a");
-    anchor.href = asset.imageDataUrl;
-    anchor.download = `${downloadNameForAsset(asset)}.${extensionForAsset(asset)}`;
-    anchor.click();
+  async function downloadAssetImage(asset: AssetRecord) {
+    const source = asset.imageDataUrl || asset.sampleUrl || asset.remoteImageUrl || asset.imageUrl || asset.image_url;
+    if (!source) {
+      setError("This image does not have a downloadable URL.");
+      return;
+    }
+
+    let downloadUrl = source;
+    let shouldRevoke = false;
+    try {
+      if (!source.startsWith("data:") && !source.startsWith("blob:")) {
+        const response = await fetch(source, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Could not fetch image: ${response.status}`);
+        downloadUrl = URL.createObjectURL(await response.blob());
+        shouldRevoke = true;
+      }
+
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download = `${downloadNameForAsset(asset)}.${extensionForAsset(asset)}`;
+      anchor.rel = "noopener";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      if (shouldRevoke) window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      setError("");
+    } catch (err) {
+      if (shouldRevoke) URL.revokeObjectURL(downloadUrl);
+      setError(err instanceof Error ? err.message : "Could not download image.");
+    }
   }
   function clearAssets() {
     removeAssetImages(assets);
@@ -422,6 +570,95 @@ export default function Home() {
       updatedAt: Date.now()
     }));
     setActiveTab("collections");
+  }
+  async function refreshReferenceArchiveCount() {
+    try {
+      const response = await fetch("/api/reference-archive?limit=1000", { cache: "no-store" });
+      const data = await response.json();
+      setRemoteReferenceCount(typeof data.count === "number" ? data.count : 0);
+    } catch {
+      setRemoteReferenceCount(null);
+    }
+  }
+  async function syncCollectionReferences() {
+    const items = trainingCollection.items.filter((item) => item.imageDataUrl);
+    if (!items.length) return;
+    setIsSyncingReferences(true);
+    setError("");
+    try {
+      let uploaded = 0;
+      let failed = 0;
+      const collection = {
+        id: trainingCollection.id,
+        name: trainingCollection.name,
+        triggerToken: trainingCollection.triggerToken,
+        captionGuide: trainingCollection.captionGuide
+      };
+      for (let index = 0; index < items.length; index += 8) {
+        const response = await fetch("/api/reference-archive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ collection, items: items.slice(index, index + 8) })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not sync reference folder.");
+        uploaded += data.uploaded || 0;
+        failed += data.failed || 0;
+      }
+      await refreshReferenceArchiveCount();
+      setRecoveryMessage(
+        failed
+          ? `Synced ${uploaded} reference image${uploaded === 1 ? "" : "s"}; ${failed} failed.`
+          : `Synced ${uploaded} reference image${uploaded === 1 ? "" : "s"} to Cloudflare.`
+      );
+      setActiveTab("collections");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not sync reference folder.");
+    } finally {
+      setIsSyncingReferences(false);
+    }
+  }
+  function referenceImportKey(item: TrainingCollectionItem) {
+    return item.remoteReferenceId || item.remoteImageKey || item.assetId || `${item.source}:${item.fileName}:${item.name}`;
+  }
+  async function importRemoteReferences() {
+    setIsImportingReferences(true);
+    setError("");
+    try {
+      const response = await fetch("/api/reference-archive?limit=1000", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not import cloud references.");
+      const incoming = (Array.isArray(data.items) ? data.items : []) as TrainingCollectionItem[];
+      let added = 0;
+      setTrainingCollection((current) => {
+        const seen = new Set(current.items.map(referenceImportKey));
+        const additions = incoming.filter((item) => {
+          const key = referenceImportKey(item);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }).map((item) => ({
+          ...item,
+          caption: item.caption || `${current.triggerToken}, `,
+          addedAt: Date.now()
+        }));
+        added = additions.length;
+        return additions.length
+          ? { ...current, items: [...current.items, ...additions], updatedAt: Date.now() }
+          : current;
+      });
+      setRemoteReferenceCount(typeof data.count === "number" ? data.count : incoming.length);
+      setRecoveryMessage(
+        added
+          ? `Imported ${added} cloud reference image${added === 1 ? "" : "s"} into the collection.`
+          : "No additional cloud references found."
+      );
+      setActiveTab("collections");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not import cloud references.");
+    } finally {
+      setIsImportingReferences(false);
+    }
   }
   function removeCollectionItem(id: string) {
     setTrainingCollection((current) => ({
@@ -494,9 +731,12 @@ export default function Home() {
         />
         <section className="workspace">
           <PromptLibrary
-            prompts={prompts}
+            prompts={visiblePrompts}
+            libraryOptions={promptLibraryOptions}
+            activeLibraryId={activePromptLibraryId}
             activeId={activeId}
             selectedIds={selectedComboIds}
+            onLibraryChange={selectPromptLibrary}
             onSelect={selectPrompt}
             onToggleSelected={toggleComboPrompt}
             onBuildCombo={createComboPrompt}
@@ -507,7 +747,9 @@ export default function Home() {
             promptText={promptText}
             onPromptChange={setPromptText}
             onImport={importPromptJson}
-            onSave={savePrompt}
+            onSave={() => void savePrompt()}
+            onSaveAsNew={() => void savePrompt(true)}
+            onDelete={() => void deletePrompt()}
             onReset={() => setPromptText(formatPrompt(activePrompt?.prompt || promptText))}
           />
           <RunPanel
@@ -519,8 +761,12 @@ export default function Home() {
             batchCount={batchCount}
             batchMode={batchMode}
             selectedPromptCount={selectedComboIds.length}
+            permutationPairCount={permutationPairCount}
             batchProgress={batchProgress}
             references={references}
+            primaryReferenceUrl={primaryReferenceUrl}
+            primaryReferencePreview={primaryReferencePreview}
+            referenceWeight={referenceWeight}
             referenceCue={referenceCue}
             promptTokens={promptTokens}
             estimatedCredits={costEstimate.credits}
@@ -536,11 +782,13 @@ export default function Home() {
             onBatchCountChange={(value) => setBatchCount(clampBatchCount(value))}
             onBatchModeChange={setBatchMode}
             onReferencesChange={setReferences}
+            onPrimaryReferenceUrlChange={setPrimaryReferenceUrl}
+            onPrimaryReferenceFiles={setPrimaryReferenceFiles}
+            onClearPrimaryReference={clearPrimaryReference}
+            onReferenceWeightChange={(value) => setReferenceWeight(clampReferenceWeight(value))}
             onReferenceCueChange={setReferenceCue}
-            onReferenceUpload={onReferenceUpload}
             onReferenceFiles={addReferenceFiles}
-            onAddReferenceUrl={addReferenceUrl}
-            onGenerate={generate}
+            onGenerate={() => void generate()}
           />
         </section>
         {recoveryMessage && <p className="statusLine">{recoveryMessage}</p>}
@@ -549,7 +797,33 @@ export default function Home() {
           assetCount={assets.length}
           runCount={runLog.length}
           collectionCount={trainingCollection.items.length}
+          scriptCount={permutationPairCount}
           onTabChange={setActiveTab}
+          script={
+            <ScriptPanel
+              prompts={prompts}
+              selectedIds={selectedComboIds}
+              pairCount={permutationPairCount}
+              estimatedCredits={costEstimate.credits * permutationPairCount}
+              isGenerating={isGenerating}
+              onToggleSelected={toggleComboPrompt}
+              onSelectAll={selectAllPromptSources}
+              onClearSelection={clearPromptSources}
+              onRunScript={runPermutationScript}
+            />
+          }
+          audio={
+            <AudioScriptPanel
+              assets={assets}
+              collectionItems={trainingCollection.items}
+              onOpenImage={setSelectedAsset}
+              onUsePrompt={(value) => {
+                setPromptText(value);
+                setRecoveryMessage("Loaded audio shot script into the prompt editor.");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          }
           assets={
             <AssetLibrary
               assets={assets}
@@ -590,6 +864,10 @@ export default function Home() {
               selectedAssetCount={selectedAssetIds.length}
               captionJob={captionJob}
               isSpawningCaptionAgent={isSpawningCaptionAgent}
+              isSyncingReferences={isSyncingReferences}
+              isImportingReferences={isImportingReferences}
+              remoteReferenceCount={remoteReferenceCount}
+              referenceIndexUrl="/api/reference-archive?format=html"
               onCollectionChange={setTrainingCollection}
               onAddSelectedAssets={addSelectedAssetsToCollection}
               onAddFiles={addCollectionFiles}
@@ -598,6 +876,8 @@ export default function Home() {
               onExportZip={exportTrainingZip}
               onSpawnCaptionAgent={spawnCaptionAgent}
               onCopyCaptionPrompt={copyCaptionBrief}
+              onSyncReferences={syncCollectionReferences}
+              onImportReferences={importRemoteReferences}
             />
           }
           apis={<ApisPanel captionJobPath={captionJob?.jobDir} />}
@@ -617,6 +897,7 @@ export default function Home() {
               runLog={runLog}
             />
           }
+          system={<DesignSystemPanel />}
         />
         <Lightbox
           asset={selectedAsset}

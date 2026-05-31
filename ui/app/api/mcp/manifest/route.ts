@@ -56,7 +56,7 @@ export async function GET() {
         sideEffects: false,
         example: {
           batchMode: "permutations",
-          promptIds: ["passion_flower_01", "sea_anemone_flower_02", "rafflesia_01"],
+          promptIds: ["tropical_membrane_flower_01", "sea_anemone_flower_02", "rafflesia_01"],
           permutationSize: 2,
           count: 10,
           parallel: 4,
@@ -75,7 +75,7 @@ export async function GET() {
         example: {
           execute: false,
           batchMode: "library",
-          startId: "passion_flower_01",
+          startId: "tropical_membrane_flower_01",
           count: 10,
           model: "pro-preview",
           width: 1024,

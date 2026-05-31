@@ -53,6 +53,18 @@ dashboard simply stays filesystem-only.
 Archived R2 outputs are read back through the dashboard server as data URLs, so
 the existing "send image to references" button works for remote assets too.
 
+The Run panel has an always-visible primary reference slot above `Generate`.
+Paste a hosted image URL there, upload an image, or drop an image into the slot.
+Hosted URLs are sent through as URLs; local drops are sent as data URLs for the
+local BFL generation route.
+
+The Collections tab can also sync a folder-style reference set to the same
+Worker under `BFL-API/references/<collection-id>/`. Use `Add folder`, then
+`Sync refs` to upload source/reference images to R2/D1. `Import refs` pulls
+those Cloudflare-hosted references back into the active collection, which makes
+it easy to mix a fresh folder with an older dataset before exporting a LoRA ZIP.
+The local HTML reference view is available at `/api/reference-archive?format=html`.
+
 ## Balance + Cost
 
 - `POST /api/bfl/credits` calls BFL `GET /v1/credits`.
@@ -84,6 +96,8 @@ The UI is also an agent/MCP-facing local API:
   FLUX MCP handoff options.
 - `GET /api/outputs` hydrates saved filesystem outputs and, when configured,
   archived R2/D1 outputs back into the gallery.
+- `GET /api/reference-archive` hydrates Cloudflare reference folders back into
+  the collection builder; `POST /api/reference-archive` syncs collection images.
 
 ## MCP Note
 

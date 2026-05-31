@@ -17,6 +17,7 @@ export type RunPlanBody = {
   batchMode?: "current" | "library" | "permutations";
   promptUpsampling?: boolean;
   referenceCue?: string;
+  referenceWeight?: number;
   hasReferences?: boolean;
   outputFormat?: "jpeg" | "png" | "webp";
 };
@@ -31,7 +32,7 @@ function compactPrompt(raw: string) {
 
 function clampCount(value: unknown) {
   const count = typeof value === "number" && Number.isFinite(value) ? Math.floor(value) : 1;
-  return Math.max(1, Math.min(50, count));
+  return Math.max(1, Math.min(300, count));
 }
 
 function clampParallel(value: unknown) {
@@ -42,6 +43,11 @@ function clampParallel(value: unknown) {
 function applyReferenceCue(prompt: string, referenceCue?: string, hasReferences?: boolean) {
   if (!hasReferences) return compactPrompt(prompt);
   return `${compactPrompt(prompt)}\n\nReference roles: ${referenceCue || "Use supplied images as visual references while preserving the prompt subject."}`;
+}
+
+function clampReferenceWeight(value: unknown) {
+  const weight = typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 80;
+  return Math.max(0, Math.min(100, weight));
 }
 
 function selectPrompts(prompts: PromptRecord[], body: RunPlanBody) {
@@ -110,6 +116,7 @@ export function buildRunPlan(prompts: PromptRecord[], body: RunPlanBody) {
         seed: typeof prompt.seed === "number" ? prompt.seed : null,
         outputFormat,
         promptUpsampling,
+        referenceWeight: clampReferenceWeight(body.referenceWeight),
         references: []
       },
       batchIndex: index + 1,

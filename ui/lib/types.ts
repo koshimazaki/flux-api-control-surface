@@ -1,11 +1,14 @@
 export type PromptRecord = {
   id: string;
+  domain?: string;
   species?: string;
   prompt: string;
   seed?: number;
   lighting?: string;
   location?: string;
   plant_form?: string;
+  prompt_format?: string;
+  updated_at?: string;
 };
 
 export type ReferenceImage = {
@@ -16,7 +19,7 @@ export type ReferenceImage = {
 
 export type BatchMode = "current" | "library" | "permutations";
 
-export type DashboardTab = "assets" | "runs" | "collections" | "apis" | "mcp";
+export type DashboardTab = "script" | "audio" | "assets" | "runs" | "collections" | "apis" | "mcp" | "system";
 
 export type AssetRecord = {
   id: string;
@@ -86,7 +89,7 @@ export type RunLogEntry = {
 
 export type TrainingCollectionItem = {
   id: string;
-  source: "asset" | "file";
+  source: "asset" | "file" | "remote";
   name: string;
   fileName: string;
   imageDataUrl: string;
@@ -94,6 +97,11 @@ export type TrainingCollectionItem = {
   prompt?: string;
   caption: string;
   assetId?: string;
+  remoteReferenceId?: string;
+  remoteSetId?: string;
+  remoteImageKey?: string | null;
+  remoteMetadataKey?: string | null;
+  remoteSourceUrl?: string | null;
   addedAt: number;
 };
 

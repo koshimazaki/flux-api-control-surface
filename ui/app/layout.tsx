@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./bfl-frost-theme.css";
 
 export const metadata: Metadata = {
   title: "BFL API Dashboard",

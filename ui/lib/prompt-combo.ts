@@ -61,7 +61,8 @@ export function buildComboPromptObject(chosen: PromptRecord[]) {
 
   return {
     prompt_format: "json",
-    scene: "cinematic macro photograph of a single cybernetic botanical hybrid specimen",
+    scene:
+      "animation-friendly botanical specimen photograph of a single cybernetic botanical hybrid on a clean plane, using either top-down, high side/top, or low underside reveal camera geometry",
     combo: {
       mode: "multi-source botanical fusion",
       source_count: chosen.length,
@@ -80,14 +81,14 @@ export function buildComboPromptObject(chosen: PromptRecord[]) {
           anatomy: promptSubjects(prompt)[0]?.description || record.plant_form || record.species
         })),
         fused_anatomy: [
-          "one readable central bloom with merged botanical anatomy",
+          "one readable main botanical body with merged petal and membrane anatomy",
           forms.length ? `combined plant forms: ${forms.join(" + ")}` : "",
-          "cybernetic filaments, tendrils, membranes, seed structures, and living mechanical detail resolved as one organism"
+          "cybernetic membranes, vein detail, petal surfaces, and living mechanical texture resolved as one organism"
         ]
           .filter(Boolean)
           .join("; "),
         position: "centered dominant specimen, readable at thumbnail size",
-        action: "held still as a training-ready source image with recognizable combined plant anatomy"
+        action: "held still as a training-ready source image with recognizable combined petal and membrane anatomy"
       }
     ],
     style:
@@ -96,16 +97,18 @@ export function buildComboPromptObject(chosen: PromptRecord[]) {
     environment: environments.join(" blended with "),
     lighting: lightings.join(" blended with "),
     composition:
-      "clean silhouette, coherent hybrid anatomy, one dominant subject with stable crop margins, each selected plant influence visibly represented",
+      "clean readable hybrid silhouette against a simple plane, surface structure and material anatomy clearly visible, stable crop margins for animation, each selected plant influence visibly represented, room for reactive motion graphics; prefer top-down balanced or high side/top views, with occasional low underside reveal when the hybrid has translucent petals or glowing material detail",
     camera: promptsOnly.find((prompt) => prompt.camera)?.camera || {
-      angle: "botanical macro study",
-      lens: "100mm macro lens",
-      depth_of_field: "controlled shallow depth of field with critical anatomy sharp"
+      angle:
+        "high three-quarter view from above, about 45 degrees off the specimen plane, showing both top anatomy and side depth",
+      lens: "90mm macro lens with controlled perspective, stable tabletop framing",
+      depth_of_field: "controlled macro depth with the upper surfaces and key side structures sharp for animation source use"
     },
     materials:
       materials.join(" + ") ||
       "believable transitions between living plant tissue, translucent membranes, wet organic texture, ceramic or metallic cybernetic detail",
-    delivery: "clean unmarked label-free specimen image with a blank botanical background and plain continuous framing",
+    delivery:
+      "clean unmarked label-free specimen image on a simple blank plane, stable centered framing, no text, no watermark, usable as source material for audiovisual reactive visuals",
     combo_sources: chosen.map((record) => ({
       id: record.id,
       species: record.species,

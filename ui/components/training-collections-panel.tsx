@@ -1,4 +1,15 @@
-import { Bot, Clipboard, Download, FolderUp, PackagePlus, Trash2, X } from "lucide-react";
+import {
+  Bot,
+  Clipboard,
+  CloudDownload,
+  CloudUpload,
+  Download,
+  ExternalLink,
+  FolderUp,
+  PackagePlus,
+  Trash2,
+  X
+} from "lucide-react";
 import type { ChangeEvent } from "react";
 import { copyText } from "@/lib/clipboard";
 import type { TrainingCollection } from "@/lib/types";
@@ -12,6 +23,10 @@ type TrainingCollectionsPanelProps = {
     error?: string;
   } | null;
   isSpawningCaptionAgent: boolean;
+  isSyncingReferences: boolean;
+  isImportingReferences: boolean;
+  remoteReferenceCount: number | null;
+  referenceIndexUrl: string;
   onCollectionChange: (collection: TrainingCollection) => void;
   onAddSelectedAssets: () => void;
   onAddFiles: (files: File[]) => void;
@@ -20,6 +35,8 @@ type TrainingCollectionsPanelProps = {
   onExportZip: () => void;
   onSpawnCaptionAgent: () => void;
   onCopyCaptionPrompt: () => void;
+  onSyncReferences: () => void;
+  onImportReferences: () => void;
 };
 
 export function TrainingCollectionsPanel(props: TrainingCollectionsPanelProps) {
@@ -61,6 +78,18 @@ export function TrainingCollectionsPanel(props: TrainingCollectionsPanelProps) {
               {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
             />
           </label>
+          <button onClick={props.onSyncReferences} disabled={!collection.items.length || props.isSyncingReferences}>
+            <CloudUpload size={16} />
+            {props.isSyncingReferences ? "Syncing" : "Sync refs"}
+          </button>
+          <button onClick={props.onImportReferences} disabled={props.isImportingReferences}>
+            <CloudDownload size={16} />
+            {props.isImportingReferences ? "Importing" : "Import refs"}
+          </button>
+          <button onClick={() => window.open(props.referenceIndexUrl, "_blank", "noopener,noreferrer")}>
+            <ExternalLink size={16} />
+            HTML
+          </button>
           <button onClick={props.onExportZip} disabled={!collection.items.length}>
             <Download size={16} />
             Export ZIP
@@ -70,6 +99,11 @@ export function TrainingCollectionsPanel(props: TrainingCollectionsPanelProps) {
             {props.isSpawningCaptionAgent ? "Spawning" : "Agent captions"}
           </button>
         </div>
+      </div>
+
+      <div className="collectionCloudBar">
+        <span>Cloud references</span>
+        <strong>{props.remoteReferenceCount ?? "--"}</strong>
       </div>
 
       <div className="collectionControls">

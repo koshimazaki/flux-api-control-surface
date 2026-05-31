@@ -16,6 +16,10 @@ export type PlanRequestItem = {
   estimatedUsd: number;
 };
 
+export function countPairPermutations(sourceCount: number) {
+  return sourceCount < 2 ? 0 : (sourceCount * (sourceCount - 1)) / 2;
+}
+
 export function composePrompt(baseText: string, references: ReferenceImage[], referenceCue: string) {
   const base = compactPrompt(baseText);
   return references.some((reference) => Boolean(reference.value))
@@ -23,8 +27,24 @@ export function composePrompt(baseText: string, references: ReferenceImage[], re
     : base;
 }
 
+export function clampReferenceWeight(value: number) {
+  return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : 80));
+}
+
+export function referenceWeightCue(weight: number) {
+  const clamped = clampReferenceWeight(weight);
+  if (clamped <= 20) return `Reference influence: ${clamped}/100. Use the image as a loose visual hint only; let the text prompt dominate.`;
+  if (clamped <= 60) return `Reference influence: ${clamped}/100. Blend the image with the text prompt; preserve only the useful silhouette, material, or mood.`;
+  if (clamped < 90) return `Reference influence: ${clamped}/100. Follow the reference image strongly while preserving the requested prompt subject.`;
+  return `Reference influence: ${clamped}/100. Treat the reference image as a dominant visual anchor for structure, pose, and material.`;
+}
+
+export function weightedReferenceCue(referenceCue: string, weight: number) {
+  return `${referenceCue.trim()}\n${referenceWeightCue(weight)}`.trim();
+}
+
 export function clampBatchCount(value: number) {
-  return Math.max(1, Math.min(50, Number.isFinite(value) ? Math.floor(value) : 1));
+  return Math.max(1, Math.min(300, Number.isFinite(value) ? Math.floor(value) : 1));
 }
 
 export function parseSeed(seed: string) {
@@ -45,6 +65,7 @@ export function buildRunPlanPayload(options: {
   seed: string;
   promptUpsampling: boolean;
   referenceCue: string;
+  referenceWeight: number;
   references: ReferenceImage[];
 }) {
   const hasReferences = options.references.some((reference) => Boolean(reference.value));
@@ -63,6 +84,7 @@ export function buildRunPlanPayload(options: {
     batchMode: options.batchMode,
     promptUpsampling: options.promptUpsampling,
     referenceCue: options.referenceCue,
+    referenceWeight: clampReferenceWeight(options.referenceWeight),
     hasReferences,
     outputFormat: "png" as const
   };

@@ -390,6 +390,20 @@ small {
   padding: 0 10px;
 }
 
+.libraryFilter {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.libraryFilter span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .promptList {
   flex: 1 1 auto;
   min-height: 0;
@@ -545,12 +559,14 @@ pre::-webkit-scrollbar {
 .toggle input {
   width: 18px;
   height: 18px;
+  accent-color: var(--violet);
 }
 
 .batchBox,
 .balanceBox,
 .costGrid > div,
-.referenceDropzone {
+.referenceDropzone,
+.referenceUrlBar {
   border: 1px solid var(--line);
   background: rgba(0, 0, 0, 0.34);
   border-radius: 8px;
@@ -568,6 +584,25 @@ pre::-webkit-scrollbar {
   gap: 8px;
   color: var(--soft);
   font-size: 13px;
+}
+
+.scriptCounter {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+
+.scriptCounter strong {
+  color: var(--violet);
+  font-size: 20px;
+}
+
+.scriptCounter span {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .progressBox {
@@ -616,7 +651,7 @@ pre::-webkit-scrollbar {
 }
 
 .referenceDropzone {
-  min-height: 58px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -626,6 +661,88 @@ pre::-webkit-scrollbar {
   font-size: 12px;
   text-align: center;
   padding: 10px;
+}
+
+.referenceUrlBar {
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+}
+
+.referenceUrlBar > svg,
+.referenceUrlBar img {
+  width: 24px;
+  height: 24px;
+  color: var(--violet);
+}
+
+.referenceUrlBar img {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--bg-deep);
+}
+
+.referenceUrlBar input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.referenceWeightControl {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
+  padding: 7px 8px;
+}
+
+.referenceWeightControl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.referenceWeightControl span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.referenceWeightControl strong {
+  color: var(--violet);
+  font-size: 13px;
+}
+
+.referenceWeightControl input {
+  width: 100%;
+  padding: 0;
+  accent-color: var(--violet);
+}
+
+.referenceWeightTicks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.referenceWeightTicks button {
+  min-width: 0;
+  min-height: 22px;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+.referenceWeightTicks button.active {
+  color: var(--bg);
+  border-color: rgba(221, 215, 239, 0.78);
+  background: var(--violet);
 }
 
 .referenceList {
@@ -662,7 +779,7 @@ pre::-webkit-scrollbar {
 }
 
 .referenceCue {
-  min-height: 92px;
+  min-height: 72px;
   color: var(--grey-1);
 }
 
@@ -970,9 +1087,621 @@ pre {
   padding: 0 9px;
 }
 
+.scriptPanel {
+  display: grid;
+  gap: 12px;
+}
+
+.scriptGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 12px;
+  align-items: start;
+}
+
+.scriptSourcePanel,
+.scriptPlanPanel,
+.scriptPlanHero,
+.scriptStats > div,
+.scriptPromptChip,
+.scriptPairList > div,
+.scriptEmpty {
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.46);
+  border-radius: 8px;
+}
+
+.scriptSourcePanel,
+.scriptPlanPanel {
+  padding: 12px;
+}
+
+.scriptPromptGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  max-height: 68vh;
+  overflow: auto;
+}
+
+.scriptPromptChip {
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  justify-content: stretch;
+  gap: 4px;
+  text-align: left;
+  padding: 10px;
+}
+
+.scriptPromptChip strong,
+.scriptPromptChip small,
+.scriptPairList span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scriptPromptChip small,
+.scriptPairList small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.scriptPromptChip.selected {
+  border-color: rgba(185, 181, 208, 0.74);
+  background: rgba(185, 181, 208, 0.12);
+  color: var(--cream);
+}
+
+.scriptPlanPanel {
+  display: grid;
+  gap: 10px;
+}
+
+.scriptPlanHero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  align-items: center;
+  padding: 12px;
+}
+
+.scriptPlanHero svg {
+  color: var(--violet);
+}
+
+.scriptPlanHero strong {
+  grid-column: 1 / -1;
+  font-size: 40px;
+  line-height: 1;
+}
+
+.scriptPlanHero small {
+  grid-column: 1 / -1;
+}
+
+.scriptStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scriptStats > div {
+  padding: 9px;
+}
+
+.scriptStats span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.scriptStats strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.scriptPairsHeader {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.scriptPairList {
+  display: grid;
+  gap: 7px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.scriptPairList > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+}
+
+.scriptEmpty {
+  grid-template-columns: 1fr !important;
+  color: var(--muted);
+}
+
+.audioScriptPanel {
+  display: grid;
+  gap: 12px;
+}
+
+.audioDropzone,
+.audioWaveformShell,
+.audioShotRow,
+.audioPoolPanel,
+.audioPromptComposer {
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.46);
+  border-radius: 8px;
+}
+
+.audioDropzone {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(240px, 420px);
+  align-items: center;
+  gap: 10px;
+  border-style: dashed;
+  padding: 10px;
+  color: var(--muted);
+}
+
+.audioDropzone span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audioDropzone audio {
+  width: 100%;
+  height: 34px;
+}
+
+.audioControls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.audioControls label,
+.audioSliceControls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.audioSliceControls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 136px)) auto auto auto auto minmax(92px, auto);
+  gap: 8px;
+  align-items: end;
+}
+
+.audioSliceControls button {
+  min-width: 0;
+}
+
+.audioSliceControls small {
+  align-self: center;
+  justify-self: end;
+  font-family: var(--font-mono);
+}
+
+.audioLoopToggle {
+  min-height: 38px;
+  align-self: end;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.audioWaveformShell {
+  position: relative;
+  overflow: hidden;
+}
+
+.audioWaveformCanvas {
+  width: 100%;
+  height: 260px;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.audioSliceOverlay {
+  position: absolute;
+  inset: 0 0 39px;
+  pointer-events: none;
+}
+
+.audioSliceWindow {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  border-left: 1px solid rgba(243, 241, 230, 0.72);
+  border-right: 1px solid rgba(243, 241, 230, 0.72);
+  background: rgba(185, 181, 208, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(185, 181, 208, 0.1);
+}
+
+.audioSliceHandle {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 18px;
+  min-height: 0;
+  padding: 0;
+  transform: translateX(-50%);
+  border-color: rgba(243, 241, 230, 0.8);
+  background: rgba(185, 181, 208, 0.28);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.54);
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.audioSliceHandle::before {
+  content: "";
+  width: 2px;
+  height: 58px;
+  background: var(--cream);
+  border-radius: 999px;
+}
+
+.audioSliceHandle.start {
+  border-radius: 8px 3px 3px 8px;
+}
+
+.audioSliceHandle.end {
+  border-radius: 3px 8px 8px 3px;
+}
+
+.audioPlayhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.audioPlayhead::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--danger);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.62), 0 0 18px rgba(226, 115, 115, 0.42);
+}
+
+.audioPlayhead span {
+  position: absolute;
+  top: 10px;
+  left: 7px;
+  padding: 2px 5px;
+  border: 1px solid rgba(226, 115, 115, 0.54);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.74);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.audioLegend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.audioLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audioLegend i {
+  width: 18px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 999px;
+}
+
+.audioLegend .low {
+  background: #9fb09d;
+}
+
+.audioLegend .mid {
+  background: #b9b5d0;
+}
+
+.audioLegend .high {
+  background: #dedbc9;
+}
+
+.audioScriptGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 12px;
+  align-items: start;
+}
+
+.audioShotList {
+  display: grid;
+  gap: 8px;
+}
+
+.audioShotListHeader {
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.34);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.audioShotListHeader > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.audioShotListHeader button,
+.audioShotMeta button {
+  min-height: 30px;
+  padding: 0 8px;
+}
+
+.audioShotRow {
+  display: grid;
+  grid-template-columns: 92px 132px minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+  padding: 10px;
+}
+
+.audioShotRow.selected {
+  border-color: rgba(185, 181, 208, 0.74);
+  box-shadow: inset 0 0 0 1px rgba(185, 181, 208, 0.18);
+}
+
+.audioShotMeta {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  gap: 7px;
+  min-width: 0;
+}
+
+.audioShotMeta strong {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.audioShotMeta input {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.audioShotImage {
+  min-height: 112px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  place-items: center;
+  gap: 6px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 7px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.audioShotImage img {
+  width: 100%;
+  height: 88px;
+  display: block;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--bg-deep);
+}
+
+.audioShotImageButton {
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.audioShotImage span,
+.audioImagePool span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.audioShotFields {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.audioShotSelects {
+  display: grid;
+  grid-template-columns: 112px 92px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.audioShotSelects span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.audioShotFields textarea {
+  min-height: 86px;
+  line-height: 1.35;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.audioShotFields .audioImagePromptInput {
+  min-height: 68px;
+  color: var(--gold);
+}
+
+.audioPoolPanel {
+  padding: 12px;
+}
+
+.audioImagePool {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 540px;
+  overflow: auto;
+}
+
+.audioImagePoolItem {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.34);
+  padding: 6px;
+}
+
+.audioImagePreviewButton,
+.audioImageAssignButton {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 0;
+}
+
+.audioImagePreviewButton {
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 88px;
+  border: 0;
+  background: transparent;
+}
+
+.audioImageAssignButton {
+  min-height: 28px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+}
+
+.audioImagePool img {
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--bg-deep);
+}
+
+.audioPromptComposer {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.audioPromptGuides {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.audioPromptGuides label,
+.audioModelGuideControls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.audioModelGuideControls {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.audioModelGuideControls small {
+  color: var(--gold);
+  font-family: var(--font-mono);
+}
+
+.audioPromptGuides textarea {
+  min-height: 82px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.audioPromptComposer .runLogHeader > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.audioPromptComposer textarea {
+  min-height: 220px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .collectionsPanel {
   display: grid;
   gap: 12px;
+}
+
+.collectionCloudBar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.34);
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+
+.collectionCloudBar span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.collectionCloudBar strong {
+  color: var(--violet);
+  font-size: 14px;
 }
 
 .collectionControls {
@@ -1270,8 +1999,21 @@ pre {
   }
 
   .collectionControls,
-  .collectionItem {
+  .collectionItem,
+  .audioControls,
+  .audioDropzone,
+  .audioSliceControls,
+  .audioPromptGuides,
+  .audioScriptGrid,
+  .audioShotRow,
+  .audioShotSelects,
+  .scriptGrid,
+  .scriptStats {
     grid-template-columns: 1fr;
+  }
+
+  .audioImagePool {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .collectionItem img {

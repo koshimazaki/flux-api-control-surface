@@ -18,6 +18,7 @@ type GenerateBody = {
   promptUpsampling?: boolean;
   safetyTolerance?: number | null;
   references?: string[];
+  referenceWeight?: number;
   title?: string;
 };
 
@@ -128,6 +129,7 @@ function buildRunSettings(options: {
   endpointName: string;
   payload: Record<string, unknown>;
   references: string[];
+  referenceWeight?: number;
   submitted: Record<string, any>;
 }) {
   return {
@@ -142,6 +144,7 @@ function buildRunSettings(options: {
     promptUpsampling: options.payload.disable_pup !== true,
     safetyTolerance: options.payload.safety_tolerance ?? null,
     referenceCount: options.references.length,
+    referenceWeight: options.referenceWeight ?? null,
     requestId: options.submitted.id ?? null,
     submittedCost: options.submitted.cost ?? null,
     inputMp: options.submitted.input_mp ?? null,
@@ -242,6 +245,7 @@ export async function POST(request: NextRequest) {
       endpointName,
       payload,
       references,
+      referenceWeight: body.referenceWeight,
       submitted
     });
     const metadata = {

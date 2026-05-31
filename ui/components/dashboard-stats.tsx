@@ -23,19 +23,22 @@ export function DashboardStats(props: DashboardStatsProps) {
       label: "Prompt",
       value: `${props.promptTokens}`,
       detail: "tokens estimated",
-      icon: Coins
+      icon: Coins,
+      tone: "statTonePrompt"
     },
     {
       label: "Prompts",
       value: String(props.promptCount),
       detail: props.selectedPromptCount ? `${props.selectedPromptCount} selected` : `${props.batchCount} per run`,
-      icon: LibraryBig
+      icon: LibraryBig,
+      tone: "statToneLibrary"
     },
     {
       label: "Output",
       value: `${props.outputMegapixels.toFixed(2)} MP`,
       detail: `${props.estimatedBatchCredits.toFixed(2)} cr est.`,
-      icon: SquareStack
+      icon: SquareStack,
+      tone: "statToneOutput"
     }
   ];
   const runDetail = props.failedRunCount
@@ -46,29 +49,31 @@ export function DashboardStats(props: DashboardStatsProps) {
 
   return (
     <section className="statsGrid">
-      <div className="statCard">
+      <div className="statCard statToneAssets">
         <div>
           <span>Assets</span>
           <strong>{props.assetCount}</strong>
           <small>{props.runCount} calls | {runDetail}</small>
         </div>
         <Image size={18} />
+        <StatSignal />
       </div>
 
       <div className="statsCenter">
-        {middleStats.map(({ label, value, detail, icon: Icon }) => (
-          <div className="statCard" key={label}>
+        {middleStats.map(({ label, value, detail, icon: Icon, tone }) => (
+          <div className={`statCard ${tone}`} key={label}>
             <div>
               <span>{label}</span>
               <strong>{value}</strong>
               <small>{detail}</small>
             </div>
             <Icon size={18} />
+            <StatSignal />
           </div>
         ))}
       </div>
 
-      <div className="statCard balanceStat">
+      <div className="statCard balanceStat statToneBalance">
         <div>
           <span>Balance</span>
           <strong>{typeof props.balanceCredits === "number" ? `${props.balanceCredits.toFixed(2)} cr` : "unchecked"}</strong>
@@ -79,7 +84,18 @@ export function DashboardStats(props: DashboardStatsProps) {
           Check
         </button>
         <WalletCards size={18} />
+        <StatSignal />
       </div>
     </section>
+  );
+}
+
+function StatSignal() {
+  return (
+    <div className="statSignal" aria-hidden="true">
+      {Array.from({ length: 12 }, (_, index) => (
+        <i key={index} />
+      ))}
+    </div>
   );
 }

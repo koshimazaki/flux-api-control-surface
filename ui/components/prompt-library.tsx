@@ -1,10 +1,14 @@
-import { FileJson } from "lucide-react";
+import { FileJson, Library } from "lucide-react";
+import type { PromptLibraryOption } from "@/lib/prompt-library-groups";
 import type { PromptRecord } from "@/lib/types";
 
 type PromptLibraryProps = {
   prompts: PromptRecord[];
+  libraryOptions: PromptLibraryOption[];
+  activeLibraryId: string;
   activeId: string;
   selectedIds: string[];
+  onLibraryChange: (id: string) => void;
   onSelect: (id: string) => void;
   onToggleSelected: (id: string) => void;
   onBuildCombo: () => void;
@@ -13,8 +17,11 @@ type PromptLibraryProps = {
 
 export function PromptLibrary({
   prompts,
+  libraryOptions,
+  activeLibraryId,
   activeId,
   selectedIds,
+  onLibraryChange,
   onSelect,
   onToggleSelected,
   onBuildCombo,
@@ -33,6 +40,19 @@ export function PromptLibrary({
           </button>
         </div>
       </div>
+      <label className="libraryFilter">
+        <span>
+          <Library size={15} />
+          Library
+        </span>
+        <select value={activeLibraryId} onChange={(event) => onLibraryChange(event.target.value)}>
+          {libraryOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label} ({option.count})
+            </option>
+          ))}
+        </select>
+      </label>
       <div className="promptList">
         {prompts.map((record) => {
           const isActive = record.id === activeId;

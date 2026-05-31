@@ -4,7 +4,7 @@ export const presets = [
     label: "Magic Hour",
     style:
       "cinematic detailed film photography, botanical macro film still, shot on Kodak Portra 400, natural grain, organic color, high dynamic range",
-    lighting: "magic hour backlight, warm rim light, soft haze, luminous pollen, creamy bokeh highlights",
+    lighting: "magic hour backlight, warm rim light, soft haze, luminous surface glow, creamy bokeh highlights",
     lens: "100mm macro lens at f/2.8, shallow depth of field, circular bokeh, sharp anatomy at the focal plane"
   },
   {
@@ -20,8 +20,8 @@ export const presets = [
     label: "Moonlit",
     style:
       "nocturnal cinematic macro photography, gothic botanical realism, velvet shadows, fine film grain, luminous biological detail",
-    lighting: "blue moonlight with a faint magenta rim light, bioluminescent pollen glow, dark soft bokeh",
-    lens: "Canon 5D Mark IV, 100mm macro lens, f/2.8, shallow depth of field, crisp central bloom"
+    lighting: "blue moonlight with a faint magenta rim light, bioluminescent surface glow, dark soft bokeh",
+    lens: "Canon 5D Mark IV, 100mm macro lens, f/2.8, shallow depth of field, crisp petal texture at the focal plane"
   }
 ];
 
