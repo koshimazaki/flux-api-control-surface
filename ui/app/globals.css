@@ -285,6 +285,7 @@ h2 {
 }
 
 .statCard {
+  position: relative;
   min-width: 0;
   min-height: 74px;
   display: flex;
@@ -310,7 +311,10 @@ h2 {
   font-size: 18px;
 }
 
-.statCard svg {
+.statCard > svg {
+  position: absolute;
+  top: 10px;
+  right: 10px;
   color: var(--violet);
   flex: 0 0 auto;
 }
@@ -356,6 +360,13 @@ h2 {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* prompt editor panel: green frame over transparent black */
+.editor {
+  background:
+    linear-gradient(180deg, rgba(85, 102, 89, 0.5), rgba(85, 102, 89, 0.22)),
+    rgba(0, 0, 0, 0.32);
 }
 
 .panelHeader {
@@ -524,6 +535,11 @@ pre::-webkit-scrollbar {
   line-height: 1.45;
   font-family: var(--font-mono);
   font-size: 13px;
+  background: rgba(0, 0, 0, 0.62);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  color: var(--cream);
 }
 
 .editorActions {
@@ -915,7 +931,7 @@ pre::-webkit-scrollbar {
   gap: 8px;
   flex-wrap: wrap;
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.54), rgba(0, 0, 0, 0.36));
+  background: linear-gradient(180deg, rgba(85, 102, 89, 0.46), rgba(0, 0, 0, 0.42));
   backdrop-filter: blur(20px);
   border-radius: 8px;
   padding: 8px;

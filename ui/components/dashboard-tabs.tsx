@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Activity, Image, ListChecks, Music, PackageOpen, PlugZap, Route, Shapes } from "lucide-react";
+import { Activity, Image, ListChecks, Music, PackageOpen, PlugZap, Route } from "lucide-react";
 import type { DashboardTab } from "@/lib/types";
 
 type DashboardTabsProps = {
@@ -16,7 +16,6 @@ type DashboardTabsProps = {
   collections: ReactNode;
   apis: ReactNode;
   mcp: ReactNode;
-  system: ReactNode;
 };
 
 export function DashboardTabs(props: DashboardTabsProps) {
@@ -26,7 +25,6 @@ export function DashboardTabs(props: DashboardTabsProps) {
     { id: "runs" as const, label: "Run Log", count: props.runCount, icon: Activity },
     { id: "apis" as const, label: "APIs", count: null, icon: Route },
     { id: "mcp" as const, label: "MCP", count: null, icon: PlugZap },
-    { id: "system" as const, label: "System", count: null, icon: Shapes },
     { id: "script" as const, label: "Script", count: props.scriptCount, icon: ListChecks },
     { id: "audio" as const, label: "Audio", count: null, icon: Music }
   ];
@@ -54,7 +52,6 @@ export function DashboardTabs(props: DashboardTabsProps) {
       {props.activeTab === "runs" && props.runs}
       {props.activeTab === "apis" && props.apis}
       {props.activeTab === "mcp" && props.mcp}
-      {props.activeTab === "system" && props.system}
     </section>
   );
 }

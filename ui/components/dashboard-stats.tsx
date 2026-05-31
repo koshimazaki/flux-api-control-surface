@@ -18,13 +18,18 @@ type DashboardStatsProps = {
 };
 
 export function DashboardStats(props: DashboardStatsProps) {
+  const runDetail = props.failedRunCount
+    ? `${props.failedRunCount} failed`
+    : props.lastRunAt
+      ? `last ${new Date(props.lastRunAt).toLocaleTimeString()}`
+      : "no run yet";
   const middleStats = [
     {
-      label: "Prompt",
-      value: `${props.promptTokens}`,
-      detail: "tokens estimated",
-      icon: Coins,
-      tone: "statTonePrompt"
+      label: "Assets",
+      value: String(props.assetCount),
+      detail: `${props.runCount} calls | ${runDetail}`,
+      icon: Image,
+      tone: "statToneAssets"
     },
     {
       label: "Prompts",
@@ -41,21 +46,16 @@ export function DashboardStats(props: DashboardStatsProps) {
       tone: "statToneOutput"
     }
   ];
-  const runDetail = props.failedRunCount
-    ? `${props.failedRunCount} failed`
-    : props.lastRunAt
-      ? `last ${new Date(props.lastRunAt).toLocaleTimeString()}`
-      : "no run yet";
 
   return (
     <section className="statsGrid">
-      <div className="statCard statToneAssets">
+      <div className="statCard statTonePrompt">
         <div>
-          <span>Assets</span>
-          <strong>{props.assetCount}</strong>
-          <small>{props.runCount} calls | {runDetail}</small>
+          <span>Prompt</span>
+          <strong>{props.promptTokens}</strong>
+          <small>tokens estimated</small>
         </div>
-        <Image size={18} />
+        <Coins size={18} />
         <StatSignal />
       </div>
 

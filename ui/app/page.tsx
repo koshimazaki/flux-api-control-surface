@@ -6,7 +6,6 @@ import { AudioScriptPanel } from "@/components/audio-script-panel";
 import { BackgroundShader } from "@/components/background-shader";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { DashboardTabs } from "@/components/dashboard-tabs";
-import { DesignSystemPanel } from "@/components/design-system-panel";
 import { GenerationLog } from "@/components/generation-log";
 import { Lightbox } from "@/components/lightbox";
 import { McpPanel } from "@/components/mcp-panel";
@@ -897,7 +896,6 @@ export default function Home() {
               runLog={runLog}
             />
           }
-          system={<DesignSystemPanel />}
         />
         <Lightbox
           asset={selectedAsset}
