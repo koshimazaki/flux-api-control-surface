@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Clipboard, Download, Image, Music, Play, Plus, Repeat, RotateCcw, Scissors, Trash2, Upload, Video, Wand2 } from "lucide-react";
+import { Activity, Clipboard, Download, Image, Lock, Music, Play, Plus, Repeat, RotateCcw, Scissors, Trash2, Unlock, Upload, Video, Wand2, ZoomIn, ZoomOut } from "lucide-react";
 import type { ChangeEvent, DragEvent, PointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { analyzeAudioFile, type AudioAnalysisResult, type AudioBandKey, type AudioEventKind, type AudioMarker } from "@/lib/audio-analysis";
@@ -42,6 +42,9 @@ type AudioScriptPanelProps = {
 
 type AudioExportFormat = "mp3" | "wav";
 type VideoTarget = "seedance" | "kling" | "custom";
+
+const MIN_WAVEFORM_ZOOM = 1;
+const MAX_WAVEFORM_ZOOM = 16;
 
 const videoTargets: Record<VideoTarget, { label: string; imageGuides: number }> = {
   seedance: { label: "Seedance 2.0", imageGuides: 9 },
@@ -86,9 +89,12 @@ function assetRecordFromImage(source: {
 export function AudioScriptPanel(props: AudioScriptPanelProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const waveformTrackRef = useRef<HTMLDivElement | null>(null);
   const sliceOverlayRef = useRef<HTMLDivElement | null>(null);
   const draggingMarkerId = useRef<string | null>(null);
   const draggingSliceHandle = useRef<"start" | "end" | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const playheadFrameRef = useRef<() => void>(() => {});
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState("");
   const [audioDuration, setAudioDuration] = useState(0);
@@ -114,6 +120,12 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   const [qualityBoosters, setQualityBoosters] = useState(defaultAudioQualityBoosters);
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [hasLoadedAudioCache, setHasLoadedAudioCache] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [lockedMarkerIds, setLockedMarkerIds] = useState<Set<string>>(() => new Set());
+  const [startDraft, setStartDraft] = useState("");
+  const [endDraft, setEndDraft] = useState("");
+  const [startFocused, setStartFocused] = useState(false);
+  const [endFocused, setEndFocused] = useState(false);
   const imageOptions = useMemo(
     () => imageOptionsFromSources(props.assets, props.collectionItems),
     [props.assets, props.collectionItems]
@@ -131,6 +143,24 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   const sliceDuration = Math.max(0, sliceEndSeconds - sliceStartSeconds);
   const uniqueImageGuideCount = new Set(shots.map((shot) => shot.imageSourceId || shot.imageName).filter(Boolean)).size;
   const estimatedVideoParts = Math.max(1, Math.ceil(uniqueImageGuideCount / Math.max(1, maxImageGuides)));
+  const selectedMarkerLocked = Boolean(selectedMarkerId) && lockedMarkerIds.has(selectedMarkerId);
+
+  playheadFrameRef.current = () => {
+    const audio = audioRef.current;
+    if (!audio) {
+      rafRef.current = null;
+      return;
+    }
+    if (previewLoop && sliceEndSeconds > sliceStartSeconds && audio.currentTime >= sliceEndSeconds) {
+      audio.currentTime = sliceStartSeconds;
+    }
+    setCurrentTime(audio.currentTime);
+    if (!audio.paused && !audio.ended) {
+      rafRef.current = requestAnimationFrame(() => playheadFrameRef.current());
+    } else {
+      rafRef.current = null;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -152,6 +182,8 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
         setMarkers(cached.markers || []);
         setShots(cached.shots || []);
         setSelectedMarkerId(cached.selectedMarkerId || "");
+        const cachedLocks = (cached as CachedAudioScriptState & { lockedMarkerIds?: string[] }).lockedMarkerIds;
+        if (Array.isArray(cachedLocks)) setLockedMarkerIds(new Set(cachedLocks));
         setStartSeconds(cached.startSeconds || 0);
         setDurationSeconds(cached.durationSeconds || 15);
         setSliceStartSeconds(cached.sliceStartSeconds || 0);
@@ -212,7 +244,11 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
         qualityBoosters,
         generatedPrompt
       };
-      saveCachedAudioScriptState(state);
+      // lockedMarkerIds is component-local; persist it alongside the typed cache via a cast
+      // so the shared CachedAudioScriptState type does not need to change.
+      saveCachedAudioScriptState(
+        Object.assign({}, state, { lockedMarkerIds: Array.from(lockedMarkerIds) }) as CachedAudioScriptState
+      );
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [
@@ -238,7 +274,8 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
     maxImageGuides,
     scriptSetup,
     qualityBoosters,
-    generatedPrompt
+    generatedPrompt,
+    lockedMarkerIds
   ]);
 
   useEffect(() => {
@@ -264,11 +301,29 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const redraw = () => drawWaveform(canvas, analysis, markers, selectedMarkerId);
+    const redraw = () => {
+      drawWaveform(canvas, analysis, markers, selectedMarkerId);
+      decorateLockedMarkers(canvas, analysis, markers, lockedMarkerIds);
+    };
     redraw();
     window.addEventListener("resize", redraw);
     return () => window.removeEventListener("resize", redraw);
-  }, [analysis, markers, selectedMarkerId]);
+  }, [analysis, markers, selectedMarkerId, lockedMarkerIds, zoom]);
+
+  useEffect(
+    () => () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!startFocused) setStartDraft(formatSeconds(sliceStartSeconds, 2));
+  }, [sliceStartSeconds, startFocused]);
+
+  useEffect(() => {
+    if (!endFocused) setEndDraft(formatSeconds(sliceEndSeconds, 2));
+  }, [sliceEndSeconds, endFocused]);
 
   function setAudioFiles(files: File[]) {
     const file = files.find((item) => item.type.startsWith("audio/")) || files[0];
@@ -280,6 +335,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
     setMarkers([]);
     setShots([]);
     setSelectedMarkerId("");
+    setLockedMarkerIds(new Set());
     setSliceStartSeconds(0);
     setSliceEndSeconds(15);
     setCurrentTime(0);
@@ -344,6 +400,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
       setMarkers(result.markers);
       setShots((current) => syncShots(result.markers, current));
       setSelectedMarkerId(result.markers[0]?.id || "");
+      setLockedMarkerIds(new Set());
       setSliceStartSeconds(result.start);
       setSliceEndSeconds(result.start + result.analyzedDuration);
       setGeneratedPrompt("");
@@ -363,6 +420,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   }
 
   function moveMarker(markerId: string, relativeTime: number) {
+    if (lockedMarkerIds.has(markerId)) return;
     const duration = analysis?.analyzedDuration || durationSeconds;
     const start = analysis?.start || startSeconds;
     const safeRelativeTime = clamp(relativeTime, 0, duration);
@@ -370,6 +428,23 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
       relativeTime: safeRelativeTime,
       time: start + safeRelativeTime
     });
+  }
+
+  function toggleMarkerLock() {
+    if (!selectedMarkerId) return;
+    setLockedMarkerIds((current) => {
+      const next = new Set(current);
+      if (next.has(selectedMarkerId)) {
+        next.delete(selectedMarkerId);
+      } else {
+        next.add(selectedMarkerId);
+      }
+      return next;
+    });
+  }
+
+  function zoomWaveform(direction: 1 | -1) {
+    setZoom((current) => clamp(direction > 0 ? current * 2 : current / 2, MIN_WAVEFORM_ZOOM, MAX_WAVEFORM_ZOOM));
   }
 
   function updateShot(markerId: string, patch: Partial<AudioShot>) {
@@ -450,6 +525,12 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   function removeTimingSpot(markerId: string) {
     setMarkers((current) => current.filter((marker) => marker.id !== markerId));
     setShots((current) => current.filter((shot) => shot.markerId !== markerId));
+    setLockedMarkerIds((current) => {
+      if (!current.has(markerId)) return current;
+      const next = new Set(current);
+      next.delete(markerId);
+      return next;
+    });
     setSelectedMarkerId((current) => {
       if (current !== markerId) return current;
       return markers.find((marker) => marker.id !== markerId)?.id || "";
@@ -475,8 +556,9 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   function onWaveformPointerDown(event: PointerEvent<HTMLCanvasElement>) {
     if (!analysis || !markers.length) return;
     const markerId = nearestMarkerId(event) || selectedMarkerId || markers[0].id;
-    draggingMarkerId.current = markerId;
     setSelectedMarkerId(markerId);
+    if (lockedMarkerIds.has(markerId)) return;
+    draggingMarkerId.current = markerId;
     moveMarker(markerId, relativeTimeFromPointer(event));
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -498,6 +580,18 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
       return;
     }
     setSliceEndSeconds(clamp(value, Math.min(maxTime, sliceStartSeconds + 0.05), maxTime));
+  }
+
+  function commitSliceDraft(boundary: "start" | "end") {
+    if (boundary === "start") {
+      const parsed = parseFloat(startDraft);
+      updateSliceBoundary("start", startDraft.trim() !== "" && !Number.isNaN(parsed) ? parsed : timelineStart || 0);
+      setStartFocused(false);
+      return;
+    }
+    const parsedEnd = parseFloat(endDraft);
+    if (endDraft.trim() !== "" && !Number.isNaN(parsedEnd)) updateSliceBoundary("end", parsedEnd);
+    setEndFocused(false);
   }
 
   function timeFromSlicePointer(event: PointerEvent<HTMLElement>) {
@@ -522,23 +616,32 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
     event.currentTarget.releasePointerCapture(event.pointerId);
   }
 
+  function startPlayheadLoop() {
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(() => playheadFrameRef.current());
+  }
+
+  function stopPlayheadLoop() {
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }
+
   function playSlice() {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = sliceStartSeconds;
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = sliceStartSeconds;
     setCurrentTime(sliceStartSeconds);
-    void audioRef.current.play();
+    void audio.play();
+    startPlayheadLoop();
   }
 
   function onAudioTimeUpdate() {
     const audio = audioRef.current;
     if (!audio) return;
-    setCurrentTime(audio.currentTime);
-    if (!previewLoop || sliceEndSeconds <= sliceStartSeconds) return;
-    if (audio.currentTime >= sliceEndSeconds || audio.currentTime < sliceStartSeconds) {
-      audio.currentTime = sliceStartSeconds;
-      setCurrentTime(sliceStartSeconds);
-      void audio.play();
-    }
+    // Lightweight fallback; the requestAnimationFrame loop is the primary playhead driver.
+    if (rafRef.current == null) setCurrentTime(audio.currentTime);
   }
 
   function exportFileName(format: AudioExportFormat) {
@@ -664,6 +767,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
     setMarkers([]);
     setShots([]);
     setSelectedMarkerId("");
+    setLockedMarkerIds(new Set());
     setGeneratedPrompt("");
     setError("");
   }
@@ -727,7 +831,10 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
                 audioRef.current.currentTime = sliceStartSeconds;
                 setCurrentTime(sliceStartSeconds);
               }
+              startPlayheadLoop();
             }}
+            onPause={stopPlayheadLoop}
+            onEnded={stopPlayheadLoop}
             onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)}
             onTimeUpdate={onAudioTimeUpdate}
           />
@@ -767,23 +874,29 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
         <label>
           Start bracket
           <input
-            type="number"
-            min={0}
-            max={Math.max(sliceEndSeconds - 0.05, 0)}
-            step={0.01}
-            value={formatSeconds(sliceStartSeconds, 2)}
-            onChange={(event) => updateSliceBoundary("start", Number(event.target.value) || 0)}
+            type="text"
+            inputMode="decimal"
+            value={startDraft}
+            onFocus={() => setStartFocused(true)}
+            onChange={(event) => setStartDraft(event.target.value)}
+            onBlur={() => commitSliceDraft("start")}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.currentTarget.blur();
+            }}
           />
         </label>
         <label>
           End bracket
           <input
-            type="number"
-            min={sliceStartSeconds + 0.05}
-            max={audioDuration || undefined}
-            step={0.01}
-            value={formatSeconds(sliceEndSeconds, 2)}
-            onChange={(event) => updateSliceBoundary("end", Number(event.target.value) || 0)}
+            type="text"
+            inputMode="decimal"
+            value={endDraft}
+            onFocus={() => setEndFocused(true)}
+            onChange={(event) => setEndDraft(event.target.value)}
+            onBlur={() => commitSliceDraft("end")}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.currentTarget.blur();
+            }}
           />
         </label>
         <label>
@@ -824,40 +937,64 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
 
       {error && <p className="errorText">{error}</p>}
 
+      <div className="audioWaveformToolbar">
+        <div className="audioZoomControls">
+          <button onClick={() => zoomWaveform(-1)} disabled={zoom <= MIN_WAVEFORM_ZOOM} title="Zoom out">
+            <ZoomOut size={15} />
+          </button>
+          <span>{zoom}x</span>
+          <button onClick={() => zoomWaveform(1)} disabled={zoom >= MAX_WAVEFORM_ZOOM} title="Zoom in">
+            <ZoomIn size={15} />
+          </button>
+        </div>
+        <button
+          className={selectedMarkerLocked ? "audioLockToggle locked" : "audioLockToggle"}
+          onClick={toggleMarkerLock}
+          disabled={!selectedMarkerId}
+          title={selectedMarkerLocked ? "Unlock selected marker" : "Lock selected marker"}
+        >
+          {selectedMarkerLocked ? <Lock size={15} /> : <Unlock size={15} />}
+          {selectedMarkerLocked ? "Locked" : "Lock"}
+        </button>
+        <small>{lockedMarkerIds.size} locked</small>
+      </div>
+
       <div className="audioWaveformShell">
-        <canvas
-          ref={canvasRef}
-          className="audioWaveformCanvas"
-          onPointerDown={onWaveformPointerDown}
-          onPointerMove={onWaveformPointerMove}
-          onPointerUp={onWaveformPointerUp}
-        />
-        <div className="audioSliceOverlay" ref={sliceOverlayRef}>
-          <div
-            className="audioSliceWindow"
-            style={{
-              left: `${Math.min(sliceStartPercent, sliceEndPercent)}%`,
-              width: `${Math.max(0, sliceEndPercent - sliceStartPercent)}%`
-            }}
+        <div className="audioWaveformTrack" ref={waveformTrackRef} style={{ width: `${zoom * 100}%` }}>
+          <canvas
+            ref={canvasRef}
+            className="audioWaveformCanvas"
+            onPointerDown={onWaveformPointerDown}
+            onPointerMove={onWaveformPointerMove}
+            onPointerUp={onWaveformPointerUp}
           />
-          <button
-            className="audioSliceHandle start"
-            style={{ left: `${sliceStartPercent}%` }}
-            onPointerDown={(event) => onSliceHandlePointerDown("start", event)}
-            onPointerMove={(event) => onSliceHandlePointerMove("start", event)}
-            onPointerUp={onSliceHandlePointerUp}
-            title="Drag start bracket"
-          />
-          <button
-            className="audioSliceHandle end"
-            style={{ left: `${sliceEndPercent}%` }}
-            onPointerDown={(event) => onSliceHandlePointerDown("end", event)}
-            onPointerMove={(event) => onSliceHandlePointerMove("end", event)}
-            onPointerUp={onSliceHandlePointerUp}
-            title="Drag end bracket"
-          />
-          <div className="audioPlayhead" style={{ left: `${playheadPercent}%` }}>
-            <span>{formatSeconds(currentTime, 2)}s</span>
+          <div className="audioSliceOverlay" ref={sliceOverlayRef}>
+            <div
+              className="audioSliceWindow"
+              style={{
+                left: `${Math.min(sliceStartPercent, sliceEndPercent)}%`,
+                width: `${Math.max(0, sliceEndPercent - sliceStartPercent)}%`
+              }}
+            />
+            <button
+              className="audioSliceHandle start"
+              style={{ left: `${sliceStartPercent}%` }}
+              onPointerDown={(event) => onSliceHandlePointerDown("start", event)}
+              onPointerMove={(event) => onSliceHandlePointerMove("start", event)}
+              onPointerUp={onSliceHandlePointerUp}
+              title="Drag start bracket"
+            />
+            <button
+              className="audioSliceHandle end"
+              style={{ left: `${sliceEndPercent}%` }}
+              onPointerDown={(event) => onSliceHandlePointerDown("end", event)}
+              onPointerMove={(event) => onSliceHandlePointerMove("end", event)}
+              onPointerUp={onSliceHandlePointerUp}
+              title="Drag end bracket"
+            />
+            <div className="audioPlayhead" style={{ left: `${playheadPercent}%` }}>
+              <span>{formatSeconds(currentTime, 2)}s</span>
+            </div>
           </div>
         </div>
         <div className="audioLegend">
@@ -884,7 +1021,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
           </div>
           {shotRows.map(({ marker, shot }, index) => (
             <article
-              className={marker.id === selectedMarkerId ? "audioShotRow selected" : "audioShotRow"}
+              className={`audioShotRow${marker.id === selectedMarkerId ? " selected" : ""}${lockedMarkerIds.has(marker.id) ? " locked" : ""}`}
               key={marker.id}
               onClick={() => setSelectedMarkerId(marker.id)}
               onDrop={(event) => void onRowDrop(marker.id, event)}
@@ -1057,4 +1194,31 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
       </div>
     </section>
   );
+}
+
+function decorateLockedMarkers(
+  canvas: HTMLCanvasElement | null,
+  analysis: AudioAnalysisResult | null,
+  markers: AudioMarker[],
+  lockedMarkerIds: Set<string>
+) {
+  if (!canvas || !analysis || !analysis.analyzedDuration || !lockedMarkerIds.size) return;
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  const width = canvas.clientWidth || canvas.parentElement?.clientWidth || 0;
+  const height = canvas.clientHeight || 0;
+  if (!width || !height) return;
+  context.save();
+  context.lineWidth = 2;
+  context.strokeStyle = "rgba(232, 184, 96, 0.92)";
+  context.setLineDash([5, 4]);
+  markers.forEach((marker) => {
+    if (!lockedMarkerIds.has(marker.id)) return;
+    const x = (marker.relativeTime / analysis.analyzedDuration) * width;
+    context.beginPath();
+    context.moveTo(x, 0);
+    context.lineTo(x, height);
+    context.stroke();
+  });
+  context.restore();
 }

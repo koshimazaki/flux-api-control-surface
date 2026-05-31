@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Clipboard, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import type { PromptRecord } from "@/lib/types";
@@ -24,6 +25,23 @@ export function PromptEditor({
   onDelete,
   onReset
 }: PromptEditorProps) {
+  const [activePresetId, setActivePresetId] = useState("");
+
+  // Clear the "plugged in" indicator when a different prompt is loaded.
+  useEffect(() => {
+    setActivePresetId("");
+  }, [activePrompt?.id]);
+
+  function applyPreset(preset: (typeof presets)[number]) {
+    onPromptChange(applyPresetToPrompt(promptText, preset));
+    setActivePresetId(preset.id);
+  }
+
+  function editPrompt(value: string) {
+    if (activePresetId) setActivePresetId("");
+    onPromptChange(value);
+  }
+
   return (
     <section className="panel editor">
       <div className="panelHeader">
@@ -31,20 +49,28 @@ export function PromptEditor({
           <h2>{activePrompt?.id || "Prompt"}</h2>
           <p>{activePrompt?.plant_form || "Structured FLUX.2 prompt"}</p>
         </div>
-        <div className="presetRow">
-          {presets.map((preset) => (
-            <button key={preset.id} onClick={() => onPromptChange(applyPresetToPrompt(promptText, preset))}>
-              <Wand2 size={15} />
-              {preset.label}
-            </button>
-          ))}
+        <div className="presetRow" role="group" aria-label="Look presets">
+          {presets.map((preset) => {
+            const active = preset.id === activePresetId;
+            return (
+              <button
+                key={preset.id}
+                className={active ? "presetToggle active" : "presetToggle"}
+                aria-pressed={active}
+                onClick={() => applyPreset(preset)}
+              >
+                <Wand2 size={15} />
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <textarea
         className="promptEditor"
         value={promptText}
-        onChange={(event) => onPromptChange(event.target.value)}
+        onChange={(event) => editPrompt(event.target.value)}
         spellCheck={false}
       />
 
