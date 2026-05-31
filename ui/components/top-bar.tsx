@@ -17,9 +17,10 @@ export function TopBar({ apiKey, onApiKeyChange }: TopBarProps) {
           <p className="eyebrow">Black Forest Labs / FLUX.2</p>
           <h1>FLUX Control</h1>
           <div className="topBarChips" aria-label="Workspace scope">
+            <span>API</span>
             <span>Prompts</span>
-            <span>Batches</span>
             <span>Assets</span>
+            <span>MCP</span>
           </div>
         </div>
       </div>

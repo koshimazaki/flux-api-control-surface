@@ -34,7 +34,7 @@
   --gold: #dedbc9;
   --rose: #b95050;
   --cyan: #9fb09d;
-  --violet: #b9b5d0;
+  --violet: #a7a6b3;
   --danger: #e27373;
   --font-sans: "Instrument Sans", "Untitled Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
@@ -153,8 +153,8 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: rgba(185, 181, 208, 0.72);
-  box-shadow: 0 0 0 2px rgba(185, 181, 208, 0.16);
+  border-color: rgba(167, 166, 179, 0.72);
+  box-shadow: 0 0 0 2px rgba(167, 166, 179, 0.16);
 }
 
 input,
@@ -1037,8 +1037,8 @@ pre::-webkit-scrollbar {
 }
 
 .assetCard.selectedAsset {
-  border-color: rgba(185, 181, 208, 0.74);
-  box-shadow: inset 0 0 0 1px rgba(185, 181, 208, 0.22);
+  border-color: rgba(167, 166, 179, 0.74);
+  box-shadow: inset 0 0 0 1px rgba(167, 166, 179, 0.22);
 }
 
 .assetSelectButton {
@@ -1055,7 +1055,7 @@ pre::-webkit-scrollbar {
 
 .selectedAsset .assetSelectButton {
   color: var(--violet);
-  border-color: rgba(185, 181, 208, 0.74);
+  border-color: rgba(167, 166, 179, 0.74);
 }
 
 .assetImageButton {
@@ -1183,8 +1183,8 @@ pre {
 }
 
 .scriptPromptChip.selected {
-  border-color: rgba(185, 181, 208, 0.74);
-  background: rgba(185, 181, 208, 0.12);
+  border-color: rgba(167, 166, 179, 0.74);
+  background: rgba(167, 166, 179, 0.12);
   color: var(--cream);
 }
 
@@ -1418,8 +1418,8 @@ pre {
   bottom: 8px;
   border-left: 1px solid rgba(243, 241, 230, 0.72);
   border-right: 1px solid rgba(243, 241, 230, 0.72);
-  background: rgba(185, 181, 208, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(185, 181, 208, 0.1);
+  background: rgba(167, 166, 179, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(167, 166, 179, 0.1);
 }
 
 .audioSliceHandle {
@@ -1431,7 +1431,7 @@ pre {
   padding: 0;
   transform: translateX(-50%);
   border-color: rgba(243, 241, 230, 0.8);
-  background: rgba(185, 181, 208, 0.28);
+  background: rgba(167, 166, 179, 0.28);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.54);
   cursor: ew-resize;
   pointer-events: auto;
@@ -1516,7 +1516,7 @@ pre {
 }
 
 .audioLegend .mid {
-  background: #b9b5d0;
+  background: #a7a6b3;
 }
 
 .audioLegend .high {
@@ -1564,8 +1564,8 @@ pre {
 }
 
 .audioShotRow.selected {
-  border-color: rgba(185, 181, 208, 0.74);
-  box-shadow: inset 0 0 0 1px rgba(185, 181, 208, 0.18);
+  border-color: rgba(167, 166, 179, 0.74);
+  box-shadow: inset 0 0 0 1px rgba(167, 166, 179, 0.18);
 }
 
 .audioShotRow.locked {
