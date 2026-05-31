@@ -3,7 +3,7 @@
     "id": "flower_macro_001",
     "domain": "flower",
     "seed": 1101,
-    "prompt": "Macro photograph of a single translucent flower bloom, radial petals, visible pollen dust, clean dark background, centered composition, high detail, clean unmarked background"
+    "prompt": "Macro photograph of a single translucent flower bloom, layered petals, visible dew and surface dust, clean dark background, centered composition, high detail, clean unmarked background"
   },
   {
     "id": "flower_macro_002",
@@ -21,7 +21,7 @@
     "id": "flower_macro_004",
     "domain": "flower",
     "seed": 1104,
-    "prompt": "Extreme close-up of flower petals with dew, soft membrane texture, central bloom visible, high-resolution natural detail, clean unmarked background"
+    "prompt": "Extreme close-up of flower petals with dew, soft membrane texture, petal texture visible, high-resolution natural detail, clean unmarked background"
   },
   {
     "id": "bacteria_macro_001",
@@ -39,7 +39,7 @@
     "id": "bacteria_macro_003",
     "domain": "bacteria",
     "seed": 1203,
-    "prompt": "Petri dish macro photograph of bacterial colony structures, radial growth rings, branching edges, clean laboratory lighting, clean unmarked background"
+    "prompt": "Petri dish macro photograph of bacterial colony structures, layered growth rings, branching edges, clean laboratory lighting, clean unmarked background"
   },
   {
     "id": "bacteria_macro_004",

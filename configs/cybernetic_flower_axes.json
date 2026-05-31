@@ -1,10 +1,10 @@
 {
-  "style_frame": "cinematic detailed film photography, botanical macro film still, shot on Kodak Portra 400, natural grain, premium source-image quality, plausible plant anatomy, high-frequency organic detail, natural imperfections, training-ready morphology, creamy optical bokeh",
+  "style_frame": "cinematic detailed film photography, botanical macro film still, shot on Kodak Portra 400, natural grain, premium source-image quality, plausible botanical material, high-frequency organic detail, natural imperfections, training-ready morphology, creamy optical bokeh",
   "delivery_constraints": "clean unmarked label-free specimen image with a blank botanical background and plain continuous framing",
   "species": [
     {
-      "name": "passion flower",
-      "notes": "jungle tropical plant, engineered radial filaments, alien crown structure, purple-white tendrils, sacred cybernetic plant design"
+      "name": "tropical membrane flower",
+      "notes": "tropical lab-grown bloom, layered translucent petals, wet membrane folds, iridescent purple-white color accents, sacred cybernetic plant design"
     },
     {
       "name": "sea anemone flower",
@@ -58,7 +58,7 @@
     "underwater botanical chamber"
   ],
   "plant_forms": [
-    "passion-flower radial crown filaments and fine cybernetic tendrils",
+    "orchid-like translucent petal membranes with branching vein detail",
     "sea-anemone soft-body tentacle symmetry with bioluminescent tips",
     "rafflesia fleshy spotted petal mass and creature-like central aperture",
     "nepenthes pitcher-vessel anatomy with a wet lip and inner glowing liquid",
@@ -90,7 +90,7 @@
   ],
   "lighting": [
     "magic hour backlight with warm rim light",
-    "cinematic side light with backlit pollen dust",
+    "cinematic side light with backlit surface dust",
     "soft diffused museum light with warm highlights",
     "shallow depth of field with creamy bokeh",
     "moody cinematic low-key light on a dark background",

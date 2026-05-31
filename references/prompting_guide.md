@@ -30,8 +30,8 @@ For this repo, source images should be good anchors for LTX target creation, so
 optimize for readable form, clean silhouettes, and detailed materials:
 
 ```text
-Macro photograph of a translucent flower bloom, radial petal structure,
-centered composition, visible pollen texture, soft studio lighting,
+Macro photograph of a translucent flower bloom, layered petal structure,
+centered composition, visible surface texture, soft studio lighting,
 clean unmarked dark background, high detail
 ```
 
@@ -58,7 +58,7 @@ clean unmarked dark background, high detail
 Use words that preserve identity under motion:
 
 ```text
-macro photograph, single bloom, radial petal structure, central pollen, crisp
+macro photograph, single bloom, layered petal structure, surface texture, crisp
 silhouette, translucent membranes, soft studio light, clean unmarked background
 ```
 

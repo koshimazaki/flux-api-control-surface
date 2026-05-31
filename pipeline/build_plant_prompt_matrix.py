@@ -71,7 +71,7 @@ def build_prompt(
     return (
         f"{shot_type} of a {species_name} in a {location} at {time_of_day}. "
         f"{details}{hybrid}{style_frame}, {lighting}. "
-        f"Emphasize range-ready morphology, clean silhouette, coherent petals, stems, seed pods, "
+        f"Emphasize range-ready morphology, clean silhouette, coherent petals, membrane textures, "
         f"and believable material transitions between living plant tissue and constructed detail. "
         f"{delivery_constraints}"
     )
@@ -101,14 +101,14 @@ def build_structured_prompt(
             {
                 "description": subject_description,
                 "position": "centered dominant specimen, readable at thumbnail size",
-                "action": "held still as a training-ready source image with recognisable plant anatomy",
+                "action": "held still as a training-ready source image with recognisable petal and membrane anatomy",
             }
         ],
         "style": style_frame,
         "environment": f"{location}, {time_of_day}",
         "lighting": lighting,
         "composition": (
-            "clean silhouette, coherent petals or tendrils, visible stems and seed structures, "
+            "clean silhouette, coherent petals or tendrils, visible petal edges and membrane textures, "
             "one dominant subject with stable crop margins"
         ),
         "camera": {
