@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Clipboard, Download, Image, Lock, Music, Play, Plus, Repeat, RotateCcw, Scissors, Trash2, Unlock, Upload, Video, Wand2, ZoomIn, ZoomOut } from "lucide-react";
+import { Activity, Clipboard, Download, Image, Lock, Music, Pause, Play, Plus, Repeat, RotateCcw, Scissors, Trash2, Unlock, Upload, Video, Wand2, ZoomIn, ZoomOut } from "lucide-react";
 import type { ChangeEvent, DragEvent, PointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { analyzeAudioFile, type AudioAnalysisResult, type AudioBandKey, type AudioEventKind, type AudioMarker } from "@/lib/audio-analysis";
@@ -107,6 +107,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   const [sliceStartSeconds, setSliceStartSeconds] = useState(0);
   const [sliceEndSeconds, setSliceEndSeconds] = useState(15);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [previewLoop, setPreviewLoop] = useState(false);
   const [exportLoopCount, setExportLoopCount] = useState(1);
   const [exportingFormat, setExportingFormat] = useState<AudioExportFormat | "">("");
@@ -644,6 +645,32 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
     if (rafRef.current == null) setCurrentTime(audio.currentTime);
   }
 
+  function togglePlayback() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      void audio.play();
+    } else {
+      audio.pause();
+    }
+  }
+
+  function seekTo(seconds: number) {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const safeSeconds = clamp(seconds, 0, audioDuration || audio.duration || seconds);
+    audio.currentTime = safeSeconds;
+    setCurrentTime(safeSeconds);
+  }
+
+  function formatClock(value: number) {
+    if (!Number.isFinite(value) || value <= 0) return "0:00";
+    const totalSeconds = Math.floor(value);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  }
+
   function exportFileName(format: AudioExportFormat) {
     const baseName = (audioFile?.name || "audio-slice")
       .toLowerCase()
@@ -818,26 +845,59 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
         <Music size={18} />
         <span>{audioFile?.name || "Audio file"}</span>
         {audioUrl && (
-          <audio
-            ref={audioRef}
-            src={audioUrl}
-            controls
-            onLoadedMetadata={(event) => {
-              updateLoadedAudioDuration(event.currentTarget.duration);
-              setCurrentTime(event.currentTarget.currentTime);
-            }}
-            onPlay={() => {
-              if (previewLoop && audioRef.current && audioRef.current.currentTime < sliceStartSeconds) {
-                audioRef.current.currentTime = sliceStartSeconds;
-                setCurrentTime(sliceStartSeconds);
-              }
-              startPlayheadLoop();
-            }}
-            onPause={stopPlayheadLoop}
-            onEnded={stopPlayheadLoop}
-            onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)}
-            onTimeUpdate={onAudioTimeUpdate}
-          />
+          <>
+            <audio
+              ref={audioRef}
+              src={audioUrl}
+              className="audioPlayerNative"
+              onLoadedMetadata={(event) => {
+                updateLoadedAudioDuration(event.currentTarget.duration);
+                setCurrentTime(event.currentTarget.currentTime);
+              }}
+              onPlay={() => {
+                if (previewLoop && audioRef.current && audioRef.current.currentTime < sliceStartSeconds) {
+                  audioRef.current.currentTime = sliceStartSeconds;
+                  setCurrentTime(sliceStartSeconds);
+                }
+                setIsPlaying(true);
+                startPlayheadLoop();
+              }}
+              onPause={() => {
+                setIsPlaying(false);
+                stopPlayheadLoop();
+              }}
+              onEnded={() => {
+                setIsPlaying(false);
+                stopPlayheadLoop();
+              }}
+              onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)}
+              onTimeUpdate={onAudioTimeUpdate}
+            />
+            <div className="audioPlayer">
+              <button
+                type="button"
+                className="audioPlayerButton"
+                onClick={togglePlayback}
+                title={isPlaying ? "Pause" : "Play"}
+                aria-label={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+              <input
+                type="range"
+                className="audioPlayerSeek"
+                min={0}
+                max={audioDuration || 0}
+                step={0.01}
+                value={Math.min(currentTime, audioDuration || 0)}
+                onChange={(event) => seekTo(Number(event.target.value))}
+                aria-label="Seek"
+              />
+              <span className="audioPlayerTime">
+                {formatClock(currentTime)} / {formatClock(audioDuration)}
+              </span>
+            </div>
+          </>
         )}
       </div>
 
