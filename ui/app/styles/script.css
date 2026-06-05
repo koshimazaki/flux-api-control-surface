@@ -1,0 +1,142 @@
+.scriptPanel {
+  display: grid;
+  gap: 12px;
+}
+
+.scriptGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 12px;
+  align-items: start;
+}
+
+.scriptSourcePanel,
+.scriptPlanPanel,
+.scriptPlanHero,
+.scriptStats > div,
+.scriptPromptChip,
+.scriptPairList > div,
+.scriptEmpty {
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.46);
+  border-radius: 8px;
+}
+
+.scriptSourcePanel,
+.scriptPlanPanel {
+  padding: 12px;
+}
+
+.scriptPromptGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  max-height: 68vh;
+  overflow: auto;
+}
+
+.scriptPromptChip {
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  justify-content: stretch;
+  gap: 4px;
+  text-align: left;
+  padding: 10px;
+}
+
+.scriptPromptChip strong,
+.scriptPromptChip small,
+.scriptPairList span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scriptPromptChip small,
+.scriptPairList small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.scriptPromptChip.selected {
+  border-color: rgba(167, 166, 179, 0.74);
+  background: rgba(167, 166, 179, 0.12);
+  color: var(--cream);
+}
+
+.scriptPlanPanel {
+  display: grid;
+  gap: 10px;
+}
+
+.scriptPlanHero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  align-items: center;
+  padding: 12px;
+}
+
+.scriptPlanHero svg {
+  color: var(--violet);
+}
+
+.scriptPlanHero strong {
+  grid-column: 1 / -1;
+  font-size: 40px;
+  line-height: 1;
+}
+
+.scriptPlanHero small {
+  grid-column: 1 / -1;
+}
+
+.scriptStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scriptStats > div {
+  padding: 9px;
+}
+
+.scriptStats span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.scriptStats strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.scriptPairsHeader {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.scriptPairList {
+  display: grid;
+  gap: 7px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.scriptPairList > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+}
+
+.scriptEmpty {
+  grid-template-columns: 1fr !important;
+  color: var(--muted);
+}
+

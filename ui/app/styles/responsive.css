@@ -1,0 +1,106 @@
+@media (max-width: 1280px) {
+  .workspace {
+    grid-template-columns: 240px minmax(360px, 1fr);
+    height: auto;
+  }
+
+  .controls {
+    grid-column: 1 / -1;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .statsGrid {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .balanceStat {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .shell {
+    padding: 12px;
+  }
+
+  .topbar,
+  .workspace,
+  .lightboxInner,
+  .mcpGrid,
+  .commandGrid {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .topbar {
+    align-items: stretch;
+  }
+
+  h1 {
+    font-size: 30px;
+  }
+
+  .keyBox {
+    width: 100%;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statsCenter {
+    grid-template-columns: 1fr;
+  }
+
+  .balanceStat {
+    grid-column: auto;
+  }
+
+  .panel {
+    min-height: 0;
+  }
+
+  .library,
+  .editor,
+  .controls {
+    overflow: visible;
+  }
+
+  .promptEditor {
+    min-height: 380px;
+  }
+
+  .assetGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .collectionControls,
+  .collectionItem,
+  .audioControls,
+  .audioDropzone,
+  .audioSliceControls,
+  .audioPromptGuides,
+  .audioScriptGrid,
+  .audioShotRow,
+  .audioShotSelects,
+  .scriptGrid,
+  .scriptStats {
+    grid-template-columns: 1fr;
+  }
+
+  .audioImagePool {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .collectionItem img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  .assetActions {
+    width: 100%;
+  }
+}
+

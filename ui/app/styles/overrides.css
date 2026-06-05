@@ -1,0 +1,128 @@
+/* custom audio transport */
+.audioDropzone audio.audioPlayerNative {
+  display: none;
+}
+
+.audioPlayer {
+  flex: 1 1 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(85, 102, 89, 0.12), rgba(85, 102, 89, 0.12)),
+    rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.audioPlayerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--cream);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.audioPlayerButton:hover {
+  border-color: var(--line-strong);
+  background: rgba(85, 102, 89, 0.35);
+  color: var(--cream);
+}
+
+.audioPlayerTime {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.audioPlayerSeek {
+  flex: 1 1 auto;
+  height: auto;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--green-light);
+  background: transparent;
+}
+
+.audioPlayerSeek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(243, 241, 230, 0.16);
+}
+
+.audioPlayerSeek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  border: none;
+  background: var(--green-light);
+  box-shadow: 0 0 0 3px rgba(85, 102, 89, 0.28);
+  cursor: pointer;
+}
+
+.audioPlayerSeek::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(243, 241, 230, 0.16);
+}
+
+.audioPlayerSeek::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--green-light);
+}
+
+.audioPlayerSeek::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: none;
+  background: var(--green-light);
+  cursor: pointer;
+}
+
+/* top-bar scope chips: render verbatim as "API | Prompts | Assets | MCP" */
+.topBarChips {
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.topBarChips span {
+  text-transform: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.topBarChips span:not(:last-child)::after {
+  content: "|";
+  margin: 0 8px;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+/* audio transport: full-width, left edge aligned to panel content, squarer corners to match Generate */
+.audioPlayer {
+  grid-column: 1 / -1;
+  width: 100%;
+  border-radius: 6px;
+}

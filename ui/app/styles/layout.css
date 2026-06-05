@@ -1,0 +1,171 @@
+.shell {
+  position: relative;
+  z-index: 2;
+  width: min(1880px, 100%);
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(90deg, rgba(85, 102, 89, 0.3), transparent 46%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.62));
+  backdrop-filter: blur(20px);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.topBarBrand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.brandMark {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(237, 237, 237, 0.2);
+  border-radius: 8px;
+  background: rgba(243, 241, 230, 0.07);
+}
+
+.brandMark img {
+  width: 28px;
+  height: auto;
+  display: block;
+}
+
+.brandCopy {
+  min-width: 0;
+}
+
+.eyebrow {
+  color: var(--grey-2);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0;
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 36px;
+  line-height: 1.05;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+h2 {
+  font-size: 15px;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.keyBox,
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 6px;
+  padding: 0 10px;
+}
+
+.keyBox {
+  width: min(380px, 100%);
+}
+
+.keyBox input,
+.searchBox input {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: 310px minmax(0, 1fr) 340px;
+  gap: 10px;
+  margin-top: 12px;
+  align-items: stretch;
+}
+
+.statsCenter {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statCard {
+  position: relative;
+  min-width: 0;
+  min-height: 74px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.64), rgba(0, 0, 0, 0.46));
+  backdrop-filter: blur(18px);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.statCard span,
+.statCard small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.statCard strong {
+  display: block;
+  margin: 5px 0 4px;
+  font-size: 18px;
+}
+
+.statCard > svg {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: var(--violet);
+  flex: 0 0 auto;
+}
+
+.balanceStat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.balanceStat button {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 310px minmax(420px, 1fr) 340px;
+  gap: 14px;
+  margin-top: 14px;
+  align-items: stretch;
+  height: clamp(620px, calc(100vh - 174px), 730px);
+}
+

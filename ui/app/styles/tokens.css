@@ -1,0 +1,26 @@
+:root {
+  --bg: #050605;
+  --bg-deep: #000000;
+  --panel: rgba(0, 0, 0, 0.56);
+  --panel-2: rgba(0, 0, 0, 0.64);
+  --panel-3: rgba(85, 102, 89, 0.12);
+  --line: rgba(237, 237, 237, 0.14);
+  --line-strong: rgba(237, 237, 237, 0.28);
+  --text: #f3f1e6;
+  --muted: rgba(243, 241, 230, 0.62);
+  --soft: rgba(243, 241, 230, 0.8);
+  --green: #556659;
+  --green-light: #65705d;
+  --cream: #f3f1e6;
+  --grey-1: #ededed;
+  --grey-2: #d3d3d3;
+  --grey-3: #838987;
+  --gold: #dedbc9;
+  --rose: #b95050;
+  --cyan: #9fb09d;
+  --violet: #a7a6b3;
+  --danger: #e27373;
+  --font-sans: "Instrument Sans", "Untitled Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+

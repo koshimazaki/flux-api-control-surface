@@ -1,0 +1,201 @@
+.collectionsPanel {
+  display: grid;
+  gap: 12px;
+}
+
+.collectionCloudBar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.34);
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+
+.collectionCloudBar span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.collectionCloudBar strong {
+  color: var(--violet);
+  font-size: 14px;
+}
+
+.collectionControls {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(180px, 0.8fr) minmax(280px, 1.5fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.collectionControls label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.collectionGuide textarea {
+  min-height: 78px;
+}
+
+.captionJob {
+  margin-top: 0;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.34);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.captionJob button {
+  min-height: 32px;
+}
+
+.collectionHeader {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.collectionItems {
+  display: grid;
+  gap: 10px;
+  max-height: 72vh;
+  overflow: auto;
+}
+
+.collectionItem {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.58);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.collectionItem img {
+  width: 128px;
+  height: 128px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--bg-deep);
+}
+
+.collectionItemTop {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.collectionItemTop strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectionItemTop button {
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+}
+
+.collectionItem textarea {
+  min-height: 86px;
+  resize: vertical;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.hearted {
+  color: var(--rose);
+  border-color: var(--rose);
+}
+
+.emptyState {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  border-radius: 8px;
+  grid-column: 1 / -1;
+}
+
+.mcpGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mcpCard,
+.commandGrid > div,
+.traceBlock {
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.58);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.mcpCard {
+  display: grid;
+  gap: 4px;
+}
+
+.mcpCard svg {
+  color: var(--violet);
+}
+
+.mcpCard span,
+.commandGrid label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mcpCard small,
+.commandGrid code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commandGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.commandGrid > div {
+  display: grid;
+  gap: 8px;
+}
+
+.commandGrid code {
+  display: block;
+  color: var(--gold);
+  font-size: 12px;
+}
+
+.traceBlock {
+  margin-top: 10px;
+}
+
+.runLogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+

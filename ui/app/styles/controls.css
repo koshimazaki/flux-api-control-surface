@@ -1,0 +1,95 @@
+.controls {
+  gap: 12px;
+  overflow: auto;
+}
+
+.controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sizeGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.toggle {
+  display: flex !important;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  flex-direction: row;
+  color: var(--text) !important;
+}
+
+.toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--violet);
+}
+
+.batchBox,
+.balanceBox,
+.costGrid > div,
+.referenceDropzone,
+.referenceUrlBar {
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.34);
+  border-radius: 8px;
+}
+
+.batchBox {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.batchTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.scriptCounter {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+
+.scriptCounter strong {
+  color: var(--violet);
+  font-size: 20px;
+}
+
+.scriptCounter span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.progressBox {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.progressTrack {
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(243, 241, 230, 0.1);
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--green-light), var(--violet));
+}
+

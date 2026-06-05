@@ -1,0 +1,158 @@
+.referenceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.referenceHeader > div {
+  display: flex;
+  gap: 8px;
+}
+
+.fileButton {
+  position: relative;
+  overflow: hidden;
+}
+
+.fileButton input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.referenceDropzone {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  border-style: dashed;
+  font-size: 12px;
+  text-align: center;
+  padding: 10px;
+}
+
+.referenceUrlBar {
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+}
+
+.referenceUrlBar > svg,
+.referenceUrlBar img {
+  width: 24px;
+  height: 24px;
+  color: var(--violet);
+}
+
+.referenceUrlBar img {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--bg-deep);
+}
+
+.referenceUrlBar input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.referenceWeightControl {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
+  padding: 7px 8px;
+}
+
+.referenceWeightControl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.referenceWeightControl span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.referenceWeightControl strong {
+  color: var(--violet);
+  font-size: 13px;
+}
+
+.referenceWeightControl input {
+  width: 100%;
+  padding: 0;
+  accent-color: var(--violet);
+}
+
+.referenceWeightTicks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.referenceWeightTicks button {
+  min-width: 0;
+  min-height: 22px;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+.referenceWeightTicks button.active {
+  color: var(--bg);
+  border-color: rgba(221, 215, 239, 0.78);
+  background: var(--violet);
+}
+
+.referenceList {
+  display: grid;
+  gap: 8px;
+}
+
+.referenceItem {
+  display: grid;
+  grid-template-columns: 42px 1fr 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+.referenceItem img,
+.referenceIndex {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.referenceIndex {
+  display: grid;
+  place-items: center;
+  color: var(--violet);
+}
+
+.referenceItem button {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.referenceCue {
+  min-height: 72px;
+  color: var(--grey-1);
+}
+

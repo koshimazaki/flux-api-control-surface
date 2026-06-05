@@ -1,0 +1,224 @@
+.panel,
+.assetsPanel {
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(135deg, rgba(243, 241, 230, 0.035), transparent 34%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.66), rgba(0, 0, 0, 0.48));
+  backdrop-filter: blur(20px);
+  border-radius: 8px;
+}
+
+.panel {
+  min-height: 0;
+  padding: 14px;
+}
+
+.library,
+.editor,
+.controls {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* prompt editor + output library: green panel over transparent black */
+.editor,
+.assetsPanel {
+  background:
+    linear-gradient(180deg, rgba(85, 102, 89, 0.5), rgba(85, 102, 89, 0.22)),
+    rgba(0, 0, 0, 0.32);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.panelHeader p,
+.assetDate,
+small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.iconButton {
+  width: 36px;
+  padding: 0;
+  flex: 0 0 36px;
+}
+
+.libraryActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.libraryActions button:not(.iconButton) {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.libraryFilter {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.libraryFilter span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.promptList {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 0;
+}
+
+.promptItem {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  justify-content: stretch;
+  flex: 0 0 52px;
+  min-height: 52px;
+  text-align: left;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.34);
+  border-radius: 8px;
+  padding: 0 10px;
+}
+
+.promptItem span,
+.promptItem small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promptItem.active {
+  border-color: rgba(101, 112, 93, 0.78);
+  background: rgba(85, 102, 89, 0.22);
+}
+
+.promptItem.selectedCombo {
+  border-color: rgba(243, 241, 230, 0.46);
+  background: rgba(243, 241, 230, 0.08);
+}
+
+.promptItem.active.selectedCombo {
+  border-color: rgba(101, 112, 93, 0.84);
+  box-shadow: inset 0 0 0 1px rgba(243, 241, 230, 0.26);
+}
+
+.comboCheck {
+  display: grid;
+  place-items: center;
+}
+
+.comboCheck input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--violet);
+}
+
+.promptSelect {
+  display: grid;
+  justify-content: stretch;
+  text-align: left;
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.promptSelect:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+.promptSelect span,
+.promptSelect small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promptList,
+.promptEditor,
+.controls,
+.referenceCue,
+pre {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.promptList::-webkit-scrollbar,
+.promptEditor::-webkit-scrollbar,
+.controls::-webkit-scrollbar,
+.referenceCue::-webkit-scrollbar,
+pre::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.presetRow,
+.editorActions,
+.assetActions,
+.assetButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.presetRow button {
+  color: var(--cream);
+}
+
+/* preset look toggles: stay "plugged in" so the active one is obvious */
+.presetToggle {
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.presetToggle.active {
+  border-color: var(--green-light);
+  background: linear-gradient(180deg, rgba(101, 112, 93, 0.92), rgba(85, 102, 89, 0.72));
+  color: var(--cream);
+  box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(101, 112, 93, 0.55);
+}
+
+.presetToggle.active svg {
+  color: var(--cream);
+}
+
+.promptEditor {
+  flex: 1 1 auto;
+  min-height: 0;
+  line-height: 1.45;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.62);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  color: var(--cream);
+}
+
+.editorActions {
+  margin-top: 10px;
+}
+
