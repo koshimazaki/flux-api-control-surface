@@ -1,12 +1,16 @@
 import {
   Clipboard,
   Download,
+  Eraser,
   Expand,
+  Fingerprint,
   Heart,
   ImagePlus,
   Info,
   LayoutGrid,
+  Maximize2,
   PackagePlus,
+  Paintbrush,
   RectangleHorizontal,
   RectangleVertical,
   RotateCcw,
@@ -16,7 +20,9 @@ import {
   Trash2
 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
-import type { AssetRecord, AspectRatio } from "@/lib/types";
+import type { AssetRecord, AspectRatio, WorkspaceMode } from "@/lib/types";
+
+type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
 
 type AssetLibraryProps = {
   assets: AssetRecord[];
@@ -34,6 +40,7 @@ type AssetLibraryProps = {
   onRecover: () => void;
   onToggleFavorite: (id: string) => void;
   onSendToPrompt: (asset: AssetRecord) => void;
+  onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToReference: (asset: AssetRecord) => void;
   onToggleSelected: (id: string) => void;
   onToggleMetadata: (id: string) => void;
@@ -177,6 +184,18 @@ export function AssetLibrary(props: AssetLibraryProps) {
                       </button>
                       <button onClick={() => props.onSendToPrompt(asset)} title="Send prompt to editor">
                         <Send size={15} />
+                      </button>
+                      <button onClick={() => props.onSendToWorkspace(asset, "erase")} title="Send to Erase">
+                        <Eraser size={15} />
+                      </button>
+                      <button onClick={() => props.onSendToWorkspace(asset, "inpaint")} title="Send to Inpaint">
+                        <Paintbrush size={15} />
+                      </button>
+                      <button onClick={() => props.onSendToWorkspace(asset, "outpaint")} title="Send to Outpaint">
+                        <Maximize2 size={15} />
+                      </button>
+                      <button onClick={() => props.onSendToWorkspace(asset, "glyphs")} title="Send to Glyphs">
+                        <Fingerprint size={15} />
                       </button>
                       <button onClick={() => props.onSendToReference(asset)} title="Send image to references">
                         <ImagePlus size={15} />

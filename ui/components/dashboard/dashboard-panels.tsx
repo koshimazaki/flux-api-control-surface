@@ -63,6 +63,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onRecover={state.recoverStoredAssets}
           onToggleFavorite={state.toggleFavorite}
           onSendToPrompt={state.sendAssetToPrompt}
+          onSendToWorkspace={state.sendAssetToWorkspace}
           onSendToReference={state.sendAssetToReference}
           onToggleSelected={state.toggleAssetSelection}
           onToggleMetadata={(id) => state.setMetadataAssetId(state.metadataAssetId === id ? null : id)}

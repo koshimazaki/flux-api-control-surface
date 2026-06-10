@@ -107,6 +107,10 @@ h2 {
   align-items: stretch;
 }
 
+.workspaceTopControls {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
 .statsCenter {
   min-width: 0;
   display: grid;
@@ -160,6 +164,18 @@ h2 {
   padding: 0 10px;
 }
 
+.modeStatPanel {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.64), rgba(0, 0, 0, 0.46));
+  backdrop-filter: blur(18px);
+  border-radius: 8px;
+  padding: 10px;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 310px minmax(420px, 1fr) 340px;
@@ -168,4 +184,3 @@ h2 {
   align-items: stretch;
   height: clamp(620px, calc(100vh - 174px), 730px);
 }
-

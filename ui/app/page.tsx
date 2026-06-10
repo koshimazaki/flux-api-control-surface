@@ -15,19 +15,11 @@ export default function Home() {
       <main className="shell">
         <TopBar apiKey={state.apiKey} onApiKeyChange={state.setApiKey} />
         <DashboardStats
-          assetCount={state.assets.length}
-          promptCount={state.prompts.length}
-          selectedPromptCount={state.selectedComboIds.length}
-          runCount={state.runLog.length}
-          failedRunCount={state.failedRunCount}
           totalActualCredits={state.totalActualCredits}
-          estimatedBatchCredits={state.batchTotalEstimate}
           balanceCredits={state.balance.credits}
-          batchCount={state.batchCount}
-          promptTokens={state.promptTokens}
-          outputMegapixels={state.outputMegapixels}
           isCheckingBalance={state.isCheckingBalance}
-          lastRunAt={state.runLog[0]?.timestamp}
+          workspaceMode={state.workspaceMode}
+          onWorkspaceModeChange={state.setWorkspaceMode}
           onCheckBalance={state.checkBalance}
         />
         <DashboardWorkspace state={state} />
@@ -37,6 +29,7 @@ export default function Home() {
           asset={state.selectedAsset}
           onClose={() => state.setSelectedAsset(null)}
           onSendToPrompt={state.sendAssetToPrompt}
+          onSendToWorkspace={state.sendAssetToWorkspace}
           onSendToReference={state.sendAssetToReference}
           onDownload={state.downloadAssetImage}
         />

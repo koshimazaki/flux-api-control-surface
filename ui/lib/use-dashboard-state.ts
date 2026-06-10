@@ -50,13 +50,21 @@ import type {
   ReferenceImage,
   RunLogEntry,
   TrainingCollection,
-  TrainingCollectionItem
+  TrainingCollectionItem,
+  WorkspaceMode
 } from "@/lib/types";
 
 type CaptionAgentJob = {
   status: string;
   jobDir?: string;
   error?: string;
+};
+
+const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, string> = {
+  erase: "Erase",
+  inpaint: "Inpaint",
+  outpaint: "Outpaint",
+  glyphs: "Glyphs"
 };
 
 export function useDashboardState() {
@@ -81,6 +89,8 @@ export function useDashboardState() {
   const [runLog, setRunLog] = useState<RunLogEntry[]>([]);
   const [hasLoadedAssets, setHasLoadedAssets] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>("assets");
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("prompt");
+  const [toolSourceAssetId, setToolSourceAssetId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [gridSize, setGridSize] = useState(4);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
@@ -165,6 +175,10 @@ export function useDashboardState() {
       `${asset.title || ""} ${asset.prompt} ${asset.model}`.toLowerCase().includes(query)
     );
   }, [assets, searchQuery]);
+  const toolSourceAsset = useMemo(
+    () => assets.find((asset) => asset.id === toolSourceAssetId) || null,
+    [assets, toolSourceAssetId]
+  );
   const primaryReference = references[0];
   const primaryReferenceUrl = primaryReference?.value.startsWith("data:") ? "" : primaryReference?.value || "";
   const primaryReferencePreview = primaryReference?.value || "";
@@ -458,12 +472,38 @@ export function useDashboardState() {
     setAssets((current) => current.filter((asset) => asset.id !== id));
     setSelectedAssetIds((current) => current.filter((item) => item !== id));
     if (selectedAsset?.id === id) setSelectedAsset(null);
+    if (toolSourceAssetId === id) setToolSourceAssetId(null);
   }
   function sendAssetToPrompt(asset: AssetRecord) {
     setPromptText(formatPrompt(asset.prompt));
     setSeed(asset.seed ? String(asset.seed) : "");
     setModel(modelOptions.some((option) => option.value === asset.model) ? asset.model : "pro-preview");
+    setWorkspaceMode("prompt");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function sendAssetToWorkspace(asset: AssetRecord, mode: Exclude<WorkspaceMode, "prompt">) {
+    setToolSourceAssetId(asset.id);
+    setWorkspaceMode(mode);
+    setSelectedAsset(null);
+    setRecoveryMessage(`Loaded ${asset.title || asset.id} in ${workspaceModeLabels[mode]}.`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function clearToolSourceAsset() {
+    setToolSourceAssetId(null);
+  }
+  function stageWorkspaceToolRun() {
+    if (workspaceMode === "prompt") {
+      void generate();
+      return;
+    }
+    if (!toolSourceAsset) {
+      setError("Select a source image from the output library.");
+      return;
+    }
+    setError("");
+    setRecoveryMessage(
+      `${workspaceModeLabels[workspaceMode]} is staged for ${toolSourceAsset.title || toolSourceAsset.id}; API route wiring is next.`
+    );
   }
   function sendAssetToReference(asset: AssetRecord) {
     if (references.length >= 3) {
@@ -726,6 +766,10 @@ export function useDashboardState() {
     setRunLog,
     activeTab,
     setActiveTab,
+    workspaceMode,
+    setWorkspaceMode,
+    toolSourceAssetId,
+    toolSourceAsset,
     searchQuery,
     setSearchQuery,
     gridSize,
@@ -785,6 +829,9 @@ export function useDashboardState() {
     toggleFavorite,
     deleteAsset,
     sendAssetToPrompt,
+    sendAssetToWorkspace,
+    clearToolSourceAsset,
+    stageWorkspaceToolRun,
     sendAssetToReference,
     downloadAssetImage,
     clearAssets,

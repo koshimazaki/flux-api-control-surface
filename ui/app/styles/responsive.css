@@ -10,8 +10,16 @@
     overflow: visible;
   }
 
+  .workspaceMain {
+    min-height: 620px;
+  }
+
   .statsGrid {
     grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .workspaceTopControls {
+    grid-template-columns: minmax(0, 1fr) 300px;
   }
 
   .balanceStat {
@@ -84,9 +92,21 @@
   .audioScriptGrid,
   .audioShotRow,
   .audioShotSelects,
+  .imageToolMeta,
+  .glyphWorkbench,
   .scriptGrid,
   .scriptStats {
     grid-template-columns: 1fr;
+  }
+
+  .workspaceMain {
+    min-height: 0;
+  }
+
+  .maskPreview,
+  .outpaintPreview,
+  .glyphWorkbench {
+    min-height: 320px;
   }
 
   .audioImagePool {
@@ -103,4 +123,3 @@
     width: 100%;
   }
 }
-

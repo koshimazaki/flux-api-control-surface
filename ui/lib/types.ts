@@ -19,6 +19,8 @@ export type ReferenceImage = {
 
 export type BatchMode = "current" | "library" | "permutations";
 
+export type WorkspaceMode = "prompt" | "erase" | "inpaint" | "outpaint" | "glyphs";
+
 export type DashboardTab = "script" | "audio" | "assets" | "runs" | "collections" | "apis" | "mcp" | "system";
 
 export type AssetRecord = {

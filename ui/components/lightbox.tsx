@@ -1,15 +1,18 @@
-import { Download, ImagePlus, Send } from "lucide-react";
-import type { AssetRecord } from "@/lib/types";
+import { Download, Eraser, Fingerprint, ImagePlus, Maximize2, Paintbrush, Send } from "lucide-react";
+import type { AssetRecord, WorkspaceMode } from "@/lib/types";
+
+type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
 
 type LightboxProps = {
   asset: AssetRecord | null;
   onClose: () => void;
   onSendToPrompt: (asset: AssetRecord) => void;
+  onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToReference: (asset: AssetRecord) => void;
   onDownload: (asset: AssetRecord) => void;
 };
 
-export function Lightbox({ asset, onClose, onSendToPrompt, onSendToReference, onDownload }: LightboxProps) {
+export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onDownload }: LightboxProps) {
   if (!asset) return null;
   const imageSource = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
 
@@ -33,6 +36,22 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToReference, on
             <button onClick={() => onSendToReference(asset)}>
               <ImagePlus size={15} />
               Reference
+            </button>
+            <button onClick={() => onSendToWorkspace(asset, "erase")}>
+              <Eraser size={15} />
+              Erase
+            </button>
+            <button onClick={() => onSendToWorkspace(asset, "inpaint")}>
+              <Paintbrush size={15} />
+              Inpaint
+            </button>
+            <button onClick={() => onSendToWorkspace(asset, "outpaint")}>
+              <Maximize2 size={15} />
+              Outpaint
+            </button>
+            <button onClick={() => onSendToWorkspace(asset, "glyphs")}>
+              <Fingerprint size={15} />
+              Glyphs
             </button>
             <button onClick={() => onDownload(asset)}>
               <Download size={15} />
