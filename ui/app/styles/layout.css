@@ -108,7 +108,12 @@ h2 {
 }
 
 .workspaceTopControls {
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: 310px minmax(420px, 1fr) 340px;
+  gap: 14px;
+}
+
+.workspaceTopControls .modeStatPanel {
+  grid-column: 2;
 }
 
 .statsCenter {

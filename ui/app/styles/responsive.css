@@ -19,7 +19,7 @@
   }
 
   .workspaceTopControls {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-columns: 240px minmax(360px, 1fr);
   }
 
   .balanceStat {
@@ -55,6 +55,10 @@
 
   .statsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .workspaceTopControls .modeStatPanel {
+    grid-column: auto;
   }
 
   .statsCenter {
