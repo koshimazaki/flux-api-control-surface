@@ -3,6 +3,10 @@
 Local Next.js dashboard for testing BFL FLUX.2 prompts, batch permutations,
 reference images, assets, costs, and logs.
 
+This is a local development tool for now. It can become a public dev-tool demo
+after a few more tested examples, a clean sample workflow, and a final secrets
+scrub.
+
 ```bash
 cd BFL/ui
 npm install
@@ -27,6 +31,20 @@ The API routes read that server-side value when the UI field is blank. Do not
 put `BFL_API_KEY` on an unprotected public deployment: public callers could
 spend your credits. For demos, keep BFL generation local and only expose the
 token-protected R2/D1 archive Worker.
+
+## Public Release Gate
+
+Before opening or deploying this dashboard as a showcase/resource:
+
+- test it with several representative prompt batches and reference-image flows;
+- add a small set of safe example prompts and generated screenshots;
+- remove private prompts, output folders, account details, balances, and logs;
+- keep `.env.local` local-only and document that users need their own
+  `BFL_API_KEY`;
+- prefer a local-first demo or token-protected archive over public server-side
+  generation;
+- present it as a developer workflow tool for BFL API exploration, not as a
+  hosted public image generator.
 
 Completed generations are also written to:
 

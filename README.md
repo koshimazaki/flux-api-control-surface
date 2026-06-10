@@ -81,6 +81,10 @@ Optional durable archive: configure the Worker in `cloudflare/` and set
 dashboard will keep local files and also upload generated PNGs, prompts, and
 metadata to R2 with searchable D1 rows.
 
+The dashboard is still local-first. It can be opened later as a public dev-tool
+demo after more examples, testing, and a final secrets/output scrub. See
+[`ui/README.md`](./ui/README.md#public-release-gate).
+
 Use an uploaded BFL Finetune / Klein LoRA from the API:
 
 ```bash
@@ -170,4 +174,3 @@ managed `-finetuned` Klein endpoints with `finetune_id`.
 - [Klein Training Example](https://docs.bfl.ai/flux_2/flux2_klein_training_example)
 - [FLUX.2 LoRA Inference](https://docs.bfl.ai/flux_2/flux2_lora_inference)
 - [AI-Toolkit (ostris)](https://github.com/ostris/ai-toolkit)
-- BFL Creative Cohort acceptance (see [[bfl-creative-cohort-and-fde]] in jobhunt wiki) — monthly content cadence ties here

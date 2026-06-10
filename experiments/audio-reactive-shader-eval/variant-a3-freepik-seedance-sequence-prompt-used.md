@@ -1,10 +1,10 @@
-# Variant A3 - Freepik / Kling Sequence Prompt Used
+# Variant A3 - Freepik / Seedance Sequence Prompt Used
 
-This captures the no-audio sequence prompt used after the Kling branch could not run the WAV/audio-reference test. It is a record of the platform prompt chunks, not a cleaned ideal prompt.
+This captures the Seedance no-audio/no-video-guide sequence prompt used in the Freepik shot interface. It is a record of the platform prompt chunks, not a cleaned ideal prompt.
 
 ## Platform Constraint
 
-Kling branch could not run the direct WAV audio-reference test in this setup. Treat this as a blocked audio-input branch, not as an audio-reactivity result.
+A3 was still a Seedance run. It has no direct audio reference and no `@vid1` video guide, so treat it as a no-video-guide shot baseline, not as an audio-reactivity result. The separate Kling WAV/audio-reference branch was blocked in this setup.
 
 ## Shot 1 - 4s
 
@@ -50,4 +50,3 @@ Photorealistic macro, cinematic lighting, high-detail organic and cybernetic tex
 - This is useful as a sequence/shot-control prompt record, not an audio-reactive test.
 - The shot chunks preserve the same `4s / 2s / 3s` integer structure used in Freepik.
 - The text inside chunks still references the original continuous timeline, so evaluate whether the model follows platform shot duration or the embedded timestamp text.
-
