@@ -1,4 +1,7 @@
 import { ImagePlus, X } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
+import { MetaBox } from "@/components/ui/meta-box";
+import { PanelHeader } from "@/components/ui/panel-header";
 import type { AssetRecord, WorkspaceMode } from "@/lib/types";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
@@ -97,38 +100,25 @@ export function ImageToolWorkspace({ mode, sourceAsset, onClearSource }: ImageTo
   const copy = toolCopy[mode];
   return (
     <section className={`panel editor imageToolWorkspace ${mode}`}>
-      <div className="panelHeader">
-        <div>
-          <h2>{copy.title}</h2>
-          <p>{sourceAsset?.title || sourceAsset?.id || copy.eyebrow}</p>
-        </div>
+      <PanelHeader title={copy.title} subtitle={sourceAsset?.title || sourceAsset?.id || copy.eyebrow}>
         <div className="workspaceHeaderActions">
           <span>{copy.endpoint}</span>
           {sourceAsset && (
-            <button className="iconButton" onClick={onClearSource} title="Clear source" type="button">
+            <IconButton onClick={onClearSource} title="Clear source">
               <X size={14} />
-            </button>
+            </IconButton>
           )}
         </div>
-      </div>
+      </PanelHeader>
 
       <div className="imageToolCanvas">
         <ToolPreview mode={mode} sourceAsset={sourceAsset} />
       </div>
 
       <div className="imageToolMeta">
-        <div>
-          <span>Source</span>
-          <strong>{sourceAsset ? sourceAsset.model : "None"}</strong>
-        </div>
-        <div>
-          <span>Operation</span>
-          <strong>{copy.eyebrow}</strong>
-        </div>
-        <div>
-          <span>Output</span>
-          <strong>{mode === "glyphs" ? "SVG + mask" : "Image"}</strong>
-        </div>
+        <MetaBox label="Source" value={sourceAsset ? sourceAsset.model : "None"} />
+        <MetaBox label="Operation" value={copy.eyebrow} />
+        <MetaBox label="Output" value={mode === "glyphs" ? "SVG + mask" : "Image"} />
       </div>
     </section>
   );

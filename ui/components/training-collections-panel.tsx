@@ -11,6 +11,8 @@ import {
   X
 } from "lucide-react";
 import type { ChangeEvent } from "react";
+import { MetaBox } from "@/components/ui/meta-box";
+import { PanelHeader } from "@/components/ui/panel-header";
 import { copyText } from "@/lib/clipboard";
 import type { TrainingCollection } from "@/lib/types";
 
@@ -57,11 +59,10 @@ export function TrainingCollectionsPanel(props: TrainingCollectionsPanelProps) {
 
   return (
     <section className="assetsPanel collectionsPanel">
-      <div className="panelHeader">
-        <div>
-          <h2>Collections</h2>
-          <p>{collection.items.length} image{collection.items.length === 1 ? "" : "s"} ready for LoRA packaging</p>
-        </div>
+      <PanelHeader
+        title="Collections"
+        subtitle={<>{collection.items.length} image{collection.items.length === 1 ? "" : "s"} ready for LoRA packaging</>}
+      >
         <div className="assetActions">
           <button onClick={props.onAddSelectedAssets} disabled={!props.selectedAssetCount}>
             <PackagePlus size={16} />
@@ -99,12 +100,9 @@ export function TrainingCollectionsPanel(props: TrainingCollectionsPanelProps) {
             {props.isSpawningCaptionAgent ? "Spawning" : "Agent captions"}
           </button>
         </div>
-      </div>
+      </PanelHeader>
 
-      <div className="collectionCloudBar">
-        <span>Cloud references</span>
-        <strong>{props.remoteReferenceCount ?? "--"}</strong>
-      </div>
+      <MetaBox className="collectionCloudBar" label="Cloud references" value={props.remoteReferenceCount ?? "--"} />
 
       <div className="collectionControls">
         <label>

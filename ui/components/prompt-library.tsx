@@ -1,4 +1,6 @@
 import { FileJson, Library } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
+import { PanelHeader } from "@/components/ui/panel-header";
 import type { PromptLibraryOption } from "@/lib/prompt-library-groups";
 import type { PromptRecord } from "@/lib/types";
 
@@ -29,17 +31,16 @@ export function PromptLibrary({
 }: PromptLibraryProps) {
   return (
     <aside className="panel library">
-      <div className="panelHeader">
-        <h2>Prompt Library</h2>
+      <PanelHeader title="Prompt Library">
         <div className="libraryActions">
           <button disabled={selectedIds.length < 2} onClick={onBuildCombo} title="Create combo prompt">
             Combo {selectedIds.length}
           </button>
-          <button className="iconButton" title="Export prompts" onClick={onExport}>
+          <IconButton title="Export prompts" onClick={onExport}>
             <FileJson size={17} />
-          </button>
+          </IconButton>
         </div>
-      </div>
+      </PanelHeader>
       <label className="libraryFilter">
         <span>
           <Library size={15} />

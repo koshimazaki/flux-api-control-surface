@@ -1,4 +1,7 @@
-import { Eraser, Fingerprint, LoaderCircle, Maximize2, Paintbrush, Play } from "lucide-react";
+import { Eraser, Fingerprint, Maximize2, Paintbrush } from "lucide-react";
+import { MetaBox } from "@/components/ui/meta-box";
+import { PanelHeader } from "@/components/ui/panel-header";
+import { RunButton } from "@/components/ui/run-button";
 import type { AssetRecord, WorkspaceMode } from "@/lib/types";
 
 type ToolMode = Exclude<WorkspaceMode, "prompt">;
@@ -53,18 +56,14 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
 
   return (
     <aside className="panel controls toolControls">
-      <div className="panelHeader">
-        <div>
-          <h2>{copy.title}</h2>
-          <p>{props.sourceAsset ? props.sourceAsset.title || props.sourceAsset.id : "No source loaded"}</p>
-        </div>
+      <PanelHeader
+        title={copy.title}
+        subtitle={props.sourceAsset ? props.sourceAsset.title || props.sourceAsset.id : "No source loaded"}
+      >
         <Icon size={18} />
-      </div>
+      </PanelHeader>
 
-      <div className="toolEndpointBox">
-        <span>Endpoint</span>
-        <strong>{copy.endpoint}</strong>
-      </div>
+      <MetaBox className="toolEndpointBox" label="Endpoint" value={copy.endpoint} />
 
       {props.mode === "erase" && (
         <label>
@@ -145,10 +144,9 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
         <input value={props.seed} onChange={(event) => props.onSeedChange(event.target.value)} placeholder="optional" />
       </label>
 
-      <button className="generateButton" onClick={props.onRun} disabled={props.isGenerating || !props.sourceAsset}>
-        {props.isGenerating ? <LoaderCircle className="spin" size={18} /> : <Play size={18} />}
+      <RunButton isRunning={props.isGenerating} onClick={props.onRun} disabled={!props.sourceAsset}>
         {copy.action}
-      </button>
+      </RunButton>
       {props.error && <p className="errorText">{props.error}</p>}
     </aside>
   );

@@ -1,5 +1,6 @@
 import { Clipboard, Download, Play, RotateCcw, Upload } from "lucide-react";
 import type { ChangeEvent } from "react";
+import { PanelHeader as PanelHeaderBase } from "@/components/ui/panel-header";
 import { formatSeconds } from "@/lib/audio-script";
 import type { AudioAnalysisResult } from "@/lib/audio-analysis";
 
@@ -33,11 +34,10 @@ export function PanelHeader(props: PanelHeaderProps) {
   } = props;
 
   return (
-    <div className="panelHeader">
-      <div>
-        <h2>Audio Script</h2>
-        <p>{analysis ? `${markerCount} timing bars from ${formatSeconds(analysis.analyzedDuration)}s` : "Waveform, spectral hits, and shot timing"}</p>
-      </div>
+    <PanelHeaderBase
+      title="Audio Script"
+      subtitle={analysis ? `${markerCount} timing bars from ${formatSeconds(analysis.analyzedDuration)}s` : "Waveform, spectral hits, and shot timing"}
+    >
       <div className="assetActions">
         <label className="fileButton">
           <Upload size={16} />
@@ -61,6 +61,6 @@ export function PanelHeader(props: PanelHeaderProps) {
           TXT
         </button>
       </div>
-    </div>
+    </PanelHeaderBase>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Clipboard, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
+import { PanelHeader } from "@/components/ui/panel-header";
 import type { PromptRecord } from "@/lib/types";
 import { applyPresetToPrompt, compactPrompt, presets } from "@/lib/prompt-utils";
 
@@ -44,11 +45,10 @@ export function PromptEditor({
 
   return (
     <section className="panel editor">
-      <div className="panelHeader">
-        <div>
-          <h2>{activePrompt?.id || "Prompt"}</h2>
-          <p>{activePrompt?.plant_form || "Structured FLUX.2 prompt"}</p>
-        </div>
+      <PanelHeader
+        title={activePrompt?.id || "Prompt"}
+        subtitle={activePrompt?.plant_form || "Structured FLUX.2 prompt"}
+      >
         <div className="presetRow" role="group" aria-label="Look presets">
           {presets.map((preset) => {
             const active = preset.id === activePresetId;
@@ -65,7 +65,7 @@ export function PromptEditor({
             );
           })}
         </div>
-      </div>
+      </PanelHeader>
 
       <textarea
         className="promptEditor"

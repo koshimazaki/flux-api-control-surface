@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Clipboard, ExternalLink, PlugZap, RefreshCcw } from "lucide-react";
+import { PanelHeader } from "@/components/ui/panel-header";
 import { copyText } from "@/lib/clipboard";
 import type { BatchMode, BalanceState, RunLogEntry } from "@/lib/types";
 
@@ -74,16 +75,12 @@ export function McpPanel(props: McpPanelProps) {
 
   return (
     <section className="assetsPanel mcpPanel">
-      <div className="panelHeader">
-        <div>
-          <h2>MCP Bridge</h2>
-          <p>API dashboard trace handoff for FLUX MCP clients</p>
-        </div>
+      <PanelHeader title="MCP Bridge" subtitle="API dashboard trace handoff for FLUX MCP clients">
         <button onClick={() => loadStatus()}>
           <RefreshCcw size={16} />
           Refresh
         </button>
-      </div>
+      </PanelHeader>
 
       <div className="mcpGrid">
         <div className="mcpCard">

@@ -1,4 +1,6 @@
 import { ListChecks, Play, RotateCcw, Wand2 } from "lucide-react";
+import { MetaBox } from "@/components/ui/meta-box";
+import { PanelHeader } from "@/components/ui/panel-header";
 import type { PromptRecord } from "@/lib/types";
 
 type ScriptPanelProps = {
@@ -29,11 +31,7 @@ export function ScriptPanel(props: ScriptPanelProps) {
 
   return (
     <section className="assetsPanel scriptPanel">
-      <div className="panelHeader">
-        <div>
-          <h2>Script Mode</h2>
-          <p>Choose sources, then run each selected prompt pair once.</p>
-        </div>
+      <PanelHeader title="Script Mode" subtitle="Choose sources, then run each selected prompt pair once.">
         <div className="assetActions">
           <button onClick={props.onSelectAll}>
             <ListChecks size={16} />
@@ -48,7 +46,7 @@ export function ScriptPanel(props: ScriptPanelProps) {
             Run pairs
           </button>
         </div>
-      </div>
+      </PanelHeader>
 
       <div className="scriptGrid">
         <div className="scriptSourcePanel">
@@ -82,18 +80,9 @@ export function ScriptPanel(props: ScriptPanelProps) {
             <small>{props.estimatedCredits.toFixed(2)} cr minimum estimate</small>
           </div>
           <div className="scriptStats">
-            <div>
-              <span>Pair size</span>
-              <strong>2</strong>
-            </div>
-            <div>
-              <span>Runs</span>
-              <strong>{props.pairCount}</strong>
-            </div>
-            <div>
-              <span>Mode</span>
-              <strong>once each</strong>
-            </div>
+            <MetaBox label="Pair size" value="2" />
+            <MetaBox label="Runs" value={props.pairCount} />
+            <MetaBox label="Mode" value="once each" />
           </div>
           <div className="runLogHeader scriptPairsHeader">
             <span>Pair preview</span>

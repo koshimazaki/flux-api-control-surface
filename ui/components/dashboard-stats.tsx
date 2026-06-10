@@ -14,9 +14,7 @@ type DashboardStatsProps = {
 export function DashboardStats(props: DashboardStatsProps) {
   return (
     <section className="statsGrid workspaceTopControls">
-      <div className="modeStatPanel">
-        <WorkspaceModeTabs value={props.workspaceMode} onChange={props.onWorkspaceModeChange} />
-      </div>
+      <WorkspaceModeTabs value={props.workspaceMode} onChange={props.onWorkspaceModeChange} />
 
       <div className="statCard balanceStat statToneBalance">
         <div>

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Activity, Image, ListChecks, Music, PackageOpen, PlugZap, Route } from "lucide-react";
+import { TabButtonBar, type TabButtonItem } from "@/components/ui/tab-button-bar";
 import type { DashboardTab } from "@/lib/types";
 
 type DashboardTabsProps = {
@@ -19,31 +20,19 @@ type DashboardTabsProps = {
 };
 
 export function DashboardTabs(props: DashboardTabsProps) {
-  const tabs = [
-    { id: "assets" as const, label: "Gallery", count: props.assetCount, icon: Image },
-    { id: "collections" as const, label: "Collections", count: props.collectionCount, icon: PackageOpen },
-    { id: "runs" as const, label: "Run Log", count: props.runCount, icon: Activity },
-    { id: "apis" as const, label: "APIs", count: null, icon: Route },
-    { id: "mcp" as const, label: "MCP", count: null, icon: PlugZap },
-    { id: "script" as const, label: "Script", count: props.scriptCount, icon: ListChecks },
-    { id: "audio" as const, label: "Audio", count: null, icon: Music }
+  const tabs: TabButtonItem<DashboardTab>[] = [
+    { id: "assets", label: "Gallery", count: props.assetCount, icon: Image },
+    { id: "collections", label: "Collections", count: props.collectionCount, icon: PackageOpen },
+    { id: "runs", label: "Run Log", count: props.runCount, icon: Activity },
+    { id: "apis", label: "APIs", count: null, icon: Route },
+    { id: "mcp", label: "MCP", count: null, icon: PlugZap },
+    { id: "script", label: "Script", count: props.scriptCount, icon: ListChecks },
+    { id: "audio", label: "Audio", count: null, icon: Music }
   ];
 
   return (
     <section className="dashboardTabs">
-      <div className="tabBar">
-        {tabs.map(({ id, label, count, icon: Icon }) => (
-          <button
-            className={props.activeTab === id ? "tabButton active" : "tabButton"}
-            key={id}
-            onClick={() => props.onTabChange(id)}
-          >
-            <Icon size={16} />
-            {label}
-            {typeof count === "number" && <span>{count}</span>}
-          </button>
-        ))}
-      </div>
+      <TabButtonBar items={tabs} value={props.activeTab} onChange={props.onTabChange} />
 
       {props.activeTab === "script" && props.script}
       {props.activeTab === "audio" && props.audio}

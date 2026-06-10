@@ -19,6 +19,7 @@ import {
   Square,
   Trash2
 } from "lucide-react";
+import { PanelHeader } from "@/components/ui/panel-header";
 import { copyText } from "@/lib/clipboard";
 import type { AssetRecord, AspectRatio, WorkspaceMode } from "@/lib/types";
 
@@ -74,11 +75,10 @@ export function AssetLibrary(props: AssetLibraryProps) {
 
   return (
     <section className="assetsPanel">
-      <div className="panelHeader">
-        <div>
-          <h2>Output Library</h2>
-          <p>{props.filteredAssets.length} of {props.assets.length} saved outputs</p>
-        </div>
+      <PanelHeader
+        title="Output Library"
+        subtitle={<>{props.filteredAssets.length} of {props.assets.length} saved outputs</>}
+      >
         <div className="assetActions">
           <div className="searchBox">
             <Search size={15} />
@@ -114,7 +114,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
             Clear
           </button>
         </div>
-      </div>
+      </PanelHeader>
 
       <div className="assetLibraryGroups">
         {groupedAssets.map(([date, dateAssets]) => (

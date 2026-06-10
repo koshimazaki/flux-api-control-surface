@@ -57,7 +57,7 @@
     grid-template-columns: 1fr;
   }
 
-  .workspaceTopControls .modeStatPanel {
+  .workspaceTopControls .workspaceModeBar {
     grid-column: auto;
   }
 

@@ -112,7 +112,7 @@ h2 {
   gap: 14px;
 }
 
-.workspaceTopControls .modeStatPanel {
+.workspaceTopControls .workspaceModeBar {
   grid-column: 2;
 }
 
@@ -167,18 +167,6 @@ h2 {
 .balanceStat button {
   min-height: 34px;
   padding: 0 10px;
-}
-
-.modeStatPanel {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: stretch;
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.64), rgba(0, 0, 0, 0.46));
-  backdrop-filter: blur(18px);
-  border-radius: 8px;
-  padding: 10px;
 }
 
 .workspace {

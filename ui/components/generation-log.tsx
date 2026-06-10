@@ -1,4 +1,5 @@
 import { Download, RotateCcw } from "lucide-react";
+import { PanelHeader } from "@/components/ui/panel-header";
 import type { RunLogEntry } from "@/lib/types";
 
 type GenerationLogProps = {
@@ -22,11 +23,7 @@ function formatBalanceDelta(entry: RunLogEntry) {
 export function GenerationLog({ entries, onClear, onExport }: GenerationLogProps) {
   return (
     <section className="assetsPanel">
-      <div className="panelHeader">
-        <div>
-          <h2>Run Log</h2>
-          <p>{entries.length} API calls</p>
-        </div>
+      <PanelHeader title="Run Log" subtitle={<>{entries.length} API calls</>}>
         <div className="assetActions">
           <button onClick={onExport}>
             <Download size={16} />
@@ -37,7 +34,7 @@ export function GenerationLog({ entries, onClear, onExport }: GenerationLogProps
             Clear
           </button>
         </div>
-      </div>
+      </PanelHeader>
 
       <div className="runLogList">
         {entries.slice(0, 80).map((entry) => (

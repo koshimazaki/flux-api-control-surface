@@ -1,4 +1,5 @@
 import { Bot, KeyRound, PlugZap, Route } from "lucide-react";
+import { PanelHeader } from "@/components/ui/panel-header";
 
 type ApisPanelProps = {
   captionJobPath?: string;
@@ -7,12 +8,7 @@ type ApisPanelProps = {
 export function ApisPanel({ captionJobPath }: ApisPanelProps) {
   return (
     <section className="assetsPanel apisPanel">
-      <div className="panelHeader">
-        <div>
-          <h2>APIs</h2>
-          <p>Local routes and agent handoff points</p>
-        </div>
-      </div>
+      <PanelHeader title="APIs" subtitle="Local routes and agent handoff points" />
 
       <div className="mcpGrid">
         <div className="mcpCard">

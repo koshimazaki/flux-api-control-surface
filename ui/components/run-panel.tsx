@@ -1,4 +1,8 @@
-import { Database, ImagePlus, Layers, LoaderCircle, Play, Sparkles, X } from "lucide-react";
+import { Database, ImagePlus, Layers, Sparkles, X } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
+import { MetaBox } from "@/components/ui/meta-box";
+import { PanelHeader } from "@/components/ui/panel-header";
+import { RunButton } from "@/components/ui/run-button";
 import type { BatchMode, ReferenceImage } from "@/lib/types";
 import { estimateMegapixels, modelOptions } from "@/lib/pricing";
 
@@ -64,28 +68,15 @@ export function RunPanel(props: RunPanelProps) {
 
   return (
     <aside className="panel controls">
-      <div className="panelHeader">
-        <h2>Run</h2>
+      <PanelHeader title="Run">
         <Sparkles size={18} />
-      </div>
+      </PanelHeader>
 
       <div className="costGrid">
-        <div>
-          <span>Prompt</span>
-          <strong>{props.promptTokens} tok</strong>
-        </div>
-        <div>
-          <span>Output</span>
-          <strong>{megapixels.toFixed(2)} MP</strong>
-        </div>
-        <div>
-          <span>Est.</span>
-          <strong>{props.estimatedCredits.toFixed(2)} cr</strong>
-        </div>
-        <div>
-          <span>USD</span>
-          <strong>${props.estimatedUsd.toFixed(3)}</strong>
-        </div>
+        <MetaBox label="Prompt" value={`${props.promptTokens} tok`} />
+        <MetaBox label="Output" value={`${megapixels.toFixed(2)} MP`} />
+        <MetaBox label="Est." value={`${props.estimatedCredits.toFixed(2)} cr`} />
+        <MetaBox label="USD" value={`$${props.estimatedUsd.toFixed(3)}`} />
       </div>
       <p className="costNote">{props.costLabel} minimum estimate. Actual cost is logged after submit when BFL returns it.</p>
 
@@ -173,9 +164,9 @@ export function RunPanel(props: RunPanelProps) {
       <div className="referenceHeader">
         <span>References</span>
         {(props.primaryReferencePreview || props.primaryReferenceUrl) && (
-          <button className="iconButton" title="Clear reference" onClick={props.onClearPrimaryReference}>
+          <IconButton title="Clear reference" onClick={props.onClearPrimaryReference}>
             <X size={14} />
-          </button>
+          </IconButton>
         )}
       </div>
 
@@ -277,8 +268,7 @@ export function RunPanel(props: RunPanelProps) {
         onChange={(event) => props.onReferenceCueChange(event.target.value)}
       />
 
-      <button className="generateButton" onClick={() => props.onGenerate()} disabled={props.isGenerating}>
-        {props.isGenerating ? <LoaderCircle className="spin" size={18} /> : <Play size={18} />}
+      <RunButton isRunning={props.isGenerating} onClick={() => props.onGenerate()}>
         {props.isGenerating
           ? props.batchProgress
             ? `Running ${props.batchProgress.current}/${props.batchProgress.total}`
@@ -286,7 +276,7 @@ export function RunPanel(props: RunPanelProps) {
           : props.batchCount > 1
             ? "Generate Batch"
             : "Generate"}
-      </button>
+      </RunButton>
       {props.error && <p className="errorText">{props.error}</p>}
     </aside>
   );
