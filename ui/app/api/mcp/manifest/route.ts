@@ -92,10 +92,46 @@ export async function GET() {
       },
       {
         method: "POST",
+        path: "/api/bfl/tools",
+        purpose:
+          "Run BFL image tools on an existing image: erase (flux-tools/erase-v1, white mask = remove), inpaint (flux-pro-1.0-fill, mask + prompt), outpaint (flux-tools/outpainting-v1, target canvas + offsets + high/fast mode). Saves outputs like /api/bfl/generate and records sourceAssetId provenance.",
+        sideEffects: true,
+        auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body.",
+        example: {
+          tool: "outpaint",
+          image: "https://... or data:image/png;base64,...",
+          canvasWidth: 1536,
+          canvasHeight: 1024,
+          offsetX: 256,
+          offsetY: null,
+          mode: "high",
+          prompt: "extend the botanical scene"
+        }
+      },
+      {
+        method: "POST",
         path: "/api/bfl/credits",
         purpose: "Check BFL credits through the dashboard server.",
         sideEffects: false,
         auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body."
+      },
+      {
+        method: "POST",
+        path: "/api/audio/guide",
+        purpose: "Render the audio-reactive shader guide video (MP4 via ffmpeg) from an analysis + marker payload.",
+        sideEffects: false
+      },
+      {
+        method: "POST",
+        path: "/api/audio/slice",
+        purpose: "Cut and loop an audio slice to mp3/wav for video-model inputs.",
+        sideEffects: false
+      },
+      {
+        method: "GET",
+        path: "/api/reference-archive",
+        purpose: "List or browse the synced training reference archive (R2/D1).",
+        sideEffects: false
       },
       {
         method: "GET",
