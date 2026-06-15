@@ -1,18 +1,5 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { BFL_LIBRARY_KEY, RUN_LOG_KEY } from "@/lib/asset-storage";
-import { copyText } from "@/lib/clipboard";
-import {
-  downloadNameForAsset,
-  extensionForAsset,
-  loadStoredAssets,
-  persistAssetImage,
-  persistAssetLibraries,
-  recoverStoredAssetRecords,
-  removeAssetImage,
-  removeAssetImages,
-  safeSetItem
-} from "@/lib/dashboard-assets";
 import {
   buildAssetRecord,
   buildCompleteRunLog,
@@ -20,13 +7,11 @@ import {
   buildRunPlanPayload,
   clampBatchCount,
   composePrompt,
-  countPairPermutations,
   executePlannedGeneration,
   fetchRunPlan,
-  readReferenceFiles,
-  weightedReferenceCue,
   type BatchProgress
 } from "@/lib/dashboard-generation";
+import { persistAssetImage } from "@/lib/dashboard-assets";
 import {
   buildToolAssetRecord,
   buildToolFailureLogEntry,
@@ -36,45 +21,20 @@ import {
   toolRunBlocker,
   type ToolRunInput
 } from "@/lib/dashboard-tools";
-import {
-  deletePromptRecord,
-  restorePromptRecord,
-  savePromptRecord,
-  saveStandalonePromptRecord,
-  upsertPromptRecord
-} from "@/lib/dashboard-prompts";
-import { ALL_PROMPT_LIBRARY_ID, buildPromptLibraryOptions, promptLibraryId } from "@/lib/prompt-library-groups";
-import { buildComboPrompt as buildComboPromptText, comboIdFromPrompts, uniqueText } from "@/lib/prompt-combo";
-import { defaultReferenceCue, formatPrompt } from "@/lib/prompt-utils";
+import { formatPrompt } from "@/lib/prompt-utils";
 import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions } from "@/lib/pricing";
-import {
-  captionInstructions,
-  collectionItemFromAsset,
-  collectionItemFromFile,
-  createTrainingCollection,
-  exportCollectionZip,
-  TRAINING_COLLECTIONS_KEY
-} from "@/lib/training-collections";
+import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
+import { useBalance } from "@/lib/dashboard/use-balance";
+import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
+import { useReferences } from "@/lib/dashboard/use-references";
+import { useTrainingCollections } from "@/lib/dashboard/use-training-collections";
 import type {
   AssetBadge,
   AssetRecord,
-  AspectRatio,
-  BalanceState,
   BatchMode,
   DashboardTab,
-  PromptRecord,
-  ReferenceImage,
-  RunLogEntry,
-  TrainingCollection,
-  TrainingCollectionItem,
   WorkspaceMode
 } from "@/lib/types";
-
-type CaptionAgentJob = {
-  status: string;
-  jobDir?: string;
-  error?: string;
-};
 
 const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, string> = {
   erase: "Erase",
@@ -84,15 +44,9 @@ const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, string> = {
 };
 
 export function useDashboardState() {
+  // Shared atoms consumed by more than one domain (prompt editor + run config + tool config).
   const [apiKey, setApiKey] = useState("");
-  const [prompts, setPrompts] = useState<PromptRecord[]>([]);
-  const [activeId, setActiveId] = useState("");
-  const [activePromptLibraryId, setActivePromptLibraryId] = useState(ALL_PROMPT_LIBRARY_ID);
-  const [selectedComboIds, setSelectedComboIds] = useState<string[]>([]);
   const [promptText, setPromptText] = useState("");
-  const [referenceCue, setReferenceCue] = useState(defaultReferenceCue);
-  const [referenceWeight, setReferenceWeight] = useState(80);
-  const [references, setReferences] = useState<ReferenceImage[]>([]);
   const [model, setModel] = useState("pro-preview");
   const [width, setWidth] = useState(1024);
   const [height, setHeight] = useState(1024);
@@ -101,9 +55,6 @@ export function useDashboardState() {
   const [batchCount, setBatchCount] = useState(1);
   const [batchMode, setBatchMode] = useState<BatchMode>("current");
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
-  const [assets, setAssets] = useState<AssetRecord[]>([]);
-  const [runLog, setRunLog] = useState<RunLogEntry[]>([]);
-  const [hasLoadedAssets, setHasLoadedAssets] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>("assets");
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("prompt");
   const [toolSourceAssetId, setToolSourceAssetId] = useState<string | null>(null);
@@ -114,42 +65,116 @@ export function useDashboardState() {
   const [outpaintOffsetY, setOutpaintOffsetY] = useState("");
   const [outpaintMode, setOutpaintMode] = useState<"high" | "fast">("high");
   const [audioAssignments, setAudioAssignments] = useState<Record<string, string>>({});
-  const [searchQuery, setSearchQuery] = useState("");
-  const [gridSize, setGridSize] = useState(4);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
-  const [selectedAsset, setSelectedAsset] = useState<AssetRecord | null>(null);
-  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
-  const [trainingCollection, setTrainingCollection] = useState<TrainingCollection>(() =>
-    createTrainingCollection("Cyberflower LoRA pack")
-  );
-  const [captionJob, setCaptionJob] = useState<CaptionAgentJob | null>(null);
-  const [lastDeletedPrompt, setLastDeletedPrompt] = useState<PromptRecord | null>(null);
-  const [remoteReferenceCount, setRemoteReferenceCount] = useState<number | null>(null);
-  const [metadataAssetId, setMetadataAssetId] = useState<string | null>(null);
-  const [balance, setBalance] = useState<BalanceState>({ credits: null });
-  const [isCheckingBalance, setIsCheckingBalance] = useState(false);
-  const [isSpawningCaptionAgent, setIsSpawningCaptionAgent] = useState(false);
-  const [isSyncingReferences, setIsSyncingReferences] = useState(false);
-  const [isImportingReferences, setIsImportingReferences] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
-  const activePrompt = useMemo(
-    () => prompts.find((prompt) => prompt.id === activeId),
-    [activeId, prompts]
-  );
-  const promptLibraryOptions = useMemo(() => buildPromptLibraryOptions(prompts), [prompts]);
-  const visiblePrompts = useMemo(
-    () =>
-      activePromptLibraryId === ALL_PROMPT_LIBRARY_ID
-        ? prompts
-        : prompts.filter((prompt) => promptLibraryId(prompt) === activePromptLibraryId),
-    [activePromptLibraryId, prompts]
-  );
-  const effectiveReferenceCue = useMemo(
-    () => weightedReferenceCue(referenceCue, referenceWeight),
-    [referenceCue, referenceWeight]
-  );
+
+  // Domain hooks. Destructured into the same local names the body/return already use.
+  const {
+    assets,
+    setAssets,
+    runLog,
+    setRunLog,
+    searchQuery,
+    setSearchQuery,
+    gridSize,
+    setGridSize,
+    aspectRatio,
+    setAspectRatio,
+    selectedAsset,
+    setSelectedAsset,
+    selectedAssetIds,
+    setSelectedAssetIds,
+    metadataAssetId,
+    setMetadataAssetId,
+    filteredAssets,
+    totalActualCredits,
+    failedRunCount,
+    recoverStoredAssets,
+    toggleFavorite,
+    deleteAsset,
+    toggleAssetSelection,
+    clearAssets,
+    downloadAssetImage
+  } = useAssetLibrary({
+    setActiveTab,
+    setError,
+    setRecoveryMessage,
+    onAssetRemoved: (id) => {
+      if (toolSourceAssetId === id) setToolSourceAssetId(null);
+    }
+  });
+
+  const {
+    references,
+    setReferences,
+    referenceCue,
+    setReferenceCue,
+    referenceWeight,
+    setReferenceWeight,
+    effectiveReferenceCue,
+    primaryReferenceUrl,
+    primaryReferencePreview,
+    addReferenceFiles,
+    setPrimaryReferenceFiles,
+    setPrimaryReferenceUrl,
+    clearPrimaryReference,
+    sendAssetToReference,
+    addReferenceFromDragPayload
+  } = useReferences({ assets, setError });
+
+  const {
+    prompts,
+    activeId,
+    activePromptLibraryId,
+    selectedComboIds,
+    lastDeletedPrompt,
+    activePrompt,
+    promptLibraryOptions,
+    visiblePrompts,
+    permutationPairCount,
+    selectPrompt,
+    selectPromptLibrary,
+    toggleComboPrompt,
+    createComboPrompt,
+    deletePrompt,
+    undoDeletePrompt,
+    saveSequencePrompt,
+    saveAssetPromptToLibrary,
+    selectAllPromptSources,
+    clearPromptSources,
+    savePrompt: savePromptWithText,
+    importPromptJson: importPromptJsonWithText
+  } = usePromptLibrary({ setPromptText, setSeed, setBatchMode, setError, setRecoveryMessage });
+
+  const {
+    trainingCollection,
+    setTrainingCollection,
+    captionJob,
+    remoteReferenceCount,
+    isSpawningCaptionAgent,
+    isSyncingReferences,
+    isImportingReferences,
+    addSelectedAssetsToCollection,
+    addCollectionFiles,
+    syncCollectionReferences,
+    importRemoteReferences,
+    removeCollectionItem,
+    updateCollectionCaption,
+    exportTrainingZip,
+    spawnCaptionAgent,
+    copyCaptionBrief
+  } = useTrainingCollections({
+    assets,
+    selectedAssetIds,
+    setSelectedAssetIds,
+    setActiveTab,
+    setError,
+    setRecoveryMessage
+  });
+
+  const { balance, setBalance, isCheckingBalance, checkBalance } = useBalance(apiKey);
+
   const runPlanPayload = useMemo(
     () =>
       buildRunPlanPayload({
@@ -180,25 +205,6 @@ export function useDashboardState() {
   );
   const outputMegapixels = useMemo(() => estimateMegapixels(width, height), [width, height]);
   const batchTotalEstimate = costEstimate.credits * Math.max(1, batchCount);
-  const totalActualCredits = useMemo(
-    () => runLog.reduce((sum, entry) => sum + (entry.actualCredits ?? entry.creditDelta ?? 0), 0),
-    [runLog]
-  );
-  const failedRunCount = useMemo(
-    () => runLog.filter((entry) => entry.status === "failed").length,
-    [runLog]
-  );
-  const permutationPairCount = useMemo(
-    () => countPairPermutations(selectedComboIds.length),
-    [selectedComboIds.length]
-  );
-  const filteredAssets = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return assets;
-    return assets.filter((asset) =>
-      `${asset.title || ""} ${asset.prompt} ${asset.model}`.toLowerCase().includes(query)
-    );
-  }, [assets, searchQuery]);
   const toolSourceAsset = useMemo(
     () => assets.find((asset) => asset.id === toolSourceAssetId) || null,
     [assets, toolSourceAssetId]
@@ -214,220 +220,19 @@ export function useDashboardState() {
     });
     return badges;
   }, [references, audioAssignments]);
-  const primaryReference = references[0];
-  const primaryReferenceUrl = primaryReference?.value.startsWith("data:") ? "" : primaryReference?.value || "";
-  const primaryReferencePreview = primaryReference?.value || "";
-  useEffect(() => {
-    fetch("/api/prompts")
-      .then((response) => response.json())
-      .then((records: PromptRecord[]) => {
-        setPrompts(records);
-        if (records[0]) selectPromptRecord(records[0]);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Could not load prompts"));
-  }, []);
-  useEffect(() => {
-    void refreshReferenceArchiveCount();
-  }, []);
-  useEffect(() => {
-    try {
-      const savedLog = localStorage.getItem(RUN_LOG_KEY);
-      if (savedLog) setRunLog(JSON.parse(savedLog));
-      const savedCollection = localStorage.getItem(TRAINING_COLLECTIONS_KEY);
-      if (savedCollection) setTrainingCollection(JSON.parse(savedCollection));
-    } catch {
-      localStorage.removeItem(RUN_LOG_KEY);
-      localStorage.removeItem(TRAINING_COLLECTIONS_KEY);
-    }
-    let cancelled = false;
-    loadStoredAssets()
-      .then((hydrated) => {
-        if (!cancelled) setAssets(hydrated);
-      })
-      .catch(() => localStorage.removeItem(BFL_LIBRARY_KEY))
-      .finally(() => {
-        if (!cancelled) setHasLoadedAssets(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  useEffect(() => {
-    if (hasLoadedAssets) persistAssetLibraries(assets);
-  }, [assets, hasLoadedAssets]);
-  useEffect(() => {
-    safeSetItem(RUN_LOG_KEY, JSON.stringify(runLog.slice(0, 200)));
-  }, [runLog]);
-  useEffect(() => {
-    safeSetItem(TRAINING_COLLECTIONS_KEY, JSON.stringify(trainingCollection));
-  }, [trainingCollection]);
+
   useEffect(() => {
     // masks are resolution-bound; drop them whenever the tool source changes
     setToolMask("");
   }, [toolSourceAssetId]);
-  function selectPromptRecord(record: PromptRecord) {
-    setActiveId(record.id);
-    setPromptText(formatPrompt(record.prompt));
-    setSeed(String(record.seed || ""));
-  }
-  function selectPrompt(id: string) {
-    const record = prompts.find((item) => item.id === id);
-    if (record) selectPromptRecord(record);
-  }
-  function selectPromptLibrary(id: string) {
-    setActivePromptLibraryId(id);
-    const nextPrompts = id === ALL_PROMPT_LIBRARY_ID
-      ? prompts
-      : prompts.filter((prompt) => promptLibraryId(prompt) === id);
-    if (nextPrompts.length && !nextPrompts.some((prompt) => prompt.id === activeId)) {
-      selectPromptRecord(nextPrompts[0]);
-    }
-  }
-  function toggleComboPrompt(id: string) {
-    setSelectedComboIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
-    );
-  }
-  function createComboPrompt() {
-    const chosen = selectedComboIds
-      .map((id) => prompts.find((prompt) => prompt.id === id))
-      .filter(Boolean) as PromptRecord[];
-    if (chosen.length < 2) return;
-    const comboId = comboIdFromPrompts(chosen);
-    const formattedPrompt = buildComboPromptText(chosen);
-    const record: PromptRecord = {
-      id: comboId,
-      species: "combo",
-      seed: chosen[0]?.seed,
-      plant_form: uniqueText(chosen.map((item) => item.plant_form)).join(" + "),
-      prompt: formattedPrompt
-    };
-    setPrompts((current) => [record, ...current.filter((prompt) => prompt.id !== comboId)]);
-    setActiveId(record.id);
-    setPromptText(formattedPrompt);
-    setSeed(String(record.seed || ""));
-    setSelectedComboIds([record.id]);
-    setBatchMode("current");
-    setError("");
-  }
-  async function savePrompt(saveAsNew = false) {
-    try {
-      const saved = await savePromptRecord(activePrompt, promptText, seed, { saveAsNew });
-      setPrompts((current) => upsertPromptRecord(current, saved));
-      setActivePromptLibraryId(promptLibraryId(saved));
-      selectPromptRecord(saved);
-      setRecoveryMessage(
-        saveAsNew
-          ? `Saved ${saved.id} as a new prompt.`
-          : `Saved ${saved.id} to cybernetic_flower_flux2_prompts.json.`
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save prompt.");
-    }
-  }
-  async function deletePrompt() {
-    if (!activePrompt?.id) return;
-    const id = activePrompt.id;
-    const snapshot = activePrompt;
-    try {
-      const { record } = await deletePromptRecord(id);
-      const nextPrompts = prompts.filter((prompt) => prompt.id !== id);
-      const nextVisible = activePromptLibraryId === ALL_PROMPT_LIBRARY_ID
-        ? nextPrompts
-        : nextPrompts.filter((prompt) => promptLibraryId(prompt) === activePromptLibraryId);
-      const replacement = nextVisible[0] || nextPrompts[0];
-      setPrompts(nextPrompts);
-      setSelectedComboIds((current) => current.filter((item) => item !== id));
-      if (replacement) {
-        selectPromptRecord(replacement);
-      } else {
-        setActiveId("");
-        setPromptText("");
-        setSeed("");
-      }
-      setLastDeletedPrompt(record || snapshot);
-      setRecoveryMessage(`Deleted ${id}. Archived to deleted_prompts.json — undo to restore it.`);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete prompt.");
-    }
-  }
-  async function undoDeletePrompt() {
-    if (!lastDeletedPrompt) return;
-    try {
-      const restored = await restorePromptRecord(lastDeletedPrompt);
-      setPrompts((current) => upsertPromptRecord(current, restored));
-      setActivePromptLibraryId(promptLibraryId(restored));
-      selectPromptRecord(restored);
-      setLastDeletedPrompt(null);
-      setRecoveryMessage(`Restored ${restored.id}.`);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not restore prompt.");
-    }
+
+  function savePrompt(saveAsNew = false) {
+    return savePromptWithText(promptText, seed, saveAsNew);
   }
   function importPromptJson() {
-    try {
-      const parsed = JSON.parse(promptText);
-      const records = (Array.isArray(parsed) ? parsed : [parsed]).map((item, index) => ({
-        id: item.id || `imported_${index + 1}`,
-        species: item.species,
-        seed: item.seed,
-        prompt: typeof item.prompt === "string" ? item.prompt : JSON.stringify(item)
-      }));
-      setPrompts(records);
-      if (records[0]) selectPromptRecord(records[0]);
-      setError("");
-    } catch {
-      setError("The prompt JSON did not parse.");
-    }
+    return importPromptJsonWithText(promptText);
   }
-  async function addReferenceFiles(files: File[]) {
-    const slots = Math.max(0, 3 - references.length);
-    if (!slots) return;
-    const loaded = await readReferenceFiles(files.slice(0, slots));
-    setReferences((current) => [...current, ...loaded].slice(0, 3));
-  }
-  async function setPrimaryReferenceFiles(files: File[]) {
-    const [loaded] = await readReferenceFiles(files.slice(0, 1));
-    if (!loaded) return;
-    setReferences((current) => [loaded, ...current.slice(1)].slice(0, 3));
-  }
-  function setPrimaryReferenceUrl(value: string) {
-    setReferences((current) => {
-      const rest = current.slice(1);
-      const trimmed = value.trim();
-      if (!trimmed) return rest;
-      return [
-        {
-          id: current[0]?.id || `url-${Date.now()}`,
-          name: current[0]?.name || "Reference 1",
-          value: trimmed
-        },
-        ...rest
-      ].slice(0, 3);
-    });
-  }
-  function clearPrimaryReference() {
-    setReferences((current) => current.slice(1));
-  }
-  async function checkBalance() {
-    setIsCheckingBalance(true);
-    try {
-      const response = await fetch("/api/bfl/credits", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not fetch balance");
-      setBalance({ credits: data.credits, checkedAt: Date.now() });
-    } catch (err) {
-      setBalance({ credits: null, error: err instanceof Error ? err.message : "Could not fetch balance" });
-    } finally {
-      setIsCheckingBalance(false);
-    }
-  }
+
   async function generate(payload = runPlanPayload, mode = batchMode) {
     if (mode === "permutations" && selectedComboIds.length < 2) {
       setError("Select at least two prompts before running selected permutations.");
@@ -472,22 +277,12 @@ export function useDashboardState() {
       setBatchProgress(null);
     }
   }
-  function selectAllPromptSources() {
-    setSelectedComboIds(prompts.map((prompt) => prompt.id));
-    setBatchMode("permutations");
-    setError("");
-  }
-  function clearPromptSources() {
-    setSelectedComboIds([]);
-    setError("");
-  }
   async function runPermutationScript() {
-    const pairCount = countPairPermutations(selectedComboIds.length);
-    if (!pairCount) {
+    const scriptCount = clampBatchCount(permutationPairCount);
+    if (!permutationPairCount) {
       setError("Select at least two prompt sources before running the script.");
       return;
     }
-    const scriptCount = clampBatchCount(pairCount);
     const scriptPayload = buildRunPlanPayload({
       batchMode: "permutations",
       batchCount: scriptCount,
@@ -506,28 +301,6 @@ export function useDashboardState() {
     setBatchMode("permutations");
     setBatchCount(scriptCount);
     await generate(scriptPayload, "permutations");
-  }
-  async function recoverStoredAssets() {
-    const recovered = await recoverStoredAssetRecords(assets);
-    setAssets(recovered.assets);
-    setRecoveryMessage(
-      recovered.added
-        ? `Recovered ${recovered.added} older asset${recovered.added === 1 ? "" : "s"} from browser storage.`
-        : "No additional older assets found in browser storage."
-    );
-    setActiveTab("assets");
-  }
-  function toggleFavorite(id: string) {
-    setAssets((current) =>
-      current.map((asset) => (asset.id === id ? { ...asset, is_favorite: !asset.is_favorite } : asset))
-    );
-  }
-  function deleteAsset(id: string) {
-    removeAssetImage(id);
-    setAssets((current) => current.filter((asset) => asset.id !== id));
-    setSelectedAssetIds((current) => current.filter((item) => item !== id));
-    if (selectedAsset?.id === id) setSelectedAsset(null);
-    if (toolSourceAssetId === id) setToolSourceAssetId(null);
   }
   function sendAssetToPrompt(asset: AssetRecord) {
     setPromptText(formatPrompt(asset.prompt));
@@ -601,280 +374,6 @@ export function useDashboardState() {
     }
   }
 
-  async function saveSequencePrompt(promptValue: string) {
-    const trimmed = promptValue.trim();
-    if (!trimmed) {
-      setError("Generate an audio sequence prompt first.");
-      return;
-    }
-    try {
-      const saved = await saveStandalonePromptRecord({
-        idPrefix: "audio_sequence",
-        domain: "audio_sequences",
-        species: "audio_sequence",
-        prompt: trimmed
-      });
-      setPrompts((current) => upsertPromptRecord(current, saved));
-      setRecoveryMessage(`Saved ${saved.id} to the prompt library (Audio Sequences).`);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the sequence prompt.");
-    }
-  }
-
-  async function saveAssetPromptToLibrary(asset: AssetRecord) {
-    if (!asset.prompt?.trim()) {
-      setError("This asset has no prompt to save.");
-      return;
-    }
-    try {
-      const saved = await saveStandalonePromptRecord({
-        idPrefix: `gallery_${asset.title || asset.id}`,
-        domain: "gallery_prompts",
-        species: asset.model,
-        seed: asset.seed,
-        prompt: asset.prompt
-      });
-      setPrompts((current) => upsertPromptRecord(current, saved));
-      setRecoveryMessage(`Saved ${saved.id} to the prompt library (Gallery Prompts).`);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the asset prompt.");
-    }
-  }
-  function sendAssetToReference(asset: AssetRecord) {
-    if (references.length >= 3) {
-      setError("Reference slots are full. Remove one before adding another generated image.");
-      return;
-    }
-    setReferences((current) => [
-      ...current,
-      {
-        id: `asset-ref-${asset.id}-${Date.now()}`,
-        name: asset.title || asset.id,
-        value: asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url,
-        assetId: asset.id
-      }
-    ].slice(0, 3));
-    setError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function addReferenceFromDragPayload(payload: string) {
-    const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : payload;
-    const asset = assets.find((item) => item.id === assetId);
-    if (asset) sendAssetToReference(asset);
-  }
-  async function downloadAssetImage(asset: AssetRecord) {
-    const source = asset.imageDataUrl || asset.sampleUrl || asset.remoteImageUrl || asset.imageUrl || asset.image_url;
-    if (!source) {
-      setError("This image does not have a downloadable URL.");
-      return;
-    }
-
-    let downloadUrl = source;
-    let shouldRevoke = false;
-    try {
-      if (!source.startsWith("data:") && !source.startsWith("blob:")) {
-        const response = await fetch(source, { cache: "no-store" });
-        if (!response.ok) throw new Error(`Could not fetch image: ${response.status}`);
-        downloadUrl = URL.createObjectURL(await response.blob());
-        shouldRevoke = true;
-      }
-
-      const anchor = document.createElement("a");
-      anchor.href = downloadUrl;
-      anchor.download = `${downloadNameForAsset(asset)}.${extensionForAsset(asset)}`;
-      anchor.rel = "noopener";
-      anchor.style.display = "none";
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      if (shouldRevoke) window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-      setError("");
-    } catch (err) {
-      if (shouldRevoke) URL.revokeObjectURL(downloadUrl);
-      setError(err instanceof Error ? err.message : "Could not download image.");
-    }
-  }
-  function clearAssets() {
-    removeAssetImages(assets);
-    setAssets([]);
-    setSelectedAssetIds([]);
-  }
-  function toggleAssetSelection(id: string) {
-    setSelectedAssetIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
-    );
-  }
-  function addSelectedAssetsToCollection() {
-    const chosenAssets = assets.filter((asset) => selectedAssetIds.includes(asset.id));
-    if (!chosenAssets.length) return;
-    setTrainingCollection((current) => {
-      const existingAssetIds = new Set(current.items.map((item) => item.assetId).filter(Boolean));
-      const newItems = chosenAssets
-        .filter((asset) => !existingAssetIds.has(asset.id))
-        .map((asset) => collectionItemFromAsset(asset, current.triggerToken));
-      if (!newItems.length) return current;
-      return {
-        ...current,
-        items: [...current.items, ...newItems],
-        updatedAt: Date.now()
-      };
-    });
-    setSelectedAssetIds([]);
-    setActiveTab("collections");
-  }
-  async function addCollectionFiles(files: File[]) {
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-    if (!imageFiles.length) return;
-    const newItems = await Promise.all(
-      imageFiles.map((file) => collectionItemFromFile(file, trainingCollection.triggerToken))
-    );
-    setTrainingCollection((current) => ({
-      ...current,
-      items: [...current.items, ...newItems],
-      updatedAt: Date.now()
-    }));
-    setActiveTab("collections");
-  }
-  async function refreshReferenceArchiveCount() {
-    try {
-      const response = await fetch("/api/reference-archive?limit=1000", { cache: "no-store" });
-      const data = await response.json();
-      setRemoteReferenceCount(typeof data.count === "number" ? data.count : 0);
-    } catch {
-      setRemoteReferenceCount(null);
-    }
-  }
-  async function syncCollectionReferences() {
-    const items = trainingCollection.items.filter((item) => item.imageDataUrl);
-    if (!items.length) return;
-    setIsSyncingReferences(true);
-    setError("");
-    try {
-      let uploaded = 0;
-      let failed = 0;
-      const collection = {
-        id: trainingCollection.id,
-        name: trainingCollection.name,
-        triggerToken: trainingCollection.triggerToken,
-        captionGuide: trainingCollection.captionGuide
-      };
-      for (let index = 0; index < items.length; index += 8) {
-        const response = await fetch("/api/reference-archive", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collection, items: items.slice(index, index + 8) })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Could not sync reference folder.");
-        uploaded += data.uploaded || 0;
-        failed += data.failed || 0;
-      }
-      await refreshReferenceArchiveCount();
-      setRecoveryMessage(
-        failed
-          ? `Synced ${uploaded} reference image${uploaded === 1 ? "" : "s"}; ${failed} failed.`
-          : `Synced ${uploaded} reference image${uploaded === 1 ? "" : "s"} to Cloudflare.`
-      );
-      setActiveTab("collections");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not sync reference folder.");
-    } finally {
-      setIsSyncingReferences(false);
-    }
-  }
-  function referenceImportKey(item: TrainingCollectionItem) {
-    return item.remoteReferenceId || item.remoteImageKey || item.assetId || `${item.source}:${item.fileName}:${item.name}`;
-  }
-  async function importRemoteReferences() {
-    setIsImportingReferences(true);
-    setError("");
-    try {
-      const response = await fetch("/api/reference-archive?limit=1000", { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not import cloud references.");
-      const incoming = (Array.isArray(data.items) ? data.items : []) as TrainingCollectionItem[];
-      let added = 0;
-      setTrainingCollection((current) => {
-        const seen = new Set(current.items.map(referenceImportKey));
-        const additions = incoming.filter((item) => {
-          const key = referenceImportKey(item);
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        }).map((item) => ({
-          ...item,
-          caption: item.caption || `${current.triggerToken}, `,
-          addedAt: Date.now()
-        }));
-        added = additions.length;
-        return additions.length
-          ? { ...current, items: [...current.items, ...additions], updatedAt: Date.now() }
-          : current;
-      });
-      setRemoteReferenceCount(typeof data.count === "number" ? data.count : incoming.length);
-      setRecoveryMessage(
-        added
-          ? `Imported ${added} cloud reference image${added === 1 ? "" : "s"} into the collection.`
-          : "No additional cloud references found."
-      );
-      setActiveTab("collections");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not import cloud references.");
-    } finally {
-      setIsImportingReferences(false);
-    }
-  }
-  function removeCollectionItem(id: string) {
-    setTrainingCollection((current) => ({
-      ...current,
-      items: current.items.filter((item) => item.id !== id),
-      updatedAt: Date.now()
-    }));
-  }
-  function updateCollectionCaption(id: string, caption: string) {
-    setTrainingCollection((current) => ({
-      ...current,
-      items: current.items.map((item) => (item.id === id ? { ...item, caption } : item)),
-      updatedAt: Date.now()
-    }));
-  }
-  async function exportTrainingZip() {
-    try {
-      await exportCollectionZip(trainingCollection);
-      setRecoveryMessage(`Exported ${trainingCollection.items.length} image LoRA collection ZIP.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not export collection ZIP.");
-    }
-  }
-  async function spawnCaptionAgent() {
-    if (!trainingCollection.items.length) return;
-    setIsSpawningCaptionAgent(true);
-    setCaptionJob({ status: "Preparing caption job" });
-    try {
-      const response = await fetch("/api/bfl_dashboard/v1/caption_agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ collection: trainingCollection })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not prepare caption job");
-      const status = data.mode === "spawned"
-        ? `Spawned Codex caption agent${data.pid ? ` pid ${data.pid}` : ""}`
-        : "Prepared caption job";
-      setCaptionJob({ status, jobDir: data.jobDir });
-      setActiveTab("collections");
-    } catch (err) {
-      setCaptionJob({ status: "Caption job failed", error: err instanceof Error ? err.message : "Could not prepare caption job" });
-    } finally {
-      setIsSpawningCaptionAgent(false);
-    }
-  }
-  function copyCaptionBrief() {
-    void copyText(captionInstructions(trainingCollection));
-  }
   return {
     apiKey,
     setApiKey,
