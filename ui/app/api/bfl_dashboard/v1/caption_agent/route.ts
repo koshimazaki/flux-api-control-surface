@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
   const stamp = now.toISOString().replace(/[:.]/g, "-");
   const collectionName = collection.name || "BFL training collection";
   const triggerToken = collection.triggerToken || "bfl_cyberflower";
-  const rootDir = path.resolve(process.cwd(), "..", "outputs", "bfl-api-dashboard", "caption-jobs");
+  const rootDir = path.resolve(process.cwd(), "..", "outputs", "flux-api-control-surface", "caption-jobs");
   const jobDir = path.join(rootDir, `${stamp}_${slugify(collectionName) || "collection"}`);
   const imageDir = path.join(jobDir, "images");
   const captionsDir = path.join(jobDir, "captions");

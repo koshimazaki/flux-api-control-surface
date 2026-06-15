@@ -1,7 +1,7 @@
-# BFL API Dashboard
+# FLUX API Control Surface
 
-Local Next.js dashboard for testing BFL FLUX.2 prompts, batch permutations,
-reference images, assets, costs, and logs.
+Local Next.js control surface for testing FLUX.2 prompts, batch permutations,
+reference images, image tools, assets, costs, and logs.
 
 This is a local development tool for now. It can become a public dev-tool demo
 after a few more tested examples, a clean sample workflow, and a final secrets
@@ -20,7 +20,7 @@ The gallery writes to the same localStorage key used by the AImedia library:
 Large generated image data is stored in IndexedDB so localStorage only keeps
 metadata.
 
-The BFL API key can be entered in the UI, but the safer local path is
+The FLUX API key can be entered in the UI, but the safer local path is
 `BFL/ui/.env.local`:
 
 ```bash
@@ -29,12 +29,12 @@ BFL_API_KEY=...
 
 The API routes read that server-side value when the UI field is blank. Do not
 put `BFL_API_KEY` on an unprotected public deployment: public callers could
-spend your credits. For demos, keep BFL generation local and only expose the
+spend your credits. For demos, keep FLUX generation local and only expose the
 token-protected R2/D1 archive Worker.
 
 ## Public Release Gate
 
-Before opening or deploying this dashboard as a showcase/resource:
+Before opening or deploying this control surface as a showcase/resource:
 
 - test it with several representative prompt batches and reference-image flows;
 - add a small set of safe example prompts and generated screenshots;
@@ -43,19 +43,19 @@ Before opening or deploying this dashboard as a showcase/resource:
   `BFL_API_KEY`;
 - prefer a local-first demo or token-protected archive over public server-side
   generation;
-- present it as a developer workflow tool for BFL API exploration, not as a
+- present it as a developer workflow tool for FLUX API exploration, not as a
   hosted public image generator.
 
 Completed generations are also written to:
 
-`BFL/outputs/bfl-api-dashboard/YYYY-MM-DD/`
+`BFL/outputs/flux-api-control-surface/YYYY-MM-DD/`
 
 Each generation saves an image, `.prompt.txt`, and `.json` metadata file.
 
 ## Optional R2 + D1 Archive
 
 The safer demo shape is local generation plus remote archive storage. The local
-dashboard keeps the BFL API key on your machine, then syncs successful outputs to
+control surface keeps the FLUX API key on your machine, then syncs successful outputs to
 a token-protected Cloudflare Worker:
 
 ```bash
@@ -66,15 +66,15 @@ BFL_ASSET_WORKER_TOKEN=...
 The Worker stores images/prompts/metadata in `BFL-API/outputs/YYYY-MM-DD/` on R2
 and writes searchable rows to D1. See `BFL/cloudflare/README.md` for bucket,
 database, migration, and deploy steps. If those env vars are missing, the
-dashboard simply stays filesystem-only.
+control surface simply stays filesystem-only.
 
-Archived R2 outputs are read back through the dashboard server as data URLs, so
+Archived R2 outputs are read back through the local server as data URLs, so
 the existing "send image to references" button works for remote assets too.
 
 The Run panel has an always-visible primary reference slot above `Generate`.
 Paste a hosted image URL there, upload an image, or drop an image into the slot.
 Hosted URLs are sent through as URLs; local drops are sent as data URLs for the
-local BFL generation route.
+local FLUX generation route.
 
 The Collections tab can also sync a folder-style reference set to the same
 Worker under `BFL-API/references/<collection-id>/`. Use `Add folder`, then
@@ -94,19 +94,20 @@ The local HTML reference view is available at `/api/reference-archive?format=htm
 
 ## Structure
 
-- `app/page.tsx` mounts the dashboard shell.
+- `app/page.tsx` mounts the control surface shell.
 - `components/` contains the prompt library, editor, run panel, gallery, log,
   image tools, audio panel, and lightbox.
 - `lib/dashboard/` contains focused hooks for prompt, asset, reference,
   balance, and training-collection state.
-- `lib/provider-registry.ts` is the BFL model/tool source of truth. Add future
-  provider lanes there first, then wire the matching API/client adapters.
+- `lib/provider-registry.ts` is the current FLUX/BFL model and tool source of
+  truth. Add future provider lanes there first, then wire the matching
+  API/client adapters.
 - `lib/` contains prompt helpers, pricing estimates, shared types, and
   IndexedDB/localStorage persistence.
 
 ## Image Tool Workspaces
 
-The workspace mode switcher exposes BFL image tools on any gallery output:
+The workspace mode switcher exposes FLUX image tools on any gallery output:
 
 - **Erase** (`flux-tools/erase-v1`): paint a mask directly on the image
   (white = remove, shift-drag unpaints), set mask dilation, run. No prompt.
@@ -136,7 +137,7 @@ The UI is also an agent/MCP-facing local API:
   and auth expectations.
 - `POST /api/dashboard/run-plan` turns prompt IDs or a prompt queue into concrete
   `/api/bfl/generate` request bodies with token/cost estimates.
-- `POST /api/dashboard/batch` dry-runs or executes a dashboard batch. Execution
+- `POST /api/dashboard/batch` dry-runs or executes a control-surface batch. Execution
   calls the local BFL route and saves image/prompt/metadata files.
 - `POST /api/bfl/tools` runs erase/inpaint/outpaint on an existing image with the
   same output persistence and provenance as generations.
@@ -152,5 +153,5 @@ The UI is also an agent/MCP-facing local API:
 BFL MCP is useful inside MCP clients such as Codex or Claude because it owns the
 OAuth flow and tool calls. This browser UI uses BFL's HTTP API instead. Embedding
 MCP directly would require a local or server-side MCP client/proxy that handles
-OAuth. The dashboard API gives that proxy or an agent a clean way to read prompts,
+OAuth. The control-surface API gives that proxy or an agent a clean way to read prompts,
 plan batches, call the local BFL API route, and reuse the output library.

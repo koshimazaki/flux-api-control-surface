@@ -3,7 +3,9 @@ import path from "node:path";
 import { estimateTokens } from "./pricing";
 import type { AssetRecord } from "./types";
 
-export const OUTPUT_ROOT = path.resolve(process.cwd(), "..", "outputs", "bfl-api-dashboard");
+export const OUTPUT_ROOT = path.resolve(process.cwd(), "..", "outputs", "flux-api-control-surface");
+const LEGACY_OUTPUT_ROOT = path.resolve(process.cwd(), "..", "outputs", "bfl-api-dashboard");
+const OUTPUT_ROOTS = [OUTPUT_ROOT, LEGACY_OUTPUT_ROOT];
 
 export type OutputManifestItem = {
   id: string;
@@ -61,7 +63,7 @@ function imageForBase(files: string[], base: string) {
 }
 
 export async function readLocalOutputManifest(): Promise<OutputManifestItem[]> {
-  const files = await walk(OUTPUT_ROOT);
+  const files = (await Promise.all(OUTPUT_ROOTS.map((root) => walk(root)))).flat();
   const metadataFiles = files.filter((file) => file.endsWith(".json")).sort().reverse();
 
   return Promise.all(
@@ -90,7 +92,7 @@ export async function readLocalOutputManifest(): Promise<OutputManifestItem[]> {
 }
 
 export async function readLocalOutputAssets(): Promise<AssetRecord[]> {
-  const files = await walk(OUTPUT_ROOT);
+  const files = (await Promise.all(OUTPUT_ROOTS.map((root) => walk(root)))).flat();
   const metadataFiles = files.filter((file) => file.endsWith(".json")).sort().reverse();
 
   const assets = await Promise.all(

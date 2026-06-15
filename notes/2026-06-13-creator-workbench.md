@@ -3,7 +3,7 @@
 Date: 2026-06-13
 Status: draft concept note
 
-This note sketches a shared creative workbench for the existing BFL dashboard,
+This note sketches a shared creative workbench for the existing FLUX API Control Surface,
 audio-reactive shader tool, Holodeck world recorder, and downstream video/model
 providers. The first implementation can stay BFL-native because that is the
 current working surface, but the architecture should be provider-agnostic.
@@ -126,7 +126,7 @@ dashboard intent + asset memory
 
 ## First Implementation Pass
 
-Start from the existing BFL dashboard because it already has the prompt,
+Start from the existing FLUX API Control Surface because it already has the prompt,
 reference, asset, output, and API surface.
 
 Near-term steps:
@@ -163,4 +163,4 @@ generation, not just a collection of separate tools.
 ## Follow-Up Notes
 
 - [`2026-06-13 - Creator Workbench Bugs And UX Backlog`](./2026-06-13-workbench-bugs-ux-backlog.md)
-- [`2026-06-15 - BFL-Focused Open Source Release Scope`](./2026-06-15-open-source-release-scope.md)
+- [`2026-06-15 - FLUX API Control Surface Release Scope`](./2026-06-15-flux-api-control-surface-release-scope.md)

@@ -13,7 +13,7 @@ export function ApisPanel({ captionJobPath }: ApisPanelProps) {
       <div className="mcpGrid">
         <div className="mcpCard">
           <KeyRound size={18} />
-          <span>BFL API</span>
+          <span>FLUX API</span>
           <strong>Header or env</strong>
           <small>BFL_API_KEY / FLUX_API_KEY</small>
         </div>
@@ -45,7 +45,7 @@ export function ApisPanel({ captionJobPath }: ApisPanelProps) {
           <code>GET /api/mcp/manifest</code>
         </div>
         <div>
-          <label>BFL credits</label>
+          <label>FLUX credits</label>
           <code>POST /api/bfl/credits</code>
         </div>
       </div>

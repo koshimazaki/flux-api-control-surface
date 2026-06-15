@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   const nativeMcpHandoff = {
     ...plan.nativeFluxMcpHandoff,
     note:
-      "The dashboard executor uses the same planned request bodies exposed here. Use dashboard execution when you want local output files and gallery recovery."
+      "The control-surface executor uses the same planned request bodies exposed here. Use local execution when you want output files and gallery recovery."
   };
 
   if (!body.execute) {

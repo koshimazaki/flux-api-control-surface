@@ -14,8 +14,8 @@ export function TopBar({ apiKey, onApiKeyChange }: TopBarProps) {
           <img src="https://bfl.ai/brand/symbol-white.svg" alt="" />
         </div>
         <div className="brandCopy">
-          <p className="eyebrow">Black Forest Labs / FLUX.2</p>
-          <h1>FLUX Control</h1>
+          <p className="eyebrow">Local FLUX API workbench</p>
+          <h1>FLUX API Control Surface</h1>
           <div className="topBarChips" aria-label="Workspace scope">
             <span>API</span>
             <span>Prompts</span>
@@ -34,7 +34,7 @@ export function TopBar({ apiKey, onApiKeyChange }: TopBarProps) {
           <KeyRound size={16} />
           <input
             type="password"
-            placeholder="BFL API key or .env.local"
+            placeholder="FLUX API key or .env.local"
             value={apiKey}
             onChange={(event) => onApiKeyChange(event.target.value)}
           />

@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
   const apiKey = resolveApiKey(body.apiKey);
   const tool = body.tool;
   const toolConfig = tool ? getBflImageTool(tool) : undefined;
-  if (!apiKey) return jsonError("BFL API key is required");
+  if (!apiKey) return jsonError("FLUX API key is required");
   if (!tool || !toolConfig) return jsonError(`Unknown tool: ${tool || "(none)"}`);
 
   const validation = validateToolBody(tool, body);

@@ -40,7 +40,7 @@ export async function pollResult(pollingUrl: string, apiKey: string) {
     const result = await bflJson("GET", pollingUrl, apiKey);
     if (result.status === "Ready") return result;
     if (isBflPollFailureStatus(result.status)) {
-      throw new Error(`BFL generation failed: ${JSON.stringify(result)}`);
+      throw new Error(`FLUX generation failed: ${JSON.stringify(result)}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 750));
   }
@@ -127,7 +127,7 @@ export async function saveOutputFiles(options: {
   const stamp = now.toISOString().replace(/[:.]/g, "-");
   const safeTitle = slugify(options.title) || "bfl-generation";
   const baseName = `${date}_${stamp}_${safeTitle}_${options.id}`;
-  const outputDir = path.resolve(process.cwd(), "..", "outputs", "bfl-api-dashboard", date);
+  const outputDir = path.resolve(process.cwd(), "..", "outputs", "flux-api-control-surface", date);
   await mkdir(outputDir, { recursive: true });
 
   const imagePath = path.join(outputDir, `${baseName}.${options.extension}`);

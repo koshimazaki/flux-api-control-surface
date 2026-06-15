@@ -129,7 +129,7 @@ export function buildRunPlan(prompts: PromptRecord[], body: RunPlanBody) {
 
   const groups = chunk(requests, parallel);
   return {
-    dashboard: "BFL API Dashboard",
+    dashboard: "FLUX API Control Surface",
     count: requests.length,
     parallel,
     estimatedCredits: requests.reduce((sum, item) => sum + item.estimatedCredits, 0),

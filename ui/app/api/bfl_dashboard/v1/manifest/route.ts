@@ -5,14 +5,14 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   return NextResponse.json({
-    name: "BFL Dashboard Agent API",
+    name: "FLUX API Control Surface Agent API",
     version: "1.0.0",
     namespace: "/api/bfl_dashboard/v1",
     routes: [
       {
         method: "GET",
         path: "/api/bfl_dashboard/v1/manifest",
-        purpose: "Describe stable dashboard routes intended for Codex and other local agents.",
+        purpose: "Describe stable control-surface routes intended for Codex and other local agents.",
         sideEffects: false
       },
       {
@@ -33,7 +33,7 @@ export async function GET() {
     ],
     contracts: {
       collectionZip: "images/* plus captions/*.txt with matching filename stems",
-      captionJob: "outputs/bfl-api-dashboard/caption-jobs/<timestamp>_<collection>/"
+      captionJob: "outputs/flux-api-control-surface/caption-jobs/<timestamp>_<collection>/"
     }
   });
 }

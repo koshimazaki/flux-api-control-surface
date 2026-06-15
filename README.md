@@ -1,14 +1,14 @@
-# BFL — FLUX asset generation + Klein style LoRA
+# FLUX API Control Surface
 
-Black Forest Labs work: FLUX asset generation via their API/MCP server,
-self-hosted Klein style LoRA training via AI-Toolkit, and managed BFL inference
-for uploaded Klein LoRAs. In this repo BFL mainly powers the source image pool
-for downstream LTX IC-LoRA training: flowers, bacteria, fabric, and abstract
-organic material references.
+Local control surface for FLUX API image generation, FLUX tools, prompt
+libraries, reference assets, output provenance, and agent-friendly local routes.
+The upstream provider adapter is currently Black Forest Labs because the FLUX
+API and MCP server live there, but the public tool is model/workflow-facing.
 
-The dashboard is intentionally one standalone demo lane inside the wider Demos
-repo, not the whole product. Keep it light for BFL API exploration now; the
-same patterns can later host Seedance, LTX, Holodeck, or other provider lanes.
+This is intentionally one standalone demo lane inside the wider Demos repo, not
+the whole private creative system. Keep it light for FLUX API exploration now;
+the same patterns can later host Seedance, LTX, Holodeck, or other provider
+lanes.
 
 ## Two tracks
 
@@ -76,22 +76,22 @@ npm install
 npm run dev -- --port 3017
 ```
 
-Open `http://localhost:3017` to edit the structured prompts, paste a BFL API
+Open `http://localhost:3017` to edit the structured prompts, paste a FLUX API
 key, add up to ten reference images, generate, and review outputs in an
 AImedia-compatible local library (`nb2_generations`).
 
 Optional durable archive: configure the Worker in `cloudflare/` and set
 `BFL_ASSET_WORKER_URL` plus `BFL_ASSET_WORKER_TOKEN` in `ui/.env.local`. The
-dashboard will keep local files and also upload generated PNGs, prompts, and
+control surface will keep local files and also upload generated PNGs, prompts, and
 metadata to R2 with searchable D1 rows.
 
-The dashboard is still local-first. It can be opened later as a public dev-tool
-demo after more examples, testing, and a final secrets/output scrub. See
+The control surface is still local-first. It can be opened later as a public
+dev-tool demo after more examples, testing, and a final secrets/output scrub. See
 [`ui/README.md`](./ui/README.md#public-release-gate).
 
 Current architecture note:
 [`2026-06-13 - Creator Workbench Architecture`](./notes/2026-06-13-creator-workbench.md)
-captures the draft direction for turning the BFL dashboard, shader tool,
+captures the draft direction for turning the FLUX API Control Surface, shader tool,
 Holodeck recorder, provider APIs, RunPod sessions, and MCP control into one
 shared asset/workflow layer.
 

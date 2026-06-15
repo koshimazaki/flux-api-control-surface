@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
   const model = body.model || "pro-preview";
   const modelConfig = getBflModel(model);
 
-  if (!apiKey) return jsonError("BFL API key is required");
+  if (!apiKey) return jsonError("FLUX API key is required");
   if (!prompt) return jsonError("Prompt is required");
   if (!modelConfig) return jsonError(`Unknown model: ${model}`);
 

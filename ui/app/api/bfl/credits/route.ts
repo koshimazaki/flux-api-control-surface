@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   }
 
   const apiKey = body.apiKey?.trim() || process.env.BFL_API_KEY?.trim() || process.env.FLUX_API_KEY?.trim();
-  if (!apiKey) return jsonError("BFL API key is required");
+  if (!apiKey) return jsonError("FLUX API key is required");
 
   const response = await fetch(`${API_BASE}/credits`, {
     headers: {

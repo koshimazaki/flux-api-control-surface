@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   return NextResponse.json({
-    name: "BFL API Dashboard MCP Surface",
+    name: "FLUX API Control Surface MCP Surface",
     version: "0.2.0",
     description:
-      "Local HTTP surface for MCP clients and agents to use the BFL API Dashboard without scraping the browser UI.",
+      "Local HTTP surface for MCP clients and agents to use the FLUX API Control Surface without scraping the browser UI.",
     nativeFluxMcp: {
       serverUrl: "https://mcp.bfl.ai",
       install: {
@@ -28,7 +28,7 @@ export async function GET() {
         },
         {
           name: "get_history",
-          purpose: "Browse previous BFL generations."
+          purpose: "Browse previous FLUX generations."
         },
         {
           name: "get_credits",
@@ -69,7 +69,7 @@ export async function GET() {
       {
         method: "POST",
         path: "/api/dashboard/batch",
-        purpose: "Plan or execute a sequential dashboard batch that saves image, prompt, and metadata locally and, when configured, to R2/D1.",
+        purpose: "Plan or execute a sequential control-surface batch that saves image, prompt, and metadata locally and, when configured, to R2/D1.",
         sideEffects: "Only when execute=true",
         auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body.",
         example: {
@@ -86,7 +86,7 @@ export async function GET() {
       {
         method: "POST",
         path: "/api/bfl/generate",
-        purpose: "Call BFL HTTP API once, poll result, save files under BFL/outputs/bfl-api-dashboard/YYYY-MM-DD, and optionally sync the archive Worker.",
+        purpose: "Call the FLUX HTTP API once, poll result, save files under BFL/outputs/flux-api-control-surface/YYYY-MM-DD, and optionally sync the archive Worker.",
         sideEffects: true,
         auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body."
       },
@@ -94,7 +94,7 @@ export async function GET() {
         method: "POST",
         path: "/api/bfl/tools",
         purpose:
-          "Run BFL image tools on an existing image: erase (flux-tools/erase-v1, white mask = remove), inpaint (flux-pro-1.0-fill, mask + prompt), outpaint (flux-tools/outpainting-v1, target canvas + offsets + high/fast mode). Saves outputs like /api/bfl/generate and records sourceAssetId provenance.",
+          "Run FLUX image tools on an existing image: erase (flux-tools/erase-v1, white mask = remove), inpaint (flux-pro-1.0-fill, mask + prompt), outpaint (flux-tools/outpainting-v1, target canvas + offsets + high/fast mode). Saves outputs like /api/bfl/generate and records sourceAssetId provenance.",
         sideEffects: true,
         auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body.",
         example: {
@@ -111,7 +111,7 @@ export async function GET() {
       {
         method: "POST",
         path: "/api/bfl/credits",
-        purpose: "Check BFL credits through the dashboard server.",
+        purpose: "Check FLUX API credits through the control-surface server.",
         sideEffects: false,
         auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body."
       },
@@ -157,7 +157,7 @@ export async function GET() {
       "Use /api/dashboard/context to discover prompts and outputs.",
       "Use /api/dashboard/run-plan for a dry-run request plan with costs.",
       "Use /api/dashboard/batch with execute=true when the dashboard should save dataset files and sync remote archive storage.",
-      "Use native FLUX MCP directly when the MCP client should own generation/history/credits instead of this local dashboard."
+      "Use native FLUX MCP directly when the MCP client should own generation/history/credits instead of this local control surface."
     ],
     safety: {
       avoidBrowserStoredKeys: true,

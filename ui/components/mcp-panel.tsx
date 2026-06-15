@@ -47,7 +47,7 @@ export function McpPanel(props: McpPanelProps) {
 
   const tracePayload = useMemo(
     () => ({
-      dashboard: "BFL API Dashboard",
+      dashboard: "FLUX API Control Surface",
       api: {
         model: props.model,
         width: props.width,
@@ -63,7 +63,7 @@ export function McpPanel(props: McpPanelProps) {
       mcp_hint: {
         tool: "generate_image",
         server: status?.serverUrl || "https://mcp.bfl.ai",
-        note: "Use /api/dashboard/run-plan to get the same request bodies the dashboard batch executor uses."
+        note: "Use /api/dashboard/run-plan to get the same request bodies the control-surface batch executor uses."
       },
       prompt: props.prompt,
       recent_runs: props.runLog.slice(0, 5)
@@ -75,7 +75,7 @@ export function McpPanel(props: McpPanelProps) {
 
   return (
     <section className="assetsPanel mcpPanel">
-      <PanelHeader title="MCP Bridge" subtitle="API dashboard trace handoff for FLUX MCP clients">
+      <PanelHeader title="MCP Bridge" subtitle="Control-surface trace handoff for FLUX MCP clients">
         <button onClick={() => loadStatus()}>
           <RefreshCcw size={16} />
           Refresh
@@ -85,7 +85,7 @@ export function McpPanel(props: McpPanelProps) {
       <div className="mcpGrid">
         <div className="mcpCard">
           <PlugZap size={18} />
-          <span>Dashboard API</span>
+          <span>Control Surface API</span>
           <strong>{status?.status || "checking"}</strong>
           <small>{status?.apiRoutes?.join(" | ") || "/api/bfl/generate"}</small>
         </div>

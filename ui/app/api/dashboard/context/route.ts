@@ -41,8 +41,8 @@ export async function GET() {
   ]);
 
   return NextResponse.json({
-    name: "BFL API Dashboard",
-    purpose: "Local UI and agent API for FLUX.2 prompt permutations, BFL generation, output recovery, costs, and logs.",
+    name: "FLUX API Control Surface",
+    purpose: "Local UI and agent API for FLUX.2 prompt permutations, image generation, output recovery, costs, and logs.",
     routes: {
       prompts: "/api/prompts",
       dashboardContext: "/api/dashboard/context",
