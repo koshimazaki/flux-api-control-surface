@@ -80,13 +80,13 @@ export function defaultMotionPrompt(marker: Pick<AudioMarker, "kind" | "band">, 
   return `${prefix}: the image breathes in with the beat and breathes out over the tail, slowly drifting with layered parallax and a smooth cinematic camera move.`;
 }
 
+// Cover every kind x band combination defaultMotionPrompt can emit, including
+// analyzer-produced "beat" markers, so an untouched default is always detected.
+const DEFAULT_MOTION_KINDS: AudioEventKind[] = ["kick", "snare", "hat", "beat"];
+const DEFAULT_MOTION_BANDS: AudioBandKey[] = ["low", "mid", "high"];
 const DEFAULT_MOTION_BODIES = new Set(
-  ([
-    { kind: "kick", band: "low" },
-    { kind: "snare", band: "mid" },
-    { kind: "hat", band: "high" }
-  ] as Array<Pick<AudioMarker, "kind" | "band">>).map((marker) =>
-    defaultMotionPrompt(marker, 0).replace(/^\d+ /, "")
+  DEFAULT_MOTION_KINDS.flatMap((kind) =>
+    DEFAULT_MOTION_BANDS.map((band) => defaultMotionPrompt({ kind, band }, 0).replace(/^\d+ /, ""))
   )
 );
 

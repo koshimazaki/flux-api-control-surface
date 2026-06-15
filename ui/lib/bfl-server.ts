@@ -104,6 +104,15 @@ export function redactImagePayload(payload: Record<string, unknown>) {
   );
 }
 
+// BFL image/tool endpoints accept raw base64 or an HTTP(S) URL — not a data: URL.
+// Dashboard masks (canvas.toDataURL) and gallery imageDataUrls arrive as data URLs,
+// so strip the "data:<mediatype>;base64," prefix to the raw base64 payload.
+export function normalizeImageInput(value?: string) {
+  if (!value) return value;
+  const match = value.match(/^data:[^,]*;base64,(.*)$/);
+  return match ? match[1] : value;
+}
+
 export async function saveOutputFiles(options: {
   id: string;
   title: string;

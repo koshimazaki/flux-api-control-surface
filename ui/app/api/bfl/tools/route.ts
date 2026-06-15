@@ -5,6 +5,7 @@ import {
   contentTypeForExtension,
   getCredits,
   imageToDataUrl,
+  normalizeImageInput,
   outputExtension,
   pollResult,
   redactImagePayload,
@@ -56,8 +57,8 @@ function clampInt(value: number, min: number, max: number) {
 function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) {
   if (tool === "erase") {
     const payload: Record<string, unknown> = {
-      image: body.image,
-      mask: body.mask,
+      image: normalizeImageInput(body.image),
+      mask: normalizeImageInput(body.mask),
       dilate_pixels: clampInt(body.dilatePixels ?? 10, 0, 25),
       output_format: outputFormat
     };
@@ -66,8 +67,8 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
   }
   if (tool === "inpaint") {
     const payload: Record<string, unknown> = {
-      image: body.image,
-      mask: body.mask,
+      image: normalizeImageInput(body.image),
+      mask: normalizeImageInput(body.mask),
       prompt: body.prompt || "",
       output_format: outputFormat
     };
@@ -77,7 +78,7 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
     return payload;
   }
   const payload: Record<string, unknown> = {
-    input_image: body.image,
+    input_image: normalizeImageInput(body.image),
     width: body.canvasWidth,
     height: body.canvasHeight,
     mode: body.mode === "fast" ? "fast" : "high",
