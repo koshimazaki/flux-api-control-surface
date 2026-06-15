@@ -218,7 +218,72 @@ pre::-webkit-scrollbar {
   color: var(--cream);
 }
 
+.promptReferenceStrip {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  border: 1px solid rgba(185, 181, 208, 0.36);
+  border-radius: 8px;
+  background: rgba(21, 20, 26, 0.82);
+  padding: 9px;
+}
+
+.promptSourceNotice,
+.promptReferenceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.promptSourceNotice strong,
+.promptReferenceHeader strong {
+  color: var(--cream);
+  font-size: 12px;
+}
+
+.promptSourceNotice span,
+.promptReferenceHeader span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promptReferenceChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.promptReferenceChips span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  border: 1px solid rgba(185, 181, 208, 0.45);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.38);
+  padding: 4px 8px;
+  color: var(--grey-1);
+  font-size: 11px;
+}
+
+.promptReferenceChips b {
+  color: var(--violet);
+  font-family: var(--font-mono);
+}
+
+.promptReferenceStrip p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
 .editorActions {
   margin-top: 10px;
 }
-

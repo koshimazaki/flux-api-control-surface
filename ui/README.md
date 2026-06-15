@@ -94,9 +94,13 @@ The local HTML reference view is available at `/api/reference-archive?format=htm
 
 ## Structure
 
-- `app/page.tsx` coordinates state and API calls.
+- `app/page.tsx` mounts the dashboard shell.
 - `components/` contains the prompt library, editor, run panel, gallery, log,
-  and lightbox.
+  image tools, audio panel, and lightbox.
+- `lib/dashboard/` contains focused hooks for prompt, asset, reference,
+  balance, and training-collection state.
+- `lib/provider-registry.ts` is the BFL model/tool source of truth. Add future
+  provider lanes there first, then wire the matching API/client adapters.
 - `lib/` contains prompt helpers, pricing estimates, shared types, and
   IndexedDB/localStorage persistence.
 

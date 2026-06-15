@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { isBflPollFailureStatus } from "./provider-registry";
 
 export const BFL_API_BASE = "https://api.bfl.ai/v1";
 
@@ -38,7 +39,7 @@ export async function pollResult(pollingUrl: string, apiKey: string) {
   while (Date.now() - started < 300_000) {
     const result = await bflJson("GET", pollingUrl, apiKey);
     if (result.status === "Ready") return result;
-    if (result.status === "Error" || result.status === "Failed") {
+    if (isBflPollFailureStatus(result.status)) {
       throw new Error(`BFL generation failed: ${JSON.stringify(result)}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 750));

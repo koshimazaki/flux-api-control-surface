@@ -199,6 +199,9 @@ pre {
 }
 
 .assetBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid var(--line);
@@ -208,12 +211,71 @@ pre {
   font-size: 10px;
 }
 
-.assetBadge.audio {
+.assetBadge-audio {
   color: #9fb09d;
   border-color: rgba(159, 176, 157, 0.62);
 }
 
-.assetBadge.reference {
+.assetBadge-reference {
   color: #b9b5d0;
   border-color: rgba(185, 181, 208, 0.62);
+}
+
+.assetBadge-prompt {
+  color: var(--gold);
+  border-color: rgba(207, 182, 123, 0.62);
+}
+
+.assetBadge-erase {
+  color: #d0b5b5;
+  border-color: rgba(208, 181, 181, 0.62);
+}
+
+.assetBadge-inpaint {
+  color: #c8b1d6;
+  border-color: rgba(200, 177, 214, 0.62);
+}
+
+.assetBadge-outpaint {
+  color: #9cc6cc;
+  border-color: rgba(156, 198, 204, 0.62);
+}
+
+.assetBadge-glyphs {
+  color: #ceb885;
+  border-color: rgba(206, 184, 133, 0.62);
+}
+
+.assetCard.assetRole-audio {
+  border-color: rgba(159, 176, 157, 0.62);
+}
+
+.assetCard.assetRole-reference {
+  border-color: rgba(185, 181, 208, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(185, 181, 208, 0.2);
+}
+
+.assetCard.assetRole-prompt {
+  border-color: rgba(207, 182, 123, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(207, 182, 123, 0.2);
+}
+
+.assetCard.assetRole-erase {
+  border-color: rgba(208, 181, 181, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(208, 181, 181, 0.2);
+}
+
+.assetCard.assetRole-inpaint {
+  border-color: rgba(200, 177, 214, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(200, 177, 214, 0.2);
+}
+
+.assetCard.assetRole-outpaint {
+  border-color: rgba(156, 198, 204, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(156, 198, 204, 0.2);
+}
+
+.assetCard.assetRole-glyphs {
+  border-color: rgba(206, 184, 133, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(206, 184, 133, 0.2);
 }

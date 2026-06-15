@@ -6,6 +6,10 @@ for uploaded Klein LoRAs. In this repo BFL mainly powers the source image pool
 for downstream LTX IC-LoRA training: flowers, bacteria, fabric, and abstract
 organic material references.
 
+The dashboard is intentionally one standalone demo lane inside the wider Demos
+repo, not the whole product. Keep it light for BFL API exploration now; the
+same patterns can later host Seedance, LTX, Holodeck, or other provider lanes.
+
 ## Two tracks
 
 ### Track 1 — Asset generation via FLUX API or MCP
@@ -73,7 +77,7 @@ npm run dev -- --port 3017
 ```
 
 Open `http://localhost:3017` to edit the structured prompts, paste a BFL API
-key, add up to three reference images, generate, and review outputs in an
+key, add up to ten reference images, generate, and review outputs in an
 AImedia-compatible local library (`nb2_generations`).
 
 Optional durable archive: configure the Worker in `cloudflare/` and set
@@ -84,6 +88,12 @@ metadata to R2 with searchable D1 rows.
 The dashboard is still local-first. It can be opened later as a public dev-tool
 demo after more examples, testing, and a final secrets/output scrub. See
 [`ui/README.md`](./ui/README.md#public-release-gate).
+
+Current architecture note:
+[`2026-06-13 - Creator Workbench Architecture`](./notes/2026-06-13-creator-workbench.md)
+captures the draft direction for turning the BFL dashboard, shader tool,
+Holodeck recorder, provider APIs, RunPod sessions, and MCP control into one
+shared asset/workflow layer.
 
 Use an uploaded BFL Finetune / Klein LoRA from the API:
 

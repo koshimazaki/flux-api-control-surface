@@ -13,6 +13,7 @@ import {
   saveOutputFiles
 } from "@/lib/bfl-server";
 import { embedPngMetadata } from "@/lib/png-metadata";
+import { getBflImageTool, validateBflToolRequest } from "@/lib/provider-registry";
 import { syncOutputToRemote } from "@/lib/remote-archive";
 
 export const runtime = "nodejs";
@@ -38,12 +39,6 @@ type ToolBody = {
   outputFormat?: "jpeg" | "png" | "webp";
   title?: string;
   sourceAssetId?: string;
-};
-
-const TOOL_ENDPOINTS: Record<ToolName, string> = {
-  erase: "flux-tools/erase-v1",
-  inpaint: "flux-pro-1.0-fill",
-  outpaint: "flux-tools/outpainting-v1"
 };
 
 function jsonError(message: string, status = 400, details?: unknown) {
@@ -114,13 +109,22 @@ export async function POST(request: NextRequest) {
 
   const apiKey = resolveApiKey(body.apiKey);
   const tool = body.tool;
+  const toolConfig = tool ? getBflImageTool(tool) : undefined;
   if (!apiKey) return jsonError("BFL API key is required");
-  if (!tool || !TOOL_ENDPOINTS[tool]) return jsonError(`Unknown tool: ${tool || "(none)"}`);
+  if (!tool || !toolConfig) return jsonError(`Unknown tool: ${tool || "(none)"}`);
 
   const validation = validateToolBody(tool, body);
   if (validation) return jsonError(validation);
+  const providerValidation = validateBflToolRequest({
+    tool: toolConfig,
+    image: body.image,
+    canvasWidth: body.canvasWidth,
+    canvasHeight: body.canvasHeight,
+    mode: body.mode
+  });
+  if (providerValidation) return jsonError(providerValidation);
 
-  const endpointName = TOOL_ENDPOINTS[tool];
+  const endpointName = toolConfig.endpoint;
   const outputFormat = body.outputFormat || "png";
   const payload = buildToolPayload(tool, body, outputFormat);
   const title = body.title || `${tool}-edit`;

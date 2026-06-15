@@ -18,9 +18,12 @@ import {
   Search,
   Send,
   Square,
-  Trash2
+  Trash2,
+  Upload
 } from "lucide-react";
+import type { ChangeEvent } from "react";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-badge";
 import { copyText } from "@/lib/clipboard";
 import type { AssetBadge, AssetRecord, AspectRatio, WorkspaceMode } from "@/lib/types";
 
@@ -41,6 +44,7 @@ type AssetLibraryProps = {
   onExport: () => void;
   onClear: () => void;
   onRecover: () => void;
+  onImportPngMetadata: (files: File[]) => void;
   onToggleFavorite: (id: string) => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
@@ -75,6 +79,11 @@ export function AssetLibrary(props: AssetLibraryProps) {
     gridTemplateColumns: `repeat(${props.gridSize}, minmax(0, 1fr))`
   };
   const groupedAssets = groupAssetsByDate(props.filteredAssets);
+
+  function onPngImport(event: ChangeEvent<HTMLInputElement>) {
+    props.onImportPngMetadata(Array.from(event.target.files || []));
+    event.target.value = "";
+  }
 
   return (
     <section className="assetsPanel">
@@ -112,6 +121,11 @@ export function AssetLibrary(props: AssetLibraryProps) {
             <RotateCcw size={16} />
             Recover
           </button>
+          <label className="fileButton" title="Import PNG and read embedded BFL prompt/settings metadata">
+            <Upload size={16} />
+            Import PNG
+            <input type="file" accept="image/png" multiple onChange={onPngImport} />
+          </label>
           <button onClick={props.onClear}>
             <RotateCcw size={16} />
             Clear
@@ -134,7 +148,8 @@ export function AssetLibrary(props: AssetLibraryProps) {
                 const cardClass = [
                   "assetCard",
                   isSelected ? "selectedAsset" : "",
-                  badges.length ? "referencedAsset" : ""
+                  badges.length ? "referencedAsset" : "",
+                  assetRoleClassName(badges)
                 ]
                   .filter(Boolean)
                   .join(" ");
@@ -150,9 +165,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                     {badges.length > 0 && (
                       <div className="assetBadges">
                         {badges.map((badge) => (
-                          <span className={`assetBadge ${badge.kind}`} key={`${badge.kind}-${badge.label}`}>
-                            {badge.label}
-                          </span>
+                          <AssetRoleBadge badge={badge} key={`${badge.kind}-${badge.label}`} />
                         ))}
                       </div>
                     )}
@@ -166,7 +179,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                         event.dataTransfer.setData("text/plain", `asset:${asset.id}`);
                         event.dataTransfer.effectAllowed = "copy";
                       }}
-                      title="Drag onto an audio timing row or the reference dropzone"
+                      title="Drag onto the prompt editor, an audio timing row, or the reference dropzone"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={imageSource} alt={asset.title || asset.id} />

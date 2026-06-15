@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { BFL_MAX_REFERENCES } from "@/lib/provider-registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,7 +60,9 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const references = Array.isArray(body.references) ? body.references.filter(Boolean).slice(0, 3) : [];
+  const references = Array.isArray(body.references)
+    ? body.references.filter(Boolean).slice(0, BFL_MAX_REFERENCES)
+    : [];
   const continueOnError = body.continueOnError !== false;
   const results = [];
 

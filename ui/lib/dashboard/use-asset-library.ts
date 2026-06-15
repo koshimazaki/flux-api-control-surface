@@ -5,11 +5,13 @@ import {
   extensionForAsset,
   loadStoredAssets,
   persistAssetLibraries,
+  persistAssetImage,
   recoverStoredAssetRecords,
   removeAssetImage,
   removeAssetImages,
   safeSetItem
 } from "@/lib/dashboard-assets";
+import { assetFromPngMetadataFile } from "@/lib/png-asset-import";
 import type { AspectRatio, AssetRecord, DashboardTab, RunLogEntry } from "@/lib/types";
 
 type UseAssetLibraryDeps = {
@@ -53,6 +55,40 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
         : "No additional older assets found in browser storage."
     );
     setActiveTab("assets");
+  }
+  async function importPngMetadataFiles(files: File[]) {
+    if (!files.length) return;
+
+    const imported: AssetRecord[] = [];
+    const failed: string[] = [];
+
+    for (const file of files) {
+      try {
+        const asset = await assetFromPngMetadataFile(file);
+        await persistAssetImage(asset.id, asset.imageDataUrl);
+        imported.push(asset);
+      } catch (err) {
+        failed.push(err instanceof Error ? err.message : `${file.name} could not be imported.`);
+      }
+    }
+
+    if (imported.length) {
+      const importedIds = new Set(imported.map((asset) => asset.id));
+      setAssets((current) => [...imported, ...current.filter((asset) => !importedIds.has(asset.id))]);
+      if (imported.length === 1) setMetadataAssetId(imported[0].id);
+      setRecoveryMessage(
+        `Imported ${imported.length} PNG metadata asset${imported.length === 1 ? "" : "s"}${
+          failed.length ? `; skipped ${failed.length} without readable BFL metadata.` : "."
+        }`
+      );
+      setActiveTab("assets");
+    }
+
+    if (failed.length) {
+      setError(imported.length ? failed[0] : failed.join("\n"));
+    } else {
+      setError("");
+    }
   }
   function toggleFavorite(id: string) {
     setAssets((current) =>
@@ -155,6 +191,7 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
     totalActualCredits,
     failedRunCount,
     recoverStoredAssets,
+    importPngMetadataFiles,
     toggleFavorite,
     deleteAsset,
     toggleAssetSelection,

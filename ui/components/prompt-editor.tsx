@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Clipboard, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { PanelHeader } from "@/components/ui/panel-header";
-import type { PromptRecord } from "@/lib/types";
+import type { AssetRecord, PromptRecord, ReferenceImage } from "@/lib/types";
 import { applyPresetToPrompt, compactPrompt, presets } from "@/lib/prompt-utils";
 
 type PromptEditorProps = {
@@ -14,6 +14,10 @@ type PromptEditorProps = {
   onSaveAsNew: () => void;
   onDelete: () => void;
   onReset: () => void;
+  references: ReferenceImage[];
+  submittedReferenceCue: string;
+  promptSourceAsset?: AssetRecord | null;
+  onReferenceDropPayload: (payload: string) => void;
 };
 
 export function PromptEditor({
@@ -24,9 +28,14 @@ export function PromptEditor({
   onSave,
   onSaveAsNew,
   onDelete,
-  onReset
+  onReset,
+  references,
+  submittedReferenceCue,
+  promptSourceAsset,
+  onReferenceDropPayload
 }: PromptEditorProps) {
   const [activePresetId, setActivePresetId] = useState("");
+  const activeReferences = references.filter((reference) => Boolean(reference.value));
 
   // Clear the "plugged in" indicator when a different prompt is loaded.
   useEffect(() => {
@@ -43,8 +52,25 @@ export function PromptEditor({
     onPromptChange(value);
   }
 
+  function handleAssetDrop(event: React.DragEvent) {
+    const payload =
+      event.dataTransfer.getData("application/x-bfl-image-option") ||
+      event.dataTransfer.getData("text/plain");
+    if (!payload.startsWith("asset:")) return;
+    event.preventDefault();
+    onReferenceDropPayload(payload);
+  }
+
   return (
-    <section className="panel editor">
+    <section
+      className="panel editor"
+      onDragOver={(event) => {
+        if (Array.from(event.dataTransfer.types).includes("application/x-bfl-image-option")) {
+          event.preventDefault();
+        }
+      }}
+      onDrop={handleAssetDrop}
+    >
       <PanelHeader
         title={activePrompt?.id || "Prompt"}
         subtitle={activePrompt?.plant_form || "Structured FLUX.2 prompt"}
@@ -71,8 +97,37 @@ export function PromptEditor({
         className="promptEditor"
         value={promptText}
         onChange={(event) => editPrompt(event.target.value)}
+        onDrop={handleAssetDrop}
         spellCheck={false}
       />
+
+      {(promptSourceAsset || activeReferences.length > 0) && (
+        <div className="promptReferenceStrip">
+          {promptSourceAsset && (
+            <div className="promptSourceNotice">
+              <strong>Prompt source</strong>
+              <span>{promptSourceAsset.title || promptSourceAsset.id}</span>
+            </div>
+          )}
+          {activeReferences.length > 0 && (
+            <>
+              <div className="promptReferenceHeader">
+                <strong>Submitted with references</strong>
+                <span>{activeReferences.length} image{activeReferences.length === 1 ? "" : "s"}</span>
+              </div>
+              <div className="promptReferenceChips">
+                {activeReferences.map((reference, index) => (
+                  <span key={reference.id}>
+                    <b>@img{index + 1}</b>
+                    {reference.name}
+                  </span>
+                ))}
+              </div>
+              <p>{submittedReferenceCue}</p>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="editorActions">
         <button onClick={onImport}>

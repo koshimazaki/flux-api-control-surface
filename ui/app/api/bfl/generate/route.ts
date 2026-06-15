@@ -11,6 +11,7 @@ import {
   saveOutputFiles
 } from "@/lib/bfl-server";
 import { embedPngMetadata } from "@/lib/png-metadata";
+import { getBflModel, validateBflGenerationRequest } from "@/lib/provider-registry";
 import { syncOutputToRemote } from "@/lib/remote-archive";
 
 export const runtime = "nodejs";
@@ -31,17 +32,6 @@ type GenerateBody = {
   title?: string;
 };
 
-const API_BASE = BFL_API_BASE;
-const MODEL_ENDPOINTS: Record<string, string> = {
-  max: "flux-2-max",
-  "pro-preview": "flux-2-pro-preview",
-  pro: "flux-2-pro",
-  flex: "flux-2-flex",
-  "klein-4b": "flux-2-klein-4b",
-  "klein-9b-preview": "flux-2-klein-9b-preview",
-  "klein-9b": "flux-2-klein-9b"
-};
-
 function jsonError(message: string, status = 400, details?: unknown) {
   return NextResponse.json({ error: message, details }, { status });
 }
@@ -53,6 +43,7 @@ function buildRunSettings(options: {
   payload: Record<string, unknown>;
   references: string[];
   referenceWeight?: number;
+  promptUpsampling: boolean;
   submitted: Record<string, any>;
 }) {
   return {
@@ -64,7 +55,7 @@ function buildRunSettings(options: {
     height: options.payload.height,
     outputFormat: options.payload.output_format,
     seed: options.payload.seed ?? null,
-    promptUpsampling: options.payload.disable_pup !== true,
+    promptUpsampling: options.promptUpsampling,
     safetyTolerance: options.payload.safety_tolerance ?? null,
     referenceCount: options.references.length,
     referenceWeight: options.referenceWeight ?? null,
@@ -87,24 +78,35 @@ export async function POST(request: NextRequest) {
   const apiKey = resolveApiKey(body.apiKey);
   const prompt = body.prompt?.trim();
   const model = body.model || "pro-preview";
-  const endpointName = MODEL_ENDPOINTS[model];
+  const modelConfig = getBflModel(model);
 
   if (!apiKey) return jsonError("BFL API key is required");
   if (!prompt) return jsonError("Prompt is required");
-  if (!endpointName) return jsonError(`Unknown model: ${model}`);
+  if (!modelConfig) return jsonError(`Unknown model: ${model}`);
 
-  const references = (body.references || []).filter(Boolean).slice(0, 3);
+  const references = Array.isArray(body.references) ? body.references.filter(Boolean) : [];
+  const width = typeof body.width === "number" ? body.width : 1024;
+  const height = typeof body.height === "number" ? body.height : 1024;
+  const validation = validateBflGenerationRequest({
+    model: modelConfig,
+    width,
+    height,
+    referenceCount: references.length
+  });
+  if (validation) return jsonError(validation);
+
+  const endpointName = modelConfig.endpoint;
   const outputFormat = body.outputFormat || "png";
   const payload: Record<string, unknown> = {
     prompt,
-    width: body.width || 1024,
-    height: body.height || 1024,
+    width,
+    height,
     output_format: outputFormat
   };
 
-  const shouldUpsample = body.promptUpsampling !== false && !endpointName.includes("klein");
+  const shouldUpsample = modelConfig.supportsPromptUpsampling && body.promptUpsampling !== false;
   if (typeof body.seed === "number") payload.seed = body.seed;
-  if (!shouldUpsample) payload.disable_pup = true;
+  if (modelConfig.supportsPromptUpsampling && !shouldUpsample) payload.disable_pup = true;
   if (typeof body.safetyTolerance === "number") payload.safety_tolerance = body.safetyTolerance;
   references.forEach((reference, index) => {
     payload[index === 0 ? "input_image" : `input_image_${index + 1}`] = reference;
@@ -112,7 +114,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const creditsBefore = await getCredits(apiKey);
-    const submitted = await bflJson("POST", `${API_BASE}/${endpointName}`, apiKey, payload);
+    const submitted = await bflJson("POST", `${BFL_API_BASE}/${endpointName}`, apiKey, payload);
     const pollingUrl = submitted.polling_url;
     if (!pollingUrl || typeof pollingUrl !== "string") {
       return jsonError("BFL response did not include a polling URL", 502, submitted);
@@ -133,6 +135,7 @@ export async function POST(request: NextRequest) {
       payload,
       references,
       referenceWeight: body.referenceWeight,
+      promptUpsampling: shouldUpsample,
       submitted
     });
     const metadata = {

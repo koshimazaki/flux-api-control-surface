@@ -47,6 +47,7 @@ export function useDashboardState() {
   // Shared atoms consumed by more than one domain (prompt editor + run config + tool config).
   const [apiKey, setApiKey] = useState("");
   const [promptText, setPromptText] = useState("");
+  const [promptSourceAssetId, setPromptSourceAssetId] = useState<string | null>(null);
   const [model, setModel] = useState("pro-preview");
   const [width, setWidth] = useState(1024);
   const [height, setHeight] = useState(1024);
@@ -68,6 +69,11 @@ export function useDashboardState() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
+
+  function editPromptText(value: string) {
+    setPromptSourceAssetId(null);
+    setPromptText(value);
+  }
 
   // Domain hooks. Destructured into the same local names the body/return already use.
   const {
@@ -91,6 +97,7 @@ export function useDashboardState() {
     totalActualCredits,
     failedRunCount,
     recoverStoredAssets,
+    importPngMetadataFiles,
     toggleFavorite,
     deleteAsset,
     toggleAssetSelection,
@@ -102,6 +109,7 @@ export function useDashboardState() {
     setRecoveryMessage,
     onAssetRemoved: (id) => {
       if (toolSourceAssetId === id) setToolSourceAssetId(null);
+      if (promptSourceAssetId === id) setPromptSourceAssetId(null);
     }
   });
 
@@ -119,6 +127,7 @@ export function useDashboardState() {
     setPrimaryReferenceFiles,
     setPrimaryReferenceUrl,
     clearPrimaryReference,
+    addAssetReference,
     sendAssetToReference,
     addReferenceFromDragPayload
   } = useReferences({ assets, setError });
@@ -145,7 +154,7 @@ export function useDashboardState() {
     clearPromptSources,
     savePrompt: savePromptWithText,
     importPromptJson: importPromptJsonWithText
-  } = usePromptLibrary({ setPromptText, setSeed, setBatchMode, setError, setRecoveryMessage });
+  } = usePromptLibrary({ setPromptText: editPromptText, setSeed, setBatchMode, setError, setRecoveryMessage });
 
   const {
     trainingCollection,
@@ -209,17 +218,35 @@ export function useDashboardState() {
     () => assets.find((asset) => asset.id === toolSourceAssetId) || null,
     [assets, toolSourceAssetId]
   );
+  const promptSourceAsset = useMemo(
+    () => assets.find((asset) => asset.id === promptSourceAssetId) || null,
+    [assets, promptSourceAssetId]
+  );
   const assetBadges = useMemo(() => {
     const badges: Record<string, AssetBadge[]> = {};
     references.forEach((reference, index) => {
       if (!reference.assetId) return;
-      (badges[reference.assetId] ||= []).push({ label: `ref ${index + 1}`, kind: "reference" });
+      (badges[reference.assetId] ||= []).push({
+        label: `@img${index + 1}`,
+        kind: "reference",
+        title: `Prompt reference ${index + 1}: ${reference.name}`
+      });
     });
     Object.entries(audioAssignments).forEach(([assetId, token]) => {
-      (badges[assetId] ||= []).push({ label: token, kind: "audio" });
+      (badges[assetId] ||= []).push({ label: token, kind: "audio", title: `Audio sequence reference ${token}` });
     });
+    if (promptSourceAssetId) {
+      (badges[promptSourceAssetId] ||= []).push({ label: "prompt", kind: "prompt", title: "Prompt loaded in editor" });
+    }
+    if (toolSourceAssetId && workspaceMode !== "prompt") {
+      (badges[toolSourceAssetId] ||= []).push({
+        label: workspaceModeLabels[workspaceMode],
+        kind: workspaceMode,
+        title: `Active ${workspaceModeLabels[workspaceMode]} source`
+      });
+    }
     return badges;
-  }, [references, audioAssignments]);
+  }, [references, audioAssignments, promptSourceAssetId, toolSourceAssetId, workspaceMode]);
 
   useEffect(() => {
     // masks are resolution-bound; drop them whenever the tool source changes
@@ -304,10 +331,23 @@ export function useDashboardState() {
   }
   function sendAssetToPrompt(asset: AssetRecord) {
     setPromptText(formatPrompt(asset.prompt));
+    setPromptSourceAssetId(asset.id);
     setSeed(asset.seed ? String(asset.seed) : "");
     setModel(modelOptions.some((option) => option.value === asset.model) ? asset.model : "pro-preview");
     setWorkspaceMode("prompt");
+    setRecoveryMessage(`Loaded prompt from ${asset.title || asset.id}.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function addAssetToPromptReferences(payload: string) {
+    const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : payload;
+    const asset = assets.find((item) => item.id === assetId);
+    if (!asset) return;
+    const slot = addAssetReference(asset);
+    if (!slot) return;
+    setWorkspaceMode("prompt");
+    setRecoveryMessage(
+      `Added ${asset.title || asset.id} as @img${slot}. The submitted prompt includes the reference roles cue.`
+    );
   }
   function sendAssetToWorkspace(asset: AssetRecord, mode: Exclude<WorkspaceMode, "prompt">) {
     setToolSourceAssetId(asset.id);
@@ -382,8 +422,10 @@ export function useDashboardState() {
     activePromptLibraryId,
     selectedComboIds,
     promptText,
-    setPromptText,
+    setPromptText: editPromptText,
+    promptSourceAsset,
     referenceCue,
+    effectiveReferenceCue,
     setReferenceCue,
     referenceWeight,
     setReferenceWeight,
@@ -485,9 +527,11 @@ export function useDashboardState() {
     clearPromptSources,
     runPermutationScript,
     recoverStoredAssets,
+    importPngMetadataFiles,
     toggleFavorite,
     deleteAsset,
     sendAssetToPrompt,
+    addAssetToPromptReferences,
     sendAssetToWorkspace,
     clearToolSourceAsset,
     runWorkspaceTool,

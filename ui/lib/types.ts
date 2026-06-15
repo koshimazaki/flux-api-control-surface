@@ -65,7 +65,8 @@ export type AssetRecord = {
 
 export type AssetBadge = {
   label: string;
-  kind: "audio" | "reference";
+  kind: "audio" | "reference" | "prompt" | WorkspaceMode;
+  title?: string;
 };
 
 export type AspectRatio = "free" | "1:1" | "16:9" | "4:3" | "3:4" | "9:16";
