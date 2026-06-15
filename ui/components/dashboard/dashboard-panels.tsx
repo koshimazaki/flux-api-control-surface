@@ -42,6 +42,8 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
             state.setRecoveryMessage("Loaded audio shot script into the prompt editor.");
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
+          onSavePrompt={(value) => void state.saveSequencePrompt(value)}
+          onAssignmentsChange={state.setAudioAssignments}
         />
       }
       assets={
@@ -53,6 +55,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           aspectRatio={state.aspectRatio}
           metadataAssetId={state.metadataAssetId}
           selectedAssetIds={state.selectedAssetIds}
+          assetBadges={state.assetBadges}
           onSearchChange={state.setSearchQuery}
           onGridSizeChange={state.setGridSize}
           onAspectRatioChange={state.setAspectRatio}
@@ -65,6 +68,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onSendToPrompt={state.sendAssetToPrompt}
           onSendToWorkspace={state.sendAssetToWorkspace}
           onSendToReference={state.sendAssetToReference}
+          onSavePromptToLibrary={(asset) => void state.saveAssetPromptToLibrary(asset)}
           onToggleSelected={state.toggleAssetSelection}
           onToggleMetadata={(id) => state.setMetadataAssetId(state.metadataAssetId === id ? null : id)}
           onOpen={state.setSelectedAsset}

@@ -28,7 +28,7 @@ const toolRunCopy: Record<ToolMode, { title: string; action: string; endpoint: s
   glyphs: {
     title: "Glyphs",
     action: "Build Glyph",
-    endpoint: "cutout/vectorize",
+    endpoint: "no endpoint yet",
     icon: Fingerprint
   }
 };
@@ -40,19 +40,38 @@ type ToolRunPanelProps = {
   height: number;
   seed: string;
   promptText: string;
+  mask: string;
+  brushSize: number;
+  dilatePixels: number;
+  offsetX: string;
+  offsetY: string;
+  outpaintMode: "high" | "fast";
   isGenerating: boolean;
   error: string;
   onWidthChange: (value: number) => void;
   onHeightChange: (value: number) => void;
   onSeedChange: (value: string) => void;
   onPromptChange: (value: string) => void;
+  onBrushSizeChange: (value: number) => void;
+  onDilatePixelsChange: (value: number) => void;
+  onOffsetXChange: (value: string) => void;
+  onOffsetYChange: (value: string) => void;
+  onOutpaintModeChange: (value: "high" | "fast") => void;
+  onClearMask: () => void;
   onRun: () => void;
 };
 
 export function ToolRunPanel(props: ToolRunPanelProps) {
   const copy = toolRunCopy[props.mode];
   const Icon = copy.icon;
-  const needsPrompt = props.mode === "inpaint" || props.mode === "outpaint" || props.mode === "glyphs";
+  const needsPrompt = props.mode === "inpaint" || props.mode === "outpaint";
+  const needsMask = props.mode === "erase" || props.mode === "inpaint";
+  const isGlyphs = props.mode === "glyphs";
+  const runBlocked =
+    !props.sourceAsset ||
+    isGlyphs ||
+    (needsMask && !props.mask) ||
+    (props.mode === "inpaint" && !props.promptText.trim());
 
   return (
     <aside className="panel controls toolControls">
@@ -67,16 +86,36 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
 
       {props.mode === "erase" && (
         <label>
-          Mask dilation
-          <input type="range" min={0} max={25} defaultValue={10} />
+          Mask dilation · {props.dilatePixels}px
+          <input
+            type="range"
+            min={0}
+            max={25}
+            value={props.dilatePixels}
+            onChange={(event) => props.onDilatePixelsChange(Number(event.target.value))}
+          />
         </label>
       )}
 
-      {(props.mode === "inpaint" || props.mode === "erase") && (
-        <label>
-          Brush size
-          <input type="range" min={4} max={160} defaultValue={48} />
-        </label>
+      {needsMask && (
+        <>
+          <label>
+            Brush size · {props.brushSize}px
+            <input
+              type="range"
+              min={4}
+              max={160}
+              value={props.brushSize}
+              onChange={(event) => props.onBrushSizeChange(Number(event.target.value))}
+            />
+          </label>
+          <div className="maskStatusRow">
+            <span>{props.mask ? "Mask painted" : "Paint the area on the image"}</span>
+            <button type="button" onClick={props.onClearMask} disabled={!props.mask}>
+              Clear mask
+            </button>
+          </div>
+        </>
       )}
 
       {props.mode === "outpaint" && (
@@ -94,16 +133,29 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
           <div className="sizeGrid">
             <label>
               Offset X
-              <input type="number" placeholder="center" />
+              <input
+                type="number"
+                placeholder="center"
+                value={props.offsetX}
+                onChange={(event) => props.onOffsetXChange(event.target.value)}
+              />
             </label>
             <label>
               Offset Y
-              <input type="number" placeholder="center" />
+              <input
+                type="number"
+                placeholder="center"
+                value={props.offsetY}
+                onChange={(event) => props.onOffsetYChange(event.target.value)}
+              />
             </label>
           </div>
           <label>
             Mode
-            <select defaultValue="high">
+            <select
+              value={props.outpaintMode}
+              onChange={(event) => props.onOutpaintModeChange(event.target.value === "fast" ? "fast" : "high")}
+            >
               <option value="high">High</option>
               <option value="fast">Fast</option>
             </select>
@@ -111,26 +163,16 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
         </>
       )}
 
-      {props.mode === "glyphs" && (
-        <>
-          <label>
-            Output
-            <select defaultValue="svg">
-              <option value="svg">SVG icon</option>
-              <option value="sticker">Transparent sticker</option>
-              <option value="mask">Animated mask</option>
-            </select>
-          </label>
-          <label>
-            Simplify
-            <input type="range" min={1} max={10} defaultValue={6} />
-          </label>
-        </>
+      {isGlyphs && (
+        <p className="toolStubNote">
+          BFL has no cutout/vectorize endpoint. This lane is staged for a local vectorizer or Comfy
+          workflow provider.
+        </p>
       )}
 
       {needsPrompt && (
         <label>
-          Prompt
+          Prompt {props.mode === "outpaint" ? "(optional, experimental)" : ""}
           <textarea
             className="toolPrompt"
             value={props.promptText}
@@ -139,12 +181,14 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
         </label>
       )}
 
-      <label>
-        Seed
-        <input value={props.seed} onChange={(event) => props.onSeedChange(event.target.value)} placeholder="optional" />
-      </label>
+      {props.mode !== "outpaint" && !isGlyphs && (
+        <label>
+          Seed
+          <input value={props.seed} onChange={(event) => props.onSeedChange(event.target.value)} placeholder="optional" />
+        </label>
+      )}
 
-      <RunButton isRunning={props.isGenerating} onClick={props.onRun} disabled={!props.sourceAsset}>
+      <RunButton isRunning={props.isGenerating} onClick={props.onRun} disabled={runBlocked}>
         {copy.action}
       </RunButton>
       {props.error && <p className="errorText">{props.error}</p>}

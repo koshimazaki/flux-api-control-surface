@@ -29,6 +29,13 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           <ImageToolWorkspace
             mode={imageToolMode}
             sourceAsset={state.toolSourceAsset}
+            brushSize={state.toolBrushSize}
+            mask={state.toolMask}
+            canvasWidth={state.width}
+            canvasHeight={state.height}
+            offsetX={state.outpaintOffsetX}
+            offsetY={state.outpaintOffsetY}
+            onMaskChange={state.setToolMask}
             onClearSource={state.clearToolSourceAsset}
           />
         ) : (
@@ -52,13 +59,25 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           height={state.height}
           seed={state.seed}
           promptText={state.promptText}
+          mask={state.toolMask}
+          brushSize={state.toolBrushSize}
+          dilatePixels={state.toolDilatePixels}
+          offsetX={state.outpaintOffsetX}
+          offsetY={state.outpaintOffsetY}
+          outpaintMode={state.outpaintMode}
           isGenerating={state.isGenerating}
           error={state.error || state.balance.error || ""}
           onWidthChange={state.setWidth}
           onHeightChange={state.setHeight}
           onSeedChange={state.setSeed}
           onPromptChange={state.setPromptText}
-          onRun={state.stageWorkspaceToolRun}
+          onBrushSizeChange={state.setToolBrushSize}
+          onDilatePixelsChange={state.setToolDilatePixels}
+          onOffsetXChange={state.setOutpaintOffsetX}
+          onOffsetYChange={state.setOutpaintOffsetY}
+          onOutpaintModeChange={state.setOutpaintMode}
+          onClearMask={() => state.setToolMask("")}
+          onRun={() => void state.runWorkspaceTool()}
         />
       ) : (
         <RunPanel
@@ -97,6 +116,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onReferenceWeightChange={(value) => state.setReferenceWeight(clampReferenceWeight(value))}
           onReferenceCueChange={state.setReferenceCue}
           onReferenceFiles={state.addReferenceFiles}
+          onReferenceDropPayload={state.addReferenceFromDragPayload}
           onGenerate={() => void state.generate()}
         />
       )}

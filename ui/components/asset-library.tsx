@@ -1,4 +1,5 @@
 import {
+  BookmarkPlus,
   Clipboard,
   Download,
   Eraser,
@@ -21,7 +22,7 @@ import {
 } from "lucide-react";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { copyText } from "@/lib/clipboard";
-import type { AssetRecord, AspectRatio, WorkspaceMode } from "@/lib/types";
+import type { AssetBadge, AssetRecord, AspectRatio, WorkspaceMode } from "@/lib/types";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
 
@@ -33,6 +34,7 @@ type AssetLibraryProps = {
   aspectRatio: AspectRatio;
   metadataAssetId: string | null;
   selectedAssetIds: string[];
+  assetBadges: Record<string, AssetBadge[]>;
   onSearchChange: (value: string) => void;
   onGridSizeChange: (value: number) => void;
   onAspectRatioChange: (value: AspectRatio) => void;
@@ -43,6 +45,7 @@ type AssetLibraryProps = {
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToReference: (asset: AssetRecord) => void;
+  onSavePromptToLibrary: (asset: AssetRecord) => void;
   onToggleSelected: (id: string) => void;
   onToggleMetadata: (id: string) => void;
   onOpen: (asset: AssetRecord) => void;
@@ -127,8 +130,16 @@ export function AssetLibrary(props: AssetLibraryProps) {
               {dateAssets.map((asset) => {
                 const isSelected = props.selectedAssetIds.includes(asset.id);
                 const imageSource = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
+                const badges = props.assetBadges[asset.id] || [];
+                const cardClass = [
+                  "assetCard",
+                  isSelected ? "selectedAsset" : "",
+                  badges.length ? "referencedAsset" : ""
+                ]
+                  .filter(Boolean)
+                  .join(" ");
                 return (
-                  <article className={isSelected ? "assetCard selectedAsset" : "assetCard"} key={asset.id}>
+                  <article className={cardClass} key={asset.id}>
                     <button
                       className="assetSelectButton"
                       onClick={() => props.onToggleSelected(asset.id)}
@@ -136,7 +147,27 @@ export function AssetLibrary(props: AssetLibraryProps) {
                     >
                       <PackagePlus size={15} />
                     </button>
-                    <button className="assetImageButton" onClick={() => props.onOpen(asset)} style={getAspectStyle(props.aspectRatio)}>
+                    {badges.length > 0 && (
+                      <div className="assetBadges">
+                        {badges.map((badge) => (
+                          <span className={`assetBadge ${badge.kind}`} key={`${badge.kind}-${badge.label}`}>
+                            {badge.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      className="assetImageButton"
+                      onClick={() => props.onOpen(asset)}
+                      style={getAspectStyle(props.aspectRatio)}
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData("application/x-bfl-image-option", `asset:${asset.id}`);
+                        event.dataTransfer.setData("text/plain", `asset:${asset.id}`);
+                        event.dataTransfer.effectAllowed = "copy";
+                      }}
+                      title="Drag onto an audio timing row or the reference dropzone"
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={imageSource} alt={asset.title || asset.id} />
                     </button>
@@ -199,6 +230,9 @@ export function AssetLibrary(props: AssetLibraryProps) {
                       </button>
                       <button onClick={() => props.onSendToReference(asset)} title="Send image to references">
                         <ImagePlus size={15} />
+                      </button>
+                      <button onClick={() => props.onSavePromptToLibrary(asset)} title="Save prompt to library">
+                        <BookmarkPlus size={15} />
                       </button>
                       <button onClick={() => props.onToggleMetadata(asset.id)} title="Show metadata">
                         <Info size={15} />

@@ -23,7 +23,16 @@ export default function Home() {
           onCheckBalance={state.checkBalance}
         />
         <DashboardWorkspace state={state} />
-        {state.recoveryMessage && <p className="statusLine">{state.recoveryMessage}</p>}
+        {state.recoveryMessage && (
+          <p className="statusLine">
+            {state.recoveryMessage}
+            {state.lastDeletedPrompt && (
+              <button type="button" className="statusUndo" onClick={() => void state.undoDeletePrompt()}>
+                Undo delete
+              </button>
+            )}
+          </p>
+        )}
         <DashboardPanels state={state} />
         <Lightbox
           asset={state.selectedAsset}

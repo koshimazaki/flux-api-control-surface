@@ -1,4 +1,4 @@
-import { Clipboard, Wand2 } from "lucide-react";
+import { BookmarkPlus, Clipboard, Wand2 } from "lucide-react";
 import { clamp } from "@/lib/audio-script";
 import type { VideoTarget } from "./types";
 
@@ -19,6 +19,7 @@ type PromptComposerProps = {
   onSetGeneratedPrompt: (value: string) => void;
   onGeneratePrompt: () => string;
   onUsePrompt: (prompt: string) => void;
+  onSavePrompt: (prompt: string) => void;
 };
 
 export function PromptComposer(props: PromptComposerProps) {
@@ -38,7 +39,8 @@ export function PromptComposer(props: PromptComposerProps) {
     onSetQualityBoosters,
     onSetGeneratedPrompt,
     onGeneratePrompt,
-    onUsePrompt
+    onUsePrompt,
+    onSavePrompt
   } = props;
 
   return (
@@ -90,6 +92,10 @@ export function PromptComposer(props: PromptComposerProps) {
           <button onClick={() => onUsePrompt(generatedPrompt || onGeneratePrompt())} disabled={!hasMarkers}>
             <Clipboard size={15} />
             Use prompt
+          </button>
+          <button onClick={() => onSavePrompt(generatedPrompt || onGeneratePrompt())} disabled={!hasMarkers} title="Save to prompt library">
+            <BookmarkPlus size={15} />
+            Save to library
           </button>
         </div>
       </div>

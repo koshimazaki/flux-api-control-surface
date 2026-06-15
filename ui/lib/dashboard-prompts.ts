@@ -47,13 +47,50 @@ export async function savePromptRecord(
   return data.record as PromptRecord;
 }
 
+export async function saveStandalonePromptRecord(options: {
+  idPrefix: string;
+  domain: string;
+  species?: string;
+  seed?: number;
+  prompt: string;
+  promptFormat?: string;
+}) {
+  const record = {
+    id: `${promptSlug(options.idPrefix) || "prompt"}_${Date.now()}`,
+    domain: options.domain,
+    species: options.species || "custom",
+    seed: options.seed,
+    prompt_format: options.promptFormat || "text",
+    prompt: options.prompt
+  };
+  const response = await fetch("/api/prompts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ record })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Could not save prompt");
+  return data.record as PromptRecord;
+}
+
 export async function deletePromptRecord(id: string) {
   const response = await fetch(`/api/prompts?id=${encodeURIComponent(id)}`, {
     method: "DELETE"
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "Could not delete prompt");
-  return data.id as string;
+  return { id: data.id as string, record: (data.record as PromptRecord | undefined) ?? undefined };
+}
+
+export async function restorePromptRecord(record: PromptRecord) {
+  const response = await fetch("/api/prompts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ record })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Could not restore prompt");
+  return data.record as PromptRecord;
 }
 
 export function upsertPromptRecord(records: PromptRecord[], record: PromptRecord) {

@@ -10,9 +10,11 @@ import {
   createDefaultShot,
   defaultAudioQualityBoosters,
   defaultAudioSetup,
+  defaultMotionPrompt,
   drawWaveform,
   formatSeconds,
   imageOptionsFromSources,
+  isDefaultMotionPrompt,
   readImageFile,
   syncShots,
   type AudioShot,
@@ -171,6 +173,24 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
     if (!endFocused) setEndDraft(formatSeconds(sliceEndSeconds, 2));
   }, [sliceEndSeconds, endFocused]);
 
+  const { onAssignmentsChange } = props;
+  useEffect(() => {
+    // report which gallery assets hold @img tokens so the gallery can badge them
+    // (token numbering follows marker order, matching single-part prompts)
+    const assignments: Record<string, string> = {};
+    let tokenCount = 0;
+    markers.forEach((marker) => {
+      const shot = shots.find((item) => item.markerId === marker.id);
+      const sourceId = shot?.imageSourceId || "";
+      if (!sourceId.startsWith("asset:")) return;
+      const assetId = sourceId.slice("asset:".length);
+      if (assignments[assetId]) return;
+      tokenCount += 1;
+      assignments[assetId] = `@img${tokenCount}`;
+    });
+    onAssignmentsChange(assignments);
+  }, [markers, shots, onAssignmentsChange]);
+
   function setAudioFiles(files: File[]) {
     const file = files.find((item) => item.type.startsWith("audio/")) || files[0];
     if (!file) return;
@@ -258,10 +278,32 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   }
 
   function updateMarker(markerId: string, patch: Partial<AudioMarker>) {
+    const index = markers.findIndex((marker) => marker.id === markerId);
+    const previous = markers[index];
+    if (!previous) return;
+    const updated = { ...previous, ...patch };
+    if (updated.kind !== previous.kind || updated.band !== previous.band) {
+      // keep untouched default motion prompts in sync with the new kind/band
+      setShots((current) =>
+        current.map((shot) =>
+          shot.markerId === markerId && (!shot.prompt.trim() || isDefaultMotionPrompt(shot.prompt))
+            ? { ...shot, prompt: defaultMotionPrompt(updated, index) }
+            : shot
+        )
+      );
+    }
     setMarkers((current) =>
       current
         .map((marker) => (marker.id === markerId ? { ...marker, ...patch } : marker))
         .sort((left, right) => left.relativeTime - right.relativeTime)
+    );
+    setGeneratedPrompt("");
+  }
+
+  function nearestWaveformPoint(relativeTime: number) {
+    if (!analysis?.waveform.length) return undefined;
+    return analysis.waveform.reduce((best, point) =>
+      Math.abs(point.time - relativeTime) < Math.abs(best.time - relativeTime) ? point : best
     );
   }
 
@@ -270,9 +312,18 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
     const duration = analysis?.analyzedDuration || durationSeconds;
     const start = analysis?.start || startSeconds;
     const safeRelativeTime = clamp(relativeTime, 0, duration);
+    const nearestPoint = nearestWaveformPoint(safeRelativeTime);
     updateMarker(markerId, {
       relativeTime: safeRelativeTime,
-      time: start + safeRelativeTime
+      time: start + safeRelativeTime,
+      ...(nearestPoint
+        ? {
+            amplitude: nearestPoint.amplitude ?? nearestPoint.peak,
+            low: nearestPoint.low,
+            mid: nearestPoint.mid,
+            high: nearestPoint.high
+          }
+        : {})
     });
   }
 
@@ -300,6 +351,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
         return marker.id === markerId ? { ...base, ...patch } : base;
       })
     );
+    setGeneratedPrompt("");
   }
 
   function assignImage(markerId: string, option: ImageOption) {
@@ -334,11 +386,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   function markerAtTime(time: number): AudioMarker {
     const start = timelineStart;
     const relativeTime = clamp(time - start, 0, Math.max(timelineDuration, 0.05));
-    const nearestPoint = analysis?.waveform.length
-      ? analysis.waveform.reduce((best, point) =>
-          Math.abs(point.time - relativeTime) < Math.abs(best.time - relativeTime) ? point : best
-        )
-      : undefined;
+    const nearestPoint = nearestWaveformPoint(relativeTime);
     const low = nearestPoint?.low ?? 0.5;
     const mid = nearestPoint?.mid ?? 0.4;
     const high = nearestPoint?.high ?? 0.25;
@@ -628,6 +676,22 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   function updateVideoTarget(value: VideoTarget) {
     setVideoTarget(value);
     if (value !== "custom") setMaxImageGuides(videoTargets[value].imageGuides);
+    setGeneratedPrompt("");
+  }
+
+  function updateMaxImageGuides(value: number) {
+    setMaxImageGuides(value);
+    setGeneratedPrompt("");
+  }
+
+  function updateScriptSetup(value: string) {
+    setScriptSetup(value);
+    setGeneratedPrompt("");
+  }
+
+  function updateQualityBoosters(value: string) {
+    setQualityBoosters(value);
+    setGeneratedPrompt("");
   }
 
   function resetAudioScript() {
@@ -774,12 +838,13 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
         hasMarkers={markers.length > 0}
         onUpdateVideoTarget={updateVideoTarget}
         onSetVideoTarget={setVideoTarget}
-        onSetMaxImageGuides={setMaxImageGuides}
-        onSetScriptSetup={setScriptSetup}
-        onSetQualityBoosters={setQualityBoosters}
+        onSetMaxImageGuides={updateMaxImageGuides}
+        onSetScriptSetup={updateScriptSetup}
+        onSetQualityBoosters={updateQualityBoosters}
         onSetGeneratedPrompt={setGeneratedPrompt}
         onGeneratePrompt={generatePrompt}
         onUsePrompt={props.onUsePrompt}
+        onSavePrompt={props.onSavePrompt}
       />
     </section>
   );

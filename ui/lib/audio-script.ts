@@ -66,7 +66,7 @@ export function colorForBand(band: AudioBandKey) {
   return "#dedbc9";
 }
 
-function defaultMotionPrompt(marker: AudioMarker, index: number) {
+export function defaultMotionPrompt(marker: Pick<AudioMarker, "kind" | "band">, index: number) {
   const prefix = `${String(index + 1).padStart(2, "0")} ${eventLabels[marker.kind]} cut`;
   if (marker.kind === "kick" || marker.band === "low") {
     return `${prefix}: the image breathes in hard on the bass hit, expands from the center, then breathes out with a slow recoil; deep camera push-in, heavy organic pulse, subtle lens shake.`;
@@ -78,6 +78,20 @@ function defaultMotionPrompt(marker: AudioMarker, index: number) {
     return `${prefix}: the image flickers and inhales in tiny high-frequency ripples, surface details shimmer, then exhale back into place; quick micro-zoom and fine particle motion.`;
   }
   return `${prefix}: the image breathes in with the beat and breathes out over the tail, slowly drifting with layered parallax and a smooth cinematic camera move.`;
+}
+
+const DEFAULT_MOTION_BODIES = new Set(
+  ([
+    { kind: "kick", band: "low" },
+    { kind: "snare", band: "mid" },
+    { kind: "hat", band: "high" }
+  ] as Array<Pick<AudioMarker, "kind" | "band">>).map((marker) =>
+    defaultMotionPrompt(marker, 0).replace(/^\d+ /, "")
+  )
+);
+
+export function isDefaultMotionPrompt(prompt: string) {
+  return DEFAULT_MOTION_BODIES.has(prompt.replace(/^\d+ /, ""));
 }
 
 function motionCueForMarker(marker: AudioMarker, imageToken: string, index: number) {
@@ -151,9 +165,17 @@ export function createDefaultShot(marker: AudioMarker, index: number): AudioShot
 export function syncShots(markers: AudioMarker[], current: AudioShot[]) {
   return markers.map((marker, index) => {
     const existing = current.find((shot) => shot.markerId === marker.id) || current[index];
-    return existing
-      ? { ...existing, markerId: marker.id, id: existing.id || `shot-${marker.id}`, imagePrompt: existing.imagePrompt || "" }
-      : createDefaultShot(marker, index);
+    if (!existing) return createDefaultShot(marker, index);
+    return {
+      ...existing,
+      markerId: marker.id,
+      id: existing.id || `shot-${marker.id}`,
+      imagePrompt: existing.imagePrompt || "",
+      prompt:
+        !existing.prompt.trim() || isDefaultMotionPrompt(existing.prompt)
+          ? defaultMotionPrompt(marker, index)
+          : existing.prompt
+    };
   });
 }
 

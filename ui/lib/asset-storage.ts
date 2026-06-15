@@ -60,9 +60,7 @@ function sanitizePayload(payload: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(payload).map(([key, value]) => [
       key,
-      key.startsWith("input_image") && typeof value === "string" && value.startsWith("data:")
-        ? "[stored reference omitted]"
-        : value
+      typeof value === "string" && value.startsWith("data:") ? "[stored reference omitted]" : value
     ])
   );
 }
@@ -119,7 +117,9 @@ export function normalizeLibraryRecord(item: any): AssetRecord | null {
     remotePromptKey: item.remotePromptKey,
     remoteMetadataKey: item.remoteMetadataKey,
     remoteImageUrl: item.remoteImageUrl,
-    r2RootPrefix: item.r2RootPrefix
+    r2RootPrefix: item.r2RootPrefix,
+    sourceAssetId: item.sourceAssetId ?? null,
+    operation: item.operation ?? null
   };
 }
 

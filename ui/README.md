@@ -100,6 +100,30 @@ The local HTML reference view is available at `/api/reference-archive?format=htm
 - `lib/` contains prompt helpers, pricing estimates, shared types, and
   IndexedDB/localStorage persistence.
 
+## Image Tool Workspaces
+
+The workspace mode switcher exposes BFL image tools on any gallery output:
+
+- **Erase** (`flux-tools/erase-v1`): paint a mask directly on the image
+  (white = remove, shift-drag unpaints), set mask dilation, run. No prompt.
+- **Inpaint** (`flux-pro-1.0-fill`): paint a mask plus a replacement prompt.
+- **Outpaint** (`flux-tools/outpainting-v1`): set target canvas size, optional
+  pixel offsets (empty = centered), high/fast mode, optional experimental prompt.
+- **Glyphs**: staged only — BFL has no cutout/vectorize endpoint; this lane is
+  reserved for a local vectorizer or Comfy provider.
+
+Tool results land in the gallery with `sourceAssetId`/`operation` provenance and
+the same local + R2 archive treatment as generations.
+
+## Prompt Library + Asset References
+
+- The audio panel's `Save to library` stores the generated sequence prompt under
+  the `Audio Sequences` library; gallery cards can save their prompt under
+  `Gallery Prompts`.
+- Gallery cards are draggable onto audio timing rows and the reference dropzone.
+- Cards used as `@imgN` in the audio timeline or as reference slots get badge
+  chips and a highlight, so you can see which assets the current prompt uses.
+
 ## Agent API
 
 The UI is also an agent/MCP-facing local API:
@@ -110,6 +134,8 @@ The UI is also an agent/MCP-facing local API:
   `/api/bfl/generate` request bodies with token/cost estimates.
 - `POST /api/dashboard/batch` dry-runs or executes a dashboard batch. Execution
   calls the local BFL route and saves image/prompt/metadata files.
+- `POST /api/bfl/tools` runs erase/inpaint/outpaint on an existing image with the
+  same output persistence and provenance as generations.
 - `GET /api/mcp/manifest` describes the complete local route surface plus native
   FLUX MCP handoff options.
 - `GET /api/outputs` hydrates saved filesystem outputs and, when configured,

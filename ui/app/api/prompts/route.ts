@@ -38,6 +38,21 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true, record: saved, path: promptsPath });
 }
 
+async function archiveDeletedPrompt(record: unknown) {
+  // Soft-delete safety net: every removed prompt is appended to a trash file so an
+  // accidental delete is always recoverable (kept last 200, newest first).
+  const trashPath = path.resolve(process.cwd(), "../configs/deleted_prompts.json");
+  let trash: unknown[] = [];
+  try {
+    trash = JSON.parse(await readFile(trashPath, "utf8"));
+    if (!Array.isArray(trash)) trash = [];
+  } catch {
+    trash = [];
+  }
+  trash.unshift({ ...(record as Record<string, unknown>), deletedAt: new Date().toISOString() });
+  await writeFile(trashPath, `${JSON.stringify(trash.slice(0, 200), null, 2)}\n`, "utf8");
+}
+
 export async function DELETE(request: NextRequest) {
   const promptsPath = path.resolve(process.cwd(), "../configs/cybernetic_flower_flux2_prompts.json");
   const id = request.nextUrl.searchParams.get("id")?.trim();
@@ -48,12 +63,14 @@ export async function DELETE(request: NextRequest) {
 
   const raw = await readFile(promptsPath, "utf8");
   const records = JSON.parse(raw);
+  const removed = records.find((record: any) => record.id === id);
   const nextRecords = records.filter((record: any) => record.id !== id);
 
-  if (nextRecords.length === records.length) {
+  if (!removed) {
     return NextResponse.json({ error: `Prompt ${id} was not found` }, { status: 404 });
   }
 
+  await archiveDeletedPrompt(removed);
   await writeFile(promptsPath, `${JSON.stringify(nextRecords, null, 2)}\n`, "utf8");
-  return NextResponse.json({ ok: true, id, path: promptsPath });
+  return NextResponse.json({ ok: true, id, record: removed, path: promptsPath });
 }

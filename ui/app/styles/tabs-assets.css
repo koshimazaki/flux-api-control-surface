@@ -179,3 +179,41 @@ pre {
   padding: 0 9px;
 }
 
+
+.assetCard.referencedAsset {
+  border-color: rgba(159, 176, 157, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(159, 176, 157, 0.28);
+}
+
+.assetBadges {
+  position: absolute;
+  z-index: 1;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  max-width: 62%;
+  pointer-events: none;
+}
+
+.assetBadge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.assetBadge.audio {
+  color: #9fb09d;
+  border-color: rgba(159, 176, 157, 0.62);
+}
+
+.assetBadge.reference {
+  color: #b9b5d0;
+  border-color: rgba(185, 181, 208, 0.62);
+}

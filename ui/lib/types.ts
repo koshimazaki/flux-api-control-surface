@@ -15,6 +15,7 @@ export type ReferenceImage = {
   id: string;
   name: string;
   value: string;
+  assetId?: string;
 };
 
 export type BatchMode = "current" | "library" | "permutations";
@@ -58,6 +59,13 @@ export type AssetRecord = {
   remoteMetadataKey?: string | null;
   remoteImageUrl?: string | null;
   r2RootPrefix?: string | null;
+  sourceAssetId?: string | null;
+  operation?: string | null;
+};
+
+export type AssetBadge = {
+  label: string;
+  kind: "audio" | "reference";
 };
 
 export type AspectRatio = "free" | "1:1" | "16:9" | "4:3" | "3:4" | "9:16";

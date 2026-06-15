@@ -18,6 +18,9 @@ venv/
 /renders/
 /samples/
 
+# Soft-deleted prompt recovery archive (local-only)
+/configs/deleted_prompts.json
+
 # Secrets and local env
 .env
 .env.local

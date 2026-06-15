@@ -27,7 +27,22 @@ import {
   weightedReferenceCue,
   type BatchProgress
 } from "@/lib/dashboard-generation";
-import { deletePromptRecord, savePromptRecord, upsertPromptRecord } from "@/lib/dashboard-prompts";
+import {
+  buildToolAssetRecord,
+  buildToolFailureLogEntry,
+  buildToolRequestBody,
+  buildToolRunLogEntry,
+  executeToolRun,
+  toolRunBlocker,
+  type ToolRunInput
+} from "@/lib/dashboard-tools";
+import {
+  deletePromptRecord,
+  restorePromptRecord,
+  savePromptRecord,
+  saveStandalonePromptRecord,
+  upsertPromptRecord
+} from "@/lib/dashboard-prompts";
 import { ALL_PROMPT_LIBRARY_ID, buildPromptLibraryOptions, promptLibraryId } from "@/lib/prompt-library-groups";
 import { buildComboPrompt as buildComboPromptText, comboIdFromPrompts, uniqueText } from "@/lib/prompt-combo";
 import { defaultReferenceCue, formatPrompt } from "@/lib/prompt-utils";
@@ -41,6 +56,7 @@ import {
   TRAINING_COLLECTIONS_KEY
 } from "@/lib/training-collections";
 import type {
+  AssetBadge,
   AssetRecord,
   AspectRatio,
   BalanceState,
@@ -91,6 +107,13 @@ export function useDashboardState() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("assets");
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("prompt");
   const [toolSourceAssetId, setToolSourceAssetId] = useState<string | null>(null);
+  const [toolMask, setToolMask] = useState("");
+  const [toolBrushSize, setToolBrushSize] = useState(48);
+  const [toolDilatePixels, setToolDilatePixels] = useState(10);
+  const [outpaintOffsetX, setOutpaintOffsetX] = useState("");
+  const [outpaintOffsetY, setOutpaintOffsetY] = useState("");
+  const [outpaintMode, setOutpaintMode] = useState<"high" | "fast">("high");
+  const [audioAssignments, setAudioAssignments] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [gridSize, setGridSize] = useState(4);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
@@ -100,6 +123,7 @@ export function useDashboardState() {
     createTrainingCollection("Cyberflower LoRA pack")
   );
   const [captionJob, setCaptionJob] = useState<CaptionAgentJob | null>(null);
+  const [lastDeletedPrompt, setLastDeletedPrompt] = useState<PromptRecord | null>(null);
   const [remoteReferenceCount, setRemoteReferenceCount] = useState<number | null>(null);
   const [metadataAssetId, setMetadataAssetId] = useState<string | null>(null);
   const [balance, setBalance] = useState<BalanceState>({ credits: null });
@@ -179,6 +203,17 @@ export function useDashboardState() {
     () => assets.find((asset) => asset.id === toolSourceAssetId) || null,
     [assets, toolSourceAssetId]
   );
+  const assetBadges = useMemo(() => {
+    const badges: Record<string, AssetBadge[]> = {};
+    references.forEach((reference, index) => {
+      if (!reference.assetId) return;
+      (badges[reference.assetId] ||= []).push({ label: `ref ${index + 1}`, kind: "reference" });
+    });
+    Object.entries(audioAssignments).forEach(([assetId, token]) => {
+      (badges[assetId] ||= []).push({ label: token, kind: "audio" });
+    });
+    return badges;
+  }, [references, audioAssignments]);
   const primaryReference = references[0];
   const primaryReferenceUrl = primaryReference?.value.startsWith("data:") ? "" : primaryReference?.value || "";
   const primaryReferencePreview = primaryReference?.value || "";
@@ -226,6 +261,10 @@ export function useDashboardState() {
   useEffect(() => {
     safeSetItem(TRAINING_COLLECTIONS_KEY, JSON.stringify(trainingCollection));
   }, [trainingCollection]);
+  useEffect(() => {
+    // masks are resolution-bound; drop them whenever the tool source changes
+    setToolMask("");
+  }, [toolSourceAssetId]);
   function selectPromptRecord(record: PromptRecord) {
     setActiveId(record.id);
     setPromptText(formatPrompt(record.prompt));
@@ -289,8 +328,9 @@ export function useDashboardState() {
   async function deletePrompt() {
     if (!activePrompt?.id) return;
     const id = activePrompt.id;
+    const snapshot = activePrompt;
     try {
-      await deletePromptRecord(id);
+      const { record } = await deletePromptRecord(id);
       const nextPrompts = prompts.filter((prompt) => prompt.id !== id);
       const nextVisible = activePromptLibraryId === ALL_PROMPT_LIBRARY_ID
         ? nextPrompts
@@ -305,10 +345,25 @@ export function useDashboardState() {
         setPromptText("");
         setSeed("");
       }
-      setRecoveryMessage(`Deleted ${id}.`);
+      setLastDeletedPrompt(record || snapshot);
+      setRecoveryMessage(`Deleted ${id}. Archived to deleted_prompts.json — undo to restore it.`);
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete prompt.");
+    }
+  }
+  async function undoDeletePrompt() {
+    if (!lastDeletedPrompt) return;
+    try {
+      const restored = await restorePromptRecord(lastDeletedPrompt);
+      setPrompts((current) => upsertPromptRecord(current, restored));
+      setActivePromptLibraryId(promptLibraryId(restored));
+      selectPromptRecord(restored);
+      setLastDeletedPrompt(null);
+      setRecoveryMessage(`Restored ${restored.id}.`);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not restore prompt.");
     }
   }
   function importPromptJson() {
@@ -491,19 +546,101 @@ export function useDashboardState() {
   function clearToolSourceAsset() {
     setToolSourceAssetId(null);
   }
-  function stageWorkspaceToolRun() {
+  async function runWorkspaceTool() {
     if (workspaceMode === "prompt") {
       void generate();
+      return;
+    }
+    if (workspaceMode === "glyphs") {
+      setError("Glyphs has no BFL endpoint yet. A local vectorizer/Comfy provider lane is planned.");
       return;
     }
     if (!toolSourceAsset) {
       setError("Select a source image from the output library.");
       return;
     }
+    const input: ToolRunInput = {
+      mode: workspaceMode,
+      sourceAsset: toolSourceAsset,
+      apiKey,
+      mask: toolMask,
+      prompt: promptText,
+      seed,
+      dilatePixels: toolDilatePixels,
+      canvasWidth: width,
+      canvasHeight: height,
+      offsetX: outpaintOffsetX,
+      offsetY: outpaintOffsetY,
+      outpaintMode
+    };
+    const blocker = toolRunBlocker({ mode: input.mode, mask: input.mask, prompt: input.prompt, hasSource: true });
+    if (blocker) {
+      setError(blocker);
+      return;
+    }
     setError("");
-    setRecoveryMessage(
-      `${workspaceModeLabels[workspaceMode]} is staged for ${toolSourceAsset.title || toolSourceAsset.id}; API route wiring is next.`
-    );
+    setIsGenerating(true);
+    const started = Date.now();
+    try {
+      const data = await executeToolRun(buildToolRequestBody(input));
+      const asset = buildToolAssetRecord(data, input);
+      await persistAssetImage(asset.id, data.imageDataUrl);
+      setAssets((current) => [asset, ...current]);
+      setBalance({ credits: data.submit?.creditsAfter ?? balance.credits, checkedAt: Date.now() });
+      setRunLog((current) => [buildToolRunLogEntry(asset, started), ...current]);
+      setSelectedAsset(asset);
+      setRecoveryMessage(
+        `${workspaceModeLabels[workspaceMode]} complete for ${toolSourceAsset.title || toolSourceAsset.id}.`
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Tool run failed";
+      setRunLog((current) => [buildToolFailureLogEntry(input, started, message), ...current]);
+      setError(message);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  async function saveSequencePrompt(promptValue: string) {
+    const trimmed = promptValue.trim();
+    if (!trimmed) {
+      setError("Generate an audio sequence prompt first.");
+      return;
+    }
+    try {
+      const saved = await saveStandalonePromptRecord({
+        idPrefix: "audio_sequence",
+        domain: "audio_sequences",
+        species: "audio_sequence",
+        prompt: trimmed
+      });
+      setPrompts((current) => upsertPromptRecord(current, saved));
+      setRecoveryMessage(`Saved ${saved.id} to the prompt library (Audio Sequences).`);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the sequence prompt.");
+    }
+  }
+
+  async function saveAssetPromptToLibrary(asset: AssetRecord) {
+    if (!asset.prompt?.trim()) {
+      setError("This asset has no prompt to save.");
+      return;
+    }
+    try {
+      const saved = await saveStandalonePromptRecord({
+        idPrefix: `gallery_${asset.title || asset.id}`,
+        domain: "gallery_prompts",
+        species: asset.model,
+        seed: asset.seed,
+        prompt: asset.prompt
+      });
+      setPrompts((current) => upsertPromptRecord(current, saved));
+      setRecoveryMessage(`Saved ${saved.id} to the prompt library (Gallery Prompts).`);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the asset prompt.");
+    }
   }
   function sendAssetToReference(asset: AssetRecord) {
     if (references.length >= 3) {
@@ -515,11 +652,18 @@ export function useDashboardState() {
       {
         id: `asset-ref-${asset.id}-${Date.now()}`,
         name: asset.title || asset.id,
-        value: asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url
+        value: asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url,
+        assetId: asset.id
       }
     ].slice(0, 3));
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function addReferenceFromDragPayload(payload: string) {
+    const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : payload;
+    const asset = assets.find((item) => item.id === assetId);
+    if (asset) sendAssetToReference(asset);
   }
   async function downloadAssetImage(asset: AssetRecord) {
     const source = asset.imageDataUrl || asset.sampleUrl || asset.remoteImageUrl || asset.imageUrl || asset.image_url;
@@ -770,6 +914,20 @@ export function useDashboardState() {
     setWorkspaceMode,
     toolSourceAssetId,
     toolSourceAsset,
+    toolMask,
+    setToolMask,
+    toolBrushSize,
+    setToolBrushSize,
+    toolDilatePixels,
+    setToolDilatePixels,
+    outpaintOffsetX,
+    setOutpaintOffsetX,
+    outpaintOffsetY,
+    setOutpaintOffsetY,
+    outpaintMode,
+    setOutpaintMode,
+    assetBadges,
+    setAudioAssignments,
     searchQuery,
     setSearchQuery,
     gridSize,
@@ -782,6 +940,7 @@ export function useDashboardState() {
     trainingCollection,
     setTrainingCollection,
     captionJob,
+    lastDeletedPrompt,
     remoteReferenceCount,
     metadataAssetId,
     setMetadataAssetId,
@@ -815,6 +974,7 @@ export function useDashboardState() {
     createComboPrompt,
     savePrompt,
     deletePrompt,
+    undoDeletePrompt,
     importPromptJson,
     addReferenceFiles,
     setPrimaryReferenceFiles,
@@ -831,8 +991,11 @@ export function useDashboardState() {
     sendAssetToPrompt,
     sendAssetToWorkspace,
     clearToolSourceAsset,
-    stageWorkspaceToolRun,
+    runWorkspaceTool,
+    saveSequencePrompt,
+    saveAssetPromptToLibrary,
     sendAssetToReference,
+    addReferenceFromDragPayload,
     downloadAssetImage,
     clearAssets,
     toggleAssetSelection,

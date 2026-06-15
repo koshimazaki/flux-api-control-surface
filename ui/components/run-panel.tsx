@@ -49,6 +49,7 @@ type RunPanelProps = {
   onReferenceWeightChange: (value: number) => void;
   onReferenceCueChange: (value: string) => void;
   onReferenceFiles: (files: File[]) => void;
+  onReferenceDropPayload: (payload: string) => void;
   onGenerate: () => void;
 };
 
@@ -175,11 +176,18 @@ export function RunPanel(props: RunPanelProps) {
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
+          const payload =
+            event.dataTransfer.getData("application/x-bfl-image-option") ||
+            event.dataTransfer.getData("text/plain");
+          if (payload.startsWith("asset:")) {
+            props.onReferenceDropPayload(payload);
+            return;
+          }
           props.onReferenceFiles(Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")));
         }}
       >
         <Database size={15} />
-        <span>Drop images here, or paste hosted URLs below</span>
+        <span>Drop gallery cards or image files here, or paste hosted URLs below</span>
       </div>
 
       <div

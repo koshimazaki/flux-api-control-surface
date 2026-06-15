@@ -1,7 +1,10 @@
 import { ImagePlus, X } from "lucide-react";
+import { useState } from "react";
 import { IconButton } from "@/components/ui/icon-button";
+import { MaskCanvas } from "@/components/mask-canvas";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { assetImageSource } from "@/lib/dashboard-tools";
 import type { AssetRecord, WorkspaceMode } from "@/lib/types";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
@@ -25,20 +28,9 @@ const toolCopy: Record<ImageToolMode, { title: string; eyebrow: string; endpoint
   glyphs: {
     title: "Glyphs",
     eyebrow: "Sticker and SVG lab",
-    endpoint: "cutout/vectorize"
+    endpoint: "no endpoint yet"
   }
 };
-
-function imageSource(asset: AssetRecord | null) {
-  return asset?.imageDataUrl || asset?.sampleUrl || asset?.imageUrl || asset?.image_url || "";
-}
-
-function SourceImage({ asset }: { asset: AssetRecord }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={imageSource(asset)} alt={asset.title || asset.id} />
-  );
-}
 
 function EmptyToolState() {
   return (
@@ -50,24 +42,104 @@ function EmptyToolState() {
   );
 }
 
-function ToolPreview({ mode, sourceAsset }: { mode: ImageToolMode; sourceAsset: AssetRecord | null }) {
-  if (!sourceAsset) return <EmptyToolState />;
+type OutpaintPreviewProps = {
+  asset: AssetRecord;
+  canvasWidth: number;
+  canvasHeight: number;
+  offsetX: string;
+  offsetY: string;
+};
 
-  if (mode === "outpaint") {
-    return (
-      <div className="outpaintPreview">
-        <div className="outpaintCanvasPad">
-          <SourceImage asset={sourceAsset} />
-        </div>
+function OutpaintPreview({ asset, canvasWidth, canvasHeight, offsetX, offsetY }: OutpaintPreviewProps) {
+  const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
+  const sourceWidth = asset.width || measured?.width || 0;
+  const sourceHeight = asset.height || measured?.height || 0;
+  const canvasW = Math.max(64, canvasWidth || 1024);
+  const canvasH = Math.max(64, canvasHeight || 1024);
+  const offX = offsetX.trim() === "" ? (canvasW - sourceWidth) / 2 : Number(offsetX) || 0;
+  const offY = offsetY.trim() === "" ? (canvasH - sourceHeight) / 2 : Number(offsetY) || 0;
+  const measuredReady = sourceWidth > 0 && sourceHeight > 0;
+
+  return (
+    <div className="outpaintPreview">
+      <div className="outpaintCanvasFrame" style={{ aspectRatio: `${canvasW} / ${canvasH}` }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={assetImageSource(asset)}
+          alt={asset.title || asset.id}
+          draggable={false}
+          onLoad={(event) =>
+            setMeasured({
+              width: event.currentTarget.naturalWidth,
+              height: event.currentTarget.naturalHeight
+            })
+          }
+          style={
+            measuredReady
+              ? {
+                  left: `${(offX / canvasW) * 100}%`,
+                  top: `${(offY / canvasH) * 100}%`,
+                  width: `${(sourceWidth / canvasW) * 100}%`,
+                  height: `${(sourceHeight / canvasH) * 100}%`
+                }
+              : undefined
+          }
+        />
+        <span className="outpaintCanvasLabel">
+          {canvasW}×{canvasH}
+        </span>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  if (mode === "glyphs") {
+type ImageToolWorkspaceProps = {
+  mode: ImageToolMode;
+  sourceAsset: AssetRecord | null;
+  brushSize: number;
+  mask: string;
+  canvasWidth: number;
+  canvasHeight: number;
+  offsetX: string;
+  offsetY: string;
+  onMaskChange: (mask: string) => void;
+  onClearSource: () => void;
+};
+
+export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
+  const { mode, sourceAsset } = props;
+  const copy = toolCopy[mode];
+
+  function renderStage() {
+    if (!sourceAsset) return <EmptyToolState />;
+    if (mode === "erase" || mode === "inpaint") {
+      return (
+        <MaskCanvas
+          key={sourceAsset.id}
+          imageSrc={assetImageSource(sourceAsset)}
+          brushSize={props.brushSize}
+          mask={props.mask}
+          onMaskChange={props.onMaskChange}
+        />
+      );
+    }
+    if (mode === "outpaint") {
+      return (
+        <OutpaintPreview
+          key={sourceAsset.id}
+          asset={sourceAsset}
+          canvasWidth={props.canvasWidth}
+          canvasHeight={props.canvasHeight}
+          offsetX={props.offsetX}
+          offsetY={props.offsetY}
+        />
+      );
+    }
     return (
       <div className="glyphWorkbench">
         <div className="glyphSource">
-          <SourceImage asset={sourceAsset} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={assetImageSource(sourceAsset)} alt={sourceAsset.title || sourceAsset.id} />
         </div>
         <div className="glyphPreviewGrid" aria-label="Glyph extraction previews">
           {["Core", "Mask", "SVG", "Motion"].map((label) => (
@@ -82,43 +154,29 @@ function ToolPreview({ mode, sourceAsset }: { mode: ImageToolMode; sourceAsset: 
   }
 
   return (
-    <div className="maskPreview">
-      <SourceImage asset={sourceAsset} />
-      <span className="maskShape maskShapeOne" />
-      <span className="maskShape maskShapeTwo" />
-    </div>
-  );
-}
-
-type ImageToolWorkspaceProps = {
-  mode: ImageToolMode;
-  sourceAsset: AssetRecord | null;
-  onClearSource: () => void;
-};
-
-export function ImageToolWorkspace({ mode, sourceAsset, onClearSource }: ImageToolWorkspaceProps) {
-  const copy = toolCopy[mode];
-  return (
     <section className={`panel editor imageToolWorkspace ${mode}`}>
       <PanelHeader title={copy.title} subtitle={sourceAsset?.title || sourceAsset?.id || copy.eyebrow}>
         <div className="workspaceHeaderActions">
           <span>{copy.endpoint}</span>
           {sourceAsset && (
-            <IconButton onClick={onClearSource} title="Clear source">
+            <IconButton onClick={props.onClearSource} title="Clear source">
               <X size={14} />
             </IconButton>
           )}
         </div>
       </PanelHeader>
 
-      <div className="imageToolCanvas">
-        <ToolPreview mode={mode} sourceAsset={sourceAsset} />
-      </div>
+      <div className="imageToolCanvas">{renderStage()}</div>
 
       <div className="imageToolMeta">
         <MetaBox label="Source" value={sourceAsset ? sourceAsset.model : "None"} />
         <MetaBox label="Operation" value={copy.eyebrow} />
-        <MetaBox label="Output" value={mode === "glyphs" ? "SVG + mask" : "Image"} />
+        <MetaBox
+          label="Mask"
+          value={
+            mode === "erase" || mode === "inpaint" ? (props.mask ? "painted" : "empty") : "n/a"
+          }
+        />
       </div>
     </section>
   );

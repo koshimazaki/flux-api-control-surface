@@ -14,7 +14,9 @@ const LIBRARY_LABELS: Record<string, string> = {
   audio_reactive_objects: "Product Objects",
   nonhuman_species: "Non-Human Species",
   theme_studies: "Theme Studies",
-  custom_prompts: "Custom"
+  custom_prompts: "Custom",
+  audio_sequences: "Audio Sequences",
+  gallery_prompts: "Gallery Prompts"
 };
 
 export function promptLibraryId(record: PromptRecord) {

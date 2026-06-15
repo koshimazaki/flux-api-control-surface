@@ -4,7 +4,9 @@ export type AudioScriptPanelProps = {
   assets: AssetRecord[];
   collectionItems: TrainingCollectionItem[];
   onUsePrompt: (prompt: string) => void;
+  onSavePrompt: (prompt: string) => void;
   onOpenImage: (asset: AssetRecord) => void;
+  onAssignmentsChange: (assignments: Record<string, string>) => void;
 };
 
 export type AudioExportFormat = "mp3" | "wav";
