@@ -38,7 +38,7 @@ export function CanvasZoomControls({
           type="button"
           className={handMode ? "active" : ""}
           onClick={onToggleHand}
-          disabled={!canPan}
+          disabled={!canPan && !handMode}
           title="Pan tool (or hold Space)"
           aria-label="Pan tool"
           aria-pressed={handMode}

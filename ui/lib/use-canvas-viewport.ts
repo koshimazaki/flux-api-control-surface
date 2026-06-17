@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useZoomPan, type PanBounds } from "@/lib/use-zoom-pan";
 
 const isTypingTarget = (target: EventTarget | null) => {
@@ -15,6 +15,7 @@ const isTypingTarget = (target: EventTarget | null) => {
 export function useCanvasViewport(viewportRef: RefObject<HTMLElement | null>, getMaxPan: (zoom: number) => PanBounds) {
   const [handMode, setHandMode] = useState(false);
   const [spaceActive, setSpaceActive] = useState(false);
+  const hoveringRef = useRef(false);
   const zoomPan = useZoomPan(getMaxPan);
   const { zoom, pan, zoomIn, zoomOut, reset, panTo, reclamp } = zoomPan;
 
@@ -28,10 +29,32 @@ export function useCanvasViewport(viewportRef: RefObject<HTMLElement | null>, ge
     reclamp();
   }, [getMaxPan, reclamp]);
 
-  // Space bar acts as a temporary pan modifier (ignored while typing in a field).
+  // Track whether the pointer is over the canvas so the Space pan modifier only engages
+  // there (and we can safely suppress the page scroll without hijacking Space elsewhere).
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element) return;
+    const onEnter = () => {
+      hoveringRef.current = true;
+    };
+    const onLeave = () => {
+      hoveringRef.current = false;
+    };
+    element.addEventListener("pointerenter", onEnter);
+    element.addEventListener("pointerleave", onLeave);
+    return () => {
+      element.removeEventListener("pointerenter", onEnter);
+      element.removeEventListener("pointerleave", onLeave);
+    };
+  }, [viewportRef]);
+
+  // Space bar is a temporary pan modifier while hovering the canvas. Suppress the default
+  // page scroll only in that case; ignored while typing in a field.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code === "Space" && !isTypingTarget(event.target)) setSpaceActive(true);
+      if (event.code !== "Space" || isTypingTarget(event.target) || !hoveringRef.current) return;
+      setSpaceActive(true);
+      event.preventDefault();
     };
     const onKeyUp = (event: KeyboardEvent) => {
       if (event.code === "Space") setSpaceActive(false);

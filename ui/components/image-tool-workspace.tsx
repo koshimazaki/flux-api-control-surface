@@ -98,8 +98,9 @@ function OutpaintPreview({
   const screenToCanvas = screenToCanvasScale(fit, zoom);
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (isPanGesture(event, view.handMode, view.spaceActive)) {
-      if (!view.canPan) return;
+    // Pan only when a pan gesture is active AND there is room to pan; otherwise fall
+    // through to repositioning the source (e.g. hand mode left on at fit zoom).
+    if (isPanGesture(event, view.handMode, view.spaceActive) && view.canPan) {
       panDrag.current = { id: event.pointerId, startX: event.clientX, startY: event.clientY, baseX: pan.x, baseY: pan.y };
       setIsPanning(true);
       event.currentTarget.setPointerCapture(event.pointerId);

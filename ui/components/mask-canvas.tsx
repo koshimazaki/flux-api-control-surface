@@ -151,8 +151,9 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
   }
 
   function onPointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
-    if (isPanGesture(event, view.handMode, view.spaceActive)) {
-      if (!view.canPan) return;
+    // Pan only when a pan gesture is active AND there is room to pan; otherwise fall
+    // through to painting so the canvas is never dead (e.g. hand mode left on at fit zoom).
+    if (isPanGesture(event, view.handMode, view.spaceActive) && view.canPan) {
       panDrag.current = { id: event.pointerId, startX: event.clientX, startY: event.clientY, baseX: pan.x, baseY: pan.y };
       setIsPanning(true);
       event.currentTarget.setPointerCapture(event.pointerId);
