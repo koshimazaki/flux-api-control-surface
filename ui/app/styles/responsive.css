@@ -1,29 +1,22 @@
 @media (max-width: 1280px) {
   .workspace {
     grid-template-columns: 240px minmax(360px, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "library modes"
+      "library balance"
+      "library main"
+      "run     run";
     height: auto;
   }
 
   .controls {
-    grid-column: 1 / -1;
     min-height: 0;
     overflow: visible;
   }
 
   .workspaceMain {
     min-height: 620px;
-  }
-
-  .statsGrid {
-    grid-template-columns: 240px minmax(0, 1fr);
-  }
-
-  .workspaceTopControls {
-    grid-template-columns: 240px minmax(360px, 1fr);
-  }
-
-  .balanceStat {
-    grid-column: 1 / -1;
   }
 }
 
@@ -53,20 +46,15 @@
     width: 100%;
   }
 
-  .statsGrid {
+  .workspace {
     grid-template-columns: 1fr;
-  }
-
-  .workspaceTopControls .workspaceModeBar {
-    grid-column: auto;
-  }
-
-  .statsCenter {
-    grid-template-columns: 1fr;
-  }
-
-  .balanceStat {
-    grid-column: auto;
+    grid-template-rows: none;
+    grid-template-areas:
+      "modes"
+      "balance"
+      "library"
+      "main"
+      "run";
   }
 
   .panel {
@@ -107,8 +95,8 @@
     min-height: 0;
   }
 
-  .maskPreview,
-  .outpaintPreview,
+  .maskPaintViewport,
+  .outpaintViewport,
   .glyphWorkbench {
     min-height: 320px;
   }

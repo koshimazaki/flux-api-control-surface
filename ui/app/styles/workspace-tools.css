@@ -94,8 +94,6 @@
   color: var(--cream);
 }
 
-.maskPreview,
-.outpaintPreview,
 .glyphWorkbench {
   position: relative;
   width: 100%;
@@ -103,57 +101,6 @@
   min-height: 360px;
   display: grid;
   place-items: center;
-}
-
-.maskPreview img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.maskShape {
-  position: absolute;
-  display: block;
-  border: 1px solid rgba(243, 241, 230, 0.72);
-  background: rgba(167, 166, 179, 0.28);
-  box-shadow: 0 0 28px rgba(167, 166, 179, 0.32);
-  pointer-events: none;
-}
-
-.maskShapeOne {
-  width: 24%;
-  height: 20%;
-  left: 38%;
-  top: 32%;
-  border-radius: 44% 56% 42% 58%;
-}
-
-.maskShapeTwo {
-  width: 16%;
-  height: 18%;
-  right: 24%;
-  bottom: 24%;
-  border-radius: 58% 42% 52% 48%;
-}
-
-.outpaintPreview {
-  padding: 32px;
-}
-
-.outpaintCanvasPad {
-  width: min(92%, 760px);
-  height: min(92%, 520px);
-  display: grid;
-  place-items: center;
-  border: 1px dashed rgba(243, 241, 230, 0.42);
-  background: rgba(0, 0, 0, 0.42);
-  padding: 34px;
-}
-
-.outpaintCanvasPad img {
-  max-width: 74%;
-  max-height: 74%;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
 }
 
 .glyphWorkbench {
@@ -250,18 +197,28 @@
   resize: vertical;
 }
 
+.maskPaintViewport,
+.outpaintViewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
 .maskPaintStage {
   position: relative;
-  display: flex;
-  max-width: 100%;
-  max-height: 100%;
+  flex: 0 0 auto;
+  will-change: transform;
 }
 
 .maskPaintStage img {
   display: block;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -272,8 +229,58 @@
   width: 100%;
   height: 100%;
   opacity: 0.55;
-  cursor: crosshair;
   touch-action: none;
+}
+
+.canvasZoomBar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.74);
+  backdrop-filter: blur(10px);
+}
+
+.canvasZoomBar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--soft);
+  cursor: pointer;
+}
+
+.canvasZoomBar button:hover:not(:disabled) {
+  background: rgba(243, 241, 230, 0.12);
+  color: var(--cream);
+}
+
+.canvasZoomBar button.active {
+  border-color: var(--line);
+  background: rgba(243, 241, 230, 0.16);
+  color: var(--cream);
+}
+
+.canvasZoomBar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.canvasZoomLevel {
+  min-width: 48px;
+  font-family: var(--font-mono);
+  font-size: 11px;
 }
 
 .maskPaintHint {
@@ -316,24 +323,16 @@
   line-height: 1.5;
 }
 
-.outpaintPreview {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  padding: 14px;
-}
-
 .outpaintCanvasFrame {
   position: relative;
-  height: 100%;
-  width: auto;
-  max-width: 100%;
-  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  max-width: none;
   border: 1px dashed rgba(243, 241, 230, 0.4);
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.4);
   overflow: hidden;
+  touch-action: none;
+  will-change: transform;
 }
 
 .outpaintCanvasFrame img {
@@ -341,6 +340,9 @@
   max-width: none;
   max-height: none;
   object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .outpaintCanvasLabel {
@@ -354,4 +356,5 @@
   color: var(--soft);
   font-family: var(--font-mono);
   font-size: 10px;
+  pointer-events: none;
 }

@@ -2,7 +2,6 @@
 import { BackgroundShader } from "@/components/background-shader";
 import { DashboardPanels } from "@/components/dashboard/dashboard-panels";
 import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
-import { DashboardStats } from "@/components/dashboard-stats";
 import { Lightbox } from "@/components/lightbox";
 import { TopBar } from "@/components/top-bar";
 import { useDashboardState } from "@/lib/use-dashboard-state";
@@ -14,14 +13,6 @@ export default function Home() {
       <BackgroundShader />
       <main className="shell">
         <TopBar apiKey={state.apiKey} onApiKeyChange={state.setApiKey} />
-        <DashboardStats
-          totalActualCredits={state.totalActualCredits}
-          balanceCredits={state.balance.credits}
-          isCheckingBalance={state.isCheckingBalance}
-          workspaceMode={state.workspaceMode}
-          onWorkspaceModeChange={state.setWorkspaceMode}
-          onCheckBalance={state.checkBalance}
-        />
         <DashboardWorkspace state={state} />
         {state.recoveryMessage && (
           <p className="statusLine">

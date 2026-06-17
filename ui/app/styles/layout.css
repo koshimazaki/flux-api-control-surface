@@ -99,30 +99,6 @@ h2 {
   box-shadow: none;
 }
 
-.statsGrid {
-  display: grid;
-  grid-template-columns: 310px minmax(0, 1fr) 340px;
-  gap: 10px;
-  margin-top: 12px;
-  align-items: stretch;
-}
-
-.workspaceTopControls {
-  grid-template-columns: 310px minmax(420px, 1fr) 340px;
-  gap: 14px;
-}
-
-.workspaceTopControls .workspaceModeBar {
-  grid-column: 2;
-}
-
-.statsCenter {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
 .statCard {
   position: relative;
   min-width: 0;
@@ -169,11 +145,37 @@ h2 {
   padding: 0 10px;
 }
 
+/* The mode tabs + balance share the top row; the prompt library spans both rows so its
+   top aligns with the mode buttons (no gap) and the prompt list gets the full height. */
 .workspace {
   display: grid;
   grid-template-columns: 310px minmax(420px, 1fr) 340px;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "library modes   balance"
+    "library main    run";
   gap: 14px;
   margin-top: 14px;
   align-items: stretch;
-  height: clamp(620px, calc(100vh - 174px), 730px);
+  height: clamp(680px, calc(100vh - 132px), 900px);
+}
+
+.workspace > .library {
+  grid-area: library;
+}
+
+.workspace > .workspaceModeBar {
+  grid-area: modes;
+}
+
+.workspace > .balanceStat {
+  grid-area: balance;
+}
+
+.workspace > .workspaceMain {
+  grid-area: main;
+}
+
+.workspace > .controls {
+  grid-area: run;
 }

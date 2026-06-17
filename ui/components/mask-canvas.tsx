@@ -1,7 +1,12 @@
 "use client";
 
-import type { PointerEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CanvasZoomControls } from "@/components/ui/canvas-zoom-controls";
+import { displaySize, fitScale, maxPan } from "@/lib/canvas-geometry";
+import { useCanvasViewport } from "@/lib/use-canvas-viewport";
+import { useElementSize } from "@/lib/use-element-size";
+import { isPanGesture } from "@/lib/use-zoom-pan";
 
 type MaskCanvasProps = {
   imageSrc: string;
@@ -11,14 +16,32 @@ type MaskCanvasProps = {
 };
 
 type Point = { x: number; y: number };
+type PanDrag = { id: number; startX: number; startY: number; baseX: number; baseY: number };
 
 export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanvasProps) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawing = useRef(false);
   const lastPoint = useRef<Point | null>(null);
   const hasStrokes = useRef(false);
+  const panDrag = useRef<PanDrag | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
 
+  const viewport = useElementSize(viewportRef);
+  const fit = naturalSize ? fitScale(naturalSize, viewport) : 0;
+
+  const getMaxPan = useCallback(
+    (zoomLevel: number) => (naturalSize ? maxPan(naturalSize, viewport, fit, zoomLevel) : { x: 0, y: 0 }),
+    [naturalSize, viewport, fit]
+  );
+
+  const view = useCanvasViewport(viewportRef, getMaxPan);
+  const { zoom, pan } = view;
+
+  const display = naturalSize ? displaySize(naturalSize, fit, zoom) : { width: 0, height: 0 };
+
+  // Measure the source image's natural resolution (drives the canvas backing store).
   useEffect(() => {
     if (!imageSrc) {
       setNaturalSize(null);
@@ -35,6 +58,14 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     };
   }, [imageSrc]);
 
+  // Reset the view whenever a new source image loads.
+  useEffect(() => {
+    view.reset();
+    view.setHandMode(false);
+    // view setters are stable; depend only on the image
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageSrc]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !naturalSize) return;
@@ -47,7 +78,7 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     if (mask) {
       const restored = new Image();
       restored.onload = () => {
-        // restore prior strokes (mask is white-on-black; screen blend keeps only strokes visible)
+        // restore prior strokes (mask is white-on-black; lighten keeps only strokes visible)
         context.globalCompositeOperation = "lighten";
         context.drawImage(restored, 0, 0, canvas.width, canvas.height);
         context.globalCompositeOperation = "source-over";
@@ -68,7 +99,7 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     hasStrokes.current = false;
   }, [mask]);
 
-  function canvasPoint(event: PointerEvent<HTMLCanvasElement>): Point | null {
+  function canvasPoint(event: ReactPointerEvent<HTMLCanvasElement>): Point | null {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
@@ -79,7 +110,7 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     };
   }
 
-  function strokeTo(event: PointerEvent<HTMLCanvasElement>, point: Point) {
+  function strokeTo(event: ReactPointerEvent<HTMLCanvasElement>, point: Point) {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return;
@@ -119,7 +150,15 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     onMaskChange(output.toDataURL("image/png"));
   }
 
-  function onPointerDown(event: PointerEvent<HTMLCanvasElement>) {
+  function onPointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (isPanGesture(event, view.handMode, view.spaceActive)) {
+      if (!view.canPan) return;
+      panDrag.current = { id: event.pointerId, startX: event.clientX, startY: event.clientY, baseX: pan.x, baseY: pan.y };
+      setIsPanning(true);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      event.preventDefault();
+      return;
+    }
     const point = canvasPoint(event);
     if (!point) return;
     isDrawing.current = true;
@@ -128,13 +167,24 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function onPointerMove(event: PointerEvent<HTMLCanvasElement>) {
+  function onPointerMove(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const drag = panDrag.current;
+    if (drag && drag.id === event.pointerId) {
+      view.panTo(drag.baseX + (event.clientX - drag.startX), drag.baseY + (event.clientY - drag.startY));
+      return;
+    }
     if (!isDrawing.current) return;
     const point = canvasPoint(event);
     if (point) strokeTo(event, point);
   }
 
-  function onPointerUp(event: PointerEvent<HTMLCanvasElement>) {
+  function onPointerUp(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (panDrag.current && panDrag.current.id === event.pointerId) {
+      panDrag.current = null;
+      setIsPanning(false);
+      event.currentTarget.releasePointerCapture(event.pointerId);
+      return;
+    }
     if (!isDrawing.current) return;
     isDrawing.current = false;
     lastPoint.current = null;
@@ -142,19 +192,41 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     exportMask();
   }
 
+  const panReady = view.handMode || view.spaceActive;
+  const cursor = isPanning ? "grabbing" : panReady ? "grab" : "crosshair";
+
   return (
-    <div className="maskPaintStage">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={imageSrc} alt="Tool source" draggable={false} />
-      <canvas
-        ref={canvasRef}
-        className="maskPaintCanvas"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+    <div className="maskPaintViewport" ref={viewportRef}>
+      <div
+        className="maskPaintStage"
+        style={{
+          width: display.width || undefined,
+          height: display.height || undefined,
+          transform: `translate(${pan.x}px, ${pan.y}px)`
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={imageSrc} alt="Tool source" draggable={false} />
+        <canvas
+          ref={canvasRef}
+          className="maskPaintCanvas"
+          style={{ cursor }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        />
+      </div>
+      <CanvasZoomControls
+        zoom={zoom}
+        onZoomIn={view.zoomIn}
+        onZoomOut={view.zoomOut}
+        onReset={view.reset}
+        canPan={view.canPan}
+        handMode={view.handMode}
+        onToggleHand={view.toggleHand}
       />
-      <small className="maskPaintHint">paint = mask · shift-drag = unpaint</small>
+      <small className="maskPaintHint">paint = mask · shift-drag = unpaint · scroll = zoom · space/hand-drag = pan</small>
     </div>
   );
 }

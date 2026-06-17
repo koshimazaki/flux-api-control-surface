@@ -1,8 +1,10 @@
+import { BalanceCard } from "@/components/balance-card";
 import { ImageToolWorkspace } from "@/components/image-tool-workspace";
 import { PromptEditor } from "@/components/prompt-editor";
 import { PromptLibrary } from "@/components/prompt-library";
 import { RunPanel } from "@/components/run-panel";
 import { ToolRunPanel } from "@/components/tool-run-panel";
+import { WorkspaceModeTabs } from "@/components/workspace-mode-tabs";
 import { clampBatchCount, clampReferenceWeight } from "@/lib/dashboard-generation";
 import { downloadText, formatPrompt } from "@/lib/prompt-utils";
 import type { DashboardState } from "@/lib/use-dashboard-state";
@@ -12,6 +14,13 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
 
   return (
     <section className="workspace">
+      <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+      <BalanceCard
+        balanceCredits={state.balance.credits}
+        totalActualCredits={state.totalActualCredits}
+        isCheckingBalance={state.isCheckingBalance}
+        onCheckBalance={state.checkBalance}
+      />
       <PromptLibrary
         prompts={state.visiblePrompts}
         libraryOptions={state.promptLibraryOptions}
@@ -23,7 +32,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
         onToggleSelected={state.toggleComboPrompt}
         onBuildCombo={state.createComboPrompt}
         onExport={() => downloadText("bfl-flower-prompts.json", JSON.stringify(state.prompts, null, 2))}
-          />
+      />
       <div className="workspaceMain">
         {imageToolMode ? (
           <ImageToolWorkspace
@@ -36,6 +45,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             offsetX={state.outpaintOffsetX}
             offsetY={state.outpaintOffsetY}
             onMaskChange={state.setToolMask}
+            onOffsetXChange={state.setOutpaintOffsetX}
+            onOffsetYChange={state.setOutpaintOffsetY}
             onClearSource={state.clearToolSourceAsset}
           />
         ) : (
