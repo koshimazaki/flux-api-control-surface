@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Clipboard, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { PanelHeader } from "@/components/ui/panel-header";
@@ -17,7 +17,8 @@ type PromptEditorProps = {
   references: ReferenceImage[];
   submittedReferenceCue: string;
   promptSourceAsset?: AssetRecord | null;
-  onReferenceDropPayload: (payload: string) => void;
+  onReferenceDropPayload: (payload: string) => number | null | void;
+  onReferenceFiles: (files: File[]) => Promise<number[]>;
 };
 
 export function PromptEditor({
@@ -32,9 +33,11 @@ export function PromptEditor({
   references,
   submittedReferenceCue,
   promptSourceAsset,
-  onReferenceDropPayload
+  onReferenceDropPayload,
+  onReferenceFiles
 }: PromptEditorProps) {
   const [activePresetId, setActivePresetId] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const activeReferences = references.filter((reference) => Boolean(reference.value));
 
   // Clear the "plugged in" indicator when a different prompt is loaded.
@@ -52,24 +55,52 @@ export function PromptEditor({
     onPromptChange(value);
   }
 
-  function handleAssetDrop(event: React.DragEvent) {
+  function insertImageTokens(slots: number[]) {
+    if (!slots.length) return;
+    const tokens = slots.map((slot) => `@img${slot}`).join(" ");
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart ?? promptText.length;
+    const end = textarea?.selectionEnd ?? start;
+    const before = promptText.slice(0, start);
+    const after = promptText.slice(end);
+    const prefix = before && !/\s$/.test(before) ? " " : "";
+    const suffix = after && !/^\s/.test(after) ? " " : "";
+    const nextValue = `${before}${prefix}${tokens}${suffix}${after}`;
+    editPrompt(nextValue);
+    window.setTimeout(() => {
+      const cursor = start + prefix.length + tokens.length;
+      textarea?.focus();
+      textarea?.setSelectionRange(cursor, cursor);
+    }, 0);
+  }
+
+  async function handleReferenceDrop(event: React.DragEvent) {
     const payload =
       event.dataTransfer.getData("application/x-bfl-image-option") ||
       event.dataTransfer.getData("text/plain");
-    if (!payload.startsWith("asset:")) return;
+    if (payload.startsWith("asset:")) {
+      event.preventDefault();
+      const slot = onReferenceDropPayload(payload);
+      if (slot) insertImageTokens([slot]);
+      return;
+    }
+    const imageFiles = Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
+    if (!imageFiles.length) return;
     event.preventDefault();
-    onReferenceDropPayload(payload);
+    const slots = await onReferenceFiles(imageFiles);
+    insertImageTokens(slots);
   }
 
   return (
     <section
       className="panel editor"
       onDragOver={(event) => {
-        if (Array.from(event.dataTransfer.types).includes("application/x-bfl-image-option")) {
+        const types = Array.from(event.dataTransfer.types);
+        if (types.includes("application/x-bfl-image-option") || types.includes("Files")) {
           event.preventDefault();
         }
       }}
-      onDrop={handleAssetDrop}
+      onDrop={(event) => void handleReferenceDrop(event)}
     >
       <PanelHeader
         title={activePrompt?.id || "Prompt"}
@@ -94,10 +125,11 @@ export function PromptEditor({
       </PanelHeader>
 
       <textarea
+        ref={textareaRef}
         className="promptEditor"
         value={promptText}
         onChange={(event) => editPrompt(event.target.value)}
-        onDrop={handleAssetDrop}
+        onDrop={(event) => void handleReferenceDrop(event)}
         spellCheck={false}
       />
 

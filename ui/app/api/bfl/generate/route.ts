@@ -5,8 +5,10 @@ import {
   contentTypeForExtension,
   getCredits,
   imageToDataUrl,
+  normalizeImageInput,
   outputExtension,
   pollResult,
+  redactImagePayload,
   resolveApiKey,
   saveOutputFiles
 } from "@/lib/bfl-server";
@@ -85,13 +87,14 @@ export async function POST(request: NextRequest) {
   if (!modelConfig) return jsonError(`Unknown model: ${model}`);
 
   const references = Array.isArray(body.references) ? body.references.filter(Boolean) : [];
+  const normalizedReferences = references.map((reference) => normalizeImageInput(reference)).filter(Boolean) as string[];
   const width = typeof body.width === "number" ? body.width : 1024;
   const height = typeof body.height === "number" ? body.height : 1024;
   const validation = validateBflGenerationRequest({
     model: modelConfig,
     width,
     height,
-    referenceCount: references.length
+    referenceCount: normalizedReferences.length
   });
   if (validation) return jsonError(validation);
 
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
   if (typeof body.seed === "number") payload.seed = body.seed;
   if (modelConfig.supportsPromptUpsampling && !shouldUpsample) payload.disable_pup = true;
   if (typeof body.safetyTolerance === "number") payload.safety_tolerance = body.safetyTolerance;
-  references.forEach((reference, index) => {
+  normalizedReferences.forEach((reference, index) => {
     payload[index === 0 ? "input_image" : `input_image_${index + 1}`] = reference;
   });
 
@@ -128,12 +131,13 @@ export async function POST(request: NextRequest) {
     }
 
     const downloaded = await imageToDataUrl(sampleUrl);
+    const safePayload = redactImagePayload(payload);
     const runSettings = buildRunSettings({
       title: body.title || "bfl-generation",
       model,
       endpointName,
-      payload,
-      references,
+      payload: safePayload,
+      references: normalizedReferences,
       referenceWeight: body.referenceWeight,
       promptUpsampling: shouldUpsample,
       submitted
@@ -145,7 +149,7 @@ export async function POST(request: NextRequest) {
       model,
       endpointName,
       runSettings,
-      payload,
+      payload: safePayload,
       submit: {
         cost: submitted.cost ?? null,
         inputMp: submitted.input_mp ?? null,

@@ -26,7 +26,7 @@ export const presets = [
 ];
 
 export const defaultReferenceCue =
-  "Use image 1 for botanical silhouette, image 2 for organic material texture, and image 3 for lighting mood while preserving the cybernetic flower as the dominant subject.";
+  "Use @img1 / image 1 as the primary visual reference for subject identity, pose, anatomy, and material. Use @img2+ / later images only for secondary environment, style, lighting, or texture cues when present.";
 
 export function formatPrompt(raw: string) {
   try {

@@ -23,7 +23,7 @@ export type ProviderImageTool = {
   maxCanvasMegapixels?: number;
 };
 
-export const BFL_MAX_REFERENCES = 10;
+export const BFL_MAX_REFERENCES = 8;
 export const BFL_MAX_MEGAPIXELS = 4;
 
 export const bflModels: ProviderModel[] = [

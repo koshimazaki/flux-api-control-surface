@@ -19,10 +19,10 @@ describe("BFL provider registry", () => {
   it("validates output size and reference count for generation", () => {
     const model = getBflModel("pro-preview")!;
 
-    expect(validateBflGenerationRequest({ model, width: 1024, height: 1024, referenceCount: 10 })).toBe("");
+    expect(validateBflGenerationRequest({ model, width: 1024, height: 1024, referenceCount: 8 })).toBe("");
     expect(validateBflGenerationRequest({ model, width: 4096, height: 4096, referenceCount: 0 })).toMatch(/4 MP/);
-    expect(validateBflGenerationRequest({ model, width: 1024, height: 1024, referenceCount: 11 })).toMatch(
-      /10 reference images/
+    expect(validateBflGenerationRequest({ model, width: 1024, height: 1024, referenceCount: 9 })).toMatch(
+      /8 reference images/
     );
   });
 

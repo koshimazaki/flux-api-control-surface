@@ -47,6 +47,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             submittedReferenceCue={state.effectiveReferenceCue}
             promptSourceAsset={state.promptSourceAsset}
             onReferenceDropPayload={state.addAssetToPromptReferences}
+            onReferenceFiles={state.addPromptReferenceFiles}
             onImport={state.importPromptJson}
             onSave={() => void state.savePrompt()}
             onSaveAsNew={() => void state.savePrompt(true)}

@@ -27,6 +27,19 @@ export function composePrompt(baseText: string, references: ReferenceImage[], re
     : base;
 }
 
+export function promptImageTokenNumbers(prompt: string) {
+  const seen = new Set<number>();
+  for (const match of prompt.matchAll(/@img(\d+)/gi)) {
+    const index = Number(match[1]);
+    if (Number.isInteger(index) && index > 0) seen.add(index);
+  }
+  return Array.from(seen).sort((left, right) => left - right);
+}
+
+export function missingPromptImageTokens(prompt: string, references: ReferenceImage[]) {
+  return promptImageTokenNumbers(prompt).filter((index) => !references[index - 1]?.value);
+}
+
 export function clampReferenceWeight(value: number) {
   return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : 80));
 }
@@ -41,6 +54,23 @@ export function referenceWeightCue(weight: number) {
 
 export function weightedReferenceCue(referenceCue: string, weight: number) {
   return `${referenceCue.trim()}\n${referenceWeightCue(weight)}`.trim();
+}
+
+export function buildReferenceCue(referenceCue: string, weight: number, references: ReferenceImage[]) {
+  const activeReferences = references.filter((reference) => Boolean(reference.value));
+  const referenceMap = activeReferences.map((reference, index) => {
+    const imageField = index === 0 ? "input_image" : `input_image_${index + 1}`;
+    const name = reference.name || `Reference ${index + 1}`;
+    return `@img${index + 1} / image ${index + 1}: ${name}. Sent to FLUX as ${imageField}.`;
+  });
+  const parts = [
+    referenceMap.length
+      ? `Attached reference map:\n${referenceMap.join("\n")}`
+      : "",
+    referenceCue.trim(),
+    referenceWeightCue(weight)
+  ].filter(Boolean);
+  return parts.join("\n");
 }
 
 export function clampBatchCount(value: number) {

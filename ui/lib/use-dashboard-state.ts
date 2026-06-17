@@ -9,6 +9,7 @@ import {
   composePrompt,
   executePlannedGeneration,
   fetchRunPlan,
+  missingPromptImageTokens,
   type BatchProgress
 } from "@/lib/dashboard-generation";
 import { persistAssetImage } from "@/lib/dashboard-assets";
@@ -276,6 +277,19 @@ export function useDashboardState() {
       setError("No prompts available for the batch.");
       return;
     }
+    const plannedMissingImageTokens = Array.from(
+      new Set(
+        items.flatMap((item) =>
+          missingPromptImageTokens(String(item.body.prompt || ""), references)
+        )
+      )
+    ).sort((left, right) => left - right);
+    if (plannedMissingImageTokens.length) {
+      setError(
+        `Planned prompt references ${plannedMissingImageTokens.map((index) => `@img${index}`).join(", ")} but the matching image slot is empty. Add the image to References or remove the token.`
+      );
+      return;
+    }
     setError("");
     setIsGenerating(true);
     setActiveTab("runs");
@@ -341,13 +355,23 @@ export function useDashboardState() {
   function addAssetToPromptReferences(payload: string) {
     const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : payload;
     const asset = assets.find((item) => item.id === assetId);
-    if (!asset) return;
+    if (!asset) return null;
     const slot = addAssetReference(asset);
-    if (!slot) return;
+    if (!slot) return null;
     setWorkspaceMode("prompt");
     setRecoveryMessage(
       `Added ${asset.title || asset.id} as @img${slot}. The submitted prompt includes the reference roles cue.`
     );
+    return slot;
+  }
+  async function addPromptReferenceFiles(files: File[]) {
+    const slots = await addReferenceFiles(files);
+    if (!slots.length) return [];
+    setWorkspaceMode("prompt");
+    setRecoveryMessage(
+      `Added ${slots.map((slot) => `@img${slot}`).join(", ")} to prompt references.`
+    );
+    return slots;
   }
   function sendAssetToWorkspace(asset: AssetRecord, mode: Exclude<WorkspaceMode, "prompt">) {
     setToolSourceAssetId(asset.id);
@@ -518,6 +542,7 @@ export function useDashboardState() {
     undoDeletePrompt,
     importPromptJson,
     addReferenceFiles,
+    addPromptReferenceFiles,
     setPrimaryReferenceFiles,
     setPrimaryReferenceUrl,
     clearPrimaryReference,

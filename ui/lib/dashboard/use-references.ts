@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { readReferenceFiles, weightedReferenceCue } from "@/lib/dashboard-generation";
+import { buildReferenceCue, readReferenceFiles } from "@/lib/dashboard-generation";
 import { BFL_MAX_REFERENCES } from "@/lib/provider-registry";
 import { defaultReferenceCue } from "@/lib/prompt-utils";
 import type { AssetRecord, ReferenceImage } from "@/lib/types";
@@ -15,8 +15,8 @@ export function useReferences({ assets, setError }: UseReferencesDeps) {
   const [references, setReferences] = useState<ReferenceImage[]>([]);
 
   const effectiveReferenceCue = useMemo(
-    () => weightedReferenceCue(referenceCue, referenceWeight),
-    [referenceCue, referenceWeight]
+    () => buildReferenceCue(referenceCue, referenceWeight, references),
+    [referenceCue, referenceWeight, references]
   );
   const primaryReference = references[0];
   const primaryReferenceUrl = primaryReference?.value.startsWith("data:") ? "" : primaryReference?.value || "";
@@ -24,14 +24,18 @@ export function useReferences({ assets, setError }: UseReferencesDeps) {
 
   async function addReferenceFiles(files: File[]) {
     const slots = Math.max(0, BFL_MAX_REFERENCES - references.length);
-    if (!slots) return;
-    const loaded = await readReferenceFiles(files.slice(0, slots));
+    if (!slots) return [];
+    const selectedFiles = files.slice(0, slots);
+    const firstSlot = references.length + 1;
+    const loaded = await readReferenceFiles(selectedFiles);
     setReferences((current) => [...current, ...loaded].slice(0, BFL_MAX_REFERENCES));
+    return loaded.map((_, index) => firstSlot + index);
   }
   async function setPrimaryReferenceFiles(files: File[]) {
     const [loaded] = await readReferenceFiles(files.slice(0, 1));
-    if (!loaded) return;
+    if (!loaded) return null;
     setReferences((current) => [loaded, ...current.slice(1)].slice(0, BFL_MAX_REFERENCES));
+    return 1;
   }
   function setPrimaryReferenceUrl(value: string) {
     setReferences((current) => {

@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildReferenceCue,
   clampBatchCount,
   clampReferenceWeight,
   composePrompt,
   countPairPermutations,
+  missingPromptImageTokens,
+  promptImageTokenNumbers,
   parseSeed
 } from "@/lib/dashboard-generation";
 import type { ReferenceImage } from "@/lib/types";
@@ -58,5 +61,32 @@ describe("composePrompt", () => {
     const out = composePrompt("a flower", [ref("https://x/y.png")], "use img1 for shape");
     expect(out).toContain("a flower");
     expect(out).toContain("Reference roles: use img1 for shape");
+  });
+});
+
+describe("prompt image tokens", () => {
+  it("extracts unique @img token numbers in order", () => {
+    expect(promptImageTokenNumbers("Use @img2, @IMG1 and @img2 again")).toEqual([1, 2]);
+  });
+
+  it("reports tokens that do not have a populated reference slot", () => {
+    const references: ReferenceImage[] = [
+      { id: "one", name: "one", value: "https://x/one.png" },
+      { id: "two", name: "two", value: "" }
+    ];
+    expect(missingPromptImageTokens("Use @img1, @img2, and @img3", references)).toEqual([2, 3]);
+  });
+});
+
+describe("buildReferenceCue", () => {
+  it("maps @img tokens to FLUX input fields and includes reference weight", () => {
+    const cue = buildReferenceCue("Use the first image for the creature.", 100, [
+      { id: "one", name: "creature.png", value: "https://x/one.png" },
+      { id: "two", name: "portal.png", value: "https://x/two.png" }
+    ]);
+    expect(cue).toContain("@img1 / image 1: creature.png. Sent to FLUX as input_image.");
+    expect(cue).toContain("@img2 / image 2: portal.png. Sent to FLUX as input_image_2.");
+    expect(cue).toContain("Use the first image for the creature.");
+    expect(cue).toContain("Reference influence: 100/100");
   });
 });
