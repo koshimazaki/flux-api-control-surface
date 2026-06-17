@@ -13,6 +13,7 @@ const LIBRARY_LABELS: Record<string, string> = {
   cybernetic_flowers: "Cyber Flowers",
   audio_reactive_objects: "Product Objects",
   nonhuman_species: "Non-Human Species",
+  holodeck_jungle_portal: "Holodeck Jungle Portal",
   theme_studies: "Theme Studies",
   custom_prompts: "Custom",
   audio_sequences: "Audio Sequences",
