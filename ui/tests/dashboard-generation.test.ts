@@ -6,7 +6,9 @@ import {
   composePrompt,
   countPairPermutations,
   missingPromptImageTokens,
+  missingPromptReferenceRoleTokens,
   promptImageTokenNumbers,
+  promptReferenceRoleTokens,
   parseSeed
 } from "@/lib/dashboard-generation";
 import type { ReferenceImage } from "@/lib/types";
@@ -78,14 +80,36 @@ describe("prompt image tokens", () => {
   });
 });
 
+describe("prompt reference role tokens", () => {
+  it("extracts semantic role tokens in order", () => {
+    expect(promptReferenceRoleTokens("As on @character, with @POSE and @character again")).toEqual([
+      "character",
+      "pose"
+    ]);
+  });
+
+  it("reports semantic role tokens without a populated matching role", () => {
+    const references: ReferenceImage[] = [
+      { id: "one", name: "one", value: "https://x/one.png", role: "character" },
+      { id: "two", name: "two", value: "", role: "pose" }
+    ];
+    expect(missingPromptReferenceRoleTokens("As on @character, posture from @pose, style from @style", references)).toEqual([
+      "pose",
+      "style"
+    ]);
+  });
+});
+
 describe("buildReferenceCue", () => {
   it("maps @img tokens to FLUX input fields and includes reference weight", () => {
     const cue = buildReferenceCue("Use the first image for the creature.", 100, [
-      { id: "one", name: "creature.png", value: "https://x/one.png" },
-      { id: "two", name: "portal.png", value: "https://x/two.png" }
+      { id: "one", name: "creature.png", value: "https://x/one.png", role: "character" },
+      { id: "two", name: "portal.png", value: "https://x/two.png", role: "environment" }
     ]);
-    expect(cue).toContain("@img1 / image 1: creature.png. Sent to FLUX as input_image.");
-    expect(cue).toContain("@img2 / image 2: portal.png. Sent to FLUX as input_image_2.");
+    expect(cue).toContain("@character / @img1 / image 1: creature.png. Role: Character. Sent to FLUX as input_image.");
+    expect(cue).toContain("@environment / @img2 / image 2: portal.png. Role: Environment. Sent to FLUX as input_image_2.");
+    expect(cue).toContain("Use this image for the character identity");
+    expect(cue).toContain("Use this image for environment");
     expect(cue).toContain("Use the first image for the creature.");
     expect(cue).toContain("Reference influence: 100/100");
   });

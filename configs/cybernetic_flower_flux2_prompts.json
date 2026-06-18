@@ -1,5 +1,17 @@
 [
   {
+    "id": "football_character_jungle_flight_11s",
+    "domain": "holodeck_jungle_portal",
+    "seed": 4301,
+    "species": "audio-reactive football character flight",
+    "location": "humid jungle island with ocean, portal energy, and glowing orbs",
+    "shot_type": "11 second role-reference video prompt",
+    "lighting": "cinematic HDR sports advert lighting with wet jungle highlights",
+    "plant_form": "elite football player flying through humid jungle with a real soccer football",
+    "prompt_format": "video_sequence_role_reference",
+    "prompt": "Ultra-realistic cinematic football advert inside a supernatural humid jungle island. As on @character: use the Character reference as the main subject, a single elite football player with realistic anatomy, wet skin, sweat, athletic motion, damp football kit fabric, muddy boots, and a real soccer football. Preserve the character identity, outfit colors, body type, and face from @character, but place him into a cinematic jungle island world. The player flies forward through a dense tropical jungle island surrounded by ocean, moving toward a distant evil energy portal crackling above the forest. The air is moist and heavy, with mist, wet leaves, moss, splashing droplets, ocean spray, and glowing particles. Floating glowing orbs around the island pulse, bounce, resize, and flare to the music; plants, mist, portal energy, and orbs all react rhythmically to the beat. The player controls the football midair while flying, body stretched in a powerful athletic pose, one leg extended near the ball as if preparing for an impossible aerial shot. The football spins with crisp panel detail, catches highlights, and leaves a subtle humid mist trail. On bass impacts, sweat droplets, water beads, leaves, dust, and portal sparks burst outward with natural motion blur. Camera: dynamic side-tracking sports-ad shot, slightly low angle, focused on the player's legs, boots, ball, torso, and flight path. Slow controlled zoom toward the football and lower body, shallow depth of field, creamy bokeh, cinematic HDR highlights, photorealistic 8K realism, subtle 35mm grain. Style: premium high-budget football commercial, ultra-realistic, wet tropical atmosphere, glossy sports lighting, dramatic jungle VFX, realistic motion blur, sweat, moisture, bokeh, sharp product-like focus on the football and athlete. Use @pose for flying or landing posture only if a Pose reference is attached. Use @environment only if an Environment reference is attached. Use @vid1 as timing reference only if supplied. No official club logos, no readable sponsor text, no scoreboard, no subtitles, no UI, no abstract metronome graphics, no flat shader look, no anime styling. Everything should feel physical, cinematic, humid, and audio-reactive."
+  },
+  {
     "id": "holodeck_reference_creature",
     "domain": "holodeck_jungle_portal",
     "seed": 4201,

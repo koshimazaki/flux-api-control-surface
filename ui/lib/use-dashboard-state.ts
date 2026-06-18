@@ -10,6 +10,7 @@ import {
   executePlannedGeneration,
   fetchRunPlan,
   missingPromptImageTokens,
+  missingPromptReferenceRoleTokens,
   type BatchProgress
 } from "@/lib/dashboard-generation";
 import { persistAssetImage } from "@/lib/dashboard-assets";
@@ -24,6 +25,7 @@ import {
 } from "@/lib/dashboard-tools";
 import { formatPrompt } from "@/lib/prompt-utils";
 import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions } from "@/lib/pricing";
+import { referenceRoleConfig } from "@/lib/reference-roles";
 import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
 import { useBalance } from "@/lib/dashboard/use-balance";
 import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
@@ -34,6 +36,7 @@ import type {
   AssetRecord,
   BatchMode,
   DashboardTab,
+  ReferenceRole,
   WorkspaceMode
 } from "@/lib/types";
 
@@ -227,10 +230,11 @@ export function useDashboardState() {
     const badges: Record<string, AssetBadge[]> = {};
     references.forEach((reference, index) => {
       if (!reference.assetId) return;
+      const role = referenceRoleConfig(reference.role, index);
       (badges[reference.assetId] ||= []).push({
-        label: `@img${index + 1}`,
+        label: `${role.shortLabel} @img${index + 1}`,
         kind: "reference",
-        title: `Prompt reference ${index + 1}: ${reference.name}`
+        title: `${role.label} reference ${index + 1}: ${reference.name}`
       });
     });
     Object.entries(audioAssignments).forEach(([assetId, token]) => {
@@ -284,9 +288,22 @@ export function useDashboardState() {
         )
       )
     ).sort((left, right) => left - right);
+    const plannedMissingRoleTokens = Array.from(
+      new Set(
+        items.flatMap((item) =>
+          missingPromptReferenceRoleTokens(String(item.body.prompt || ""), references)
+        )
+      )
+    );
     if (plannedMissingImageTokens.length) {
       setError(
         `Planned prompt references ${plannedMissingImageTokens.map((index) => `@img${index}`).join(", ")} but the matching image slot is empty. Add the image to References or remove the token.`
+      );
+      return;
+    }
+    if (plannedMissingRoleTokens.length) {
+      setError(
+        `Planned prompt references ${plannedMissingRoleTokens.map((role) => `@${role}`).join(", ")} but the matching role has no image. Add an image to that reference role or remove the token.`
       );
       return;
     }
@@ -352,24 +369,26 @@ export function useDashboardState() {
     setRecoveryMessage(`Loaded prompt from ${asset.title || asset.id}.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  function addAssetToPromptReferences(payload: string) {
+  function addAssetToPromptReferences(payload: string, role?: ReferenceRole) {
     const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : payload;
     const asset = assets.find((item) => item.id === assetId);
     if (!asset) return null;
-    const slot = addAssetReference(asset);
+    const slot = addAssetReference(asset, role);
     if (!slot) return null;
+    const referenceRole = referenceRoleConfig(role, slot - 1);
     setWorkspaceMode("prompt");
     setRecoveryMessage(
-      `Added ${asset.title || asset.id} as @img${slot}. The submitted prompt includes the reference roles cue.`
+      `Added ${asset.title || asset.id} as ${referenceRole.label} @img${slot}. The submitted prompt includes the reference roles cue.`
     );
     return slot;
   }
-  async function addPromptReferenceFiles(files: File[]) {
-    const slots = await addReferenceFiles(files);
+  async function addPromptReferenceFiles(files: File[], role?: ReferenceRole) {
+    const slots = await addReferenceFiles(files, role);
     if (!slots.length) return [];
+    const roleLabel = role ? `${referenceRoleConfig(role).label} ` : "";
     setWorkspaceMode("prompt");
     setRecoveryMessage(
-      `Added ${slots.map((slot) => `@img${slot}`).join(", ")} to prompt references.`
+      `Added ${roleLabel}${slots.map((slot) => `@img${slot}`).join(", ")} to prompt references.`
     );
     return slots;
   }

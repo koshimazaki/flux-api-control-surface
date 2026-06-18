@@ -15,8 +15,11 @@ export type ReferenceImage = {
   id: string;
   name: string;
   value: string;
+  role?: ReferenceRole;
   assetId?: string;
 };
+
+export type ReferenceRole = "character" | "style" | "environment" | "pose" | "loose";
 
 export type BatchMode = "current" | "library" | "permutations";
 

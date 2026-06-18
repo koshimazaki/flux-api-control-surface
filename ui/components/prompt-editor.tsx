@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Clipboard, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { PanelHeader } from "@/components/ui/panel-header";
+import {
+  referenceDisplayName,
+  referencePreviewSrc,
+  referenceRoleConfig,
+  referenceRoleToken,
+  referenceToken
+} from "@/lib/reference-roles";
 import type { AssetRecord, PromptRecord, ReferenceImage } from "@/lib/types";
 import { applyPresetToPrompt, compactPrompt, presets } from "@/lib/prompt-utils";
 
@@ -38,7 +45,9 @@ export function PromptEditor({
 }: PromptEditorProps) {
   const [activePresetId, setActivePresetId] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const activeReferences = references.filter((reference) => Boolean(reference.value));
+  const activeReferences = references
+    .map((reference, index) => ({ reference, index }))
+    .filter(({ reference }) => Boolean(reference.value));
 
   // Clear the "plugged in" indicator when a different prompt is loaded.
   useEffect(() => {
@@ -57,7 +66,11 @@ export function PromptEditor({
 
   function insertImageTokens(slots: number[]) {
     if (!slots.length) return;
-    const tokens = slots.map((slot) => `@img${slot}`).join(" ");
+    insertPromptToken(slots.map((slot) => `@img${slot}`).join(" "));
+  }
+
+  function insertPromptToken(tokens: string) {
+    if (!tokens.trim()) return;
     const textarea = textareaRef.current;
     const start = textarea?.selectionStart ?? promptText.length;
     const end = textarea?.selectionEnd ?? start;
@@ -65,10 +78,10 @@ export function PromptEditor({
     const after = promptText.slice(end);
     const prefix = before && !/\s$/.test(before) ? " " : "";
     const suffix = after && !/^\s/.test(after) ? " " : "";
-    const nextValue = `${before}${prefix}${tokens}${suffix}${after}`;
+    const nextValue = `${before}${prefix}${tokens.trim()}${suffix}${after}`;
     editPrompt(nextValue);
     window.setTimeout(() => {
-      const cursor = start + prefix.length + tokens.length;
+      const cursor = start + prefix.length + tokens.trim().length;
       textarea?.focus();
       textarea?.setSelectionRange(cursor, cursor);
     }, 0);
@@ -148,12 +161,31 @@ export function PromptEditor({
                 <span>{activeReferences.length} image{activeReferences.length === 1 ? "" : "s"}</span>
               </div>
               <div className="promptReferenceChips">
-                {activeReferences.map((reference, index) => (
-                  <span key={reference.id}>
-                    <b>@img{index + 1}</b>
-                    {reference.name}
-                  </span>
-                ))}
+                {activeReferences.map(({ reference, index }) => {
+                  const role = referenceRoleConfig(reference.role, index);
+                  const preview = referencePreviewSrc(reference);
+                  const token = referenceToken(index);
+                  const roleToken = referenceRoleToken(role.id, index);
+                  return (
+                    <button
+                      type="button"
+                      key={reference.id}
+                      className="promptReferenceChip"
+                      title={`Insert ${roleToken} (${token})`}
+                      onClick={() => insertPromptToken(roleToken)}
+                    >
+                      {preview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={preview} alt="" />
+                      ) : (
+                        <i>{index + 1}</i>
+                      )}
+                      <b>{roleToken}</b>
+                      <em>{token}</em>
+                      <span>{referenceDisplayName(reference, index)}</span>
+                    </button>
+                  );
+                })}
               </div>
               <p>{submittedReferenceCue}</p>
             </>

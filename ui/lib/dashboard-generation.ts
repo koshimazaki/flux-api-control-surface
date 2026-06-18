@@ -1,6 +1,14 @@
 import { compactPrompt } from "./prompt-utils";
 import { estimateTokens } from "./pricing";
-import type { AssetRecord, BatchMode, ReferenceImage, RunLogEntry } from "./types";
+import {
+  normalizeReferenceRole,
+  referenceDisplayName,
+  referenceRoleConfig,
+  referenceRoleToken,
+  referenceRoleTokenPattern,
+  referenceToken
+} from "./reference-roles";
+import type { AssetRecord, BatchMode, ReferenceImage, ReferenceRole, RunLogEntry } from "./types";
 
 export type BatchProgress = { current: number; total: number };
 
@@ -40,6 +48,23 @@ export function missingPromptImageTokens(prompt: string, references: ReferenceIm
   return promptImageTokenNumbers(prompt).filter((index) => !references[index - 1]?.value);
 }
 
+export function promptReferenceRoleTokens(prompt: string) {
+  const seen = new Set<ReferenceRole>();
+  for (const match of prompt.matchAll(referenceRoleTokenPattern)) {
+    seen.add(normalizeReferenceRole(match[1]));
+  }
+  return Array.from(seen);
+}
+
+export function missingPromptReferenceRoleTokens(prompt: string, references: ReferenceImage[]) {
+  const activeRoles = new Set(
+    references
+      .map((reference, index) => (reference.value ? normalizeReferenceRole(reference.role, index) : null))
+      .filter(Boolean) as ReferenceRole[]
+  );
+  return promptReferenceRoleTokens(prompt).filter((role) => !activeRoles.has(role));
+}
+
 export function clampReferenceWeight(value: number) {
   return Math.max(0, Math.min(100, Number.isFinite(value) ? Math.round(value) : 80));
 }
@@ -60,8 +85,14 @@ export function buildReferenceCue(referenceCue: string, weight: number, referenc
   const activeReferences = references.filter((reference) => Boolean(reference.value));
   const referenceMap = activeReferences.map((reference, index) => {
     const imageField = index === 0 ? "input_image" : `input_image_${index + 1}`;
-    const name = reference.name || `Reference ${index + 1}`;
-    return `@img${index + 1} / image ${index + 1}: ${name}. Sent to FLUX as ${imageField}.`;
+    const name = referenceDisplayName(reference, index);
+    const role = referenceRoleConfig(reference.role, index);
+    return [
+      `${referenceRoleToken(role.id)} / ${referenceToken(index)} / image ${index + 1}: ${name}.`,
+      `Role: ${role.label}.`,
+      `Sent to FLUX as ${imageField}.`,
+      role.cue
+    ].join(" ");
   });
   const parts = [
     referenceMap.length

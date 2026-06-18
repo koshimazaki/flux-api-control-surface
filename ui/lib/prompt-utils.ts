@@ -26,7 +26,7 @@ export const presets = [
 ];
 
 export const defaultReferenceCue =
-  "Use @img1 / image 1 as the primary visual reference for subject identity, pose, anatomy, and material. Use @img2+ / later images only for secondary environment, style, lighting, or texture cues when present.";
+  "Use the attached reference role map as binding intent: @character controls identity, @style controls aesthetic, @environment controls world/setting, @pose controls posture and camera, and @loose references are secondary accents. When prompt text mentions a role token or @img token, obey that token-specific instruction over the default slot order.";
 
 export function formatPrompt(raw: string) {
   try {

@@ -3,7 +3,15 @@ import { IconButton } from "@/components/ui/icon-button";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
-import type { BatchMode, ReferenceImage } from "@/lib/types";
+import {
+  referenceDisplayName,
+  referencePreviewSrc,
+  referenceRoleConfig,
+  referenceRoleOptions,
+  referenceRoleToken,
+  referenceToken
+} from "@/lib/reference-roles";
+import type { AssetRecord, BatchMode, ReferenceImage, ReferenceRole } from "@/lib/types";
 import { estimateMegapixels, modelOptions } from "@/lib/pricing";
 
 const REFERENCE_WEIGHT_STEPS = [
@@ -24,6 +32,7 @@ type RunPanelProps = {
   selectedPromptCount: number;
   permutationPairCount: number;
   batchProgress: { current: number; total: number } | null;
+  assets: AssetRecord[];
   references: ReferenceImage[];
   primaryReferenceUrl: string;
   primaryReferencePreview?: string;
@@ -44,12 +53,13 @@ type RunPanelProps = {
   onBatchModeChange: (value: BatchMode) => void;
   onReferencesChange: (value: ReferenceImage[]) => void;
   onPrimaryReferenceUrlChange: (value: string) => void;
-  onPrimaryReferenceFiles: (files: File[]) => void;
+  onPrimaryReferenceFiles: (files: File[], role?: ReferenceRole) => void;
   onClearPrimaryReference: () => void;
   onReferenceWeightChange: (value: number) => void;
   onReferenceCueChange: (value: string) => void;
-  onReferenceFiles: (files: File[]) => void;
-  onReferenceDropPayload: (payload: string) => void;
+  onReferenceFiles: (files: File[], role?: ReferenceRole) => void;
+  onReferenceDropPayload: (payload: string, role?: ReferenceRole) => void;
+  onReferenceAssetSelect: (assetId: string, role?: ReferenceRole) => void;
   onGenerate: () => void;
 };
 
@@ -66,6 +76,36 @@ export function RunPanel(props: RunPanelProps) {
     0
   );
   const referenceWeightLabel = REFERENCE_WEIGHT_STEPS[referenceWeightIndex].label;
+  const galleryAssets = props.assets || [];
+  const primaryRole = referenceRoleConfig(props.references[0]?.role, 0);
+  const referencesWithIndex = props.references.map((reference, index) => ({ reference, index }));
+  const referencedAssetSlots = new Map(
+    referencesWithIndex
+      .filter(({ reference }) => reference.assetId)
+      .map(({ reference, index }) => [reference.assetId, `${referenceToken(index)} ${referenceRoleConfig(reference.role, index).shortLabel}`])
+  );
+  const activeReferencesByRole = referenceRoleOptions.map((role) => ({
+    role,
+    references: referencesWithIndex.filter(
+      ({ reference, index }) => Boolean(reference.value) && referenceRoleConfig(reference.role, index).id === role.id
+    )
+  }));
+
+  function updateReference(id: string, patch: Partial<ReferenceImage>) {
+    props.onReferencesChange(props.references.map((reference) => (reference.id === id ? { ...reference, ...patch } : reference)));
+  }
+
+  function handleReferenceDrop(event: React.DragEvent, role?: ReferenceRole) {
+    event.preventDefault();
+    const payload =
+      event.dataTransfer.getData("application/x-bfl-image-option") ||
+      event.dataTransfer.getData("text/plain");
+    if (payload.startsWith("asset:")) {
+      props.onReferenceDropPayload(payload, role);
+      return;
+    }
+    props.onReferenceFiles(Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")), role);
+  }
 
   return (
     <aside className="panel controls">
@@ -171,20 +211,65 @@ export function RunPanel(props: RunPanelProps) {
         )}
       </div>
 
+      <div className="referenceRoleGrid">
+        {activeReferencesByRole.map(({ role, references }) => (
+          <div
+            className={references.length ? "referenceRoleDrop active" : "referenceRoleDrop"}
+            key={role.id}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => handleReferenceDrop(event, role.id)}
+            title={role.cue}
+          >
+            <div>
+              <strong>
+                {role.label}
+                <code>{referenceRoleToken(role.id)}</code>
+              </strong>
+              <small>{role.hint}</small>
+            </div>
+            <select
+              className="referenceRoleAssetSelect"
+              value=""
+              disabled={!galleryAssets.length}
+              aria-label={`Add ${role.label} reference from gallery`}
+              onChange={(event) => {
+                const assetId = event.currentTarget.value;
+                if (assetId) props.onReferenceAssetSelect(assetId, role.id);
+              }}
+            >
+              <option value="">{galleryAssets.length ? "Add from gallery" : "No gallery images"}</option>
+              {galleryAssets.map((asset) => {
+                const slot = referencedAssetSlots.get(asset.id);
+                return (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.title || asset.id}{slot ? ` (${slot})` : ""}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="referenceRoleThumbs">
+              {references.length ? (
+                references.slice(0, 3).map(({ reference, index }) => {
+                  const preview = referencePreviewSrc(reference);
+                  return preview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={reference.id} src={preview} alt={referenceDisplayName(reference, index)} />
+                  ) : (
+                    <span key={reference.id}>{referenceToken(index)}</span>
+                  );
+                })
+              ) : (
+                <span>Drop</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div
         className="referenceDropzone"
         onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault();
-          const payload =
-            event.dataTransfer.getData("application/x-bfl-image-option") ||
-            event.dataTransfer.getData("text/plain");
-          if (payload.startsWith("asset:")) {
-            props.onReferenceDropPayload(payload);
-            return;
-          }
-          props.onReferenceFiles(Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")));
-        }}
+        onDrop={(event) => handleReferenceDrop(event)}
       >
         <Database size={15} />
         <span>Drop gallery cards or image files here, or paste hosted URLs below</span>
@@ -209,6 +294,20 @@ export function RunPanel(props: RunPanelProps) {
           onChange={(event) => props.onPrimaryReferenceUrlChange(event.target.value)}
           placeholder="Reference image URL"
         />
+        <select
+          value={primaryRole.id}
+          disabled={!props.references[0]}
+          onChange={(event) => {
+            if (props.references[0]) updateReference(props.references[0].id, { role: event.target.value as ReferenceRole });
+          }}
+          aria-label="Primary reference role"
+        >
+          {referenceRoleOptions.map((role) => (
+            <option key={role.id} value={role.id}>
+              {role.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="referenceWeightControl">
@@ -241,33 +340,43 @@ export function RunPanel(props: RunPanelProps) {
       </div>
 
       <div className="referenceList">
-        {props.references.slice(1).map((reference, index) => (
-          <div className="referenceItem" key={reference.id}>
-            {reference.value.startsWith("data:") ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={reference.value} alt={reference.name} />
-            ) : (
-              <div className="referenceIndex">{index + 2}</div>
-            )}
-            <input
-              value={reference.value}
-              placeholder={`Image ${index + 2} URL or data URL`}
-              onChange={(event) =>
-                props.onReferencesChange(
-                  props.references.map((item) =>
-                    item.id === reference.id ? { ...item, value: event.target.value } : item
-                  )
-                )
-              }
-            />
-            <button
-              title="Remove reference"
-              onClick={() => props.onReferencesChange(props.references.filter((item) => item.id !== reference.id))}
-            >
-              x
-            </button>
-          </div>
-        ))}
+        {props.references.slice(1).map((reference, index) => {
+          const slotIndex = index + 1;
+          const role = referenceRoleConfig(reference.role, slotIndex);
+          const preview = referencePreviewSrc(reference);
+          return (
+            <div className="referenceItem" key={reference.id}>
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview} alt={referenceDisplayName(reference, slotIndex)} />
+              ) : (
+                <div className="referenceIndex">{slotIndex + 1}</div>
+              )}
+              <select
+                value={role.id}
+                aria-label={`${referenceToken(slotIndex)} role`}
+                onChange={(event) => updateReference(reference.id, { role: event.target.value as ReferenceRole })}
+              >
+                {referenceRoleOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={reference.value}
+                placeholder={`Image ${slotIndex + 1} URL or data URL`}
+                onChange={(event) => updateReference(reference.id, { value: event.target.value })}
+              />
+              <button
+                title="Remove reference"
+                onClick={() => props.onReferencesChange(props.references.filter((item) => item.id !== reference.id))}
+              >
+                x
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       <textarea

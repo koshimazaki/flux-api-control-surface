@@ -162,6 +162,9 @@ managed `-finetuned` Klein endpoints with `finetune_id`.
 1. **`pipeline/generate_assets.py`** — API helper to bulk-generate themed source images for LTX
 2. **`klein-style-lora/`** — first FLUX.2 Klein style LoRA on a curated personal aesthetic (Glitch Candies, SIDKIT panel renders, or sonification visuals)
 3. **`flux2-multi-reference/`** — exploration of FLUX.2 multi-reference editing for subject/style consistency
+4. **`untwisting-rope-style-pass/`** — RunPod/Comfy spike for training-free
+   style transfer before motion/video stages; see
+   [`2026-06-16 - Untwisting RoPE Style Transfer Spike`](./notes/2026-06-16-untwisting-rope-style-transfer-spike.md)
 
 ## Next actions
 
@@ -171,6 +174,8 @@ managed `-finetuned` Klein endpoints with `finetune_id`.
 - [ ] Verify OAuth + credit balance via `get_credits`
 - [ ] Generate first batch of flower/bacteria/fabric source images
 - [ ] Clone AI-Toolkit, set up Klein training environment on RunPod
+- [ ] Smoke-test Untwisting RoPE as a RunPod Comfy style-transfer stage before
+  committing to a Klein LoRA path
 - [ ] Pick first Klein style target (Glitch Candies aesthetic, SIDKIT panel aesthetic, or sonification scientific aesthetic) — start with 27-image set per BFL example
 - [ ] Train first Klein style LoRA, evaluate, publish
 
@@ -184,3 +189,4 @@ managed `-finetuned` Klein endpoints with `finetune_id`.
 - [Klein Training Example](https://docs.bfl.ai/flux_2/flux2_klein_training_example)
 - [FLUX.2 LoRA Inference](https://docs.bfl.ai/flux_2/flux2_lora_inference)
 - [AI-Toolkit (ostris)](https://github.com/ostris/ai-toolkit)
+- [ComfyUi-Untwisting-RoPE](https://github.com/BigStationW/ComfyUi-Untwisting-RoPE)

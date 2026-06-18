@@ -11,6 +11,104 @@
   gap: 8px;
 }
 
+.referenceRoleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.referenceRoleDrop {
+  min-height: 104px;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 7px;
+  border: 1px dashed rgba(237, 237, 237, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+  padding: 8px;
+}
+
+.referenceRoleDrop.active {
+  border-style: solid;
+  border-color: rgba(159, 176, 157, 0.46);
+  background: rgba(85, 102, 89, 0.15);
+}
+
+.referenceRoleDrop strong,
+.referenceRoleDrop small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.referenceRoleDrop strong {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--cream);
+  font-size: 12px;
+}
+
+.referenceRoleDrop code {
+  min-width: 0;
+  border: 1px solid rgba(237, 237, 237, 0.16);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.34);
+  padding: 2px 6px;
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.referenceRoleDrop small {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+.referenceRoleAssetSelect {
+  height: 28px;
+  min-width: 0;
+  padding: 0 7px;
+  color: var(--soft);
+  font-size: 11px;
+}
+
+.referenceRoleAssetSelect:disabled {
+  color: var(--muted);
+}
+
+.referenceRoleThumbs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.referenceRoleThumbs img,
+.referenceRoleThumbs span {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.referenceRoleThumbs img {
+  object-fit: cover;
+}
+
+.referenceRoleThumbs span {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
 .fileButton {
   position: relative;
   overflow: hidden;
@@ -39,7 +137,7 @@
 .referenceUrlBar {
   min-height: 38px;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr) 98px;
   align-items: center;
   gap: 7px;
   padding: 5px 8px;
@@ -64,6 +162,13 @@
   background: transparent;
   box-shadow: none;
   padding: 0;
+}
+
+.referenceUrlBar select {
+  height: 28px;
+  min-width: 0;
+  padding: 0 6px;
+  font-size: 11px;
 }
 
 .referenceWeightControl {
@@ -125,7 +230,7 @@
 
 .referenceItem {
   display: grid;
-  grid-template-columns: 42px 1fr 34px;
+  grid-template-columns: 42px 86px minmax(0, 1fr) 34px;
   gap: 8px;
   align-items: center;
 }
@@ -151,8 +256,14 @@
   padding: 0;
 }
 
+.referenceItem select {
+  height: 34px;
+  min-width: 0;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
 .referenceCue {
   min-height: 72px;
   color: var(--grey-1);
 }
-

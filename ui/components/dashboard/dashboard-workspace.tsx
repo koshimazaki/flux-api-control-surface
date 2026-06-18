@@ -108,6 +108,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           selectedPromptCount={state.selectedComboIds.length}
           permutationPairCount={state.permutationPairCount}
           batchProgress={state.batchProgress}
+          assets={state.assets}
           references={state.references}
           primaryReferenceUrl={state.primaryReferenceUrl}
           primaryReferencePreview={state.primaryReferencePreview}
@@ -134,6 +135,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onReferenceCueChange={state.setReferenceCue}
           onReferenceFiles={state.addReferenceFiles}
           onReferenceDropPayload={state.addReferenceFromDragPayload}
+          onReferenceAssetSelect={(assetId, role) => state.addReferenceFromDragPayload(`asset:${assetId}`, role)}
           onGenerate={() => void state.generate()}
         />
       )}

@@ -259,7 +259,7 @@ pre::-webkit-scrollbar {
   gap: 5px;
 }
 
-.promptReferenceChips span {
+.promptReferenceChip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -267,14 +267,57 @@ pre::-webkit-scrollbar {
   border: 1px solid rgba(185, 181, 208, 0.45);
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.38);
-  padding: 4px 8px;
+  min-height: 30px;
+  padding: 3px 8px 3px 4px;
   color: var(--grey-1);
   font-size: 11px;
 }
 
-.promptReferenceChips b {
+.promptReferenceChip:hover {
+  border-color: rgba(159, 176, 157, 0.68);
+  background: rgba(85, 102, 89, 0.22);
+}
+
+.promptReferenceChip img,
+.promptReferenceChip i {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.promptReferenceChip img {
+  object-fit: cover;
+}
+
+.promptReferenceChip i {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-style: normal;
+}
+
+.promptReferenceChip b {
   color: var(--violet);
   font-family: var(--font-mono);
+}
+
+.promptReferenceChip em {
+  color: var(--cyan);
+  font-size: 10px;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+.promptReferenceChip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .promptReferenceStrip p {
