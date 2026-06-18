@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { outputPageFromUrl } from "@/lib/output-pagination";
 import { fetchRemoteOutputAssets } from "@/lib/remote-archive";
 import { readLocalOutputAssets } from "@/lib/server-output-store";
 import type { AssetRecord } from "@/lib/types";
@@ -15,11 +16,12 @@ function uniqueById(assets: AssetRecord[]) {
   });
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { limit, offset, includeData } = outputPageFromUrl(request.url);
   const [remoteAssets, localAssets] = await Promise.all([
-    fetchRemoteOutputAssets().catch(() => []),
-    readLocalOutputAssets()
+    fetchRemoteOutputAssets(limit, { includeImageData: includeData }).catch(() => []),
+    readLocalOutputAssets({ limit, offset, includeImageData: includeData })
   ]);
 
-  return NextResponse.json(uniqueById([...remoteAssets, ...localAssets]));
+  return NextResponse.json(uniqueById([...localAssets, ...remoteAssets]).slice(0, limit));
 }

@@ -10,6 +10,7 @@ import {
   pollResult,
   redactImagePayload,
   resolveApiKey,
+  resolveImageInput,
   saveOutputFiles
 } from "@/lib/bfl-server";
 import { embedPngMetadata } from "@/lib/png-metadata";
@@ -113,11 +114,17 @@ export async function POST(request: NextRequest) {
   if (!apiKey) return jsonError("FLUX API key is required");
   if (!tool || !toolConfig) return jsonError(`Unknown tool: ${tool || "(none)"}`);
 
+  const origin = new URL(request.url).origin;
+  const resolvedBody: ToolBody = {
+    ...body,
+    image: await resolveImageInput(body.image, origin),
+    mask: await resolveImageInput(body.mask, origin)
+  };
   const validation = validateToolBody(tool, body);
   if (validation) return jsonError(validation);
   const providerValidation = validateBflToolRequest({
     tool: toolConfig,
-    image: body.image,
+    image: resolvedBody.image,
     canvasWidth: body.canvasWidth,
     canvasHeight: body.canvasHeight,
     mode: body.mode
@@ -126,7 +133,7 @@ export async function POST(request: NextRequest) {
 
   const endpointName = toolConfig.endpoint;
   const outputFormat = body.outputFormat || "png";
-  const payload = buildToolPayload(tool, body, outputFormat);
+  const payload = buildToolPayload(tool, resolvedBody, outputFormat);
   const title = body.title || `${tool}-edit`;
   const promptForFiles = body.prompt?.trim() || `[${tool} pass, no prompt]`;
 

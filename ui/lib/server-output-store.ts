@@ -23,6 +23,12 @@ export type OutputManifestItem = {
   remoteMetadataKey?: string | null;
 };
 
+type OutputAssetReadOptions = {
+  limit?: number;
+  offset?: number;
+  includeImageData?: boolean;
+};
+
 async function walk(dir: string): Promise<string[]> {
   try {
     const entries = await readdir(dir, { withFileTypes: true });
@@ -60,6 +66,14 @@ function imageForBase(files: string[], base: string) {
   );
 }
 
+function outputIdFor(metadata: Record<string, unknown>, base: string) {
+  return typeof metadata.id === "string" && metadata.id ? metadata.id : path.basename(base);
+}
+
+function localOutputImageUrl(id: string) {
+  return `/api/outputs/${encodeURIComponent(id)}/image`;
+}
+
 export async function readLocalOutputManifest(): Promise<OutputManifestItem[]> {
   const files = (await Promise.all(OUTPUT_ROOTS.map((root) => walk(root)))).flat();
   const metadataFiles = files.filter((file) => file.endsWith(".json")).sort().reverse();
@@ -86,35 +100,44 @@ export async function readLocalOutputManifest(): Promise<OutputManifestItem[]> {
   );
 }
 
-export async function readLocalOutputAssets(): Promise<AssetRecord[]> {
+export async function readLocalOutputAssets(options: OutputAssetReadOptions = {}): Promise<AssetRecord[]> {
   const files = (await Promise.all(OUTPUT_ROOTS.map((root) => walk(root)))).flat();
   const metadataFiles = files.filter((file) => file.endsWith(".json")).sort().reverse();
+  const offset = Math.max(0, options.offset || 0);
+  const includeImageData = Boolean(options.includeImageData);
+  const selectedMetadataFiles =
+    typeof options.limit === "number"
+      ? metadataFiles.slice(offset, offset + Math.max(0, options.limit))
+      : metadataFiles.slice(offset);
 
   const assets = await Promise.all(
-    metadataFiles.map(async (metadataPath) => {
+    selectedMetadataFiles.map(async (metadataPath) => {
       const base = metadataPath.replace(/\.json$/, "");
       const imagePath = imageForBase(files, base);
       if (!imagePath) return null;
 
-      const [metadataText, imageBuffer, fileStat] = await Promise.all([
+      const [metadataText, fileStat] = await Promise.all([
         readFile(metadataPath, "utf8"),
-        readFile(imagePath),
         stat(imagePath)
       ]);
       const metadata = JSON.parse(metadataText);
+      const id = outputIdFor(metadata, base);
       const promptPath = `${base}.prompt.txt`;
       const prompt = metadata.payload?.prompt || (await readFile(promptPath, "utf8").catch(() => ""));
-      const imageDataUrl = `data:${imageMime(imagePath)};base64,${imageBuffer.toString("base64")}`;
+      const imageDataUrl = includeImageData
+        ? `data:${imageMime(imagePath)};base64,${(await readFile(imagePath)).toString("base64")}`
+        : "";
+      const imageUrl = imageDataUrl || localOutputImageUrl(id);
 
       return {
-        id: metadata.id || path.basename(base),
+        id,
         title: titleFromPath(metadataPath),
         createdAt: fileStat.birthtime.toISOString(),
         timestamp: fileStat.birthtimeMs,
         imageDataUrl,
-        imageUrl: imageDataUrl,
-        image_url: imageDataUrl,
-        sampleUrl: imageDataUrl,
+        imageUrl,
+        image_url: imageUrl,
+        sampleUrl: imageUrl,
         model: metadata.model || "bfl-api",
         prompt,
         status: "complete",
@@ -157,4 +180,23 @@ export async function readLocalOutputAssets(): Promise<AssetRecord[]> {
   );
 
   return assets.filter(Boolean) as AssetRecord[];
+}
+
+export async function findLocalOutputImage(id: string) {
+  const files = (await Promise.all(OUTPUT_ROOTS.map((root) => walk(root)))).flat();
+  const metadataFiles = files.filter((file) => file.endsWith(".json")).sort().reverse();
+
+  for (const metadataPath of metadataFiles) {
+    const base = metadataPath.replace(/\.json$/, "");
+    const metadata = JSON.parse(await readFile(metadataPath, "utf8").catch(() => "{}"));
+    if (outputIdFor(metadata, base) !== id && path.basename(base) !== id) continue;
+    const imagePath = imageForBase(files, base);
+    if (!imagePath) return null;
+    return {
+      imagePath,
+      contentType: imageMime(imagePath)
+    };
+  }
+
+  return null;
 }

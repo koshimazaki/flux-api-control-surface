@@ -95,8 +95,18 @@ async function requestArchiveJson<T>(path: string, init?: RequestInit): Promise<
   return data as T;
 }
 
+type RemoteAssetOptions = {
+  includeImageData?: boolean;
+};
+
+function outputImageUrl(id: string, source: "remote" | "local" = "remote") {
+  const params = source === "remote" ? "?source=remote" : "";
+  return `/api/outputs/${encodeURIComponent(id)}/image${params}`;
+}
+
 function assetFromRemote(row: RemoteAsset, imageDataUrl: string): AssetRecord {
   const createdAt = row.createdAt || new Date(row.timestamp || Date.now()).toISOString();
+  const imageUrl = imageDataUrl || outputImageUrl(row.id);
 
   return {
     id: row.id,
@@ -104,9 +114,9 @@ function assetFromRemote(row: RemoteAsset, imageDataUrl: string): AssetRecord {
     createdAt,
     timestamp: row.timestamp || Date.parse(createdAt) || Date.now(),
     imageDataUrl,
-    imageUrl: imageDataUrl,
-    image_url: imageDataUrl,
-    sampleUrl: imageDataUrl,
+    imageUrl,
+    image_url: imageUrl,
+    sampleUrl: imageUrl,
     model: row.model || "bfl-api",
     prompt: row.prompt || "",
     status: "complete",
@@ -129,7 +139,7 @@ function assetFromRemote(row: RemoteAsset, imageDataUrl: string): AssetRecord {
   };
 }
 
-async function fetchRemoteImageDataUrl(id: string) {
+export async function fetchRemoteImage(id: string) {
   const config = remoteArchiveConfig();
   if (!config) throw new Error("Remote archive is not configured");
 
@@ -141,6 +151,11 @@ async function fetchRemoteImageDataUrl(id: string) {
 
   const contentType = response.headers.get("content-type") || "image/png";
   const buffer = Buffer.from(await response.arrayBuffer());
+  return { buffer, contentType };
+}
+
+async function fetchRemoteImageDataUrl(id: string) {
+  const { buffer, contentType } = await fetchRemoteImage(id);
   return `data:${contentType};base64,${buffer.toString("base64")}`;
 }
 
@@ -283,7 +298,7 @@ export async function syncReferenceItemToRemote(options: {
   });
 }
 
-export async function fetchRemoteOutputAssets(limit = 200): Promise<AssetRecord[]> {
+export async function fetchRemoteOutputAssets(limit = 200, options: RemoteAssetOptions = {}): Promise<AssetRecord[]> {
   if (!remoteArchiveConfig()) return [];
 
   const data = await requestArchiveJson<{ assets: RemoteAsset[] }>(`/api/assets?limit=${limit}`);
@@ -291,7 +306,8 @@ export async function fetchRemoteOutputAssets(limit = 200): Promise<AssetRecord[
   const assets = await Promise.all(
     rows.map(async (row) => {
       try {
-        return assetFromRemote(row, await fetchRemoteImageDataUrl(row.id));
+        const imageDataUrl = options.includeImageData ? await fetchRemoteImageDataUrl(row.id) : "";
+        return assetFromRemote(row, imageDataUrl);
       } catch {
         return null;
       }

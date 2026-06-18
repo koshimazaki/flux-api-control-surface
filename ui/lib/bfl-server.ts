@@ -1,7 +1,9 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { toWorkspaceRelativePath } from "./local-paths";
 import { isBflPollFailureStatus } from "./provider-registry";
+import { fetchRemoteImage } from "./remote-archive";
+import { findLocalOutputImage } from "./server-output-store";
 
 export const BFL_API_BASE = "https://api.bfl.ai/v1";
 
@@ -113,6 +115,31 @@ export function normalizeImageInput(value?: string) {
   if (!value) return value;
   const match = value.match(/^data:[^,]*;base64,(.*)$/);
   return match ? match[1] : value;
+}
+
+function localOutputIdFromUrl(value: string, origin?: string) {
+  try {
+    const url = new URL(value, origin || "http://localhost");
+    if (origin && url.origin !== origin) return null;
+    const match = url.pathname.match(/^\/api\/outputs\/([^/]+)\/image$/);
+    return match ? { id: decodeURIComponent(match[1]), source: url.searchParams.get("source") } : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveImageInput(value?: string, origin?: string) {
+  if (!value) return value;
+  const outputId = localOutputIdFromUrl(value.trim(), origin);
+  if (outputId) {
+    if (outputId.source === "remote") {
+      const remote = await fetchRemoteImage(outputId.id).catch(() => null);
+      if (remote) return remote.buffer.toString("base64");
+    }
+    const output = await findLocalOutputImage(outputId.id);
+    if (output) return (await readFile(output.imagePath)).toString("base64");
+  }
+  return normalizeImageInput(value.trim());
 }
 
 export async function saveOutputFiles(options: {

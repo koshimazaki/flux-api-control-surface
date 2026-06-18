@@ -5,11 +5,11 @@ import {
   contentTypeForExtension,
   getCredits,
   imageToDataUrl,
-  normalizeImageInput,
   outputExtension,
   pollResult,
   redactImagePayload,
   resolveApiKey,
+  resolveImageInput,
   saveOutputFiles
 } from "@/lib/bfl-server";
 import { embedPngMetadata } from "@/lib/png-metadata";
@@ -86,8 +86,11 @@ export async function POST(request: NextRequest) {
   if (!prompt) return jsonError("Prompt is required");
   if (!modelConfig) return jsonError(`Unknown model: ${model}`);
 
+  const origin = new URL(request.url).origin;
   const references = Array.isArray(body.references) ? body.references.filter(Boolean) : [];
-  const normalizedReferences = references.map((reference) => normalizeImageInput(reference)).filter(Boolean) as string[];
+  const normalizedReferences = (
+    await Promise.all(references.map((reference) => resolveImageInput(reference, origin)))
+  ).filter(Boolean) as string[];
   const width = typeof body.width === "number" ? body.width : 1024;
   const height = typeof body.height === "number" ? body.height : 1024;
   const validation = validateBflGenerationRequest({
