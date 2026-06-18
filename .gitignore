@@ -17,6 +17,39 @@ venv/
 /outputs/
 /renders/
 /samples/
+/datasets/
+/caption-jobs/
+
+# Generated media/model artefacts are local by default. Force-add intentional
+# small docs examples explicitly if the public repo needs them.
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.avif
+*.mp4
+*.mov
+*.webm
+*.wav
+*.mp3
+*.flac
+*.aiff
+*.m4a
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx
+
+# Local/private prompt variants
+/prompts/private/
+/prompts/local/
+/configs/private_*.json
+/configs/local_*.json
+/configs/personal_*.json
+/experiments/**/local/
+/experiments/**/outputs/
 
 # Soft-deleted prompt recovery archive (local-only)
 /configs/deleted_prompts.json

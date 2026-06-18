@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { toWorkspaceRelativePath } from "./local-paths";
 import { estimateTokens } from "./pricing";
 import type { AssetRecord } from "./types";
 
@@ -15,10 +16,7 @@ export type OutputManifestItem = {
   imagePath?: string;
   promptPath?: string;
   metadataPath?: string;
-  sampleUrl?: string;
   costCredits?: number | null;
-  creditsBefore?: number | null;
-  creditsAfter?: number | null;
   createdAt?: string | null;
   remoteImageKey?: string | null;
   remotePromptKey?: string | null;
@@ -78,13 +76,10 @@ export async function readLocalOutputManifest(): Promise<OutputManifestItem[]> {
         title: path.basename(base),
         model: metadata.model,
         promptTokens: estimateTokens(metadata.payload?.prompt || ""),
-        imagePath,
-        promptPath: `${base}.prompt.txt`,
-        metadataPath,
-        sampleUrl: metadata.sampleUrl,
+        imagePath: imagePath ? toWorkspaceRelativePath(imagePath) : undefined,
+        promptPath: toWorkspaceRelativePath(`${base}.prompt.txt`),
+        metadataPath: toWorkspaceRelativePath(metadataPath),
         costCredits: metadata.submit?.cost ?? metadata.submit?.creditDelta ?? null,
-        creditsBefore: metadata.submit?.creditsBefore ?? null,
-        creditsAfter: metadata.submit?.creditsAfter ?? null,
         createdAt: fileStat?.birthtime.toISOString() || null
       };
     })
@@ -117,9 +112,9 @@ export async function readLocalOutputAssets(): Promise<AssetRecord[]> {
         createdAt: fileStat.birthtime.toISOString(),
         timestamp: fileStat.birthtimeMs,
         imageDataUrl,
-        imageUrl: metadata.sampleUrl || imageDataUrl,
-        image_url: metadata.sampleUrl || imageDataUrl,
-        sampleUrl: metadata.sampleUrl || imageDataUrl,
+        imageUrl: imageDataUrl,
+        image_url: imageDataUrl,
+        sampleUrl: imageDataUrl,
         model: metadata.model || "bfl-api",
         prompt,
         status: "complete",
@@ -154,12 +149,9 @@ export async function readLocalOutputAssets(): Promise<AssetRecord[]> {
         costCredits: metadata.submit?.cost ?? metadata.submit?.creditDelta ?? null,
         inputMp: metadata.submit?.inputMp ?? null,
         outputMp: metadata.submit?.outputMp ?? null,
-        creditsBefore: metadata.submit?.creditsBefore ?? null,
-        creditsAfter: metadata.submit?.creditsAfter ?? null,
-        creditDelta: metadata.submit?.creditDelta ?? null,
-        localImagePath: imagePath,
-        localPromptPath: promptPath,
-        localMetadataPath: metadataPath
+        localImagePath: toWorkspaceRelativePath(imagePath),
+        localPromptPath: toWorkspaceRelativePath(promptPath),
+        localMetadataPath: toWorkspaceRelativePath(metadataPath)
       } satisfies AssetRecord;
     })
   );

@@ -38,7 +38,7 @@ Before opening or deploying this control surface as a showcase/resource:
 
 - test it with several representative prompt batches and reference-image flows;
 - add a small set of safe example prompts and generated screenshots;
-- remove private prompts, output folders, account details, balances, and logs;
+- remove nonpublic prompts, output folders, account details, balances, and logs;
 - keep `.env.local` local-only and document that users need their own
   `BFL_API_KEY`;
 - prefer a local-first demo or token-protected archive over public server-side

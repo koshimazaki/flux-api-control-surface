@@ -48,4 +48,4 @@ Photorealistic 8K macro botanical realism, cybernetic alien flower design, cinem
 
 | Variant | Local file | Model | Metadata |
 |---|---|---|---|
-| `D2` | `/Users/radek/Downloads/D-2-magnific_create-a-video_seedance_720p_1-1_24fps_27064.mp4` | Seedance 2.0 Fast 720p | H.264 + AAC, 960x960, 24fps, 14.07s, 7.9M |
+| `D2` | `D-2-magnific_create-a-video_seedance_720p_1-1_24fps_27064.mp4` | Seedance 2.0 Fast 720p | H.264 + AAC, 960x960, 24fps, 14.07s, 7.9M |

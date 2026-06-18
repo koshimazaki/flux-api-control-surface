@@ -97,7 +97,6 @@ async function requestArchiveJson<T>(path: string, init?: RequestInit): Promise<
 
 function assetFromRemote(row: RemoteAsset, imageDataUrl: string): AssetRecord {
   const createdAt = row.createdAt || new Date(row.timestamp || Date.now()).toISOString();
-  const imageUrl = row.sampleUrl || row.imageUrl || imageDataUrl;
 
   return {
     id: row.id,
@@ -105,9 +104,9 @@ function assetFromRemote(row: RemoteAsset, imageDataUrl: string): AssetRecord {
     createdAt,
     timestamp: row.timestamp || Date.parse(createdAt) || Date.now(),
     imageDataUrl,
-    imageUrl,
-    image_url: imageUrl,
-    sampleUrl: row.sampleUrl || imageUrl,
+    imageUrl: imageDataUrl,
+    image_url: imageDataUrl,
+    sampleUrl: imageDataUrl,
     model: row.model || "bfl-api",
     prompt: row.prompt || "",
     status: "complete",
@@ -122,9 +121,6 @@ function assetFromRemote(row: RemoteAsset, imageDataUrl: string): AssetRecord {
     costCredits: row.costCredits ?? null,
     inputMp: row.inputMp ?? null,
     outputMp: row.outputMp ?? null,
-    creditsBefore: row.creditsBefore ?? null,
-    creditsAfter: row.creditsAfter ?? null,
-    creditDelta: row.creditDelta ?? null,
     remoteImageKey: row.remoteImageKey ?? null,
     remotePromptKey: row.remotePromptKey ?? null,
     remoteMetadataKey: row.remoteMetadataKey ?? null,
@@ -334,10 +330,7 @@ export async function fetchRemoteOutputManifest(limit = 200): Promise<OutputMani
     title: asset.title || asset.id,
     model: asset.model,
     promptTokens: estimateTokens(asset.prompt || ""),
-    sampleUrl: asset.sampleUrl || undefined,
     costCredits: asset.costCredits ?? null,
-    creditsBefore: asset.creditsBefore ?? null,
-    creditsAfter: asset.creditsAfter ?? null,
     createdAt: asset.createdAt || null,
     remoteImageKey: asset.remoteImageKey ?? null,
     remotePromptKey: asset.remotePromptKey ?? null,

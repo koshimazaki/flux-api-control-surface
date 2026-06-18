@@ -55,4 +55,4 @@ Photorealistic 8K macro botanical realism, cybernetic alien flower design, cinem
 
 | Variant | Local file | Model | Metadata |
 |---|---|---|---|
-| `D1` | `/Users/radek/Downloads/D-1-kling-magnific_create-a-video_kling_1080p_1-1_24fps_27063.mp4` | Kling Omni with Shots | H.264, 1440x1440, 24fps, 11.04s, 24M |
+| `D1` | `D-1-kling-magnific_create-a-video_kling_1080p_1-1_24fps_27063.mp4` | Kling Omni with Shots | H.264, 1440x1440, 24fps, 11.04s, 24M |

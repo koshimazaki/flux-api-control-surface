@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { toWorkspaceRelativePath } from "./local-paths";
 import { isBflPollFailureStatus } from "./provider-registry";
 
 export const BFL_API_BASE = "https://api.bfl.ai/v1";
@@ -147,5 +148,11 @@ export async function saveOutputFiles(options: {
     writeFile(metadataPath, JSON.stringify(metadataWithFiles, null, 2), "utf8")
   ]);
 
-  return { imagePath, promptPath, metadataPath, outputDir, fileBaseName: baseName };
+  return {
+    imagePath: toWorkspaceRelativePath(imagePath),
+    promptPath: toWorkspaceRelativePath(promptPath),
+    metadataPath: toWorkspaceRelativePath(metadataPath),
+    outputDir: toWorkspaceRelativePath(outputDir),
+    fileBaseName: baseName
+  };
 }

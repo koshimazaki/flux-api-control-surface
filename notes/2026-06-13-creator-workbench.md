@@ -4,7 +4,7 @@ Date: 2026-06-13
 Status: draft concept note
 
 This note sketches a shared creative workbench for the existing FLUX API Control Surface,
-audio-reactive shader tool, Holodeck world recorder, and downstream video/model
+audio-reactive shader tool, local 3D world recorder, and downstream video/model
 providers. The first implementation can stay BFL-native because that is the
 current working surface, but the architecture should be provider-agnostic.
 
@@ -14,7 +14,7 @@ Keep the individual engines separate, but give them one shared shell:
 
 - BFL / FLUX image generation and image-tool workspaces
 - Audio-reactive shader presets and recorder
-- Holodeck / React Three Fiber scene, camera, character, and recorder
+- Local 3D / React Three Fiber scene, camera, character, and recorder
 - LTX, fal, Seedance-style video models, RunPod sessions, local Comfy, and
   custom model endpoints
 
@@ -37,7 +37,7 @@ The shared layer should own:
 - Run history: raw job, resolved provider request, logs, outputs, metrics, and
   links back to all referenced assets.
 - MCP/agent API: a machine-facing way to alter parameters, combine prompts,
-  route audio, record shaders, control Holodeck, run inference, and return
+  route audio, record shaders, control local world scenes, run inference, and return
   assets to the library.
 
 ## Job Flow
@@ -78,16 +78,16 @@ The UI does not need to be the compute surface. Execution can happen through
 official APIs, a local endpoint, a RunPod session, or a cloud skill. The UI's
 main job is to capture intent and preserve state.
 
-## Shader To Holodeck
+## Shader To Local 3D
 
 Shader presets should export three useful forms:
 
 1. Video asset: render MP4/WebM, save to the library, use directly as a model
-   guide or place on a Holodeck screen.
+   guide or place on a local 3D screen.
 2. R3F material asset: when portable, wrap the shader as a Three.js material on
    a plane, cube, sphere, portal, sky, or other simple object.
 3. Proxy scene asset: export metadata describing shape, palette, beat routes,
-   and motion behavior. Holodeck can spawn an equivalent object such as a blob,
+   and motion behavior. The local 3D scene can spawn an equivalent object such as a blob,
    cube cluster, bouncing spheres, emissive plane, or particle field.
 
 Exact visual equivalence is not required for the proxy path. The important part
@@ -97,12 +97,12 @@ subject later.
 
 ## Runtime And Memory Management
 
-Because shaders, Holodeck, video recording, and audio analysis all touch heavy
+Because shaders, local 3D recording, video recording, and audio analysis all touch heavy
 browser resources, the shell should lazy-mount modules and expose simple switches:
 
-- Active module: BFL workbench, shader lab, Holodeck, audio, recorder.
+- Active module: BFL workbench, shader lab, local world, audio, recorder.
 - Inactive WebGL canvases pause or unmount.
-- One shared audio analysis service feeds shader and Holodeck routes when both
+- One shared audio analysis service feeds shader and local world routes when both
   are active.
 - Large generated media stays outside git and is referenced by manifest IDs.
 - Provider credentials stay local or server-side and are never written into
@@ -111,7 +111,7 @@ browser resources, the shell should lazy-mount modules and expose simple switche
 ## Provider Strategy
 
 Use official APIs whenever access exists. Use owned/local APIs for custom models,
-RunPod sessions, Comfy workflows, shader rendering, audio analysis, and Holodeck
+RunPod sessions, Comfy workflows, shader rendering, audio analysis, and local world
 recording. Browser automation of subscription websites is intentionally out of
 scope for the main architecture.
 
@@ -135,12 +135,12 @@ Near-term steps:
    providers/models rather than BFL-only concepts.
 2. Add a provider/model registry and a job manifest writer before broad visual
    redesign.
-3. Treat the shader tool and Holodeck as local providers: `local/shader-render`
-   and `local/holodeck-record`.
+3. Treat the shader tool and local world recorder as local providers:
+   `local/shader-render` and `local/world-record`.
 4. Add shared reference handles for prompt blocks, image refs, video guides,
    audio, masks, shader presets, and scene presets.
 5. Produce one end-to-end proof:
-   BFL image refs + audio-reactive shader/control video + Holodeck take +
+   BFL image refs + audio-reactive shader/control video + local 3D take +
    LTX/fal/RunPod inference + returned output manifest.
 
 ## Proof Target

@@ -14,4 +14,4 @@ Interpretation:
 
 | Variant | Local file | Model | Metadata |
 |---|---|---|---|
-| `C3` | `/Users/radek/Downloads/C3-magnific_use-motion-of-the-vid1-moving-in-and-out-and-style_seedance_1080p_1-1_24fps_38533.mp4` | Seedance 2.0, 1080 | H.264 + AAC, 1440x1440, 24fps, 12.05s, 12M |
+| `C3` | `C3-magnific_use-motion-of-the-vid1-moving-in-and-out-and-style_seedance_1080p_1-1_24fps_38533.mp4` | Seedance 2.0, 1080 | H.264 + AAC, 1440x1440, 24fps, 12.05s, 12M |

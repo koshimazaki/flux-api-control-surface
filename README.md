@@ -5,10 +5,9 @@ libraries, reference assets, output provenance, and agent-friendly local routes.
 The upstream provider adapter is currently Black Forest Labs because the FLUX
 API and MCP server live there, but the public tool is model/workflow-facing.
 
-This is intentionally one standalone demo lane inside the wider Demos repo, not
-the whole private creative system. Keep it light for FLUX API exploration now;
-the same patterns can later host Seedance, LTX, Holodeck, or other provider
-lanes.
+This is intentionally one standalone public demo lane inside the wider Demos
+repo. Keep it focused on FLUX API exploration now; the same patterns can later
+host video models, local recorders, or other provider lanes.
 
 ## Two tracks
 
@@ -92,7 +91,7 @@ dev-tool demo after more examples, testing, and a final secrets/output scrub. Se
 Current architecture note:
 [`2026-06-13 - Creator Workbench Architecture`](./notes/2026-06-13-creator-workbench.md)
 captures the draft direction for turning the FLUX API Control Surface, shader tool,
-Holodeck recorder, provider APIs, RunPod sessions, and MCP control into one
+local recorder, provider APIs, RunPod sessions, and MCP control into one
 shared asset/workflow layer.
 
 Use an uploaded BFL Finetune / Klein LoRA from the API:
@@ -155,12 +154,13 @@ managed `-finetuned` Klein endpoints with `finetune_id`.
 - The uploaded LoRA base model must match the endpoint
 - `finetune_strength` controls LoRA contribution; start at `1.0`, sweep down if it overpowers prompts
 
-**Compute:** any CUDA box. RunPod A100 / H100 viable; existing `/Users/radek/Documents/GIthub/LoRAdo/runpodctl` can launch.
+**Compute:** any CUDA box. RunPod A100 / H100 viable; use your preferred cloud
+GPU provider UI or CLI.
 
 ## Planned artefacts in this folder
 
 1. **`pipeline/generate_assets.py`** — API helper to bulk-generate themed source images for LTX
-2. **`klein-style-lora/`** — first FLUX.2 Klein style LoRA on a curated personal aesthetic (Glitch Candies, SIDKIT panel renders, or sonification visuals)
+2. **`klein-style-lora/`** — first FLUX.2 Klein style LoRA on a curated public visual dataset
 3. **`flux2-multi-reference/`** — exploration of FLUX.2 multi-reference editing for subject/style consistency
 4. **`untwisting-rope-style-pass/`** — RunPod/Comfy spike for training-free
    style transfer before motion/video stages; see
@@ -176,7 +176,7 @@ managed `-finetuned` Klein endpoints with `finetune_id`.
 - [ ] Clone AI-Toolkit, set up Klein training environment on RunPod
 - [ ] Smoke-test Untwisting RoPE as a RunPod Comfy style-transfer stage before
   committing to a Klein LoRA path
-- [ ] Pick first Klein style target (Glitch Candies aesthetic, SIDKIT panel aesthetic, or sonification scientific aesthetic) — start with 27-image set per BFL example
+- [ ] Pick first Klein style target from a publishable 27-image set per BFL example
 - [ ] Train first Klein style LoRA, evaluate, publish
 
 ## Sources

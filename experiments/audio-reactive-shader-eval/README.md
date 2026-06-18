@@ -88,17 +88,17 @@ Score each output from 1-5:
 
 ## Output Files
 
-Current local staging folder: `/Users/radek/Downloads/`.
+Current local staging folder: `outputs/audio-reactive-shader-eval/`.
 
 R2 has published/staged copies of the outputs, but canonical R2 URLs still need to be added here when available.
 
 | Variant | Local file | Model | Metadata |
 |---|---|---|---|
-| `C1` | `/Users/radek/Downloads/C1-magnific_style-cinematic-macro-nat_SOa36SkUb8.mp4` | Seedance 2.0, 1080 | H.264 + AAC, 1440x1440, 24fps, 14.07s, 17M |
-| `C2` | `/Users/radek/Downloads/C2-magnific_style-cinematic-macro-nat_1sXfpcNr4r.mp4` | Seedance 2.0, 1080 | H.264 + AAC, 1440x1440, 24fps, 14.07s, 20M |
-| `C3` | `/Users/radek/Downloads/C3-magnific_use-motion-of-the-vid1-moving-in-and-out-and-style_seedance_1080p_1-1_24fps_38533.mp4` | Seedance 2.0, 1080 | H.264 + AAC, 1440x1440, 24fps, 12.05s, 12M |
-| `D1` | `/Users/radek/Downloads/D-1-kling-magnific_create-a-video_kling_1080p_1-1_24fps_27063.mp4` | Kling Omni with Shots | H.264, 1440x1440, 24fps, 11.04s, 24M |
-| `D2` | `/Users/radek/Downloads/D-2-magnific_create-a-video_seedance_720p_1-1_24fps_27064.mp4` | Seedance 2.0 Fast 720p | H.264 + AAC, 960x960, 24fps, 14.07s, 7.9M |
+| `C1` | `C1-magnific_style-cinematic-macro-nat_SOa36SkUb8.mp4` | Seedance 2.0, 1080 | H.264 + AAC, 1440x1440, 24fps, 14.07s, 17M |
+| `C2` | `C2-magnific_style-cinematic-macro-nat_1sXfpcNr4r.mp4` | Seedance 2.0, 1080 | H.264 + AAC, 1440x1440, 24fps, 14.07s, 20M |
+| `C3` | `C3-magnific_use-motion-of-the-vid1-moving-in-and-out-and-style_seedance_1080p_1-1_24fps_38533.mp4` | Seedance 2.0, 1080 | H.264 + AAC, 1440x1440, 24fps, 12.05s, 12M |
+| `D1` | `D-1-kling-magnific_create-a-video_kling_1080p_1-1_24fps_27063.mp4` | Kling Omni with Shots | H.264, 1440x1440, 24fps, 11.04s, 24M |
+| `D2` | `D-2-magnific_create-a-video_seedance_720p_1-1_24fps_27064.mp4` | Seedance 2.0 Fast 720p | H.264 + AAC, 960x960, 24fps, 14.07s, 7.9M |
 
 Prompt records:
 

@@ -8,7 +8,7 @@ community tool. It can include FLUX API workflows, local agent/MCP-facing HTTP
 routes, prompt/reference workflows, image tool workspaces, local-first output
 storage, and safe Cloudflare archive support.
 
-The larger private creative system can reuse this control surface as a component,
+The larger closed creative system can reuse this control surface as a component,
 but should not be shipped as part of the first open-source release.
 
 ## Public Scope
@@ -28,16 +28,16 @@ Include:
 - Local-first storage with optional token-protected R2/D1 archive.
 - Clear public release gate, setup docs, `.env.example`, and sample-safe usage.
 
-## Private / Later Scope
+## Out Of Scope / Later
 
 Do not include in the first open-source release:
 
-- Holodeck world recorder/control integration.
+- Local 3D world recorder/control integration.
 - Full shader editor integration beyond audio guide export already present.
-- Provider-agnostic private orchestration across fal, Seedance, RunPod, Comfy,
-  custom flags models, or private LoRA workflows.
+- Provider-agnostic closed orchestration across fal, Seedance, RunPod, Comfy,
+  custom models, or project-specific LoRA workflows.
 - Closed-source job manifest executor for larger world-model/video pipelines.
-- Private relationship, outreach, application, account, or client context.
+- Relationship, outreach, application, account, or client context.
 
 ## Positioning
 
@@ -49,11 +49,11 @@ libraries, reference assets, image tools, output provenance, and agent-friendly
 local routes.
 ```
 
-Private framing:
+Internal framing:
 
 ```text
 The FLUX API Control Surface becomes one open component inside a larger closed creative
-system for audio-reactive worlds, Holodeck captures, model-provider routing,
+system for audio-reactive worlds, local 3D captures, model-provider routing,
 RunPod execution, and world/video LoRA experiments.
 ```
 
@@ -62,10 +62,10 @@ RunPod execution, and world/video LoRA experiments.
 - Confirm `npm run build` passes.
 - Smoke-test generate, Erase, Inpaint/Fill, Outpaint, prompt save, reference
   badges, output recovery, and MCP manifest routes.
-- Scrub `.env.local`, output media, logs, account balances, API keys, private
-  prompts, and private notes.
+- Scrub `.env.local`, output media, logs, account balances, API keys, nonpublic
+  prompts, and nonpublic notes.
 - Keep generated outputs out of git unless they are curated samples.
 - Decide whether to push as public immediately or publish a tagged release after
-  a short private beta.
+  a short limited beta.
 - Prepare a short LinkedIn post that frames the release as a community FLUX
   workflow tool, not a hosted generator.

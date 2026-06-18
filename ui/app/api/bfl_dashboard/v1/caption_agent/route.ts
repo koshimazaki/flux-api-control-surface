@@ -85,7 +85,8 @@ Return a short summary with the count captioned and any images that were ambiguo
 }
 
 function resolveCodexBin() {
-  if (existsSync("/Users/radek/bin/codex")) return "/Users/radek/bin/codex";
+  const configuredBin = process.env.CODEX_BIN?.trim();
+  if (configuredBin && existsSync(configuredBin)) return configuredBin;
   try {
     return execFileSync("which", ["codex"], { encoding: "utf8" }).trim();
   } catch {

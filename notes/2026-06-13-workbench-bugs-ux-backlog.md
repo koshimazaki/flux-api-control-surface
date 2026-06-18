@@ -91,7 +91,7 @@ It does not yet expose:
 - provider/model registry
 - job manifest creation/execution
 - shader render/export
-- Holodeck scene/record controls
+- Local 3D scene/record controls
 - reference handle assignment such as `@img1`, `@video1`, `@audio1`,
   `@shader1`, `@scene1`
 
@@ -156,7 +156,7 @@ Examples:
 - fal -> LTX / audio-reactive LoRA
 - Seedance-style provider -> image-to-video or video-to-video
 - RunPod -> custom flags model, Comfy workflows, LoRA inference
-- local -> shader render, audio analysis, Holodeck record
+- local -> shader render, audio analysis, local world record
 
 ### Job manifest as the center
 
@@ -174,23 +174,23 @@ Recommended structure:
 
 - 2D dashboard: asset library, prompt/reference handles, provider/model picker,
   job manifests, run history, settings, and MCP controls.
-- Holodeck tab: full 3D viewport with a compact overlay for scene, camera,
+- Local 3D tab: full 3D viewport with a compact overlay for scene, camera,
   character, audio routes, and recording.
 - Shader tab: standalone shader editor/recorder that saves video or metadata
   assets to the library.
 - Shared asset tray: visible across tabs or quickly summonable.
 
-3D panels inside Holodeck are appealing for presentation and immersive review,
+3D panels inside the local world are appealing for presentation and immersive review,
 but should not be the primary editing UI yet. They add complexity and make
 precision work harder. A better near-term pattern is:
 
 ```text
 2D workbench owns intent and memory
-  -> Holodeck tab records the world/video input
+  -> local 3D tab records the world/video input
   -> outputs return to the shared asset library
 ```
 
-Later, Holodeck can expose diegetic 2D panels inside the 3D world as a show mode
+Later, the local 3D surface can expose diegetic 2D panels inside the world as a show mode
 or advanced interface, reusing the same underlying controls.
 
 ## Suggested Cleanup Order
@@ -202,4 +202,4 @@ or advanced interface, reusing the same underlying controls.
 5. Wire BFL Erase/Outpaint/Fill tool routes into real asset-producing runs.
 6. Expand MCP manifests/routes to match current UI features.
 7. Add Shader as a local provider/tab that exports video and metadata assets.
-8. Add Holodeck as a local provider/tab for scene control and recording.
+8. Add a local 3D provider/tab for scene control and recording.
