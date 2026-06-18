@@ -438,6 +438,41 @@ export function useDashboardState() {
     }
   }
 
+  async function saveGlyphAsset(payload: {
+    pngDataUrl: string;
+    svg: string;
+    width: number;
+    height: number;
+    sourceAsset: AssetRecord;
+  }) {
+    const id = `glyph-${Date.now()}`;
+    const asset: AssetRecord = {
+      id,
+      title: `glyph: ${payload.sourceAsset.title || payload.sourceAsset.id}`,
+      createdAt: new Date().toISOString(),
+      timestamp: Date.now(),
+      imageDataUrl: payload.pngDataUrl,
+      imageUrl: "",
+      image_url: "",
+      sampleUrl: "",
+      model: "imagetracer",
+      prompt: payload.sourceAsset.prompt || "",
+      status: "complete",
+      width: payload.width,
+      height: payload.height,
+      aspectRatio: `${payload.width}:${payload.height}`,
+      provider: "local-glyph",
+      payload: { svg: payload.svg },
+      references: [],
+      sourceAssetId: payload.sourceAsset.id,
+      operation: "glyphs"
+    };
+    await persistAssetImage(id, payload.pngDataUrl);
+    setAssets((current) => [asset, ...current]);
+    setSelectedAsset(asset);
+    setRecoveryMessage(`Saved glyph from ${payload.sourceAsset.title || payload.sourceAsset.id} to the library.`);
+  }
+
   return {
     apiKey,
     setApiKey,
@@ -560,6 +595,7 @@ export function useDashboardState() {
     sendAssetToWorkspace,
     clearToolSourceAsset,
     runWorkspaceTool,
+    saveGlyphAsset,
     saveSequencePrompt,
     saveAssetPromptToLibrary,
     sendAssetToReference,

@@ -28,7 +28,7 @@ const toolRunCopy: Record<ToolMode, { title: string; action: string; endpoint: s
   glyphs: {
     title: "Glyphs",
     action: "Build Glyph",
-    endpoint: "no endpoint yet",
+    endpoint: "local · imagetracer",
     icon: Fingerprint
   }
 };
@@ -165,8 +165,8 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
 
       {isGlyphs && (
         <p className="toolStubNote">
-          BFL has no cutout/vectorize endpoint. This lane is staged for a local vectorizer or Comfy
-          workflow provider.
+          Glyphs runs locally: drag a box over an icon on the canvas, tune colors/cut, then
+          Vectorize and Save to the library (PNG + SVG). No BFL credits used.
         </p>
       )}
 

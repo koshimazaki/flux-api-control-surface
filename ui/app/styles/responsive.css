@@ -85,7 +85,7 @@
   .audioShotRow,
   .audioShotSelects,
   .imageToolMeta,
-  .glyphWorkbench,
+  .glyphLab,
   .scriptGrid,
   .scriptStats {
     grid-template-columns: 1fr;
@@ -97,7 +97,7 @@
 
   .maskPaintViewport,
   .outpaintViewport,
-  .glyphWorkbench {
+  .glyphStage {
     min-height: 320px;
   }
 

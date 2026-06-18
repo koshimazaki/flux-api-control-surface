@@ -6,6 +6,7 @@ import { CanvasZoomControls } from "@/components/ui/canvas-zoom-controls";
 import { MaskCanvas } from "@/components/mask-canvas";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { GlyphLab, type GlyphSavePayload } from "@/components/glyph-lab";
 import { displaySize, fitScale, maxPan, screenToCanvasScale } from "@/lib/canvas-geometry";
 import { assetImageSource } from "@/lib/dashboard-tools";
 import { useCanvasViewport } from "@/lib/use-canvas-viewport";
@@ -34,7 +35,7 @@ const toolCopy: Record<ImageToolMode, { title: string; eyebrow: string; endpoint
   glyphs: {
     title: "Glyphs",
     eyebrow: "Sticker and SVG lab",
-    endpoint: "no endpoint yet"
+    endpoint: "local · imagetracer"
   }
 };
 
@@ -207,6 +208,7 @@ type ImageToolWorkspaceProps = {
   onMaskChange: (mask: string) => void;
   onOffsetXChange: (value: string) => void;
   onOffsetYChange: (value: string) => void;
+  onSaveGlyph: (payload: GlyphSavePayload) => Promise<void> | void;
   onClearSource: () => void;
 };
 
@@ -241,22 +243,7 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
         />
       );
     }
-    return (
-      <div className="glyphWorkbench">
-        <div className="glyphSource">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={assetImageSource(sourceAsset)} alt={sourceAsset.title || sourceAsset.id} />
-        </div>
-        <div className="glyphPreviewGrid" aria-label="Glyph extraction previews">
-          {["Core", "Mask", "SVG", "Motion"].map((label) => (
-            <div className="glyphPreview" key={label}>
-              <span />
-              <small>{label}</small>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <GlyphLab key={sourceAsset.id} sourceAsset={sourceAsset} onSave={props.onSaveGlyph} />;
   }
 
   return (

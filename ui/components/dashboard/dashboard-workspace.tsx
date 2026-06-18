@@ -47,6 +47,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             onMaskChange={state.setToolMask}
             onOffsetXChange={state.setOutpaintOffsetX}
             onOffsetYChange={state.setOutpaintOffsetY}
+            onSaveGlyph={state.saveGlyphAsset}
             onClearSource={state.clearToolSourceAsset}
           />
         ) : (
