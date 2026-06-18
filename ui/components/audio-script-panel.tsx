@@ -22,9 +22,7 @@ import {
 } from "@/lib/audio-script";
 import { copyText } from "@/lib/clipboard";
 import { downloadText } from "@/lib/prompt-utils";
-import { AnalyzeControls } from "@/components/audio-script/analyze-controls";
-import { AudioDropzone } from "@/components/audio-script/audio-dropzone";
-import { ImagePool } from "@/components/audio-script/image-pool";
+import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import {
   MAX_WAVEFORM_ZOOM,
   MIN_WAVEFORM_ZOOM,
@@ -34,14 +32,9 @@ import {
   exportSliceFileName,
   videoTargets
 } from "@/components/audio-script/panel-helpers";
-import { PanelHeader } from "@/components/audio-script/panel-header";
-import { PromptComposer } from "@/components/audio-script/prompt-composer";
-import { ShotList } from "@/components/audio-script/shot-list";
-import { SliceControls } from "@/components/audio-script/slice-controls";
+import { AudioScriptPanelView } from "@/components/audio-script/panel-view";
 import type { AudioExportFormat, AudioScriptPanelProps, VideoTarget } from "@/components/audio-script/types";
 import { useAudioScriptCache } from "@/components/audio-script/use-audio-script-cache";
-import { WaveformShell } from "@/components/audio-script/waveform-shell";
-import { WaveformToolbar } from "@/components/audio-script/waveform-toolbar";
 
 export function AudioScriptPanel(props: AudioScriptPanelProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -366,7 +359,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
 
   async function onRowDrop(markerId: string, event: DragEvent<HTMLElement>) {
     event.preventDefault();
-    const optionId = event.dataTransfer.getData("application/x-bfl-image-option") || event.dataTransfer.getData("text/plain");
+    const optionId = event.dataTransfer.getData(BFL_IMAGE_OPTION_MIME) || event.dataTransfer.getData("text/plain");
     const option = imageOptions.find((item) => item.id === optionId);
     if (option) {
       assignImage(markerId, option);
@@ -705,147 +698,102 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   }
 
   return (
-    <section className="assetsPanel audioScriptPanel">
-      <PanelHeader
-        analysis={analysis}
-        markerCount={markers.length}
-        hasAudioFile={Boolean(audioFile)}
-        isAnalyzing={isAnalyzing}
-        hasMarkers={markers.length > 0}
-        canReset={Boolean(analysis) || markers.length > 0}
-        onAudioInput={onAudioInput}
-        onAnalyze={() => void analyzeCurrentAudio()}
-        onReset={resetAudioScript}
-        onCopy={() => void copyText(generatedPrompt || generatePrompt())}
-        onDownload={() => downloadText("audio-shot-script.txt", generatedPrompt || generatePrompt(), "text/plain")}
-      />
-
-      <AudioDropzone
-        audioRef={audioRef}
-        audioFileName={audioFile?.name}
-        audioUrl={audioUrl}
-        audioDuration={audioDuration}
-        currentTime={currentTime}
-        isPlaying={isPlaying}
-        onDropFiles={setAudioFiles}
-        onLoadedMetadata={handleAudioLoadedMetadata}
-        onPlay={handleAudioPlay}
-        onPause={handleAudioPause}
-        onEnded={handleAudioEnded}
-        onSeeked={setCurrentTime}
-        onTimeUpdate={onAudioTimeUpdate}
-        onTogglePlayback={togglePlayback}
-        onSeek={seekTo}
-      />
-
-      <AnalyzeControls
-        startSeconds={startSeconds}
-        durationSeconds={durationSeconds}
-        shotCount={shotCount}
-        onSetStartSeconds={setStartSeconds}
-        onSetDurationSeconds={setDurationSeconds}
-        onSetShotCount={setShotCount}
-      />
-
-      <SliceControls
-        startDraft={startDraft}
-        endDraft={endDraft}
-        exportLoopCount={exportLoopCount}
-        previewLoop={previewLoop}
-        sliceDuration={sliceDuration}
-        hasAudioUrl={Boolean(audioUrl)}
-        hasAudioFile={Boolean(audioFile)}
-        exportingFormat={exportingFormat}
-        hasAnalysis={Boolean(analysis)}
-        isRenderingGuide={isRenderingGuide}
-        onSetStartDraft={setStartDraft}
-        onSetEndDraft={setEndDraft}
-        onSetStartFocused={setStartFocused}
-        onSetEndFocused={setEndFocused}
-        onCommitSliceDraft={commitSliceDraft}
-        onSetExportLoopCount={setExportLoopCount}
-        onSetPreviewLoop={setPreviewLoop}
-        onPlaySlice={playSlice}
-        onExportSlice={(format) => void exportAudioSlice(format)}
-        onExportGuide={() => void exportAudioGuideVideo()}
-      />
-
-      {error && <p className="errorText">{error}</p>}
-
-      <WaveformToolbar
-        zoom={zoom}
-        selectedMarkerLocked={selectedMarkerLocked}
-        selectedMarkerId={selectedMarkerId}
-        lockedCount={lockedMarkerIds.size}
-        onZoom={zoomWaveform}
-        onToggleMarkerLock={toggleMarkerLock}
-      />
-
-      <WaveformShell
-        zoom={zoom}
-        waveformTrackRef={waveformTrackRef}
-        canvasRef={canvasRef}
-        sliceOverlayRef={sliceOverlayRef}
-        sliceStartPercent={sliceStartPercent}
-        sliceEndPercent={sliceEndPercent}
-        playheadPercent={playheadPercent}
-        sliceStartSeconds={sliceStartSeconds}
-        sliceEndSeconds={sliceEndSeconds}
-        currentTime={currentTime}
-        onWaveformPointerDown={onWaveformPointerDown}
-        onWaveformPointerMove={onWaveformPointerMove}
-        onWaveformPointerUp={onWaveformPointerUp}
-        onSliceHandlePointerDown={onSliceHandlePointerDown}
-        onSliceHandlePointerMove={onSliceHandlePointerMove}
-        onSliceHandlePointerUp={onSliceHandlePointerUp}
-      />
-
-      <div className="audioScriptGrid">
-        <ShotList
-          shotRows={shotRows}
-          markers={markers}
-          selectedMarkerId={selectedMarkerId}
-          lockedMarkerIds={lockedMarkerIds}
-          analysis={analysis}
-          durationSeconds={durationSeconds}
-          startSeconds={startSeconds}
-          onSelectMarker={setSelectedMarkerId}
-          onRowDrop={onRowDrop}
-          onAddTimingSpot={addTimingSpot}
-          onRemoveTimingSpot={removeTimingSpot}
-          onMoveMarker={moveMarker}
-          onUpdateMarker={updateMarker}
-          onUpdateShot={updateShot}
-          onOpenShotImage={openShotImage}
-        />
-
-        <ImagePool
-          imageOptions={imageOptions}
-          selectedMarkerId={selectedMarkerId}
-          onOpenImageOption={openImageOption}
-          onAssignImage={assignImage}
-        />
-      </div>
-
-      <PromptComposer
-        videoTarget={videoTarget}
-        maxImageGuides={maxImageGuides}
-        uniqueImageGuideCount={uniqueImageGuideCount}
-        estimatedVideoParts={estimatedVideoParts}
-        scriptSetup={scriptSetup}
-        qualityBoosters={qualityBoosters}
-        generatedPrompt={generatedPrompt}
-        hasMarkers={markers.length > 0}
-        onUpdateVideoTarget={updateVideoTarget}
-        onSetVideoTarget={setVideoTarget}
-        onSetMaxImageGuides={updateMaxImageGuides}
-        onSetScriptSetup={updateScriptSetup}
-        onSetQualityBoosters={updateQualityBoosters}
-        onSetGeneratedPrompt={setGeneratedPrompt}
-        onGeneratePrompt={generatePrompt}
-        onUsePrompt={props.onUsePrompt}
-        onSavePrompt={props.onSavePrompt}
-      />
-    </section>
+    <AudioScriptPanelView
+      audioRef={audioRef}
+      canvasRef={canvasRef}
+      waveformTrackRef={waveformTrackRef}
+      sliceOverlayRef={sliceOverlayRef}
+      audioFileName={audioFile?.name}
+      audioUrl={audioUrl}
+      audioDuration={audioDuration}
+      analysis={analysis}
+      markers={markers}
+      shotRows={shotRows}
+      selectedMarkerId={selectedMarkerId}
+      lockedMarkerIds={lockedMarkerIds}
+      startSeconds={startSeconds}
+      durationSeconds={durationSeconds}
+      sliceStartSeconds={sliceStartSeconds}
+      sliceEndSeconds={sliceEndSeconds}
+      currentTime={currentTime}
+      isPlaying={isPlaying}
+      previewLoop={previewLoop}
+      exportLoopCount={exportLoopCount}
+      exportingFormat={exportingFormat}
+      isRenderingGuide={isRenderingGuide}
+      shotCount={shotCount}
+      isAnalyzing={isAnalyzing}
+      error={error}
+      videoTarget={videoTarget}
+      maxImageGuides={maxImageGuides}
+      scriptSetup={scriptSetup}
+      qualityBoosters={qualityBoosters}
+      generatedPrompt={generatedPrompt}
+      zoom={zoom}
+      startDraft={startDraft}
+      endDraft={endDraft}
+      imageOptions={imageOptions}
+      sliceStartPercent={sliceStartPercent}
+      sliceEndPercent={sliceEndPercent}
+      playheadPercent={playheadPercent}
+      sliceDuration={sliceDuration}
+      uniqueImageGuideCount={uniqueImageGuideCount}
+      estimatedVideoParts={estimatedVideoParts}
+      selectedMarkerLocked={selectedMarkerLocked}
+      onAudioInput={onAudioInput}
+      onAnalyze={() => void analyzeCurrentAudio()}
+      onReset={resetAudioScript}
+      onCopy={() => void copyText(generatedPrompt || generatePrompt())}
+      onDownload={() => downloadText("audio-shot-script.txt", generatedPrompt || generatePrompt(), "text/plain")}
+      onDropFiles={setAudioFiles}
+      onLoadedMetadata={handleAudioLoadedMetadata}
+      onPlay={handleAudioPlay}
+      onPause={handleAudioPause}
+      onEnded={handleAudioEnded}
+      onSeeked={setCurrentTime}
+      onTimeUpdate={onAudioTimeUpdate}
+      onTogglePlayback={togglePlayback}
+      onSeek={seekTo}
+      onSetStartSeconds={setStartSeconds}
+      onSetDurationSeconds={setDurationSeconds}
+      onSetShotCount={setShotCount}
+      onSetStartDraft={setStartDraft}
+      onSetEndDraft={setEndDraft}
+      onSetStartFocused={setStartFocused}
+      onSetEndFocused={setEndFocused}
+      onCommitSliceDraft={commitSliceDraft}
+      onSetExportLoopCount={setExportLoopCount}
+      onSetPreviewLoop={setPreviewLoop}
+      onPlaySlice={playSlice}
+      onExportSlice={(format) => void exportAudioSlice(format)}
+      onExportGuide={() => void exportAudioGuideVideo()}
+      onZoom={zoomWaveform}
+      onToggleMarkerLock={toggleMarkerLock}
+      onWaveformPointerDown={onWaveformPointerDown}
+      onWaveformPointerMove={onWaveformPointerMove}
+      onWaveformPointerUp={onWaveformPointerUp}
+      onSliceHandlePointerDown={onSliceHandlePointerDown}
+      onSliceHandlePointerMove={onSliceHandlePointerMove}
+      onSliceHandlePointerUp={onSliceHandlePointerUp}
+      onSelectMarker={setSelectedMarkerId}
+      onRowDrop={onRowDrop}
+      onAddTimingSpot={addTimingSpot}
+      onRemoveTimingSpot={removeTimingSpot}
+      onMoveMarker={moveMarker}
+      onUpdateMarker={updateMarker}
+      onUpdateShot={updateShot}
+      onOpenShotImage={openShotImage}
+      onOpenImageOption={openImageOption}
+      onAssignImage={assignImage}
+      onUpdateVideoTarget={updateVideoTarget}
+      onSetVideoTarget={setVideoTarget}
+      onSetMaxImageGuides={updateMaxImageGuides}
+      onSetScriptSetup={updateScriptSetup}
+      onSetQualityBoosters={updateQualityBoosters}
+      onSetGeneratedPrompt={setGeneratedPrompt}
+      onGeneratePrompt={generatePrompt}
+      onUsePrompt={props.onUsePrompt}
+      onSavePrompt={props.onSavePrompt}
+    />
   );
 }

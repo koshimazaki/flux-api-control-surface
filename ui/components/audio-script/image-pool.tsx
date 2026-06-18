@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import type { ImageOption } from "@/lib/audio-script";
+import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 
 type ImagePoolProps = {
   imageOptions: ImageOption[];
@@ -24,7 +25,7 @@ export function ImagePool(props: ImagePoolProps) {
             key={option.id}
             draggable
             onDragStart={(event) => {
-              event.dataTransfer.setData("application/x-bfl-image-option", option.id);
+              event.dataTransfer.setData(BFL_IMAGE_OPTION_MIME, option.id);
               event.dataTransfer.setData("text/plain", option.id);
             }}
             title={option.name}
