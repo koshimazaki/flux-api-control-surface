@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { agentWorkflowGuide } from "@/lib/agent-guide";
 import { dashboardAgentRoutes, localAgentCoverage, nativeFluxMcp } from "@/lib/agent-routes";
 import { modelOptions } from "@/lib/pricing";
 
@@ -14,8 +15,10 @@ export async function GET() {
     nativeFluxMcp,
     dashboardRoutes: dashboardAgentRoutes,
     coverage: localAgentCoverage,
+    guide: agentWorkflowGuide,
     models: modelOptions,
     recommendedFlows: [
+      "Use /api/mcp/guide to choose between hosted FLUX MCP and the local workbench API.",
       "Use /api/dashboard/context to discover prompts and outputs.",
       "Use /api/dashboard/run-plan for a dry-run request plan with costs.",
       "Use /api/dashboard/batch with execute=true when the dashboard should save dataset files and sync remote archive storage.",

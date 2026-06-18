@@ -139,6 +139,13 @@
   gap: 10px;
 }
 
+.mcpGuideGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .mcpCard,
 .commandGrid > div,
 .traceBlock {
@@ -170,6 +177,11 @@
   white-space: nowrap;
 }
 
+.mcpGuideGrid .mcpCard small {
+  white-space: normal;
+  line-height: 1.35;
+}
+
 .commandGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -198,4 +210,3 @@
   justify-content: space-between;
   gap: 10px;
 }
-

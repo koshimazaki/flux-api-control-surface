@@ -46,6 +46,10 @@ export function ApisPanel({ captionJobPath }: ApisPanelProps) {
           <code>GET {agentRouteMap.mcpManifest}</code>
         </div>
         <div>
+          <label>Agent guide</label>
+          <code>GET {agentRouteMap.mcpGuide}</code>
+        </div>
+        <div>
           <label>FLUX credits</label>
           <code>POST {agentRouteMap.credits}</code>
         </div>

@@ -29,6 +29,7 @@
   .workspace,
   .lightboxInner,
   .mcpGrid,
+  .mcpGuideGrid,
   .commandGrid {
     grid-template-columns: 1fr;
     display: grid;

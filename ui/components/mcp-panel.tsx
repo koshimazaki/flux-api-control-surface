@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Clipboard, ExternalLink, PlugZap, RefreshCcw } from "lucide-react";
+import { BookOpen, Clipboard, ExternalLink, PlugZap, RefreshCcw, Workflow } from "lucide-react";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { agentWorkflowGuide } from "@/lib/agent-guide";
 import { agentRouteMap, localAgentCoverage } from "@/lib/agent-routes";
 import { copyText } from "@/lib/clipboard";
 import type { BatchMode, BalanceState, RunLogEntry } from "@/lib/types";
@@ -16,6 +17,7 @@ type McpStatus = {
     list: string;
   };
   apiRoutes: string[];
+  guideRoute?: string;
   coverage?: typeof localAgentCoverage;
   directBrowserClient: boolean;
 };
@@ -68,11 +70,12 @@ export function McpPanel(props: McpPanelProps) {
         note:
           "Use /api/dashboard/run-plan for generation bodies, /api/bfl/tools for erase/inpaint/outpaint, and /api/audio/* for audio guide assets."
       },
+      guide_route: status?.guideRoute || agentRouteMap.mcpGuide,
       coverage: status?.coverage || localAgentCoverage,
       prompt: props.prompt,
       recent_runs: props.runLog.slice(0, 5)
     }),
-    [props, status?.coverage, status?.serverUrl]
+    [props, status?.coverage, status?.guideRoute, status?.serverUrl]
   );
 
   const copy = (value: string) => void copyText(value);
@@ -107,6 +110,27 @@ export function McpPanel(props: McpPanelProps) {
         </div>
       </div>
 
+      <div className="mcpGuideGrid">
+        <div className="mcpCard">
+          <ExternalLink size={18} />
+          <span>Hosted FLUX MCP</span>
+          <strong>{agentWorkflowGuide.nativeFluxMcp.tools.join(" · ")}</strong>
+          <small>{agentWorkflowGuide.nativeFluxMcp.role}</small>
+        </div>
+        <div className="mcpCard">
+          <Workflow size={18} />
+          <span>Local workbench</span>
+          <strong>plans · tools · audio · outputs</strong>
+          <small>{agentWorkflowGuide.localWorkbench.role}</small>
+        </div>
+        <div className="mcpCard">
+          <BookOpen size={18} />
+          <span>Missing server routes</span>
+          <strong>audio analyze · glyph vectorize · live refresh</strong>
+          <small>{agentWorkflowGuide.currentGaps.map((gap) => gap.capability).join(" | ")}</small>
+        </div>
+      </div>
+
       <div className="commandGrid">
         <div>
           <label>Codex add</label>
@@ -136,6 +160,14 @@ export function McpPanel(props: McpPanelProps) {
           <label>Route manifest</label>
           <code>GET {agentRouteMap.mcpManifest}</code>
           <button onClick={() => copy(`${window.location.origin}${agentRouteMap.mcpManifest}`)}>
+            <Clipboard size={15} />
+            Copy
+          </button>
+        </div>
+        <div>
+          <label>Agent guide</label>
+          <code>GET {agentRouteMap.mcpGuide}</code>
+          <button onClick={() => copy(`${window.location.origin}${agentRouteMap.mcpGuide}`)}>
             <Clipboard size={15} />
             Copy
           </button>

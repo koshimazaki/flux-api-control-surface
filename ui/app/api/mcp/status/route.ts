@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { localAgentCoverage, mcpStatusRoutes, nativeFluxMcp } from "@/lib/agent-routes";
+import { agentRouteMap, localAgentCoverage, mcpStatusRoutes, nativeFluxMcp } from "@/lib/agent-routes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +11,7 @@ export async function GET() {
     directBrowserClient: false,
     commands: nativeFluxMcp.install,
     apiRoutes: mcpStatusRoutes,
+    guideRoute: agentRouteMap.mcpGuide,
     coverage: localAgentCoverage,
     bridge: {
       mode: "browser-http-api-plus-agent-handoff",

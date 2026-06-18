@@ -51,6 +51,7 @@ export const agentRouteMap = {
   audioSlice: "/api/audio/slice",
   mcpStatus: "/api/mcp/status",
   mcpManifest: "/api/mcp/manifest",
+  mcpGuide: "/api/mcp/guide",
   apiManifest: "/api/bfl_dashboard/v1/manifest",
   captionAgent: "/api/bfl_dashboard/v1/caption_agent"
 };
@@ -67,6 +68,13 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     method: "GET",
     path: agentRouteMap.mcpStatus,
     purpose: "Return short operational status for the MCP tab and local HTTP bridge.",
+    sideEffects: false,
+    category: "discovery"
+  },
+  {
+    method: "GET",
+    path: agentRouteMap.mcpGuide,
+    purpose: "Return the paired native FLUX MCP plus local workbench API guide for humans and agents.",
     sideEffects: false,
     category: "discovery"
   },
@@ -250,6 +258,8 @@ export const localAgentCoverage = {
     "Server-side agents can read saved filesystem/R2 outputs through /api/outputs. Browser-imported local files live in browser storage until generated or exported.",
   audio:
     "Audio slicing and guide rendering are exposed as routes. Browser-side waveform analysis remains a UI workflow; agents can call /api/audio/guide when they already have an analysis payload.",
+  uiSync:
+    "Agent-created outputs are visible through /api/outputs and can be recovered into the gallery. The browser UI does not yet have a live event stream for automatic external-agent refresh.",
   localOnly:
     "Glyph vectorization is currently a browser-local canvas workflow. It saves SVG/PNG results to the asset library, but there is no server-side glyph route yet."
 };

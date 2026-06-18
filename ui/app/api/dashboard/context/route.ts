@@ -47,6 +47,7 @@ export async function GET() {
     routes: agentRouteMap,
     agentRoutes: dashboardAgentRoutes,
     coverage: localAgentCoverage,
+    guideRoute: agentRouteMap.mcpGuide,
     auth: {
       browserKeyOptional: true,
       serverEnv: ["BFL_API_KEY", "FLUX_API_KEY"],

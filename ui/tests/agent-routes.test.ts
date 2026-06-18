@@ -5,6 +5,7 @@ describe("agent route catalog", () => {
   it("publishes the local routes agents need for generation, tools, audio, and assets", () => {
     const paths = new Set(dashboardAgentRoutes.map((route) => `${route.method} ${route.path}`));
 
+    expect(paths).toContain(`GET ${agentRouteMap.mcpGuide}`);
     expect(paths).toContain(`POST ${agentRouteMap.runPlan}`);
     expect(paths).toContain(`POST ${agentRouteMap.batch}`);
     expect(paths).toContain(`POST ${agentRouteMap.generate}`);
@@ -26,6 +27,7 @@ describe("agent route catalog", () => {
   it("documents browser-local gaps instead of implying every workflow is server-routable", () => {
     expect(localAgentCoverage.imageTools).toMatch(/erase, inpaint, and outpaint/i);
     expect(localAgentCoverage.audio).toMatch(/audio slicing and guide rendering/i);
+    expect(localAgentCoverage.uiSync).toMatch(/external-agent refresh/i);
     expect(localAgentCoverage.localOnly).toMatch(/glyph vectorization/i);
   });
 });

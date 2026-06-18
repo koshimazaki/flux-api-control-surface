@@ -22,6 +22,10 @@ BFL ships:
 codex mcp add FLUX --url https://mcp.bfl.ai
 ```
 
+Use the hosted FLUX MCP together with the local dashboard routes when outputs,
+prompts, references, audio guides, and tool edits should remain visible in this
+workbench. See [`docs/mcp-agent-guide.md`](./docs/mcp-agent-guide.md).
+
 **API generation helper in this repo:**
 ```bash
 # Writes the planned requests without spending credits

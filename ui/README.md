@@ -15,6 +15,10 @@ npm run dev -- --port 3017
 
 Open `http://localhost:3017`.
 
+The MCP tab pairs the hosted FLUX MCP with local dashboard routes. Agents can
+also read `GET /api/mcp/guide`; the repo guide is
+[`../docs/mcp-agent-guide.md`](../docs/mcp-agent-guide.md).
+
 The gallery writes to the same localStorage key used by the AImedia library:
 `nb2_generations`. It also mirrors records to `bfl-flower-assets` for export.
 Large generated image data is stored in IndexedDB so localStorage only keeps

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { dashboardAgentRoutes, localAgentCoverage } from "@/lib/agent-routes";
+import { agentRouteMap, dashboardAgentRoutes, localAgentCoverage } from "@/lib/agent-routes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +11,7 @@ export async function GET() {
     namespace: "/api/bfl_dashboard/v1",
     routes: dashboardAgentRoutes,
     coverage: localAgentCoverage,
+    guideRoute: agentRouteMap.mcpGuide,
     contracts: {
       collectionZip: "images/* plus captions/*.txt with matching filename stems",
       captionJob: "outputs/flux-api-control-surface/caption-jobs/<timestamp>_<collection>/"

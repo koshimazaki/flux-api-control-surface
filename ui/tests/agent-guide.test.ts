@@ -1,0 +1,20 @@
+import { describe, expect, it } from "vitest";
+import { agentWorkflowGuide } from "@/lib/agent-guide";
+import { agentRouteMap } from "@/lib/agent-routes";
+
+describe("agentWorkflowGuide", () => {
+  it("pairs hosted FLUX MCP with local workbench routes", () => {
+    expect(agentWorkflowGuide.nativeFluxMcp.serverUrl).toBe("https://mcp.bfl.ai");
+    expect(agentWorkflowGuide.nativeFluxMcp.tools).toContain("generate_image");
+    expect(agentWorkflowGuide.localWorkbench.routes.guide).toBe(agentRouteMap.mcpGuide);
+    expect(agentWorkflowGuide.localWorkbench.routes.tools).toBe(agentRouteMap.tools);
+  });
+
+  it("names the main missing capabilities for future MCP parity", () => {
+    const gaps = agentWorkflowGuide.currentGaps.map((gap) => gap.capability.toLowerCase()).join(" ");
+
+    expect(gaps).toContain("audio analysis");
+    expect(gaps).toContain("glyph");
+    expect(gaps).toContain("live ui refresh");
+  });
+});
