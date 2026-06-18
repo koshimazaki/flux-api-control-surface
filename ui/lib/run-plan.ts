@@ -1,5 +1,6 @@
 import { estimateMinimumCost, estimateTokens } from "./pricing";
 import { buildComboPrompt, chunk, combinations, comboIdFromPrompts } from "./prompt-combo";
+import { BFL_MAX_REFERENCES } from "./provider-registry";
 import type { PromptRecord } from "./types";
 
 export type RunPlanBody = {
@@ -18,6 +19,7 @@ export type RunPlanBody = {
   promptUpsampling?: boolean;
   referenceCue?: string;
   referenceWeight?: number;
+  references?: string[];
   hasReferences?: boolean;
   outputFormat?: "jpeg" | "png" | "webp";
 };
@@ -48,6 +50,14 @@ function applyReferenceCue(prompt: string, referenceCue?: string, hasReferences?
 function clampReferenceWeight(value: unknown) {
   const weight = typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 80;
   return Math.max(0, Math.min(100, weight));
+}
+
+function normalizedReferences(value: unknown) {
+  return Array.isArray(value)
+    ? value
+        .filter((reference): reference is string => typeof reference === "string" && Boolean(reference.trim()))
+        .slice(0, BFL_MAX_REFERENCES)
+    : [];
 }
 
 function selectPrompts(prompts: PromptRecord[], body: RunPlanBody) {
@@ -98,11 +108,13 @@ export function buildRunPlan(prompts: PromptRecord[], body: RunPlanBody) {
   const height = body.height || 1024;
   const outputFormat = body.outputFormat || "png";
   const promptUpsampling = !model.includes("klein") && body.promptUpsampling !== false;
-  const cost = estimateMinimumCost(model, Boolean(body.hasReferences));
+  const references = normalizedReferences(body.references);
+  const hasReferences = Boolean(body.hasReferences || references.length);
+  const cost = estimateMinimumCost(model, hasReferences);
   const selected = selectPrompts(prompts, body);
 
   const requests = selected.map((prompt, index) => {
-    const promptText = applyReferenceCue(prompt.prompt, body.referenceCue, body.hasReferences);
+    const promptText = applyReferenceCue(prompt.prompt, body.referenceCue, hasReferences);
     return {
       title: prompt.id,
       endpoint: "/api/bfl/generate",
@@ -117,7 +129,7 @@ export function buildRunPlan(prompts: PromptRecord[], body: RunPlanBody) {
         outputFormat,
         promptUpsampling,
         referenceWeight: clampReferenceWeight(body.referenceWeight),
-        references: []
+        references
       },
       batchIndex: index + 1,
       batchTotal: selected.length,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { localAgentCoverage, mcpStatusRoutes, nativeFluxMcp } from "@/lib/agent-routes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -6,23 +7,11 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   return NextResponse.json({
     status: "ready",
-    serverUrl: "https://mcp.bfl.ai",
+    serverUrl: nativeFluxMcp.serverUrl,
     directBrowserClient: false,
-    commands: {
-      add: "codex mcp add FLUX --url https://mcp.bfl.ai",
-      login: "codex mcp login FLUX",
-      list: "codex mcp list"
-    },
-    apiRoutes: [
-      "/api/dashboard/context",
-      "/api/dashboard/run-plan",
-      "/api/dashboard/batch",
-      "/api/bfl/generate",
-      "/api/bfl/credits",
-      "/api/outputs",
-      "/api/mcp/status",
-      "/api/mcp/manifest"
-    ],
+    commands: nativeFluxMcp.install,
+    apiRoutes: mcpStatusRoutes,
+    coverage: localAgentCoverage,
     bridge: {
       mode: "browser-http-api-plus-agent-handoff",
       reason:

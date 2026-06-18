@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clipboard, ExternalLink, PlugZap, RefreshCcw } from "lucide-react";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { agentRouteMap, localAgentCoverage } from "@/lib/agent-routes";
 import { copyText } from "@/lib/clipboard";
 import type { BatchMode, BalanceState, RunLogEntry } from "@/lib/types";
 
@@ -15,6 +16,7 @@ type McpStatus = {
     list: string;
   };
   apiRoutes: string[];
+  coverage?: typeof localAgentCoverage;
   directBrowserClient: boolean;
 };
 
@@ -63,12 +65,14 @@ export function McpPanel(props: McpPanelProps) {
       mcp_hint: {
         tool: "generate_image",
         server: status?.serverUrl || "https://mcp.bfl.ai",
-        note: "Use /api/dashboard/run-plan to get the same request bodies the control-surface batch executor uses."
+        note:
+          "Use /api/dashboard/run-plan for generation bodies, /api/bfl/tools for erase/inpaint/outpaint, and /api/audio/* for audio guide assets."
       },
+      coverage: status?.coverage || localAgentCoverage,
       prompt: props.prompt,
       recent_runs: props.runLog.slice(0, 5)
     }),
-    [props, status?.serverUrl]
+    [props, status?.coverage, status?.serverUrl]
   );
 
   const copy = (value: string) => void copyText(value);
@@ -122,32 +126,56 @@ export function McpPanel(props: McpPanelProps) {
         </div>
         <div>
           <label>Dashboard context</label>
-          <code>GET /api/dashboard/context</code>
-          <button onClick={() => copy(`${window.location.origin}/api/dashboard/context`)}>
+          <code>GET {agentRouteMap.dashboardContext}</code>
+          <button onClick={() => copy(`${window.location.origin}${agentRouteMap.dashboardContext}`)}>
             <Clipboard size={15} />
             Copy
           </button>
         </div>
         <div>
           <label>Route manifest</label>
-          <code>GET /api/mcp/manifest</code>
-          <button onClick={() => copy(`${window.location.origin}/api/mcp/manifest`)}>
+          <code>GET {agentRouteMap.mcpManifest}</code>
+          <button onClick={() => copy(`${window.location.origin}${agentRouteMap.mcpManifest}`)}>
             <Clipboard size={15} />
             Copy
           </button>
         </div>
         <div>
           <label>Batch run plan</label>
-          <code>POST /api/dashboard/run-plan</code>
-          <button onClick={() => copy(`${window.location.origin}/api/dashboard/run-plan`)}>
+          <code>POST {agentRouteMap.runPlan}</code>
+          <button onClick={() => copy(`${window.location.origin}${agentRouteMap.runPlan}`)}>
             <Clipboard size={15} />
             Copy
           </button>
         </div>
         <div>
           <label>Batch executor</label>
-          <code>POST /api/dashboard/batch</code>
-          <button onClick={() => copy(`${window.location.origin}/api/dashboard/batch`)}>
+          <code>POST {agentRouteMap.batch}</code>
+          <button onClick={() => copy(`${window.location.origin}${agentRouteMap.batch}`)}>
+            <Clipboard size={15} />
+            Copy
+          </button>
+        </div>
+        <div>
+          <label>Image tools</label>
+          <code>POST {agentRouteMap.tools}</code>
+          <button onClick={() => copy(`${window.location.origin}${agentRouteMap.tools}`)}>
+            <Clipboard size={15} />
+            Copy
+          </button>
+        </div>
+        <div>
+          <label>Audio guide</label>
+          <code>POST {agentRouteMap.audioGuide}</code>
+          <button onClick={() => copy(`${window.location.origin}${agentRouteMap.audioGuide}`)}>
+            <Clipboard size={15} />
+            Copy
+          </button>
+        </div>
+        <div>
+          <label>Recover outputs</label>
+          <code>GET {agentRouteMap.outputs}</code>
+          <button onClick={() => copy(`${window.location.origin}${agentRouteMap.outputs}`)}>
             <Clipboard size={15} />
             Copy
           </button>

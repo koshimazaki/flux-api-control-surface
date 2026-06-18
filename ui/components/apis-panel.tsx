@@ -1,5 +1,6 @@
 import { Bot, KeyRound, PlugZap, Route } from "lucide-react";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { agentRouteMap, localAgentCoverage } from "@/lib/agent-routes";
 
 type ApisPanelProps = {
   captionJobPath?: string;
@@ -34,19 +35,39 @@ export function ApisPanel({ captionJobPath }: ApisPanelProps) {
       <div className="commandGrid">
         <div>
           <label>Manifest</label>
-          <code>GET /api/bfl_dashboard/v1/manifest</code>
+          <code>GET {agentRouteMap.apiManifest}</code>
         </div>
         <div>
           <label>Caption agent</label>
-          <code>POST /api/bfl_dashboard/v1/caption_agent</code>
+          <code>POST {agentRouteMap.captionAgent}</code>
         </div>
         <div>
           <label>Current bridge</label>
-          <code>GET /api/mcp/manifest</code>
+          <code>GET {agentRouteMap.mcpManifest}</code>
         </div>
         <div>
           <label>FLUX credits</label>
-          <code>POST /api/bfl/credits</code>
+          <code>POST {agentRouteMap.credits}</code>
+        </div>
+        <div>
+          <label>Image tools</label>
+          <code>POST {agentRouteMap.tools}</code>
+        </div>
+        <div>
+          <label>Run plan</label>
+          <code>POST {agentRouteMap.runPlan}</code>
+        </div>
+        <div>
+          <label>Audio guide</label>
+          <code>POST {agentRouteMap.audioGuide}</code>
+        </div>
+        <div>
+          <label>Audio slice</label>
+          <code>POST {agentRouteMap.audioSlice}</code>
+        </div>
+        <div>
+          <label>Outputs</label>
+          <code>GET {agentRouteMap.outputs}</code>
         </div>
       </div>
 
@@ -59,6 +80,11 @@ export function ApisPanel({ captionJobPath }: ApisPanelProps) {
           namespace: "/api/bfl_dashboard/v1",
           stableContract: true,
           captioning: "UI prepares collection; backend spawns Codex with image attachments and captioning brief.",
+          generation: [agentRouteMap.runPlan, agentRouteMap.batch, agentRouteMap.generate],
+          tools: [agentRouteMap.tools],
+          audio: [agentRouteMap.audioGuide, agentRouteMap.audioSlice],
+          assets: [agentRouteMap.outputs, agentRouteMap.referenceArchive],
+          coverage: localAgentCoverage,
           futureProviders: ["Codex/GPT vision", "Gemini", "local vision model"]
         }, null, 2)}</pre>
       </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { agentRouteMap, dashboardAgentRoutes, localAgentCoverage } from "@/lib/agent-routes";
 import { fetchRemoteOutputManifest, remoteArchiveStatus } from "@/lib/remote-archive";
 import { readLocalOutputManifest } from "@/lib/server-output-store";
 import { estimateTokens, modelOptions } from "@/lib/pricing";
@@ -43,18 +44,9 @@ export async function GET() {
   return NextResponse.json({
     name: "FLUX API Control Surface",
     purpose: "Local UI and agent API for FLUX.2 prompt permutations, image generation, output recovery, costs, and logs.",
-    routes: {
-      prompts: "/api/prompts",
-      dashboardContext: "/api/dashboard/context",
-      runPlan: "/api/dashboard/run-plan",
-      batch: "/api/dashboard/batch",
-      generate: "/api/bfl/generate",
-      credits: "/api/bfl/credits",
-      outputs: "/api/outputs",
-      referenceArchive: "/api/reference-archive",
-      mcpStatus: "/api/mcp/status",
-      mcpManifest: "/api/mcp/manifest"
-    },
+    routes: agentRouteMap,
+    agentRoutes: dashboardAgentRoutes,
+    coverage: localAgentCoverage,
     auth: {
       browserKeyOptional: true,
       serverEnv: ["BFL_API_KEY", "FLUX_API_KEY"],
