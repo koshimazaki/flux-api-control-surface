@@ -25,7 +25,7 @@ export function assetImageSource(asset: AssetRecord | null) {
 export function toolRunBlocker(
   input: Pick<ToolRunInput, "mode" | "mask" | "prompt"> & { hasSource: boolean }
 ) {
-  if (!input.hasSource) return "Select a source image from the output library.";
+  if (!input.hasSource) return "Select a source image from the assets library.";
   if ((input.mode === "erase" || input.mode === "inpaint") && !input.mask) {
     return "Paint a mask over the area you want to change first.";
   }
@@ -115,7 +115,8 @@ export function buildToolAssetRecord(data: any, input: ToolRunInput): AssetRecor
     remoteImageUrl: data.outputFiles?.remote?.outputFiles?.remoteImageUrl ?? null,
     r2RootPrefix: data.outputFiles?.remote?.outputFiles?.r2RootPrefix ?? null,
     sourceAssetId: input.sourceAsset.id,
-    operation: input.mode
+    operation: input.mode,
+    assetKind: "output"
   };
 }
 

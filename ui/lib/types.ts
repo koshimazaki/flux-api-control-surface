@@ -27,6 +27,8 @@ export type WorkspaceMode = "prompt" | "erase" | "inpaint" | "outpaint" | "glyph
 
 export type DashboardTab = "script" | "audio" | "assets" | "runs" | "collections" | "apis" | "mcp" | "system";
 
+export type AssetKind = "output" | "input" | "reference" | "asset";
+
 export type AssetRecord = {
   id: string;
   title?: string;
@@ -64,6 +66,7 @@ export type AssetRecord = {
   r2RootPrefix?: string | null;
   sourceAssetId?: string | null;
   operation?: string | null;
+  assetKind?: AssetKind;
 };
 
 export type AssetBadge = {

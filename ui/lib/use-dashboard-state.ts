@@ -28,8 +28,10 @@ import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions }
 import { referenceRoleConfig } from "@/lib/reference-roles";
 import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
 import { useBalance } from "@/lib/dashboard/use-balance";
+import { useGlyphLabCache } from "@/lib/dashboard/use-glyph-lab-cache";
 import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
 import { useReferences } from "@/lib/dashboard/use-references";
+import { useToolSource, workspaceModeLabels } from "@/lib/dashboard/use-tool-source";
 import { useTrainingCollections } from "@/lib/dashboard/use-training-collections";
 import type {
   AssetBadge,
@@ -39,13 +41,6 @@ import type {
   ReferenceRole,
   WorkspaceMode
 } from "@/lib/types";
-
-const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, string> = {
-  erase: "Erase",
-  inpaint: "Inpaint",
-  outpaint: "Outpaint",
-  glyphs: "Glyphs"
-};
 
 export function useDashboardState() {
   // Shared atoms consumed by more than one domain (prompt editor + run config + tool config).
@@ -101,6 +96,7 @@ export function useDashboardState() {
     totalActualCredits,
     failedRunCount,
     recoverStoredAssets,
+    importImageAssetFiles,
     importPngMetadataFiles,
     toggleFavorite,
     deleteAsset,
@@ -127,11 +123,11 @@ export function useDashboardState() {
     effectiveReferenceCue,
     primaryReferenceUrl,
     primaryReferencePreview,
-    addReferenceFiles,
-    setPrimaryReferenceFiles,
     setPrimaryReferenceUrl,
     clearPrimaryReference,
     addAssetReference,
+    addAssetReferences,
+    setPrimaryAssetReference,
     sendAssetToReference,
     addReferenceFromDragPayload
   } = useReferences({ assets, setError });
@@ -226,6 +222,28 @@ export function useDashboardState() {
     () => assets.find((asset) => asset.id === promptSourceAssetId) || null,
     [assets, promptSourceAssetId]
   );
+  const {
+    glyphSettings,
+    activeGlyphDraft,
+    updateGlyphSettings,
+    updateActiveGlyphDraft
+  } = useGlyphLabCache(toolSourceAsset?.id);
+  const {
+    sendAssetToWorkspace,
+    importToolSourceFiles,
+    loadToolSourceFromDropPayload,
+    clearToolSourceAsset
+  } = useToolSource({
+    assets,
+    workspaceMode,
+    setWorkspaceMode,
+    setAssets,
+    setToolSourceAssetId,
+    setSelectedAsset,
+    setError,
+    setRecoveryMessage,
+    importImageAssetFiles
+  });
   const assetBadges = useMemo(() => {
     const badges: Record<string, AssetBadge[]> = {};
     references.forEach((reference, index) => {
@@ -382,6 +400,25 @@ export function useDashboardState() {
     );
     return slot;
   }
+  async function addReferenceFiles(files: File[], role?: ReferenceRole) {
+    const imported = await importImageAssetFiles(files, { assetKind: "reference", focusAssetsTab: false });
+    if (!imported.length) return [];
+    const slots = addAssetReferences(imported, role);
+    if (!slots.length) return [];
+    const roleLabel = role ? `${referenceRoleConfig(role).label} ` : "";
+    setRecoveryMessage(`Added ${roleLabel}${slots.map((slot) => `@img${slot}`).join(", ")} to references.`);
+    return slots;
+  }
+  async function setPrimaryReferenceFiles(files: File[], role?: ReferenceRole) {
+    const [asset] = await importImageAssetFiles(files.slice(0, 1), {
+      assetKind: "reference",
+      focusAssetsTab: false
+    });
+    if (!asset) return null;
+    setPrimaryAssetReference(asset, role);
+    setRecoveryMessage(`Added ${asset.title || asset.id} as the primary reference.`);
+    return 1;
+  }
   async function addPromptReferenceFiles(files: File[], role?: ReferenceRole) {
     const slots = await addReferenceFiles(files, role);
     if (!slots.length) return [];
@@ -391,16 +428,6 @@ export function useDashboardState() {
       `Added ${roleLabel}${slots.map((slot) => `@img${slot}`).join(", ")} to prompt references.`
     );
     return slots;
-  }
-  function sendAssetToWorkspace(asset: AssetRecord, mode: Exclude<WorkspaceMode, "prompt">) {
-    setToolSourceAssetId(asset.id);
-    setWorkspaceMode(mode);
-    setSelectedAsset(null);
-    setRecoveryMessage(`Loaded ${asset.title || asset.id} in ${workspaceModeLabels[mode]}.`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-  function clearToolSourceAsset() {
-    setToolSourceAssetId(null);
   }
   async function runWorkspaceTool() {
     if (workspaceMode === "prompt") {
@@ -412,7 +439,7 @@ export function useDashboardState() {
       return;
     }
     if (!toolSourceAsset) {
-      setError("Select a source image from the output library.");
+      setError("Select a source image from the assets library.");
       return;
     }
     const input: ToolRunInput = {
@@ -484,7 +511,8 @@ export function useDashboardState() {
       payload: { svg: payload.svg },
       references: [],
       sourceAssetId: payload.sourceAsset.id,
-      operation: "glyphs"
+      operation: "glyphs",
+      assetKind: "asset"
     };
     await persistAssetImage(id, payload.pngDataUrl);
     setAssets((current) => [asset, ...current]);
@@ -545,6 +573,10 @@ export function useDashboardState() {
     setOutpaintOffsetY,
     outpaintMode,
     setOutpaintMode,
+    glyphSettings,
+    activeGlyphDraft,
+    updateGlyphSettings,
+    updateActiveGlyphDraft,
     assetBadges,
     setAudioAssignments,
     searchQuery,
@@ -606,12 +638,15 @@ export function useDashboardState() {
     clearPromptSources,
     runPermutationScript,
     recoverStoredAssets,
+    importImageAssetFiles,
     importPngMetadataFiles,
     toggleFavorite,
     deleteAsset,
     sendAssetToPrompt,
     addAssetToPromptReferences,
     sendAssetToWorkspace,
+    importToolSourceFiles,
+    loadToolSourceFromDropPayload,
     clearToolSourceAsset,
     runWorkspaceTool,
     saveGlyphAsset,

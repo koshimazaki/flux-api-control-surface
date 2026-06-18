@@ -3,10 +3,12 @@
 import { Download, RotateCcw, Save, Wand2 } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
+import { CanvasSurface } from "@/components/ui/canvas-surface";
 import { displaySize, fitScale } from "@/lib/canvas-geometry";
 import { assetImageSource } from "@/lib/dashboard-tools";
 import { clampRectToBounds, isUsableSelection, normalizeSelection, targetSizeFor, type Rect } from "@/lib/glyph-geometry";
 import { composeGlyphPng, cropImageRegion, downloadSvg, loadImage, vectorizeCanvas } from "@/lib/glyph-vectorize";
+import type { GlyphLabDraft, GlyphLabSettings } from "@/lib/glyph-lab-state";
 import { useElementSize } from "@/lib/use-element-size";
 import type { AssetRecord } from "@/lib/types";
 
@@ -20,31 +22,29 @@ export type GlyphSavePayload = {
 
 type GlyphLabProps = {
   sourceAsset: AssetRecord;
+  settings: GlyphLabSettings;
+  draft: GlyphLabDraft;
+  onSettingsChange: (patch: Partial<GlyphLabSettings>) => void;
+  onDraftChange: (patch: Partial<GlyphLabDraft>) => void;
   onSave: (payload: GlyphSavePayload) => Promise<void> | void;
 };
 
-export function GlyphLab({ sourceAsset, onSave }: GlyphLabProps) {
+export function GlyphLab({ sourceAsset, settings, draft, onSettingsChange, onDraftChange, onSave }: GlyphLabProps) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
-  const [selection, setSelection] = useState<Rect | null>(null);
-  const [result, setResult] = useState<{ svg: string; width: number; height: number } | null>(null);
-  const [colors, setColors] = useState(8);
-  const [minArea, setMinArea] = useState(8);
-  const [knockout, setKnockout] = useState(true);
-  const [targetMode, setTargetMode] = useState<"square" | "native">("square");
   const [status, setStatus] = useState<"idle" | "tracing" | "saving">("idle");
   const [error, setError] = useState("");
 
   const src = assetImageSource(sourceAsset);
   const stageSize = useElementSize(stageRef);
+  const { colors, minArea, knockout, targetMode } = settings;
+  const { selection, result } = draft;
 
   useEffect(() => {
     let cancelled = false;
-    setSelection(null);
-    setResult(null);
     setError("");
     imageRef.current = null;
     setNaturalSize(null);
@@ -80,7 +80,7 @@ export function GlyphLab({ sourceAsset, onSave }: GlyphLabProps) {
     const point = pointToNatural(event);
     if (!point || !naturalSize) return;
     dragStart.current = point;
-    setSelection({ x: point.x, y: point.y, width: 0, height: 0 });
+    onDraftChange({ selection: { x: point.x, y: point.y, width: 0, height: 0 } });
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
@@ -89,7 +89,7 @@ export function GlyphLab({ sourceAsset, onSave }: GlyphLabProps) {
     const point = pointToNatural(event);
     if (!point) return;
     const raw = normalizeSelection(dragStart.current.x, dragStart.current.y, point.x, point.y);
-    setSelection(clampRectToBounds(raw, naturalSize.width, naturalSize.height));
+    onDraftChange({ selection: clampRectToBounds(raw, naturalSize.width, naturalSize.height) });
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
@@ -99,7 +99,7 @@ export function GlyphLab({ sourceAsset, onSave }: GlyphLabProps) {
 
   function selectAll() {
     if (!naturalSize) return;
-    setSelection({ x: 0, y: 0, width: naturalSize.width, height: naturalSize.height });
+    onDraftChange({ selection: { x: 0, y: 0, width: naturalSize.width, height: naturalSize.height } });
   }
 
   async function runVectorize() {
@@ -114,7 +114,7 @@ export function GlyphLab({ sourceAsset, onSave }: GlyphLabProps) {
       const crop = cropImageRegion(imageRef.current, selection);
       const svg = vectorizeCanvas(crop, { colors, minArea, knockoutBackground: knockout });
       if (!svg) throw new Error("empty");
-      setResult({ svg, width: crop.width, height: crop.height });
+      onDraftChange({ result: { svg, width: crop.width, height: crop.height } });
     } catch {
       setError("Vectorize failed — try a different selection or fewer colors.");
     } finally {
@@ -143,7 +143,7 @@ export function GlyphLab({ sourceAsset, onSave }: GlyphLabProps) {
 
   return (
     <div className="glyphLab">
-      <div className="glyphStage" ref={stageRef}>
+      <CanvasSurface className="glyphStage" variant="glyph" ref={stageRef}>
         {naturalSize && (
           <div
             className="glyphImageBox"
@@ -170,33 +170,33 @@ export function GlyphLab({ sourceAsset, onSave }: GlyphLabProps) {
           </div>
         )}
         <small className="maskPaintHint">drag to select an icon · then vectorize</small>
-      </div>
+      </CanvasSurface>
 
       <div className="glyphPanel">
-        <div className="glyphResult" aria-label="Vector preview">
+        <CanvasSurface className="glyphResult" variant="glyph" checkerSize={22} aria-label="Vector preview">
           {result ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={resultSrc} alt="Vectorized glyph" />
           ) : (
             <span>{status === "tracing" ? "Tracing…" : "Vector preview"}</span>
           )}
-        </div>
+        </CanvasSurface>
 
         <label className="glyphField">
           Colors · {colors}
-          <input type="range" min={2} max={32} value={colors} onChange={(event) => setColors(Number(event.target.value))} />
+          <input type="range" min={2} max={32} value={colors} onChange={(event) => onSettingsChange({ colors: Number(event.target.value) })} />
         </label>
         <label className="glyphField">
           Despeckle · {minArea}px²
-          <input type="range" min={0} max={40} value={minArea} onChange={(event) => setMinArea(Number(event.target.value))} />
+          <input type="range" min={0} max={40} value={minArea} onChange={(event) => onSettingsChange({ minArea: Number(event.target.value) })} />
         </label>
         <label className="glyphCheck">
-          <input type="checkbox" checked={knockout} onChange={(event) => setKnockout(event.target.checked)} />
+          <input type="checkbox" checked={knockout} onChange={(event) => onSettingsChange({ knockout: event.target.checked })} />
           Cut background (knock out the corner color)
         </label>
         <label className="glyphField">
           Place on
-          <select value={targetMode} onChange={(event) => setTargetMode(event.target.value === "native" ? "native" : "square")}>
+          <select value={targetMode} onChange={(event) => onSettingsChange({ targetMode: event.target.value === "native" ? "native" : "square" })}>
             <option value="square">1024 × 1024</option>
             <option value="native">Native ({selection ? `${selection.width}×${selection.height}` : "selection"})</option>
           </select>
@@ -220,7 +220,7 @@ export function GlyphLab({ sourceAsset, onSave }: GlyphLabProps) {
             <Download size={15} />
             SVG
           </button>
-          <button type="button" onClick={() => setSelection(null)} disabled={!selection || busy} title="Clear selection">
+          <button type="button" onClick={() => onDraftChange({ selection: null })} disabled={!selection || busy} title="Clear selection">
             <RotateCcw size={15} />
           </button>
         </div>

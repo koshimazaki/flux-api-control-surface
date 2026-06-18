@@ -105,6 +105,7 @@ export async function assetFromPngMetadataFile(file: File): Promise<AssetRecord>
     remoteImageUrl: asString(full.outputFiles?.remote?.outputFiles?.remoteImageUrl) || null,
     r2RootPrefix: asString(full.outputFiles?.remote?.outputFiles?.r2RootPrefix) || null,
     sourceAssetId: asString(full.sourceAssetId) || null,
-    operation: asString(full.operation) || null
+    operation: asString(full.operation) || null,
+    assetKind: "output"
   };
 }

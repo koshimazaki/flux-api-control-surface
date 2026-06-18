@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from "react";
 import { Clipboard, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { PanelHeader } from "@/components/ui/panel-header";
@@ -9,6 +9,7 @@ import {
   referenceRoleToken,
   referenceToken
 } from "@/lib/reference-roles";
+import { BFL_IMAGE_OPTION_MIME, setReferenceDragData } from "@/lib/reference-drag";
 import type { AssetRecord, PromptRecord, ReferenceImage } from "@/lib/types";
 import { applyPresetToPrompt, compactPrompt, presets } from "@/lib/prompt-utils";
 
@@ -87,9 +88,9 @@ export function PromptEditor({
     }, 0);
   }
 
-  async function handleReferenceDrop(event: React.DragEvent) {
+  async function handleReferenceDrop(event: ReactDragEvent) {
     const payload =
-      event.dataTransfer.getData("application/x-bfl-image-option") ||
+      event.dataTransfer.getData(BFL_IMAGE_OPTION_MIME) ||
       event.dataTransfer.getData("text/plain");
     if (payload.startsWith("asset:")) {
       event.preventDefault();
@@ -109,7 +110,7 @@ export function PromptEditor({
       className="panel editor"
       onDragOver={(event) => {
         const types = Array.from(event.dataTransfer.types);
-        if (types.includes("application/x-bfl-image-option") || types.includes("Files")) {
+        if (types.includes(BFL_IMAGE_OPTION_MIME) || types.includes("Files")) {
           event.preventDefault();
         }
       }}
@@ -172,6 +173,8 @@ export function PromptEditor({
                       key={reference.id}
                       className="promptReferenceChip"
                       title={`Insert ${roleToken} (${token})`}
+                      draggable
+                      onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
                       onClick={() => insertPromptToken(roleToken)}
                     >
                       {preview ? (

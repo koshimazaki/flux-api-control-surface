@@ -11,14 +11,21 @@ import {
   removeAssetImages,
   safeSetItem
 } from "@/lib/dashboard-assets";
+import { assetFromImageFile, imageFilesFromList } from "@/lib/image-asset-import";
 import { assetFromPngMetadataFile } from "@/lib/png-asset-import";
-import type { AspectRatio, AssetRecord, DashboardTab, RunLogEntry } from "@/lib/types";
+import type { AspectRatio, AssetKind, AssetRecord, DashboardTab, RunLogEntry } from "@/lib/types";
 
 type UseAssetLibraryDeps = {
   setActiveTab: (tab: DashboardTab) => void;
   setError: (value: string) => void;
   setRecoveryMessage: (value: string) => void;
   onAssetRemoved: (id: string) => void;
+};
+
+export type ImportImageAssetOptions = {
+  assetKind?: AssetKind;
+  focusAssetsTab?: boolean;
+  preservePngMetadata?: boolean;
 };
 
 export function useAssetLibrary(deps: UseAssetLibraryDeps) {
@@ -56,19 +63,39 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
     );
     setActiveTab("assets");
   }
-  async function importPngMetadataFiles(files: File[]) {
-    if (!files.length) return;
+  async function buildImportedImageAsset(file: File, options: ImportImageAssetOptions) {
+    const shouldReadPngMetadata =
+      options.preservePngMetadata !== false &&
+      (file.type === "image/png" || file.name.toLowerCase().endsWith(".png"));
+
+    if (shouldReadPngMetadata) {
+      try {
+        const asset = await assetFromPngMetadataFile(file);
+        return { ...asset, assetKind: options.assetKind || asset.assetKind || "output" };
+      } catch {
+        // Plain PNGs are still valid local assets; metadata is a bonus.
+      }
+    }
+
+    return assetFromImageFile(file, { assetKind: options.assetKind || "input" });
+  }
+
+  async function importImageAssetFiles(files: File[], options: ImportImageAssetOptions = {}) {
+    const imageFiles = imageFilesFromList(files);
+    if (!imageFiles.length) return [];
 
     const imported: AssetRecord[] = [];
     const failed: string[] = [];
 
-    for (const file of files) {
+    for (const file of imageFiles) {
       try {
-        const asset = await assetFromPngMetadataFile(file);
-        await persistAssetImage(asset.id, asset.imageDataUrl);
+        const asset = await buildImportedImageAsset(file, options);
+        if (asset.imageDataUrl?.startsWith("data:")) {
+          await persistAssetImage(asset.id, asset.imageDataUrl);
+        }
         imported.push(asset);
       } catch (err) {
-        failed.push(err instanceof Error ? err.message : `${file.name} could not be imported.`);
+        failed.push(err instanceof Error ? err.message : `${file.name} could not be imported as an image asset.`);
       }
     }
 
@@ -77,11 +104,11 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
       setAssets((current) => [...imported, ...current.filter((asset) => !importedIds.has(asset.id))]);
       if (imported.length === 1) setMetadataAssetId(imported[0].id);
       setRecoveryMessage(
-        `Imported ${imported.length} PNG metadata asset${imported.length === 1 ? "" : "s"}${
-          failed.length ? `; skipped ${failed.length} without readable BFL metadata.` : "."
+        `Added ${imported.length} image asset${imported.length === 1 ? "" : "s"}${
+          failed.length ? `; skipped ${failed.length}.` : "."
         }`
       );
-      setActiveTab("assets");
+      if (options.focusAssetsTab !== false) setActiveTab("assets");
     }
 
     if (failed.length) {
@@ -89,6 +116,12 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
     } else {
       setError("");
     }
+
+    return imported;
+  }
+
+  async function importPngMetadataFiles(files: File[]) {
+    return importImageAssetFiles(files, { assetKind: "output", preservePngMetadata: true });
   }
   function toggleFavorite(id: string) {
     setAssets((current) =>
@@ -191,6 +224,7 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
     totalActualCredits,
     failedRunCount,
     recoverStoredAssets,
+    importImageAssetFiles,
     importPngMetadataFiles,
     toggleFavorite,
     deleteAsset,

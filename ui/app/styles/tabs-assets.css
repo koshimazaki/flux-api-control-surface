@@ -118,6 +118,7 @@
 }
 
 .assetImageButton {
+  position: relative;
   display: block;
   width: 100%;
   min-height: 0;
@@ -125,6 +126,50 @@
   border: 0;
   background: var(--bg-deep);
   overflow: hidden;
+}
+
+.assetOriginBadge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 16px);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: var(--soft);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  backdrop-filter: blur(12px);
+}
+
+.assetOrigin-flux {
+  color: #cfe8d0;
+  border-color: rgba(159, 176, 157, 0.7);
+}
+
+.assetOrigin-input {
+  color: #9cc6cc;
+  border-color: rgba(156, 198, 204, 0.7);
+}
+
+.assetOrigin-reference {
+  color: #b9b5d0;
+  border-color: rgba(185, 181, 208, 0.7);
+}
+
+.assetOrigin-asset {
+  color: #ceb885;
+  border-color: rgba(206, 184, 133, 0.7);
+}
+
+.assetOrigin-output {
+  color: var(--gold);
+  border-color: rgba(207, 182, 123, 0.66);
 }
 
 .assetImageButton img,

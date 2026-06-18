@@ -217,7 +217,8 @@ export function buildAssetRecord(
     remotePromptKey: data.outputFiles?.remote?.outputFiles?.r2PromptKey ?? null,
     remoteMetadataKey: data.outputFiles?.remote?.outputFiles?.r2MetadataKey ?? null,
     remoteImageUrl: data.outputFiles?.remote?.outputFiles?.remoteImageUrl ?? null,
-    r2RootPrefix: data.outputFiles?.remote?.outputFiles?.r2RootPrefix ?? null
+    r2RootPrefix: data.outputFiles?.remote?.outputFiles?.r2RootPrefix ?? null,
+    assetKind: "output"
   };
 }
 

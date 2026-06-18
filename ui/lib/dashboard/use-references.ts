@@ -73,36 +73,60 @@ export function useReferences({ assets, setError }: UseReferencesDeps) {
   function clearPrimaryReference() {
     setReferences((current) => current.slice(1));
   }
-  function addAssetReference(asset: AssetRecord, role?: ReferenceRole) {
-    const existingIndex = references.findIndex((reference) => reference.assetId === asset.id);
-    if (existingIndex >= 0) {
-      if (role) {
-        setReferences((current) =>
-          current.map((reference) => (reference.assetId === asset.id ? { ...reference, role } : reference))
-        );
-      }
-      setError("");
-      return existingIndex + 1;
-    }
-    if (references.length >= BFL_MAX_REFERENCES) {
-      setError(`Reference slots are full. BFL accepts up to ${BFL_MAX_REFERENCES} reference images.`);
-      return null;
-    }
-    const slot = references.length + 1;
-    setReferences((current) => {
-      if (current.some((reference) => reference.assetId === asset.id)) return current;
-      return [
-        ...current,
-        {
-          id: `asset-ref-${asset.id}-${Date.now()}`,
-          name: asset.title || asset.id,
-          value: asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url,
-          role: role || referenceRoleForIndex(slot - 1),
-          assetId: asset.id
-        }
-      ].slice(0, BFL_MAX_REFERENCES);
-    });
+
+  function referenceValueForAsset(asset: AssetRecord) {
+    return asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
+  }
+
+  function referenceFromAsset(asset: AssetRecord, index: number, role?: ReferenceRole): ReferenceImage {
+    return {
+      id: `asset-ref-${asset.id}-${Date.now()}`,
+      name: asset.title || asset.id,
+      value: referenceValueForAsset(asset),
+      role: role || referenceRoleForIndex(index),
+      assetId: asset.id
+    };
+  }
+
+  function setPrimaryAssetReference(asset: AssetRecord, role?: ReferenceRole) {
+    setReferences((current) =>
+      [
+        referenceFromAsset(asset, 0, role || current[0]?.role),
+        ...current.slice(1)
+      ].slice(0, BFL_MAX_REFERENCES)
+    );
     setError("");
+    return 1;
+  }
+
+  function addAssetReferences(nextAssets: AssetRecord[], role?: ReferenceRole) {
+    const next = [...references];
+    const slots: number[] = [];
+
+    nextAssets.forEach((asset) => {
+      const existingIndex = next.findIndex((reference) => reference.assetId === asset.id);
+      if (existingIndex >= 0) {
+        if (role) next[existingIndex] = { ...next[existingIndex], role };
+        slots.push(existingIndex + 1);
+        return;
+      }
+      if (next.length >= BFL_MAX_REFERENCES) return;
+      next.push(referenceFromAsset(asset, next.length, role));
+      slots.push(next.length);
+    });
+
+    if (!slots.length && nextAssets.length) {
+      setError(`Reference slots are full. BFL accepts up to ${BFL_MAX_REFERENCES} reference images.`);
+      return [];
+    }
+    setReferences(next.slice(0, BFL_MAX_REFERENCES));
+    setError("");
+    return slots;
+  }
+
+  function addAssetReference(asset: AssetRecord, role?: ReferenceRole) {
+    const [slot] = addAssetReferences([asset], role);
+    if (!slot) return null;
     return slot;
   }
   function sendAssetToReference(asset: AssetRecord, role?: ReferenceRole) {
@@ -132,6 +156,8 @@ export function useReferences({ assets, setError }: UseReferencesDeps) {
     setPrimaryReferenceUrl,
     clearPrimaryReference,
     addAssetReference,
+    addAssetReferences,
+    setPrimaryAssetReference,
     sendAssetToReference,
     addReferenceFromDragPayload
   };

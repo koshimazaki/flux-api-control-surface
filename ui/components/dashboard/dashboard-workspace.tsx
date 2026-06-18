@@ -44,11 +44,17 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             canvasHeight={state.height}
             offsetX={state.outpaintOffsetX}
             offsetY={state.outpaintOffsetY}
+            glyphSettings={state.glyphSettings}
+            glyphDraft={state.activeGlyphDraft}
             onMaskChange={state.setToolMask}
             onOffsetXChange={state.setOutpaintOffsetX}
             onOffsetYChange={state.setOutpaintOffsetY}
+            onGlyphSettingsChange={state.updateGlyphSettings}
+            onGlyphDraftChange={state.updateActiveGlyphDraft}
             onSaveGlyph={state.saveGlyphAsset}
             onClearSource={state.clearToolSourceAsset}
+            onSourceDropPayload={(payload) => void state.loadToolSourceFromDropPayload(payload)}
+            onSourceFiles={(files) => void state.importToolSourceFiles(files)}
           />
         ) : (
           <PromptEditor

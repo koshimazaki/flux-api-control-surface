@@ -1,4 +1,5 @@
 import { Database, ImagePlus, Layers, Sparkles, X } from "lucide-react";
+import type { DragEvent as ReactDragEvent } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
@@ -11,6 +12,7 @@ import {
   referenceRoleToken,
   referenceToken
 } from "@/lib/reference-roles";
+import { BFL_IMAGE_OPTION_MIME, setReferenceDragData } from "@/lib/reference-drag";
 import type { AssetRecord, BatchMode, ReferenceImage, ReferenceRole } from "@/lib/types";
 import { estimateMegapixels, modelOptions } from "@/lib/pricing";
 
@@ -95,10 +97,10 @@ export function RunPanel(props: RunPanelProps) {
     props.onReferencesChange(props.references.map((reference) => (reference.id === id ? { ...reference, ...patch } : reference)));
   }
 
-  function handleReferenceDrop(event: React.DragEvent, role?: ReferenceRole) {
+  function handleReferenceDrop(event: ReactDragEvent, role?: ReferenceRole) {
     event.preventDefault();
     const payload =
-      event.dataTransfer.getData("application/x-bfl-image-option") ||
+      event.dataTransfer.getData(BFL_IMAGE_OPTION_MIME) ||
       event.dataTransfer.getData("text/plain");
     if (payload.startsWith("asset:")) {
       props.onReferenceDropPayload(payload, role);
@@ -253,9 +255,21 @@ export function RunPanel(props: RunPanelProps) {
                   const preview = referencePreviewSrc(reference);
                   return preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={reference.id} src={preview} alt={referenceDisplayName(reference, index)} />
+                    <img
+                      key={reference.id}
+                      src={preview}
+                      alt={referenceDisplayName(reference, index)}
+                      draggable
+                      onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
+                    />
                   ) : (
-                    <span key={reference.id}>{referenceToken(index)}</span>
+                    <span
+                      key={reference.id}
+                      draggable
+                      onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
+                    >
+                      {referenceToken(index)}
+                    </span>
                   );
                 })
               ) : (
@@ -285,7 +299,12 @@ export function RunPanel(props: RunPanelProps) {
       >
         {props.primaryReferencePreview ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={props.primaryReferencePreview} alt="Primary reference" />
+          <img
+            src={props.primaryReferencePreview}
+            alt="Primary reference"
+            draggable={Boolean(props.references[0])}
+            onDragStart={(event) => props.references[0] && setReferenceDragData(event.dataTransfer, props.references[0], 0)}
+          />
         ) : (
           <ImagePlus size={16} />
         )}
@@ -348,9 +367,20 @@ export function RunPanel(props: RunPanelProps) {
             <div className="referenceItem" key={reference.id}>
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt={referenceDisplayName(reference, slotIndex)} />
+                <img
+                  src={preview}
+                  alt={referenceDisplayName(reference, slotIndex)}
+                  draggable
+                  onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, slotIndex)}
+                />
               ) : (
-                <div className="referenceIndex">{slotIndex + 1}</div>
+                <div
+                  className="referenceIndex"
+                  draggable
+                  onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, slotIndex)}
+                >
+                  {slotIndex + 1}
+                </div>
               )}
               <select
                 value={role.id}

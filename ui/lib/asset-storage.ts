@@ -1,4 +1,4 @@
-import type { AssetRecord } from "./types";
+import type { AssetKind, AssetRecord } from "./types";
 
 export const AIMEDIA_LIBRARY_KEY = "nb2_generations";
 export const BFL_LIBRARY_KEY = "bfl-flower-assets";
@@ -65,6 +65,18 @@ function sanitizePayload(payload: Record<string, unknown>) {
   );
 }
 
+function normalizeAssetKind(value: unknown, fallback: AssetKind): AssetKind {
+  return value === "output" || value === "input" || value === "reference" || value === "asset"
+    ? value
+    : fallback;
+}
+
+function inferAssetKind(item: any): AssetKind {
+  if (item.operation === "glyphs" || item.provider === "local-glyph") return "asset";
+  if (String(item.provider || "").startsWith("local")) return "input";
+  return "output";
+}
+
 export function stripAssetForStorage(asset: AssetRecord) {
   const fallbackUrl = asset.sampleUrl || asset.imageUrl || asset.image_url;
   return {
@@ -119,7 +131,8 @@ export function normalizeLibraryRecord(item: any): AssetRecord | null {
     remoteImageUrl: item.remoteImageUrl,
     r2RootPrefix: item.r2RootPrefix,
     sourceAssetId: item.sourceAssetId ?? null,
-    operation: item.operation ?? null
+    operation: item.operation ?? null,
+    assetKind: normalizeAssetKind(item.assetKind, inferAssetKind(item))
   };
 }
 
@@ -183,6 +196,7 @@ export function toAimediaRecord(asset: AssetRecord) {
     remotePromptKey: asset.remotePromptKey,
     remoteMetadataKey: asset.remoteMetadataKey,
     remoteImageUrl: asset.remoteImageUrl,
-    r2RootPrefix: asset.r2RootPrefix
+    r2RootPrefix: asset.r2RootPrefix,
+    assetKind: asset.assetKind
   };
 }

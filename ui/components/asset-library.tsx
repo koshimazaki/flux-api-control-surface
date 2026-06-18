@@ -17,14 +17,16 @@ import {
   RotateCcw,
   Search,
   Send,
+  Sparkles,
   Square,
   Trash2,
   Upload
 } from "lucide-react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, DragEvent } from "react";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-badge";
 import { copyText } from "@/lib/clipboard";
+import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import type { AssetBadge, AssetRecord, AspectRatio, WorkspaceMode } from "@/lib/types";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
@@ -44,7 +46,7 @@ type AssetLibraryProps = {
   onExport: () => void;
   onClear: () => void;
   onRecover: () => void;
-  onImportPngMetadata: (files: File[]) => void;
+  onImportImages: (files: File[]) => void;
   onToggleFavorite: (id: string) => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
@@ -74,22 +76,60 @@ function groupAssetsByDate(assets: AssetRecord[]) {
   return Array.from(groups.entries());
 }
 
+function isFluxAsset(asset: AssetRecord) {
+  return /bfl|flux/i.test(`${asset.provider || ""} ${asset.model || ""}`);
+}
+
+function assetOrigin(asset: AssetRecord) {
+  if (isFluxAsset(asset)) {
+    return { label: "F", className: "flux", title: "FLUX output", icon: Sparkles };
+  }
+  if (asset.assetKind === "input") {
+    return { label: "Input", className: "input", title: "Imported input image", icon: Upload };
+  }
+  if (asset.assetKind === "reference") {
+    return { label: "Ref", className: "reference", title: "Reference image", icon: ImagePlus };
+  }
+  if (asset.assetKind === "asset") {
+    return { label: "Asset", className: "asset", title: "Local asset", icon: PackagePlus };
+  }
+  return { label: "Output", className: "output", title: "Generated output", icon: Download };
+}
+
+function imageFilesFromTransfer(event: DragEvent) {
+  return Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
+}
+
 export function AssetLibrary(props: AssetLibraryProps) {
   const assetGridStyle = {
     gridTemplateColumns: `repeat(${props.gridSize}, minmax(0, 1fr))`
   };
   const groupedAssets = groupAssetsByDate(props.filteredAssets);
 
-  function onPngImport(event: ChangeEvent<HTMLInputElement>) {
-    props.onImportPngMetadata(Array.from(event.target.files || []));
+  function onImageImport(event: ChangeEvent<HTMLInputElement>) {
+    props.onImportImages(Array.from(event.target.files || []));
     event.target.value = "";
   }
 
   return (
-    <section className="assetsPanel">
+    <section
+      className="assetsPanel"
+      onDragOver={(event) => {
+        if (Array.from(event.dataTransfer.types).includes("Files")) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+        }
+      }}
+      onDrop={(event) => {
+        const files = imageFilesFromTransfer(event);
+        if (!files.length) return;
+        event.preventDefault();
+        props.onImportImages(files);
+      }}
+    >
       <PanelHeader
-        title="Output Library"
-        subtitle={<>{props.filteredAssets.length} of {props.assets.length} saved outputs</>}
+        title="Assets Library"
+        subtitle={<>{props.filteredAssets.length} of {props.assets.length} saved assets</>}
       >
         <div className="assetActions">
           <div className="searchBox">
@@ -121,10 +161,10 @@ export function AssetLibrary(props: AssetLibraryProps) {
             <RotateCcw size={16} />
             Recover
           </button>
-          <label className="fileButton" title="Import PNG and read embedded BFL prompt/settings metadata">
+          <label className="fileButton" title="Import images; PNG prompt/settings metadata is preserved when present">
             <Upload size={16} />
-            Import PNG
-            <input type="file" accept="image/png" multiple onChange={onPngImport} />
+            Import Images
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" multiple onChange={onImageImport} />
           </label>
           <button onClick={props.onClear}>
             <RotateCcw size={16} />
@@ -138,13 +178,15 @@ export function AssetLibrary(props: AssetLibraryProps) {
           <section className="assetDateGroup" key={date}>
             <div className="assetDateHeader">
               <strong>{date}</strong>
-              <span>{dateAssets.length} output{dateAssets.length === 1 ? "" : "s"}</span>
+              <span>{dateAssets.length} asset{dateAssets.length === 1 ? "" : "s"}</span>
             </div>
             <div className="assetGrid" style={assetGridStyle}>
               {dateAssets.map((asset) => {
                 const isSelected = props.selectedAssetIds.includes(asset.id);
                 const imageSource = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
                 const badges = props.assetBadges[asset.id] || [];
+                const origin = assetOrigin(asset);
+                const OriginIcon = origin.icon;
                 const cardClass = [
                   "assetCard",
                   isSelected ? "selectedAsset" : "",
@@ -175,14 +217,18 @@ export function AssetLibrary(props: AssetLibraryProps) {
                       style={getAspectStyle(props.aspectRatio)}
                       draggable
                       onDragStart={(event) => {
-                        event.dataTransfer.setData("application/x-bfl-image-option", `asset:${asset.id}`);
+                        event.dataTransfer.setData(BFL_IMAGE_OPTION_MIME, `asset:${asset.id}`);
                         event.dataTransfer.setData("text/plain", `asset:${asset.id}`);
                         event.dataTransfer.effectAllowed = "copy";
                       }}
-                      title="Drag onto the prompt editor, an audio timing row, or the reference dropzone"
+                      title="Drag onto a workspace canvas, the prompt editor, an audio timing row, or the reference dropzone"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={imageSource} alt={asset.title || asset.id} />
+                      <span className={`assetOriginBadge assetOrigin-${origin.className}`} title={origin.title}>
+                        <OriginIcon size={11} />
+                        {origin.label}
+                      </span>
                     </button>
                     <div className="assetMeta">
                       <strong>{asset.title || asset.id}</strong>
@@ -269,7 +315,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
             </div>
           </section>
         ))}
-        {!props.filteredAssets.length && <div className="emptyState">Generated flower assets will appear here.</div>}
+        {!props.filteredAssets.length && <div className="emptyState">Drop images here or generate outputs to build the library.</div>}
       </div>
     </section>
   );

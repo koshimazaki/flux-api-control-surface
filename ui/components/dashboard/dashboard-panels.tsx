@@ -64,7 +64,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           }
           onClear={state.clearAssets}
           onRecover={state.recoverStoredAssets}
-          onImportPngMetadata={state.importPngMetadataFiles}
+          onImportImages={(files) => void state.importImageAssetFiles(files)}
           onToggleFavorite={state.toggleFavorite}
           onSendToPrompt={state.sendAssetToPrompt}
           onSendToWorkspace={state.sendAssetToWorkspace}

@@ -1,8 +1,9 @@
 import { ImagePlus, X } from "lucide-react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { DragEvent as ReactDragEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useRef, useState } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 import { CanvasZoomControls } from "@/components/ui/canvas-zoom-controls";
+import { CanvasSurface } from "@/components/ui/canvas-surface";
 import { MaskCanvas } from "@/components/mask-canvas";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
@@ -13,6 +14,8 @@ import { useCanvasViewport } from "@/lib/use-canvas-viewport";
 import { useElementSize } from "@/lib/use-element-size";
 import { isPanGesture } from "@/lib/use-zoom-pan";
 import type { AssetRecord, WorkspaceMode } from "@/lib/types";
+import type { GlyphLabDraft, GlyphLabSettings } from "@/lib/glyph-lab-state";
+import { BFL_IMAGE_OPTION_MIME, BFL_REFERENCE_MIME } from "@/lib/reference-drag";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
 
@@ -44,7 +47,7 @@ function EmptyToolState() {
     <div className="imageToolEmpty">
       <ImagePlus size={34} />
       <strong>No source image</strong>
-      <span>Select an output and send it to this workspace.</span>
+      <span>Drop an image or drag an asset into this workspace.</span>
     </div>
   );
 }
@@ -205,16 +208,61 @@ type ImageToolWorkspaceProps = {
   canvasHeight: number;
   offsetX: string;
   offsetY: string;
+  glyphSettings: GlyphLabSettings;
+  glyphDraft: GlyphLabDraft;
   onMaskChange: (mask: string) => void;
   onOffsetXChange: (value: string) => void;
   onOffsetYChange: (value: string) => void;
+  onGlyphSettingsChange: (patch: Partial<GlyphLabSettings>) => void;
+  onGlyphDraftChange: (patch: Partial<GlyphLabDraft>) => void;
   onSaveGlyph: (payload: GlyphSavePayload) => Promise<void> | void;
   onClearSource: () => void;
+  onSourceDropPayload: (payload: string) => void;
+  onSourceFiles: (files: File[]) => void;
 };
 
 export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
   const { mode, sourceAsset } = props;
   const copy = toolCopy[mode];
+  const [isDropActive, setIsDropActive] = useState(false);
+
+  function isSourceDrag(event: ReactDragEvent) {
+    const types = Array.from(event.dataTransfer.types);
+    return (
+      types.includes(BFL_IMAGE_OPTION_MIME) ||
+      types.includes(BFL_REFERENCE_MIME) ||
+      types.includes("Files")
+    );
+  }
+
+  function imageFilesFromTransfer(event: ReactDragEvent) {
+    return Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
+  }
+
+  function handleDragOver(event: ReactDragEvent) {
+    if (!isSourceDrag(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  function handleDrop(event: ReactDragEvent) {
+    const assetPayload =
+      event.dataTransfer.getData(BFL_IMAGE_OPTION_MIME) ||
+      event.dataTransfer.getData(BFL_REFERENCE_MIME) ||
+      event.dataTransfer.getData("text/plain");
+    const imageFiles = imageFilesFromTransfer(event);
+    if (!assetPayload && !imageFiles.length) {
+      setIsDropActive(false);
+      return;
+    }
+    event.preventDefault();
+    setIsDropActive(false);
+    if (assetPayload) {
+      props.onSourceDropPayload(assetPayload);
+      return;
+    }
+    props.onSourceFiles(imageFiles);
+  }
 
   function renderStage() {
     if (!sourceAsset) return <EmptyToolState />;
@@ -243,11 +291,31 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
         />
       );
     }
-    return <GlyphLab key={sourceAsset.id} sourceAsset={sourceAsset} onSave={props.onSaveGlyph} />;
+    return (
+      <GlyphLab
+        key={sourceAsset.id}
+        sourceAsset={sourceAsset}
+        settings={props.glyphSettings}
+        draft={props.glyphDraft}
+        onSettingsChange={props.onGlyphSettingsChange}
+        onDraftChange={props.onGlyphDraftChange}
+        onSave={props.onSaveGlyph}
+      />
+    );
   }
 
   return (
-    <section className={`panel editor imageToolWorkspace ${mode}`}>
+    <section
+      className={`panel editor imageToolWorkspace ${mode}${isDropActive ? " dropReady" : ""}`}
+      onDragEnter={(event) => {
+        if (isSourceDrag(event)) setIsDropActive(true);
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsDropActive(false);
+      }}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       <PanelHeader title={copy.title} subtitle={sourceAsset?.title || sourceAsset?.id || copy.eyebrow}>
         <div className="workspaceHeaderActions">
           <span>{copy.endpoint}</span>
@@ -259,7 +327,9 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
         </div>
       </PanelHeader>
 
-      <div className="imageToolCanvas">{renderStage()}</div>
+      <CanvasSurface className="imageToolCanvas" variant="tool">
+        {renderStage()}
+      </CanvasSurface>
 
       <div className="imageToolMeta">
         <MetaBox label="Source" value={sourceAsset ? sourceAsset.model : "None"} />

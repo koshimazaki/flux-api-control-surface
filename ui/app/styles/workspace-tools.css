@@ -1,3 +1,25 @@
+.canvasSurface {
+  --canvas-check-light: rgba(243, 241, 230, 0.045);
+  --canvas-check-dark: rgba(243, 241, 230, 0.045);
+  --canvas-check-base: rgba(0, 0, 0, 0.52);
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(45deg, var(--canvas-check-light) 25%, transparent 25% 75%, var(--canvas-check-light) 75%),
+    linear-gradient(45deg, var(--canvas-check-dark) 25%, transparent 25% 75%, var(--canvas-check-dark) 75%),
+    var(--canvas-check-base);
+  background-position: 0 0, calc(var(--canvas-check-size) / 2) calc(var(--canvas-check-size) / 2);
+  background-size: var(--canvas-check-size) var(--canvas-check-size);
+}
+
+.canvasSurface-glyph {
+  --canvas-check-light: rgba(255, 255, 255, 0.22);
+  --canvas-check-dark: rgba(86, 86, 86, 0.28);
+  --canvas-check-base: rgba(190, 190, 190, 0.22);
+}
+
 .workspaceMain {
   min-height: 0;
   display: flex;
@@ -61,15 +83,12 @@
   min-height: 0;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background:
-    linear-gradient(45deg, rgba(243, 241, 230, 0.045) 25%, transparent 25% 75%, rgba(243, 241, 230, 0.045) 75%),
-    linear-gradient(45deg, rgba(243, 241, 230, 0.045) 25%, transparent 25% 75%, rgba(243, 241, 230, 0.045) 75%),
-    rgba(0, 0, 0, 0.52);
-  background-position: 0 0, 12px 12px;
-  background-size: 24px 24px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.imageToolWorkspace.dropReady .imageToolCanvas {
+  border-color: rgba(159, 176, 157, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(159, 176, 157, 0.34), 0 0 0 1px rgba(159, 176, 157, 0.16);
 }
 
 .imageToolCanvas img {
@@ -95,9 +114,6 @@
 }
 
 .glyphLab {
-  --glyph-check-light: rgba(255, 255, 255, 0.22);
-  --glyph-check-dark: rgba(86, 86, 86, 0.28);
-  --glyph-check-base: rgba(190, 190, 190, 0.22);
   width: 100%;
   height: 100%;
   min-height: 360px;
@@ -107,19 +123,9 @@
 }
 
 .glyphStage {
-  position: relative;
   min-width: 0;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background:
-    linear-gradient(45deg, var(--glyph-check-light) 25%, transparent 25% 75%, var(--glyph-check-light) 75%),
-    linear-gradient(45deg, var(--glyph-check-dark) 25%, transparent 25% 75%, var(--glyph-check-dark) 75%),
-    var(--glyph-check-base);
-  background-position: 0 0, 12px 12px;
-  background-size: 24px 24px;
 }
 
 .glyphImageBox {
@@ -160,14 +166,6 @@
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background:
-    linear-gradient(45deg, var(--glyph-check-light) 25%, transparent 25% 75%, var(--glyph-check-light) 75%),
-    linear-gradient(45deg, var(--glyph-check-dark) 25%, transparent 25% 75%, var(--glyph-check-dark) 75%),
-    var(--glyph-check-base);
-  background-position: 0 0, 11px 11px;
-  background-size: 22px 22px;
   padding: 10px;
 }
 
