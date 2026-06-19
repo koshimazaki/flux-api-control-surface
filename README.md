@@ -98,6 +98,11 @@ captures the draft direction for turning the FLUX API Control Surface, shader to
 local recorder, provider APIs, RunPod sessions, and MCP control into one
 shared asset/workflow layer.
 
+Current readiness note:
+[`Asset Workbench Readiness`](./docs/asset-workbench-readiness.md) describes the
+BFL-first prompt/image scope, local MCP pairing, asset registry gaps, and future
+provider lanes such as CAD, 3D, and audio-reactive scenes.
+
 Use an uploaded BFL Finetune / Klein LoRA from the API:
 
 ```bash
