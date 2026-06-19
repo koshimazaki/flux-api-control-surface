@@ -10,6 +10,8 @@ import {
 } from "./asset-storage";
 import type { AssetRecord } from "./types";
 
+const OUTPUT_RECOVERY_LIMIT = 60;
+
 export function safeSetItem(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
@@ -18,13 +20,60 @@ export function safeSetItem(key: string, value: string) {
   }
 }
 
-export async function hydrateAssets(records: AssetRecord[]) {
+export function mergeAssetRecords(current: AssetRecord[], incoming: AssetRecord[]) {
+  const currentById = new Map(current.map((asset) => [asset.id, asset]));
   const seen = new Set<string>();
-  const unique = records.filter((asset) => {
+  let added = 0;
+  let changed = false;
+
+  const mergedIncoming = incoming
+    .filter((asset) => {
+      if (seen.has(asset.id)) return false;
+      seen.add(asset.id);
+      return true;
+    })
+    .map((asset) => {
+      const existing = currentById.get(asset.id);
+      if (!existing) {
+        added += 1;
+        changed = true;
+        return asset;
+      }
+      if (
+        existing.title !== asset.title ||
+        existing.provider !== asset.provider ||
+        existing.operation !== asset.operation ||
+        existing.assetKind !== asset.assetKind ||
+        existing.imageUrl !== asset.imageUrl ||
+        existing.localImagePath !== asset.localImagePath ||
+        existing.localMetadataPath !== asset.localMetadataPath ||
+        existing.localSvgPath !== asset.localSvgPath
+      ) {
+        changed = true;
+      }
+      return {
+        ...existing,
+        ...asset,
+        imageDataUrl: asset.imageDataUrl || existing.imageDataUrl,
+        is_favorite: existing.is_favorite ?? asset.is_favorite
+      };
+    });
+
+  const remainingCurrent = current.filter((asset) => {
     if (seen.has(asset.id)) return false;
     seen.add(asset.id);
     return true;
   });
+
+  return {
+    added,
+    changed,
+    assets: changed ? [...mergedIncoming, ...remainingCurrent] : current
+  };
+}
+
+export async function hydrateAssets(records: AssetRecord[]) {
+  const unique = mergeAssetRecords([], records).assets;
 
   return Promise.all(
     unique.map(async (asset) => ({
@@ -38,7 +87,7 @@ export async function hydrateAssets(records: AssetRecord[]) {
 
 export async function fetchOutputAssets(): Promise<AssetRecord[]> {
   try {
-    const response = await fetch("/api/outputs", { cache: "no-store" });
+    const response = await fetch(`/api/outputs?limit=${OUTPUT_RECOVERY_LIMIT}`, { cache: "no-store" });
     if (!response.ok) return [];
     return (await response.json()) as AssetRecord[];
   } catch {
@@ -57,19 +106,7 @@ export async function persistAssetLibraries(assets: AssetRecord[]) {
 
 export async function recoverStoredAssetRecords(current: AssetRecord[]) {
   const recovered = await loadStoredAssets();
-  let added = 0;
-  const seen = new Set(current.map((asset) => asset.id));
-  const merged = [...current];
-
-  recovered.forEach((asset) => {
-    if (!seen.has(asset.id)) {
-      seen.add(asset.id);
-      merged.unshift(asset);
-      added += 1;
-    }
-  });
-
-  return { added, assets: merged };
+  return mergeAssetRecords(current, recovered);
 }
 
 export async function persistAssetImage(id: string, dataUrl: string) {

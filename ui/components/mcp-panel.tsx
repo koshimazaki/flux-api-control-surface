@@ -120,13 +120,13 @@ export function McpPanel(props: McpPanelProps) {
         <div className="mcpCard">
           <Workflow size={18} />
           <span>Local workbench</span>
-          <strong>plans · tools · audio · outputs</strong>
+          <strong>plans · tools · glyphs · outputs</strong>
           <small>{agentWorkflowGuide.localWorkbench.role}</small>
         </div>
         <div className="mcpCard">
           <BookOpen size={18} />
           <span>Missing server routes</span>
-          <strong>audio analyze · glyph vectorize · live refresh</strong>
+          <strong>audio analyze · file import · live push</strong>
           <small>{agentWorkflowGuide.currentGaps.map((gap) => gap.capability).join(" | ")}</small>
         </div>
       </div>

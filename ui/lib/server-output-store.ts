@@ -88,8 +88,8 @@ export async function readLocalOutputManifest(): Promise<OutputManifestItem[]> {
       return {
         id: metadata.id || path.basename(base),
         title: path.basename(base),
-        model: metadata.model,
-        promptTokens: estimateTokens(metadata.payload?.prompt || ""),
+        model: metadata.model || metadata.runSettings?.model,
+        promptTokens: estimateTokens(metadata.payload?.prompt || metadata.prompt || ""),
         imagePath: imagePath ? toWorkspaceRelativePath(imagePath) : undefined,
         promptPath: toWorkspaceRelativePath(`${base}.prompt.txt`),
         metadataPath: toWorkspaceRelativePath(metadataPath),
@@ -138,7 +138,7 @@ export async function readLocalOutputAssets(options: OutputAssetReadOptions = {}
         imageUrl,
         image_url: imageUrl,
         sampleUrl: imageUrl,
-        model: metadata.model || "bfl-api",
+        model: metadata.model || metadata.runSettings?.model || "bfl-api",
         prompt,
         status: "complete",
         width: metadata.payload?.width,
@@ -148,13 +148,13 @@ export async function readLocalOutputAssets(options: OutputAssetReadOptions = {}
           metadata.payload?.width && metadata.payload?.height
             ? `${metadata.payload.width}:${metadata.payload.height}`
             : undefined,
-        provider: "bfl-api",
+        provider: metadata.provider || metadata.runSettings?.provider || "bfl-api",
         payload: metadata.payload || {},
         references: [],
         runSettings: metadata.runSettings || {
           title: path.basename(base),
-          provider: "bfl-api",
-          model: metadata.model || "bfl-api",
+          provider: metadata.provider || metadata.runSettings?.provider || "bfl-api",
+          model: metadata.model || metadata.runSettings?.model || "bfl-api",
           endpointName: metadata.endpointName,
           width: metadata.payload?.width,
           height: metadata.payload?.height,
@@ -174,7 +174,11 @@ export async function readLocalOutputAssets(options: OutputAssetReadOptions = {}
         outputMp: metadata.submit?.outputMp ?? null,
         localImagePath: toWorkspaceRelativePath(imagePath),
         localPromptPath: toWorkspaceRelativePath(promptPath),
-        localMetadataPath: toWorkspaceRelativePath(metadataPath)
+        localMetadataPath: toWorkspaceRelativePath(metadataPath),
+        localSvgPath: metadata.outputSvgPath ?? null,
+        sourceAssetId: metadata.sourceAssetId ?? metadata.runSettings?.sourceAssetId ?? null,
+        operation: metadata.operation ?? metadata.runSettings?.operation ?? null,
+        assetKind: metadata.assetKind ?? undefined
       } satisfies AssetRecord;
     })
   );

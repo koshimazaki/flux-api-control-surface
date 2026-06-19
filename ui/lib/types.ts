@@ -59,6 +59,7 @@ export type AssetRecord = {
   localImagePath?: string | null;
   localPromptPath?: string | null;
   localMetadataPath?: string | null;
+  localSvgPath?: string | null;
   remoteImageKey?: string | null;
   remotePromptKey?: string | null;
   remoteMetadataKey?: string | null;

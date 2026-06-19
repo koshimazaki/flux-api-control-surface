@@ -3,7 +3,9 @@ import { BFL_LIBRARY_KEY, RUN_LOG_KEY } from "@/lib/asset-storage";
 import {
   downloadNameForAsset,
   extensionForAsset,
+  fetchOutputAssets,
   loadStoredAssets,
+  mergeAssetRecords,
   persistAssetLibraries,
   persistAssetImage,
   recoverStoredAssetRecords,
@@ -58,11 +60,12 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
     setAssets(recovered.assets);
     setRecoveryMessage(
       recovered.added
-        ? `Recovered ${recovered.added} older asset${recovered.added === 1 ? "" : "s"} from browser storage.`
-        : "No additional older assets found in browser storage."
+        ? `Recovered ${recovered.added} asset${recovered.added === 1 ? "" : "s"} from server outputs and browser storage.`
+        : "No additional assets found in server outputs or browser storage."
     );
     setActiveTab("assets");
   }
+
   async function buildImportedImageAsset(file: File, options: ImportImageAssetOptions) {
     const shouldReadPngMetadata =
       options.preservePngMetadata !== false &&
@@ -196,6 +199,17 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
       cancelled = true;
     };
   }, []);
+  useEffect(() => {
+    if (!hasLoadedAssets) return;
+    async function refreshServerOutputs() {
+      const outputAssets = await fetchOutputAssets();
+      setAssets((current) => mergeAssetRecords(current, outputAssets).assets);
+    }
+    const timer = window.setInterval(() => {
+      refreshServerOutputs().catch(() => undefined);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [hasLoadedAssets]);
   useEffect(() => {
     if (hasLoadedAssets) persistAssetLibraries(assets);
   }, [assets, hasLoadedAssets]);

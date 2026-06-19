@@ -22,6 +22,7 @@ export const agentWorkflowGuide = {
       batch: agentRouteMap.batch,
       generate: agentRouteMap.generate,
       tools: agentRouteMap.tools,
+      glyphVectorize: agentRouteMap.glyphVectorize,
       outputs: agentRouteMap.outputs,
       prompts: agentRouteMap.prompts,
       audioGuide: agentRouteMap.audioGuide,
@@ -62,6 +63,14 @@ export const agentWorkflowGuide = {
       ]
     },
     {
+      name: "Vectorize saved images into glyph assets",
+      steps: [
+        `GET ${agentRouteMap.outputs}`,
+        `POST ${agentRouteMap.glyphVectorize} with sourceAssetId and colors=2 or colors=4`,
+        `GET ${agentRouteMap.outputs} to recover the SVG/PNG glyph assets`
+      ]
+    },
+    {
       name: "Audio guide assets",
       steps: [
         "Use the Audio tab for browser waveform analysis, marker editing, and prompt composition",
@@ -90,19 +99,14 @@ export const agentWorkflowGuide = {
         "Browser-side today. The server can render guide videos and slice audio when supplied with the analysis/marker payload."
     },
     {
-      capability: "Glyph/vectorize by API",
-      status:
-        "Browser-local today. The Glyphs workspace can vectorize and save SVG/PNG assets, but there is no /api/glyphs/vectorize route yet."
-    },
-    {
       capability: "Agent file drop/import into browser storage",
       status:
         "Browser-local today. Agents can use URLs, data URLs, saved outputs, and remote archive records; arbitrary local drag/drop is not an HTTP route yet."
     },
     {
-      capability: "Live UI refresh after outside agent actions",
+      capability: "Live push updates after outside agent actions",
       status:
-        "Manual recovery/reload today through /api/outputs. A polling hook or server-sent event channel would make external-agent actions appear automatically."
+        "The gallery polls /api/outputs for server-created assets. A server-sent event channel would make this instant instead of periodic."
     }
   ],
   examples: [
@@ -110,7 +114,7 @@ export const agentWorkflowGuide = {
     "Use this recovered gallery image as @character and another as @style, then generate four FLUX.2 Pro options.",
     "Outpaint this saved output to 16:9, save the result, and make it available in /api/outputs.",
     "Given audio markers, render an audio-reactive guide MP4 and attach it to the next video-model prompt record.",
-    "Vectorize this image into a four-color glyph. Current path: use the browser Glyphs workspace; missing path: /api/glyphs/vectorize."
+    "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery."
   ],
   coverage: localAgentCoverage,
   sources: [

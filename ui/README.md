@@ -19,6 +19,18 @@ The MCP tab pairs the hosted FLUX MCP with local dashboard routes. Agents can
 also read `GET /api/mcp/guide`; the repo guide is
 [`../docs/mcp-agent-guide.md`](../docs/mcp-agent-guide.md).
 
+For a real local MCP tool surface, run:
+
+```bash
+npm run mcp
+```
+
+and register it with Codex:
+
+```bash
+codex mcp add BFL_DASHBOARD --env BFL_DASHBOARD_URL=http://localhost:3017 -- node /absolute/path/to/BFL/ui/mcp/server.mjs
+```
+
 The gallery writes to the same localStorage key used by the AImedia library:
 `nb2_generations`. It also mirrors records to `bfl-flower-assets` for export.
 Large generated image data is stored in IndexedDB so localStorage only keeps
@@ -118,8 +130,8 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
 - **Inpaint** (`flux-pro-1.0-fill`): paint a mask plus a replacement prompt.
 - **Outpaint** (`flux-tools/outpainting-v1`): set target canvas size, optional
   pixel offsets (empty = centered), high/fast mode, optional experimental prompt.
-- **Glyphs**: staged only — BFL has no cutout/vectorize endpoint; this lane is
-  reserved for a local vectorizer or Comfy provider.
+- **Glyphs**: local SVG/PNG vectorization. The browser workspace can select a
+  region visually, and agents can call `/api/glyphs/vectorize` for saved outputs.
 
 Tool results land in the gallery with `sourceAssetId`/`operation` provenance and
 the same local + R2 archive treatment as generations.

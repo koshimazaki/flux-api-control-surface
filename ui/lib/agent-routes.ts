@@ -44,6 +44,7 @@ export const agentRouteMap = {
   batch: "/api/dashboard/batch",
   generate: "/api/bfl/generate",
   tools: "/api/bfl/tools",
+  glyphVectorize: "/api/glyphs/vectorize",
   credits: "/api/bfl/credits",
   outputs: "/api/outputs",
   referenceArchive: "/api/reference-archive",
@@ -176,6 +177,28 @@ export const dashboardAgentRoutes: AgentRoute[] = [
   },
   {
     method: "POST",
+    path: agentRouteMap.glyphVectorize,
+    purpose:
+      "Vectorize an existing image or saved output into a local SVG glyph plus PNG preview, then save both into the dashboard output gallery.",
+    sideEffects: true,
+    category: "tools",
+    body: {
+      image: "Optional image URL/data URL. If omitted, sourceAssetId is resolved from /api/outputs/:id/image.",
+      sourceAssetId: "Saved dashboard output id to vectorize.",
+      colors: "Palette size, usually 2 or 4 for glyph work.",
+      selection: "Optional crop rect {x,y,width,height}; defaults to the whole image.",
+      targetMode: "square or native"
+    },
+    example: {
+      sourceAssetId: "rafflesia-01",
+      colors: 4,
+      minArea: 8,
+      knockoutBackground: true,
+      targetMode: "square"
+    }
+  },
+  {
+    method: "POST",
     path: agentRouteMap.credits,
     purpose: "Check FLUX API credits through the control-surface server.",
     sideEffects: false,
@@ -252,6 +275,8 @@ export const dashboardAgentRoutes: AgentRoute[] = [
 export const localAgentCoverage = {
   generation: "Wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate.",
   imageTools: "Erase, inpaint, and outpaint are wired through /api/bfl/tools and the image-tool workspace.",
+  glyphs:
+    "Server-side SVG/PNG glyph vectorization is wired through /api/glyphs/vectorize and saves recoverable local gallery outputs.",
   references:
     "Generation accepts multiple reference image URLs/data URLs. The UI can add references from files, hosted URLs, generated outputs, and asset-library drag/drop.",
   assetLibrary:
@@ -259,9 +284,9 @@ export const localAgentCoverage = {
   audio:
     "Audio slicing and guide rendering are exposed as routes. Browser-side waveform analysis remains a UI workflow; agents can call /api/audio/guide when they already have an analysis payload.",
   uiSync:
-    "Agent-created outputs are visible through /api/outputs and can be recovered into the gallery. The browser UI does not yet have a live event stream for automatic external-agent refresh.",
+    "Agent-created outputs are visible through /api/outputs and the browser gallery polls for new server outputs. A push event stream is still optional future polish.",
   localOnly:
-    "Glyph vectorization is currently a browser-local canvas workflow. It saves SVG/PNG results to the asset library, but there is no server-side glyph route yet."
+    "Browser-imported files and browser-side waveform analysis still require UI handoff. Saved outputs can be used by server-side agents."
 };
 
 export const mcpStatusRoutes = Array.from(

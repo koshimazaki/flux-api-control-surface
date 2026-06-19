@@ -1,0 +1,56 @@
+import { describe, expect, it } from "vitest";
+import { mergeAssetRecords } from "@/lib/dashboard-assets";
+import type { AssetRecord } from "@/lib/types";
+
+function asset(id: string, patch: Partial<AssetRecord> = {}): AssetRecord {
+  return {
+    id,
+    title: id,
+    createdAt: "2026-06-19T00:00:00.000Z",
+    timestamp: 1,
+    imageDataUrl: "",
+    imageUrl: `/api/outputs/${id}/image`,
+    image_url: `/api/outputs/${id}/image`,
+    sampleUrl: `/api/outputs/${id}/image`,
+    model: "bfl-api",
+    prompt: "",
+    status: "complete",
+    provider: "bfl-api",
+    payload: {},
+    references: [],
+    ...patch
+  };
+}
+
+describe("mergeAssetRecords", () => {
+  it("prepends newly recovered server outputs", () => {
+    const result = mergeAssetRecords([asset("old")], [asset("new")]);
+
+    expect(result.added).toBe(1);
+    expect(result.assets.map((item) => item.id)).toEqual(["new", "old"]);
+  });
+
+  it("refreshes existing records while preserving favorites", () => {
+    const result = mergeAssetRecords(
+      [asset("glyph", { is_favorite: true })],
+      [
+        asset("glyph", {
+          provider: "local-glyph",
+          operation: "glyphs",
+          assetKind: "asset",
+          localSvgPath: "outputs/glyph.svg"
+        })
+      ]
+    );
+
+    expect(result.added).toBe(0);
+    expect(result.assets[0]).toMatchObject({
+      id: "glyph",
+      provider: "local-glyph",
+      operation: "glyphs",
+      assetKind: "asset",
+      localSvgPath: "outputs/glyph.svg",
+      is_favorite: true
+    });
+  });
+});

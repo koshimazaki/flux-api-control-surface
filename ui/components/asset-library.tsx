@@ -250,6 +250,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                         localImagePath: asset.localImagePath,
                         localPromptPath: asset.localPromptPath,
                         localMetadataPath: asset.localMetadataPath,
+                        localSvgPath: asset.localSvgPath,
                         remoteImageKey: asset.remoteImageKey,
                         remotePromptKey: asset.remotePromptKey,
                         remoteMetadataKey: asset.remoteMetadataKey,

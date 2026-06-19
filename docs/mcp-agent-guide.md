@@ -27,6 +27,24 @@ curl http://localhost:3017/api/mcp/manifest
 curl http://localhost:3017/api/dashboard/context
 ```
 
+For MCP clients that need callable local tools instead of HTTP route discovery,
+run the stdio wrapper against the dashboard server:
+
+```bash
+cd BFL/ui
+BFL_DASHBOARD_URL=http://localhost:3017 npm run mcp
+```
+
+Register it in Codex:
+
+```bash
+codex mcp add BFL_DASHBOARD --env BFL_DASHBOARD_URL=http://localhost:3017 -- node /absolute/path/to/BFL/ui/mcp/server.mjs
+```
+
+The local MCP wrapper exposes dashboard asset tools such as `list_assets`,
+`vectorize_glyph`, and `vectorize_glyph_batch`, plus generation and image-tool
+wrappers that call the local workbench routes.
+
 ## Which Surface To Use
 
 | Task | Preferred surface |
@@ -38,6 +56,7 @@ curl http://localhost:3017/api/dashboard/context
 | Execute a batch and save outputs locally | Local `/api/dashboard/batch` |
 | Generate one saved dashboard output | Local `/api/bfl/generate` |
 | Erase, inpaint, or outpaint a saved image | Local `/api/bfl/tools` |
+| Vectorize saved images into SVG/PNG glyphs | Local `/api/glyphs/vectorize` |
 | Recover output gallery records | Local `/api/outputs` |
 | Render an audio-reactive guide MP4 | Local `/api/audio/guide` |
 | Slice/loop uploaded audio | Local `/api/audio/slice` |
@@ -75,6 +94,16 @@ filesystem paths.
    - `tool=outpaint` needs `image`, `canvasWidth`, `canvasHeight`, and offsets.
 4. `GET /api/outputs` to recover the edited result.
 
+### Glyph Vectorize
+
+1. `GET /api/outputs`
+2. Pick a saved asset id.
+3. `POST /api/glyphs/vectorize`
+   - `sourceAssetId` resolves `/api/outputs/:id/image`.
+   - `colors=2` or `colors=4` gives clean glyph palettes.
+   - `selection` is optional and defaults to the full image.
+4. `GET /api/outputs` to recover the PNG preview and SVG path.
+
 ### Audio Guide
 
 The browser Audio tab currently owns waveform analysis and marker editing. If an
@@ -91,21 +120,20 @@ These are the main missing pieces for full UI/agent symmetry:
   first-class local MCP server that drives the live React UI.
 - **Server audio analysis:** waveform analysis is browser-side; the server can
   render guides after it receives analysis/markers.
-- **Server glyph/vectorize:** the Glyphs workspace vectorizes in the browser and
-  saves SVG/PNG assets, but there is no `/api/glyphs/vectorize` route yet.
 - **Agent file drop/import:** arbitrary local drag/drop into browser storage is
   still a UI workflow. Agents can use saved outputs, URLs, data URLs, and remote
   archive records.
-- **Live UI refresh:** external agent writes are visible via `/api/outputs`, but
-  the browser does not yet subscribe to a live event stream.
+- **Live push refresh:** external agent writes are visible via `/api/outputs`,
+  and the browser polls for new server outputs. A server-sent event stream would
+  make this instant instead of periodic.
 
 ## Good Next API Additions
 
 1. `POST /api/audio/analyze` for raw audio file analysis.
-2. `POST /api/glyphs/vectorize` for server-side four-color SVG/PNG extraction.
-3. `POST /api/assets/import` for agent-created local assets.
-4. `GET /api/events` or polling metadata so the UI refreshes when agents create outputs.
-5. A true local MCP server that wraps the workbench routes as MCP tools.
+2. `POST /api/assets/import` for agent-created local assets.
+3. `GET /api/events` so the UI refreshes instantly when agents create outputs.
+4. Optional streamable HTTP transport for the local MCP wrapper, if stdio is not
+   enough for a future multi-client setup.
 
 ## Sources
 

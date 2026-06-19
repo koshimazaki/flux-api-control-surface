@@ -10,6 +10,7 @@ describe("agent route catalog", () => {
     expect(paths).toContain(`POST ${agentRouteMap.batch}`);
     expect(paths).toContain(`POST ${agentRouteMap.generate}`);
     expect(paths).toContain(`POST ${agentRouteMap.tools}`);
+    expect(paths).toContain(`POST ${agentRouteMap.glyphVectorize}`);
     expect(paths).toContain(`POST ${agentRouteMap.audioGuide}`);
     expect(paths).toContain(`POST ${agentRouteMap.audioSlice}`);
     expect(paths).toContain(`GET ${agentRouteMap.outputs}`);
@@ -20,14 +21,16 @@ describe("agent route catalog", () => {
 
   it("keeps status discovery free of destructive routes", () => {
     expect(mcpStatusRoutes).toContain(agentRouteMap.tools);
+    expect(mcpStatusRoutes).toContain(agentRouteMap.glyphVectorize);
     expect(mcpStatusRoutes).toContain(agentRouteMap.audioGuide);
     expect(mcpStatusRoutes).not.toContain(`${agentRouteMap.prompts} DELETE`);
   });
 
   it("documents browser-local gaps instead of implying every workflow is server-routable", () => {
     expect(localAgentCoverage.imageTools).toMatch(/erase, inpaint, and outpaint/i);
+    expect(localAgentCoverage.glyphs).toMatch(/server-side SVG\/PNG glyph vectorization/i);
     expect(localAgentCoverage.audio).toMatch(/audio slicing and guide rendering/i);
-    expect(localAgentCoverage.uiSync).toMatch(/external-agent refresh/i);
-    expect(localAgentCoverage.localOnly).toMatch(/glyph vectorization/i);
+    expect(localAgentCoverage.uiSync).toMatch(/polls for new server outputs/i);
+    expect(localAgentCoverage.localOnly).toMatch(/Browser-imported files/i);
   });
 });
