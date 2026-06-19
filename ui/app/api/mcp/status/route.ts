@@ -1,16 +1,24 @@
 import { NextResponse } from "next/server";
 import { agentRouteMap, localAgentCoverage, mcpStatusRoutes, nativeFluxMcp } from "@/lib/agent-routes";
+import { apiKeyStatus } from "@/lib/server-api-key";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const keyStatus = await apiKeyStatus();
   return NextResponse.json({
     status: "ready",
     serverUrl: nativeFluxMcp.serverUrl,
     directBrowserClient: false,
     commands: nativeFluxMcp.install,
     apiRoutes: mcpStatusRoutes,
+    apiKey: {
+      configured: keyStatus.configured,
+      source: keyStatus.source,
+      statusRoute: agentRouteMap.apiKey,
+      rawKeyReadableFromApi: false
+    },
     guideRoute: agentRouteMap.mcpGuide,
     coverage: localAgentCoverage,
     bridge: {

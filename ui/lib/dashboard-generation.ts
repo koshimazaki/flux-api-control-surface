@@ -169,7 +169,7 @@ export async function executePlannedGeneration(item: PlanRequestItem, apiKey: st
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...item.body,
-      apiKey,
+      apiKey: apiKey.trim() || undefined,
       references: references.map((reference) => reference.value).filter(Boolean)
     })
   });

@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { agentRouteMap, dashboardAgentRoutes, localAgentCoverage } from "@/lib/agent-routes";
 import { fetchRemoteOutputManifest, remoteArchiveStatus } from "@/lib/remote-archive";
+import { apiKeyStatus } from "@/lib/server-api-key";
 import { readLocalOutputManifest } from "@/lib/server-output-store";
 import { estimateTokens, modelOptions } from "@/lib/pricing";
 
@@ -35,10 +36,11 @@ async function readPrompts() {
 }
 
 export async function GET() {
-  const [prompts, localOutputs, remoteOutputs] = await Promise.all([
+  const [prompts, localOutputs, remoteOutputs, keyStatus] = await Promise.all([
     readPrompts(),
     readLocalOutputManifest(),
-    fetchRemoteOutputManifest().catch(() => [])
+    fetchRemoteOutputManifest().catch(() => []),
+    apiKeyStatus()
   ]);
 
   return NextResponse.json({
@@ -51,6 +53,10 @@ export async function GET() {
     auth: {
       browserKeyOptional: true,
       serverEnv: ["BFL_API_KEY", "FLUX_API_KEY"],
+      serverKeyConfigured: keyStatus.configured,
+      serverKeySource: keyStatus.source,
+      macOsKeychain: keyStatus.keychain,
+      statusRoute: agentRouteMap.apiKey,
       remoteArchiveEnv: ["BFL_ASSET_WORKER_URL", "BFL_ASSET_WORKER_TOKEN"]
     },
     remoteArchive: remoteArchiveStatus(),

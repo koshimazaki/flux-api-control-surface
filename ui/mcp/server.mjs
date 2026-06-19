@@ -122,6 +122,16 @@ server.registerTool(
 );
 
 server.registerTool(
+  "get_api_key_status",
+  {
+    title: "Get API Key Status",
+    description: "Report whether the dashboard can resolve a FLUX API key from env or macOS Keychain. The raw key is never returned.",
+    inputSchema: {}
+  },
+  async () => result(await requestJson("/api/bfl/key"))
+);
+
+server.registerTool(
   "build_run_plan",
   {
     title: "Build Run Plan",

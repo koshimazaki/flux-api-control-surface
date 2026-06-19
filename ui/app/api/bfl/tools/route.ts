@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     return jsonError("Request body must be JSON");
   }
 
-  const apiKey = resolveApiKey(body.apiKey);
+  const apiKey = await resolveApiKey(body.apiKey);
   const tool = body.tool;
   const toolConfig = tool ? getBflImageTool(tool) : undefined;
   if (!apiKey) return jsonError("FLUX API key is required");

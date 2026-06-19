@@ -26,6 +26,10 @@ Use the hosted FLUX MCP together with the local dashboard routes when outputs,
 prompts, references, audio guides, and tool edits should remain visible in this
 workbench. See [`docs/mcp-agent-guide.md`](./docs/mcp-agent-guide.md).
 
+For local HTTP/API runs, keep the FLUX key server-side through
+`BFL_API_KEY`/`FLUX_API_KEY` or the dashboard's macOS Keychain helper. The local
+MCP/status routes report key availability but do not return the raw key.
+
 **API generation helper in this repo:**
 ```bash
 # Writes the planned requests without spending credits

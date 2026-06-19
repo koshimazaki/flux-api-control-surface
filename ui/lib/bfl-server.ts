@@ -3,12 +3,13 @@ import path from "node:path";
 import { toWorkspaceRelativePath } from "./local-paths";
 import { isBflPollFailureStatus } from "./provider-registry";
 import { fetchRemoteImage } from "./remote-archive";
+import { resolveApiKeyWithSource } from "./server-api-key";
 import { findLocalOutputImage } from "./server-output-store";
 
 export const BFL_API_BASE = "https://api.bfl.ai/v1";
 
-export function resolveApiKey(bodyKey?: string) {
-  return bodyKey?.trim() || process.env.BFL_API_KEY?.trim() || process.env.FLUX_API_KEY?.trim();
+export async function resolveApiKey(bodyKey?: string) {
+  return (await resolveApiKeyWithSource(bodyKey)).apiKey;
 }
 
 export async function bflJson(method: "GET" | "POST", url: string, apiKey: string, payload?: unknown) {

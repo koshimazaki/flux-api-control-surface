@@ -46,7 +46,7 @@ export function buildToolRequestBody(input: ToolRunInput) {
   const seed = input.seed.trim() ? Number(input.seed) : null;
   const title = `${input.mode}-${input.sourceAsset.title || input.sourceAsset.id}`;
   return {
-    apiKey: input.apiKey,
+    apiKey: input.apiKey.trim() || undefined,
     tool: input.mode,
     image: assetImageSource(input.sourceAsset),
     mask: input.mode === "outpaint" ? undefined : input.mask,

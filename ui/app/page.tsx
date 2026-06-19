@@ -12,7 +12,15 @@ export default function Home() {
     <>
       <BackgroundShader />
       <main className="shell">
-        <TopBar apiKey={state.apiKey} onApiKeyChange={state.setApiKey} />
+        <TopBar
+          apiKey={state.apiKey}
+          onApiKeyChange={state.setApiKey}
+          apiKeyStatus={state.apiKeyStatus}
+          isSavingApiKey={state.isSavingApiKey}
+          onSaveApiKey={state.saveApiKeyToSecureStore}
+          onForgetApiKey={state.forgetSecureApiKey}
+          onRefreshApiKey={() => void state.refreshApiKeyStatus()}
+        />
         <DashboardWorkspace state={state} />
         {state.recoveryMessage && (
           <p className="statusLine">

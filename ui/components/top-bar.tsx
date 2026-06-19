@@ -1,11 +1,44 @@
-import { KeyRound, RadioTower } from "lucide-react";
+import { KeyRound, LockKeyhole, RadioTower, RefreshCcw, Trash2 } from "lucide-react";
+import type { ApiKeyStatus } from "@/lib/types";
 
 type TopBarProps = {
   apiKey: string;
   onApiKeyChange: (value: string) => void;
+  apiKeyStatus: ApiKeyStatus | null;
+  isSavingApiKey: boolean;
+  onSaveApiKey: () => void;
+  onForgetApiKey: () => void;
+  onRefreshApiKey: () => void;
 };
 
-export function TopBar({ apiKey, onApiKeyChange }: TopBarProps) {
+function sourceLabel(status: ApiKeyStatus | null) {
+  if (!status) return "checking";
+  if (status.source === "env:BFL_API_KEY") return "BFL env";
+  if (status.source === "env:FLUX_API_KEY") return "FLUX env";
+  if (status.source === "macos-keychain") return "Keychain";
+  return "No key";
+}
+
+function sourceTitle(status: ApiKeyStatus | null) {
+  if (!status) return "Checking local API key source";
+  if (status.source === "macos-keychain") {
+    return `Using macOS Keychain item "${status.keychain.service}"`;
+  }
+  if (status.source.startsWith("env:")) return `Using server ${status.source.replace("env:", "")}`;
+  return "No server-side FLUX API key is configured";
+}
+
+export function TopBar({
+  apiKey,
+  onApiKeyChange,
+  apiKeyStatus,
+  isSavingApiKey,
+  onSaveApiKey,
+  onForgetApiKey,
+  onRefreshApiKey
+}: TopBarProps) {
+  const canSaveToKeychain = Boolean(apiKeyStatus?.keychain.canWrite);
+  const canForgetKeychain = Boolean(apiKeyStatus?.keychain.configured && apiKeyStatus.keychain.canWrite);
   return (
     <header className="topbar">
       <div className="topBarBrand">
@@ -34,10 +67,40 @@ export function TopBar({ apiKey, onApiKeyChange }: TopBarProps) {
           <KeyRound size={16} />
           <input
             type="password"
-            placeholder="FLUX API key or .env.local"
+            placeholder={apiKeyStatus?.configured ? "Server key configured" : "FLUX API key"}
             value={apiKey}
             onChange={(event) => onApiKeyChange(event.target.value)}
           />
+          <span className="keySourceBadge" title={sourceTitle(apiKeyStatus)}>
+            {sourceLabel(apiKeyStatus)}
+          </span>
+          <button
+            type="button"
+            className="keyIconButton"
+            onClick={onSaveApiKey}
+            disabled={!canSaveToKeychain || !apiKey.trim() || isSavingApiKey}
+            title="Save typed key to macOS Keychain"
+          >
+            <LockKeyhole size={15} />
+          </button>
+          <button
+            type="button"
+            className="keyIconButton"
+            onClick={onForgetApiKey}
+            disabled={!canForgetKeychain || isSavingApiKey}
+            title="Remove dashboard key from macOS Keychain"
+          >
+            <Trash2 size={15} />
+          </button>
+          <button
+            type="button"
+            className="keyIconButton"
+            onClick={onRefreshApiKey}
+            disabled={isSavingApiKey}
+            title="Refresh key status"
+          >
+            <RefreshCcw size={15} />
+          </button>
         </div>
       </div>
     </header>

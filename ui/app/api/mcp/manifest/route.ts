@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { agentWorkflowGuide } from "@/lib/agent-guide";
 import { dashboardAgentRoutes, localAgentCoverage, nativeFluxMcp } from "@/lib/agent-routes";
 import { modelOptions } from "@/lib/pricing";
+import { apiKeyStatus } from "@/lib/server-api-key";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const keyStatus = await apiKeyStatus();
   return NextResponse.json({
     name: "FLUX API Control Surface MCP Surface",
     version: "0.2.0",
@@ -27,6 +29,10 @@ export async function GET() {
     safety: {
       avoidBrowserStoredKeys: true,
       preferredSecretEnv: ["BFL_API_KEY", "FLUX_API_KEY"],
+      preferredLocalSecretStore: "macOS Keychain via GET/POST/DELETE /api/bfl/key",
+      serverKeyConfigured: keyStatus.configured,
+      serverKeySource: keyStatus.source,
+      rawKeyReadableFromApi: false,
       batchExecutionCanSpendCredits: true
     }
   });

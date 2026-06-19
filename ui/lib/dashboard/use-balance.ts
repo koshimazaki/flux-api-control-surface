@@ -11,7 +11,7 @@ export function useBalance(apiKey: string) {
       const response = await fetch("/api/bfl/credits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey })
+        body: JSON.stringify({ apiKey: apiKey.trim() || undefined })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not fetch balance");

@@ -42,8 +42,12 @@ codex mcp add BFL_DASHBOARD --env BFL_DASHBOARD_URL=http://localhost:3017 -- nod
 ```
 
 The local MCP wrapper exposes dashboard asset tools such as `list_assets`,
-`vectorize_glyph`, and `vectorize_glyph_batch`, plus generation and image-tool
-wrappers that call the local workbench routes.
+`get_api_key_status`, `vectorize_glyph`, and `vectorize_glyph_batch`, plus
+generation and image-tool wrappers that call the local workbench routes.
+
+The local dashboard resolves paid API calls from a per-request `apiKey`,
+`BFL_API_KEY`, `FLUX_API_KEY`, or a macOS Keychain item. MCP/status routes report
+only whether a key is configured; they never return the raw key.
 
 ## Which Surface To Use
 
@@ -52,6 +56,7 @@ wrappers that call the local workbench routes.
 | Quick FLUX prompt exploration | Official FLUX MCP |
 | Generate variations from BFL history | Official FLUX MCP |
 | Check OAuth/BFL account credits | Official FLUX MCP |
+| Check whether local paid execution has a key | Local `/api/bfl/key` or `get_api_key_status` |
 | Plan prompt-library permutations | Local `/api/dashboard/run-plan` |
 | Execute a batch and save outputs locally | Local `/api/dashboard/batch` |
 | Generate one saved dashboard output | Local `/api/bfl/generate` |

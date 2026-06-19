@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveApiKey } from "@/lib/bfl-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     return jsonError("Request body must be JSON");
   }
 
-  const apiKey = body.apiKey?.trim() || process.env.BFL_API_KEY?.trim() || process.env.FLUX_API_KEY?.trim();
+  const apiKey = await resolveApiKey(body.apiKey);
   if (!apiKey) return jsonError("FLUX API key is required");
 
   const response = await fetch(`${API_BASE}/credits`, {

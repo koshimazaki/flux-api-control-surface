@@ -47,6 +47,11 @@
     width: 100%;
   }
 
+  .topBarRight {
+    min-width: 0;
+    justify-items: stretch;
+  }
+
   .workspace {
     grid-template-columns: 1fr;
     grid-template-rows: none;

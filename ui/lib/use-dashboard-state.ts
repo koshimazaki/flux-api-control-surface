@@ -39,12 +39,15 @@ import type {
   BatchMode,
   DashboardTab,
   ReferenceRole,
-  WorkspaceMode
+  WorkspaceMode,
+  ApiKeyStatus
 } from "@/lib/types";
 
 export function useDashboardState() {
   // Shared atoms consumed by more than one domain (prompt editor + run config + tool config).
   const [apiKey, setApiKey] = useState("");
+  const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null);
+  const [isSavingApiKey, setIsSavingApiKey] = useState(false);
   const [promptText, setPromptText] = useState("");
   const [promptSourceAssetId, setPromptSourceAssetId] = useState<string | null>(null);
   const [model, setModel] = useState("pro-preview");
@@ -275,6 +278,59 @@ export function useDashboardState() {
     // masks are resolution-bound; drop them whenever the tool source changes
     setToolMask("");
   }, [toolSourceAssetId]);
+
+  async function refreshApiKeyStatus() {
+    const response = await fetch("/api/bfl/key", { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not read API key status.");
+    setApiKeyStatus(data);
+    return data as ApiKeyStatus;
+  }
+
+  useEffect(() => {
+    refreshApiKeyStatus().catch(() => undefined);
+  }, []);
+
+  async function saveApiKeyToSecureStore() {
+    if (!apiKey.trim()) {
+      setError("Paste a FLUX API key before saving it.");
+      return;
+    }
+    setIsSavingApiKey(true);
+    setError("");
+    try {
+      const response = await fetch("/api/bfl/key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not save API key.");
+      setApiKey("");
+      setApiKeyStatus(data);
+      setRecoveryMessage("Saved FLUX API key to macOS Keychain. The browser field has been cleared.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save API key.");
+    } finally {
+      setIsSavingApiKey(false);
+    }
+  }
+
+  async function forgetSecureApiKey() {
+    setIsSavingApiKey(true);
+    setError("");
+    try {
+      const response = await fetch("/api/bfl/key", { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not remove API key.");
+      setApiKeyStatus(data);
+      setRecoveryMessage(data.deleted ? "Removed the dashboard FLUX API key from macOS Keychain." : "No Keychain API key was stored for this dashboard.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove API key.");
+    } finally {
+      setIsSavingApiKey(false);
+    }
+  }
 
   function savePrompt(saveAsNew = false) {
     return savePromptWithText(promptText, seed, saveAsNew);
@@ -523,6 +579,11 @@ export function useDashboardState() {
   return {
     apiKey,
     setApiKey,
+    apiKeyStatus,
+    isSavingApiKey,
+    refreshApiKeyStatus,
+    saveApiKeyToSecureStore,
+    forgetSecureApiKey,
     prompts,
     activeId,
     activePromptLibraryId,

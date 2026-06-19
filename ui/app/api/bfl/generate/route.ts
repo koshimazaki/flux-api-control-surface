@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     return jsonError("Request body must be JSON");
   }
 
-  const apiKey = resolveApiKey(body.apiKey);
+  const apiKey = await resolveApiKey(body.apiKey);
   const prompt = body.prompt?.trim();
   const model = body.model || "pro-preview";
   const modelConfig = getBflModel(model);

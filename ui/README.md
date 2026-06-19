@@ -36,17 +36,25 @@ The gallery writes to the same localStorage key used by the AImedia library:
 Large generated image data is stored in IndexedDB so localStorage only keeps
 metadata.
 
-The FLUX API key can be entered in the UI, but the safer local path is
-`BFL/ui/.env.local`:
+The FLUX API key can be entered in the UI as a per-request override, but the
+safer local paths are server-side config or macOS Keychain. The API routes never
+return the raw key to the browser or MCP status APIs.
+
+For `.env.local`:
 
 ```bash
 BFL_API_KEY=...
 ```
 
-The API routes read that server-side value when the UI field is blank. Do not
-put `BFL_API_KEY` on an unprotected public deployment: public callers could
-spend your credits. For demos, keep FLUX generation local and only expose the
-token-protected R2/D1 archive Worker.
+For macOS Keychain, paste the key into the top bar and use the lock button. The
+dashboard stores it as a generic password under the local service
+`BFL Dashboard FLUX API Key`, clears the browser field, and later resolves it
+server-side. `GET /api/bfl/key` reports only whether a key is configured.
+
+Resolution order is: per-request `apiKey`, `BFL_API_KEY`, `FLUX_API_KEY`, then
+macOS Keychain. Do not put `BFL_API_KEY` on an unprotected public deployment:
+public callers could spend your credits. For demos, keep FLUX generation local
+and only expose the token-protected R2/D1 archive Worker.
 
 ## Public Release Gate
 
@@ -56,7 +64,7 @@ Before opening or deploying this control surface as a showcase/resource:
 - add a small set of safe example prompts and generated screenshots;
 - remove nonpublic prompts, output folders, account details, balances, and logs;
 - keep `.env.local` local-only and document that users need their own
-  `BFL_API_KEY`;
+  `BFL_API_KEY` or a local Keychain item;
 - prefer a local-first demo or token-protected archive over public server-side
   generation;
 - present it as a developer workflow tool for FLUX API exploration, not as a
@@ -102,6 +110,8 @@ The local HTML reference view is available at `/api/reference-archive?format=htm
 ## Balance + Cost
 
 - `POST /api/bfl/credits` calls BFL `GET /v1/credits`.
+- `GET /api/bfl/key` reports local key status without returning the raw key;
+  `POST` and `DELETE` store/remove the macOS Keychain item.
 - `POST /api/bfl/generate` checks credits before and after a generation.
 - If BFL returns submit-time `cost`, `input_mp`, or `output_mp`, those are saved
   on the asset and in the run log.
@@ -151,6 +161,8 @@ The UI is also an agent/MCP-facing local API:
 
 - `GET /api/dashboard/context` returns routes, models, prompts, output metadata,
   and auth expectations.
+- `GET /api/bfl/key` reports whether paid execution can resolve a key from env
+  or macOS Keychain, without returning the raw key.
 - `POST /api/dashboard/run-plan` turns prompt IDs or a prompt queue into concrete
   `/api/bfl/generate` request bodies with token/cost estimates.
 - `POST /api/dashboard/batch` dry-runs or executes a control-surface batch. Execution

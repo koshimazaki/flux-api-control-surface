@@ -84,6 +84,20 @@ export type BalanceState = {
   error?: string;
 };
 
+export type ApiKeySource = "request" | "env:BFL_API_KEY" | "env:FLUX_API_KEY" | "macos-keychain" | "missing";
+
+export type ApiKeyStatus = {
+  configured: boolean;
+  source: ApiKeySource;
+  browserOverrideAllowed: boolean;
+  keychain: {
+    available: boolean;
+    configured: boolean;
+    canWrite: boolean;
+    service: string;
+  };
+};
+
 export type RunLogEntry = {
   id: string;
   title: string;

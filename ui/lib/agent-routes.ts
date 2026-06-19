@@ -46,6 +46,7 @@ export const agentRouteMap = {
   tools: "/api/bfl/tools",
   glyphVectorize: "/api/glyphs/vectorize",
   credits: "/api/bfl/credits",
+  apiKey: "/api/bfl/key",
   outputs: "/api/outputs",
   referenceArchive: "/api/reference-archive",
   audioGuide: "/api/audio/guide",
@@ -94,6 +95,13 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     category: "discovery"
   },
   {
+    method: "GET",
+    path: agentRouteMap.apiKey,
+    purpose: "Report whether a FLUX API key is configured through server env or macOS Keychain. Never returns the raw key.",
+    sideEffects: false,
+    category: "discovery"
+  },
+  {
     method: "POST",
     path: agentRouteMap.runPlan,
     purpose: "Build concrete generation request bodies from prompt IDs, prompt queue, permutations, or inline prompt.",
@@ -120,7 +128,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       "Plan or execute a sequential control-surface batch that saves image, prompt, and metadata locally and, when configured, to R2/D1.",
     sideEffects: "Only when execute=true",
     category: "generation",
-    auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body.",
+    auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     example: {
       execute: false,
       batchMode: "library",
@@ -140,7 +148,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       "Call the FLUX HTTP API once with optional reference images, poll the result, save local output files, and optionally sync the archive Worker.",
     sideEffects: true,
     category: "generation",
-    auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body.",
+    auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     example: {
       model: "pro-preview",
       prompt: "A clean cybernetic botanical specimen, macro product-style image.",
@@ -158,7 +166,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       "Run FLUX image tools on an existing image: erase, inpaint, or outpaint. Saves outputs like /api/bfl/generate and records sourceAssetId provenance.",
     sideEffects: true,
     category: "tools",
-    auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body.",
+    auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     body: {
       erase: "tool=image, mask, dilatePixels",
       inpaint: "tool=image, mask, prompt, seed",
@@ -203,7 +211,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     purpose: "Check FLUX API credits through the control-surface server.",
     sideEffects: false,
     category: "generation",
-    auth: "Uses BFL_API_KEY/FLUX_API_KEY server env or apiKey in request body."
+    auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain."
   },
   {
     method: "GET",

@@ -27,6 +27,31 @@
   min-width: 0;
 }
 
+.topBarRight {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  min-width: min(520px, 100%);
+}
+
+.topBarStatus {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.topBarStatus span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
 .brandMark {
   width: 44px;
   height: 44px;
@@ -88,7 +113,7 @@ h2 {
 }
 
 .keyBox {
-  width: min(380px, 100%);
+  width: min(520px, 100%);
 }
 
 .keyBox input,
@@ -97,6 +122,23 @@ h2 {
   background: transparent;
   padding: 0;
   box-shadow: none;
+}
+
+.keySourceBadge {
+  flex: 0 0 auto;
+  min-width: 74px;
+  text-align: center;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.keyIconButton {
+  flex: 0 0 30px;
+  width: 30px;
+  min-height: 30px;
+  padding: 0;
 }
 
 .statCard {
