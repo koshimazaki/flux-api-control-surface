@@ -3,9 +3,9 @@
 Local Next.js control surface for testing FLUX.2 prompts, batch permutations,
 reference images, image tools, assets, costs, and logs.
 
-This is a local development tool for now. It can become a public dev-tool demo
-after a few more tested examples, a clean sample workflow, and a final secrets
-scrub.
+This is a local-first developer tool. It is suitable as a public demo/workflow
+repo when it is presented as a local FLUX API workbench, not as a hosted public
+image generator.
 
 ```bash
 cd BFL/ui
@@ -60,7 +60,8 @@ and only expose the token-protected R2/D1 archive Worker.
 
 Before opening or deploying this control surface as a showcase/resource:
 
-- test it with several representative prompt batches and reference-image flows;
+- run `npm test`, `npm run lint`, and `npm run build`;
+- test representative prompt batches and reference-image flows;
 - add a small set of safe example prompts and generated screenshots;
 - remove nonpublic prompts, output folders, account details, balances, and logs;
 - keep `.env.local` local-only and document that users need their own
@@ -69,6 +70,8 @@ Before opening or deploying this control surface as a showcase/resource:
   generation;
 - present it as a developer workflow tool for FLUX API exploration, not as a
   hosted public image generator.
+
+See `../docs/public-release-checklist.md` for the repo-level checklist.
 
 Completed generations are also written to:
 
@@ -125,9 +128,9 @@ The local HTML reference view is available at `/api/reference-archive?format=htm
   image tools, audio panel, and lightbox.
 - `lib/dashboard/` contains focused hooks for prompt, asset, reference,
   balance, and training-collection state.
-- `lib/provider-registry.ts` is the current FLUX/BFL model and tool source of
-  truth. Add future provider lanes there first, then wire the matching
-  API/client adapters.
+- `lib/provider-registry.ts` is the BFL/FLUX model and image-tool source of
+  truth. Keep it BFL-specific unless a concrete new integration needs another
+  adapter.
 - `lib/` contains prompt helpers, pricing estimates, shared types, and
   IndexedDB/localStorage persistence.
 
@@ -179,7 +182,8 @@ The UI is also an agent/MCP-facing local API:
 ## MCP Note
 
 BFL MCP is useful inside MCP clients such as Codex or Claude because it owns the
-OAuth flow and tool calls. This browser UI uses BFL's HTTP API instead. Embedding
-MCP directly would require a local or server-side MCP client/proxy that handles
-OAuth. The control-surface API gives that proxy or an agent a clean way to read prompts,
-plan batches, call the local BFL API route, and reuse the output library.
+OAuth flow and native BFL tool calls. This browser UI uses BFL's HTTP API for
+saved local outputs. The local stdio MCP wrapper exposes the JSON dashboard
+routes for prompts, plans, generation, tools, references, glyphs, credits, and
+caption job prep; binary audio export and browser-only interactions still use
+HTTP/UI or browser automation.

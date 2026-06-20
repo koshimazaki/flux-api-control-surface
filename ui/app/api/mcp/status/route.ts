@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
-import { agentRouteMap, localAgentCoverage, mcpStatusRoutes, nativeFluxMcp } from "@/lib/agent-routes";
+import {
+  agentRouteMap,
+  localAgentCoverage,
+  localDashboardMcpTools,
+  localMcpParityNotes,
+  mcpStatusRoutes,
+  nativeFluxMcp
+} from "@/lib/agent-routes";
 import { apiKeyStatus } from "@/lib/server-api-key";
 
 export const runtime = "nodejs";
@@ -21,6 +28,11 @@ export async function GET() {
     },
     guideRoute: agentRouteMap.mcpGuide,
     coverage: localAgentCoverage,
+    localMcpWrapper: {
+      tools: localDashboardMcpTools,
+      coverage: localMcpParityNotes.wrapper,
+      httpOnly: localMcpParityNotes.httpOnly
+    },
     bridge: {
       mode: "browser-http-api-plus-agent-handoff",
       reason:

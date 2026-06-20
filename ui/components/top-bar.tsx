@@ -22,7 +22,7 @@ function sourceLabel(status: ApiKeyStatus | null) {
 function sourceTitle(status: ApiKeyStatus | null) {
   if (!status) return "Checking local API key source";
   if (status.source === "macos-keychain") {
-    return `Using macOS Keychain item "${status.keychain.service}"`;
+    return `Using macOS Keychain item "${status.keychain?.service || "BFL Dashboard FLUX API Key"}"`;
   }
   if (status.source.startsWith("env:")) return `Using server ${status.source.replace("env:", "")}`;
   return "No server-side FLUX API key is configured";
@@ -37,8 +37,9 @@ export function TopBar({
   onForgetApiKey,
   onRefreshApiKey
 }: TopBarProps) {
-  const canSaveToKeychain = Boolean(apiKeyStatus?.keychain.canWrite);
-  const canForgetKeychain = Boolean(apiKeyStatus?.keychain.configured && apiKeyStatus.keychain.canWrite);
+  const canSaveToKeychain = Boolean(apiKeyStatus?.keychain?.canWrite);
+  const canForgetKeychain = Boolean(apiKeyStatus?.keychain?.configured && apiKeyStatus.keychain?.canWrite);
+  const saveDisabled = !apiKey.trim() || isSavingApiKey || (apiKeyStatus !== null && !canSaveToKeychain);
   return (
     <header className="topbar">
       <div className="topBarBrand">
@@ -63,7 +64,14 @@ export function TopBar({
           <span>FLUX.2</span>
           <span>R2</span>
         </div>
-        <div className="keyBox">
+        <form
+          className="keyBox"
+          aria-label="FLUX API key"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!saveDisabled) onSaveApiKey();
+          }}
+        >
           <KeyRound size={16} />
           <input
             type="password"
@@ -75,11 +83,10 @@ export function TopBar({
             {sourceLabel(apiKeyStatus)}
           </span>
           <button
-            type="button"
+            type="submit"
             className="keyIconButton"
-            onClick={onSaveApiKey}
-            disabled={!canSaveToKeychain || !apiKey.trim() || isSavingApiKey}
-            title="Save typed key to macOS Keychain"
+            disabled={saveDisabled}
+            title="Save typed key to macOS Keychain (Enter)"
           >
             <LockKeyhole size={15} />
           </button>
@@ -101,7 +108,7 @@ export function TopBar({
           >
             <RefreshCcw size={15} />
           </button>
-        </div>
+        </form>
       </div>
     </header>
   );

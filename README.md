@@ -1,205 +1,126 @@
 # FLUX API Control Surface
 
-Local control surface for FLUX API image generation, FLUX tools, prompt
-libraries, reference assets, output provenance, and agent-friendly local routes.
-The upstream provider adapter is currently Black Forest Labs because the FLUX
-API and MCP server live there, but the public tool is model/workflow-facing.
+Local workbench for exploring FLUX API workflows with prompt libraries,
+reference images, FLUX image tools, output provenance, local asset recovery, and
+agent-friendly routes.
 
-This is intentionally one standalone public demo lane inside the wider Demos
-repo. Keep it focused on FLUX API exploration now; the same patterns can later
-host video models, local recorders, or other provider lanes.
+This repo is local-first. It is safe to run as a developer tool, but it is not a
+hosted public image generator. Keep paid FLUX execution on your machine through
+env vars or macOS Keychain, and use the optional Cloudflare Worker only as a
+token-protected archive for generated outputs.
 
-## Two tracks
+## Quick Start
 
-### Track 1 — Asset generation via FLUX API or MCP
-
-BFL ships:
-- API endpoints under `https://api.bfl.ai/v1/...` using `BFL_API_KEY`
-- an MCP server at `https://mcp.bfl.ai` using OAuth inside compatible clients
-
-**MCP setup (Codex / Claude-compatible clients):**
 ```bash
-codex mcp add FLUX --url https://mcp.bfl.ai
-```
-
-Use the hosted FLUX MCP together with the local dashboard routes when outputs,
-prompts, references, audio guides, and tool edits should remain visible in this
-workbench. See [`docs/mcp-agent-guide.md`](./docs/mcp-agent-guide.md).
-
-For local HTTP/API runs, keep the FLUX key server-side through
-`BFL_API_KEY`/`FLUX_API_KEY` or the dashboard's macOS Keychain helper. The local
-MCP/status routes report key availability but do not return the raw key.
-
-**API generation helper in this repo:**
-```bash
-# Writes the planned requests without spending credits
-python BFL/pipeline/generate_assets.py --dry-run
-
-# Real generation; downloads signed URLs immediately
-export BFL_API_KEY=...
-python BFL/pipeline/generate_assets.py \
-  --prompts BFL/configs/organic_anchor_prompts.json \
-  --model pro-preview \
-  --out outputs/bfl/organic_anchors
-
-# Or keep the key in a local gitignored file copied from BFL/.env.example
-python BFL/pipeline/generate_assets.py \
-  --env-file BFL/.env \
-  --prompts BFL/configs/organic_anchor_prompts.json \
-  --model pro-preview \
-  --out outputs/bfl/organic_anchors
-```
-
-**Cybernetic flower Pro/Max test pass:**
-```bash
-# Build structured FLUX.2 prompts from the editable axes
-python BFL/pipeline/build_plant_prompt_matrix.py \
-  --axes BFL/configs/cybernetic_flower_axes.json \
-  --out BFL/configs/cybernetic_flower_flux2_prompts.json \
-  --variants-per-species 2 \
-  --prompt-format json \
-  --domain cybernetic_flowers
-
-# Cheap/fast quality pass on latest FLUX.2 [pro]
-python BFL/pipeline/generate_assets.py \
-  --prompts BFL/configs/cybernetic_flower_flux2_prompts.json \
-  --model pro-preview \
-  --prompt-upsampling \
-  --out outputs/bfl/cybernetic_flowers/pro_preview
-
-# Small final-quality comparison pass on FLUX.2 [max]
-python BFL/pipeline/generate_assets.py \
-  --prompts BFL/configs/cybernetic_flower_flux2_prompts.json \
-  --model max \
-  --prompt-upsampling \
-  --limit 4 \
-  --out outputs/bfl/cybernetic_flowers/max_test
-```
-
-**Local prompt workbench:**
-```bash
-cd BFL/ui
+cd ui
 npm install
 npm run dev -- --port 3017
 ```
 
-Open `http://localhost:3017` to edit the structured prompts, paste a FLUX API
-key, add up to ten reference images, generate, and review outputs in an
-AImedia-compatible local library (`nb2_generations`).
+Open `http://localhost:3017`.
 
-Optional durable archive: configure the Worker in `cloudflare/` and set
-`BFL_ASSET_WORKER_URL` plus `BFL_ASSET_WORKER_TOKEN` in `ui/.env.local`. The
-control surface will keep local files and also upload generated PNGs, prompts, and
-metadata to R2 with searchable D1 rows.
-
-The control surface is still local-first. It can be opened later as a public
-dev-tool demo after more examples, testing, and a final secrets/output scrub. See
-[`ui/README.md`](./ui/README.md#public-release-gate).
-
-Current architecture note:
-[`2026-06-13 - Creator Workbench Architecture`](./notes/2026-06-13-creator-workbench.md)
-captures the draft direction for turning the FLUX API Control Surface, shader tool,
-local recorder, provider APIs, RunPod sessions, and MCP control into one
-shared asset/workflow layer.
-
-Current readiness note:
-[`Asset Workbench Readiness`](./docs/asset-workbench-readiness.md) describes the
-BFL-first prompt/image scope, local MCP pairing, asset registry gaps, and future
-provider lanes such as CAD, 3D, and audio-reactive scenes.
-
-Use an uploaded BFL Finetune / Klein LoRA from the API:
+Run checks:
 
 ```bash
-python BFL/pipeline/generate_assets.py \
-  --prompts BFL/configs/organic_anchor_prompts.json \
-  --finetune-id my-organic-style \
-  --finetune-strength 0.85 \
-  --model klein-9b-finetuned \
-  --out outputs/bfl/organic_anchors_lora
+cd ui
+npm test
+npm run lint
+npm run build
 ```
 
-If `--finetune-id` is supplied without `--endpoint`, the helper defaults to
-`flux-2-klein-9b-kv-finetuned`.
+## What It Does
 
-Prompting notes for this project live in
-[`references/prompting_guide.md`](./references/prompting_guide.md).
+- Generate FLUX.2 images through local Next.js API routes.
+- Run FLUX Erase, Inpaint/Fill, and Outpaint from saved gallery assets.
+- Manage prompts, prompt combos, reference roles, costs, credits, and run logs.
+- Save outputs as image, prompt text, JSON metadata, and PNG metadata.
+- Recover local filesystem outputs and optional Cloudflare R2/D1 archive records.
+- Vectorize saved images into SVG/PNG glyph assets.
+- Prepare reference collections and captioning jobs for LoRA dataset workflows.
+- Expose local HTTP/MCP-compatible routes for agents.
 
-**Useful FLUX.2 endpoints** (per BFL docs):
-- `flux-2-pro-preview` — latest FLUX.2 [pro], good default for source images
-- `flux-2-pro` — pinned/reproducible FLUX.2 [pro]
-- `flux-2-max` — highest quality
-- `flux-2-flex` — flexible editing/generation, typography-friendly
-- `flux-2-klein-9b-preview` / `flux-2-klein-9b` — faster 9B model
-- `flux-2-klein-4b` — fastest/lightest model
+## Key Handling
 
-**Use cases for this monorepo:**
-- Generate **source images** for LTX target creation: flower, bacteria, fabric, abstract material
-- Generate **image pools** for mismatched-anchor stress tests
-- Create texture/style boards for teacher V2V passes
-- Generate dataset augmentation for StableAudio album-art accompaniments
-- Demo / folio content as side outputs
+The UI never returns a raw provider key from status or MCP routes.
 
-### Track 2 — Klein style LoRA training (self-hosted, AI-Toolkit)
+Resolution order for paid local API calls:
 
-Per [BFL docs](https://docs.bfl.ai/flux_2/flux2_klein_training_example), Klein style training is local-CUDA via [AI-Toolkit](https://github.com/ostris/ai-toolkit). YAML-configured.
+1. Per-request `apiKey` override.
+2. `BFL_API_KEY`.
+3. `FLUX_API_KEY`.
+4. macOS Keychain item saved by the top-bar lock button.
 
-**Dataset format:**
-- 20-40 images optimal (27 used in BFL example)
-- Paired `image.png` + `image.txt` (caption) in single folder
-- Captions: objective visual description + unique trigger word, **omit style descriptors**
-- 1024px+ recommended
+Use `.env.example` or `ui/.env.local.example` as placeholders only. Do not commit
+real `.env`, `.env.local`, Worker tokens, output metadata with account details,
+or generated media unless deliberately curated as a public sample.
 
-**Training config notes (from BFL example):**
-- Steps: ~3000
-- Learning rate: `0.000095` (low, lets style emerge)
-- Network dims tuned for texture capture
-- Inference: 8 steps to preserve painterly aesthetic
-- Save: every 150 steps, keep last 20 checkpoints
+## MCP And Agents
 
-**Output:** local LoRA weights (`.safetensors`). Current BFL docs also support
-uploading those weights to Dashboard → Customization → Finetunes and calling
-managed `-finetuned` Klein endpoints with `finetune_id`.
+There are two complementary surfaces:
 
-**BFL hosted LoRA limits:**
-- Public beta as of this repo update
-- FLUX.2 [klein] endpoints only, not arbitrary Pro/Max LoRA stacking
-- One LoRA per request
-- The uploaded LoRA base model must match the endpoint
-- `finetune_strength` controls LoRA contribution; start at `1.0`, sweep down if it overpowers prompts
+- **Official FLUX MCP** at `https://mcp.bfl.ai` for BFL-hosted OAuth, direct
+  generation, edits, history, and account operations.
+- **Local dashboard routes/MCP wrapper** for prompts, run plans, output recovery,
+  glyph vectorization, reference archives, and artifacts that should appear in
+  this repo's gallery.
 
-**Compute:** any CUDA box. RunPod A100 / H100 viable; use your preferred cloud
-GPU provider UI or CLI.
+Hosted FLUX MCP setup:
 
-## Planned artefacts in this folder
+```bash
+codex mcp add FLUX --url https://mcp.bfl.ai
+codex mcp login FLUX
+```
 
-1. **`pipeline/generate_assets.py`** — API helper to bulk-generate themed source images for LTX
-2. **`klein-style-lora/`** — first FLUX.2 Klein style LoRA on a curated public visual dataset
-3. **`flux2-multi-reference/`** — exploration of FLUX.2 multi-reference editing for subject/style consistency
-4. **`untwisting-rope-style-pass/`** — RunPod/Comfy spike for training-free
-   style transfer before motion/video stages; see
-   [`2026-06-16 - Untwisting RoPE Style Transfer Spike`](./notes/2026-06-16-untwisting-rope-style-transfer-spike.md)
+Local dashboard MCP wrapper:
 
-## Next actions
+```bash
+cd ui
+BFL_DASHBOARD_URL=http://localhost:3017 npm run mcp
+```
 
-- [x] Add organic source image prompt plan (`configs/organic_anchor_prompts.json`)
-- [x] Add BFL API helper (`pipeline/generate_assets.py`)
-- [ ] Register BFL MCP with Codex or another compatible client if conversational image generation is preferred
-- [ ] Verify OAuth + credit balance via `get_credits`
-- [ ] Generate first batch of flower/bacteria/fabric source images
-- [ ] Clone AI-Toolkit, set up Klein training environment on RunPod
-- [ ] Smoke-test Untwisting RoPE as a RunPod Comfy style-transfer stage before
-  committing to a Klein LoRA path
-- [ ] Pick first Klein style target from a publishable 27-image set per BFL example
-- [ ] Train first Klein style LoRA, evaluate, publish
+See [MCP And Agent Guide](./docs/mcp-agent-guide.md).
 
-## Sources
+## Optional Archive
 
-- [BFL Quick Start](https://docs.bfl.ai/quick_start/introduction)
-- [BFL Image Generation API](https://docs.bfl.ai/quick_start/generating_images)
-- [BFL MCP Integration](https://docs.bfl.ai/api_integration/mcp_integration)
-- [BFL Prompting Guide](https://docs.bfl.ai/guides/prompting_summary)
-- [FLUX.2 Overview](https://docs.bfl.ai/flux_2)
-- [Klein Training Example](https://docs.bfl.ai/flux_2/flux2_klein_training_example)
-- [FLUX.2 LoRA Inference](https://docs.bfl.ai/flux_2/flux2_lora_inference)
-- [AI-Toolkit (ostris)](https://github.com/ostris/ai-toolkit)
-- [ComfyUi-Untwisting-RoPE](https://github.com/BigStationW/ComfyUi-Untwisting-RoPE)
+The Cloudflare Worker stores generated images, prompts, and metadata in R2 and
+searchable D1 rows. Configure it only when you want a durable remote archive:
+
+- [Cloudflare Worker README](./cloudflare/README.md)
+- `BFL_ASSET_WORKER_URL`
+- `BFL_ASSET_WORKER_TOKEN`
+
+Without those env vars, the UI stays filesystem/localStorage/IndexedDB only.
+
+## Docs
+
+- [Control Surface Guide](./docs/control-surface-guide.md): expanded setup,
+  features, local routes, security posture, and release notes.
+- [MCP And Agent Guide](./docs/mcp-agent-guide.md): official FLUX MCP plus local
+  dashboard API usage.
+- [Asset Workbench Readiness](./docs/asset-workbench-readiness.md): BFL asset
+  workflow direction.
+- [Public Release Checklist](./docs/public-release-checklist.md): what to verify
+  before tagging or publishing.
+- [UI README](./ui/README.md): detailed Next.js app notes.
+
+## Repo Map
+
+- `ui/`: Next.js dashboard, route handlers, local MCP wrapper, tests.
+- `cloudflare/`: optional token-protected R2/D1 archive Worker.
+- `pipeline/`: Python prompt and generation helpers.
+- `configs/`: public-safe sample prompt plans kept as tutorials and smoke-test
+  fixtures, not a private prompt library.
+- `docs/`: public-facing implementation and release notes.
+- `experiments/` and `notes/`: retained analysis/reference material; review
+  before linking from public release pages.
+
+## Release Positioning
+
+Use this framing:
+
+> An open local control surface for exploring FLUX API workflows with prompt
+> libraries, reference assets, image tools, output provenance, and agent-friendly
+> local routes.
+
+Do not frame it as a hosted generator or a broader closed creative-system
+release.

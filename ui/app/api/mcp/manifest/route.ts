@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { agentWorkflowGuide } from "@/lib/agent-guide";
-import { dashboardAgentRoutes, localAgentCoverage, nativeFluxMcp } from "@/lib/agent-routes";
+import {
+  dashboardAgentRoutes,
+  localAgentCoverage,
+  localDashboardMcpTools,
+  localMcpParityNotes,
+  nativeFluxMcp
+} from "@/lib/agent-routes";
 import { modelOptions } from "@/lib/pricing";
 import { apiKeyStatus } from "@/lib/server-api-key";
 
@@ -17,6 +23,11 @@ export async function GET() {
     nativeFluxMcp,
     dashboardRoutes: dashboardAgentRoutes,
     coverage: localAgentCoverage,
+    localMcpWrapper: {
+      tools: localDashboardMcpTools,
+      coverage: localMcpParityNotes.wrapper,
+      httpOnly: localMcpParityNotes.httpOnly
+    },
     guide: agentWorkflowGuide,
     models: modelOptions,
     recommendedFlows: [
@@ -24,7 +35,7 @@ export async function GET() {
       "Use /api/dashboard/context to discover prompts and outputs.",
       "Use /api/dashboard/run-plan for a dry-run request plan with costs.",
       "Use /api/dashboard/batch with execute=true when the dashboard should save dataset files and sync remote archive storage.",
-      "Use native FLUX MCP directly when the MCP client should own generation/history/credits instead of this local control surface."
+      "Use native FLUX MCP directly when the MCP client should own OAuth generation, account history, or BFL-native operations instead of local saved artifacts."
     ],
     safety: {
       avoidBrowserStoredKeys: true,

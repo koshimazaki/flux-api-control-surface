@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { agentRouteMap, dashboardAgentRoutes, localAgentCoverage } from "@/lib/agent-routes";
+import {
+  agentRouteMap,
+  dashboardAgentRoutes,
+  localAgentCoverage,
+  localDashboardMcpTools,
+  localMcpParityNotes
+} from "@/lib/agent-routes";
 import { fetchRemoteOutputManifest, remoteArchiveStatus } from "@/lib/remote-archive";
 import { apiKeyStatus } from "@/lib/server-api-key";
 import { readLocalOutputManifest } from "@/lib/server-output-store";
@@ -49,6 +55,11 @@ export async function GET() {
     routes: agentRouteMap,
     agentRoutes: dashboardAgentRoutes,
     coverage: localAgentCoverage,
+    localMcpWrapper: {
+      tools: localDashboardMcpTools,
+      coverage: localMcpParityNotes.wrapper,
+      httpOnly: localMcpParityNotes.httpOnly
+    },
     guideRoute: agentRouteMap.mcpGuide,
     auth: {
       browserKeyOptional: true,

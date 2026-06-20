@@ -55,6 +55,23 @@ function post(path, body) {
   });
 }
 
+function del(path) {
+  return requestJson(path, {
+    method: "DELETE"
+  });
+}
+
+function withParams(path, params) {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") {
+      searchParams.set(key, String(value));
+    }
+  }
+  const query = searchParams.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 const selectionSchema = z
   .object({
     x: z.number(),
@@ -132,6 +149,22 @@ server.registerTool(
 );
 
 server.registerTool(
+  "check_credits",
+  {
+    title: "Check Credits",
+    description: "Check FLUX API credits through the local dashboard server. The raw key is never returned.",
+    inputSchema: {
+      payload: z.record(z.string(), z.unknown()).optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async ({ payload = {} }) => result(await post("/api/bfl/credits", payload))
+);
+
+server.registerTool(
   "build_run_plan",
   {
     title: "Build Run Plan",
@@ -141,6 +174,22 @@ server.registerTool(
     }
   },
   async ({ payload }) => result(await post("/api/dashboard/run-plan", payload))
+);
+
+server.registerTool(
+  "run_batch",
+  {
+    title: "Run Batch",
+    description: "Dry-run or execute a dashboard batch through /api/dashboard/batch. Use execute=false for planning only.",
+    inputSchema: {
+      payload: z.record(z.string(), z.unknown())
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async ({ payload }) => result(await post("/api/dashboard/batch", payload))
 );
 
 server.registerTool(
@@ -173,6 +222,67 @@ server.registerTool(
     }
   },
   async ({ payload }) => result(await post("/api/bfl/tools", payload))
+);
+
+server.registerTool(
+  "save_prompt",
+  {
+    title: "Save Prompt",
+    description: "Save or update a prompt-library record through the local dashboard.",
+    inputSchema: {
+      record: z.record(z.string(), z.unknown())
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async ({ record }) => result(await post("/api/prompts", { record }))
+);
+
+server.registerTool(
+  "delete_prompt",
+  {
+    title: "Delete Prompt",
+    description: "Soft-delete a prompt-library record and archive it to the local recovery file.",
+    inputSchema: {
+      id: z.string().min(1)
+    },
+    annotations: {
+      destructiveHint: true,
+      openWorldHint: false
+    }
+  },
+  async ({ id }) => result(await del(withParams("/api/prompts", { id })))
+);
+
+server.registerTool(
+  "list_reference_archive",
+  {
+    title: "List Reference Archive",
+    description: "List synced reference archive items from the optional R2/D1 Worker.",
+    inputSchema: {
+      limit: z.number().int().min(1).max(1000).optional(),
+      setId: z.string().optional()
+    }
+  },
+  async ({ limit, setId }) => result(await requestJson(withParams("/api/reference-archive", { limit, setId })))
+);
+
+server.registerTool(
+  "sync_reference_archive",
+  {
+    title: "Sync Reference Archive",
+    description: "Upload a collection of reference images to the optional R2/D1 archive.",
+    inputSchema: {
+      payload: z.record(z.string(), z.unknown())
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async ({ payload }) => result(await post("/api/reference-archive", payload))
 );
 
 server.registerTool(
@@ -244,6 +354,22 @@ server.registerTool(
     }
     return result({ count: outputs.length, outputs });
   }
+);
+
+server.registerTool(
+  "prepare_caption_job",
+  {
+    title: "Prepare Caption Job",
+    description: "Prepare or spawn a local Codex captioning job for a training collection.",
+    inputSchema: {
+      payload: z.record(z.string(), z.unknown())
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async ({ payload }) => result(await post("/api/bfl_dashboard/v1/caption_agent", payload))
 );
 
 const transport = new StdioServerTransport();

@@ -297,6 +297,33 @@ export const localAgentCoverage = {
     "Browser-imported files and browser-side waveform analysis still require UI handoff. Saved outputs can be used by server-side agents."
 };
 
+export const localDashboardMcpTools = [
+  "get_manifest",
+  "get_dashboard_context",
+  "list_assets",
+  "list_prompts",
+  "get_api_key_status",
+  "check_credits",
+  "build_run_plan",
+  "run_batch",
+  "generate_saved_image",
+  "run_image_tool",
+  "save_prompt",
+  "delete_prompt",
+  "list_reference_archive",
+  "sync_reference_archive",
+  "vectorize_glyph",
+  "vectorize_glyph_batch",
+  "prepare_caption_job"
+];
+
+export const localMcpParityNotes = {
+  wrapper:
+    "The stdio MCP wrapper covers the local JSON dashboard routes for discovery, assets, prompts, planning, generation, image tools, references, glyphs, credits, and caption job prep.",
+  httpOnly:
+    "Audio guide rendering and audio slicing remain HTTP/UI workflows because those routes return binary media. Browser waveform analysis, drag/drop import, mask painting, and live React control remain UI or browser-automation workflows."
+};
+
 export const mcpStatusRoutes = Array.from(
   new Set(dashboardAgentRoutes.filter((route) => route.method !== "DELETE").map((route) => route.path))
 );

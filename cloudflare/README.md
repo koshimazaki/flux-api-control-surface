@@ -36,7 +36,7 @@ Add this to `BFL/ui/.env.local`:
 
 ```bash
 BFL_ASSET_WORKER_URL=https://bfl-api-assets.YOUR_SUBDOMAIN.workers.dev
-BFL_ASSET_WORKER_TOKEN=the-same-token
+BFL_ASSET_WORKER_TOKEN=replace-with-your-worker-token
 ```
 
 After that, every successful local BFL generation is saved locally and uploaded

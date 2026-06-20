@@ -1,4 +1,10 @@
-import { agentRouteMap, localAgentCoverage, nativeFluxMcp } from "@/lib/agent-routes";
+import {
+  agentRouteMap,
+  localAgentCoverage,
+  localDashboardMcpTools,
+  localMcpParityNotes,
+  nativeFluxMcp
+} from "@/lib/agent-routes";
 
 export const agentWorkflowGuide = {
   name: "FLUX Control Surface Agent Guide",
@@ -14,6 +20,11 @@ export const agentWorkflowGuide = {
   localWorkbench: {
     role:
       "Use the local dashboard routes when the agent should work with prompt libraries, saved outputs, reference roles, audio guide files, image-tool provenance, local archives, or UI-visible artifacts.",
+    mcpWrapper: {
+      tools: localDashboardMcpTools,
+      coverage: localMcpParityNotes.wrapper,
+      httpOnly: localMcpParityNotes.httpOnly
+    },
     routes: {
       guide: agentRouteMap.mcpGuide,
       context: agentRouteMap.dashboardContext,
@@ -89,9 +100,14 @@ export const agentWorkflowGuide = {
   ],
   currentGaps: [
     {
+      capability: "Binary audio export through the stdio MCP wrapper",
+      status:
+        "The HTTP routes can render guide MP4s and audio slices, but the stdio wrapper currently avoids returning large binary media as JSON text."
+    },
+    {
       capability: "Full browser/UI control",
       status:
-        "Not exposed as a local MCP tool. Agents can call HTTP routes, but driving the live browser still needs a browser automation client."
+        "The local MCP wrapper exposes server-side dashboard routes, but driving the live React UI still needs a browser automation client."
     },
     {
       capability: "Audio analysis from a raw audio file",

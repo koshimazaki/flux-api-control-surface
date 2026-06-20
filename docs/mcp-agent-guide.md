@@ -41,9 +41,12 @@ Register it in Codex:
 codex mcp add BFL_DASHBOARD --env BFL_DASHBOARD_URL=http://localhost:3017 -- node /absolute/path/to/BFL/ui/mcp/server.mjs
 ```
 
-The local MCP wrapper exposes dashboard asset tools such as `list_assets`,
-`get_api_key_status`, `vectorize_glyph`, and `vectorize_glyph_batch`, plus
-generation and image-tool wrappers that call the local workbench routes.
+The local MCP wrapper exposes the JSON dashboard workflows: `get_manifest`,
+`get_dashboard_context`, `list_assets`, `list_prompts`, `get_api_key_status`,
+`check_credits`, `build_run_plan`, `run_batch`, `generate_saved_image`,
+`run_image_tool`, `save_prompt`, `delete_prompt`, `list_reference_archive`,
+`sync_reference_archive`, `vectorize_glyph`, `vectorize_glyph_batch`, and
+`prepare_caption_job`.
 
 The local dashboard resolves paid API calls from a per-request `apiKey`,
 `BFL_API_KEY`, `FLUX_API_KEY`, or a macOS Keychain item. MCP/status routes report
@@ -57,14 +60,15 @@ only whether a key is configured; they never return the raw key.
 | Generate variations from BFL history | Official FLUX MCP |
 | Check OAuth/BFL account credits | Official FLUX MCP |
 | Check whether local paid execution has a key | Local `/api/bfl/key` or `get_api_key_status` |
+| Check credits through the local key | Local `/api/bfl/credits` or `check_credits` |
 | Plan prompt-library permutations | Local `/api/dashboard/run-plan` |
 | Execute a batch and save outputs locally | Local `/api/dashboard/batch` |
 | Generate one saved dashboard output | Local `/api/bfl/generate` |
 | Erase, inpaint, or outpaint a saved image | Local `/api/bfl/tools` |
 | Vectorize saved images into SVG/PNG glyphs | Local `/api/glyphs/vectorize` |
 | Recover output gallery records | Local `/api/outputs` |
-| Render an audio-reactive guide MP4 | Local `/api/audio/guide` |
-| Slice/loop uploaded audio | Local `/api/audio/slice` |
+| Render an audio-reactive guide MP4 | Local `/api/audio/guide` HTTP route |
+| Slice/loop uploaded audio | Local `/api/audio/slice` HTTP route |
 | Prepare a captioning job folder | Local `/api/bfl_dashboard/v1/caption_agent` |
 
 ## Agent Workflows
@@ -121,8 +125,11 @@ agent already has an analysis + marker payload, it can call:
 
 These are the main missing pieces for full UI/agent symmetry:
 
-- **Full live browser control:** local HTTP routes exist, but there is not yet a
-  first-class local MCP server that drives the live React UI.
+- **Binary audio export through stdio MCP:** `/api/audio/guide` and
+  `/api/audio/slice` return media files, so they remain HTTP/UI workflows rather
+  than JSON MCP wrapper tools.
+- **Full live browser control:** the local MCP wrapper exposes server-side
+  dashboard routes, but it does not drive the live React UI.
 - **Server audio analysis:** waveform analysis is browser-side; the server can
   render guides after it receives analysis/markers.
 - **Agent file drop/import:** arbitrary local drag/drop into browser storage is
@@ -137,8 +144,7 @@ These are the main missing pieces for full UI/agent symmetry:
 1. `POST /api/audio/analyze` for raw audio file analysis.
 2. `POST /api/assets/import` for agent-created local assets.
 3. `GET /api/events` so the UI refreshes instantly when agents create outputs.
-4. Optional streamable HTTP transport for the local MCP wrapper, if stdio is not
-   enough for a future multi-client setup.
+4. Optional file-return convention for MCP audio/video tools.
 
 ## Sources
 

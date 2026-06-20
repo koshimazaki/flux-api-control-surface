@@ -43,6 +43,30 @@ import type {
   ApiKeyStatus
 } from "@/lib/types";
 
+type ApiKeyRouteResponse = Partial<ApiKeyStatus> & {
+  deleted?: boolean;
+  error?: string;
+  saved?: boolean;
+};
+
+async function readApiKeyRouteResponse(response: Response) {
+  const text = await response.text();
+  if (!text) return {} as ApiKeyRouteResponse;
+  try {
+    return JSON.parse(text) as ApiKeyRouteResponse;
+  } catch {
+    return { error: text.slice(0, 240) || `HTTP ${response.status}` };
+  }
+}
+
+function apiKeyRouteError(data: ApiKeyRouteResponse, fallback: string) {
+  return typeof data.error === "string" && data.error.trim() ? data.error : fallback;
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export function useDashboardState() {
   // Shared atoms consumed by more than one domain (prompt editor + run config + tool config).
   const [apiKey, setApiKey] = useState("");
@@ -280,20 +304,34 @@ export function useDashboardState() {
   }, [toolSourceAssetId]);
 
   async function refreshApiKeyStatus() {
-    const response = await fetch("/api/bfl/key", { cache: "no-store" });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Could not read API key status.");
-    setApiKeyStatus(data);
-    return data as ApiKeyStatus;
+    try {
+      const response = await fetch("/api/bfl/key", { cache: "no-store" });
+      const data = await readApiKeyRouteResponse(response);
+      if (!response.ok) throw new Error(apiKeyRouteError(data, "Could not read API key status."));
+      setError("");
+      setApiKeyStatus(data as ApiKeyStatus);
+      return data as ApiKeyStatus;
+    } catch (err) {
+      setError(errorMessage(err, "Could not reach the local API key route. Check that the dashboard server is running for this tab."));
+      return null;
+    }
   }
 
   useEffect(() => {
-    refreshApiKeyStatus().catch(() => undefined);
+    void refreshApiKeyStatus();
   }, []);
 
   async function saveApiKeyToSecureStore() {
     if (!apiKey.trim()) {
       setError("Paste a FLUX API key before saving it.");
+      return;
+    }
+    const service = apiKeyStatus?.keychain?.service || "BFL Dashboard FLUX API Key";
+    const confirmed = window.confirm(
+      `Save this FLUX API key to macOS Keychain as "${service}"?\n\nThe dashboard will read it for future FLUX requests, then clear the browser field.`
+    );
+    if (!confirmed) {
+      setRecoveryMessage("Keeping the typed FLUX API key in this browser session only.");
       return;
     }
     setIsSavingApiKey(true);
@@ -304,13 +342,13 @@ export function useDashboardState() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiKey })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not save API key.");
+      const data = await readApiKeyRouteResponse(response);
+      if (!response.ok) throw new Error(apiKeyRouteError(data, "Could not save API key."));
       setApiKey("");
-      setApiKeyStatus(data);
+      setApiKeyStatus(data as ApiKeyStatus);
       setRecoveryMessage("Saved FLUX API key to macOS Keychain. The browser field has been cleared.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save API key.");
+      setError(errorMessage(err, "Could not save API key."));
     } finally {
       setIsSavingApiKey(false);
     }
@@ -321,12 +359,12 @@ export function useDashboardState() {
     setError("");
     try {
       const response = await fetch("/api/bfl/key", { method: "DELETE" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not remove API key.");
-      setApiKeyStatus(data);
+      const data = await readApiKeyRouteResponse(response);
+      if (!response.ok) throw new Error(apiKeyRouteError(data, "Could not remove API key."));
+      setApiKeyStatus(data as ApiKeyStatus);
       setRecoveryMessage(data.deleted ? "Removed the dashboard FLUX API key from macOS Keychain." : "No Keychain API key was stored for this dashboard.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not remove API key.");
+      setError(errorMessage(err, "Could not remove API key."));
     } finally {
       setIsSavingApiKey(false);
     }
@@ -491,7 +529,7 @@ export function useDashboardState() {
       return;
     }
     if (workspaceMode === "glyphs") {
-      setError("Glyphs has no BFL endpoint yet. A local vectorizer/Comfy provider lane is planned.");
+      setError("Glyphs has no BFL endpoint yet. Use the local vectorizer from the glyph workspace.");
       return;
     }
     if (!toolSourceAsset) {
