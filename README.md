@@ -4,7 +4,7 @@ Local workbench for exploring FLUX API workflows with prompt libraries,
 reference images, FLUX image tools, output provenance, local asset recovery, and
 agent-friendly routes.
 
-This repo is local-first. It is safe to run as a developer tool, but it is not a
+This repo is local-first. It is safe to run as a developer tool, it is not a
 hosted public image generator. Keep paid FLUX execution on your machine through
 env vars or macOS Keychain, and use the optional Cloudflare Worker only as a
 token-protected archive for generated outputs.
@@ -113,14 +113,3 @@ Without those env vars, the UI stays filesystem/localStorage/IndexedDB only.
 - `docs/`: public-facing implementation and release notes.
 - `experiments/` and `notes/`: retained analysis/reference material; review
   before linking from public release pages.
-
-## Release Positioning
-
-Use this framing:
-
-> An open local control surface for exploring FLUX API workflows with prompt
-> libraries, reference assets, image tools, output provenance, and agent-friendly
-> local routes.
-
-Do not frame it as a hosted generator or a broader closed creative-system
-release.
