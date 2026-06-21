@@ -38,6 +38,7 @@ type ToolBody = {
   mode?: "high" | "fast";
   guidance?: number;
   steps?: number;
+  autoCrop?: boolean;
   safetyTolerance?: number;
   outputFormat?: "jpeg" | "png" | "webp";
   title?: string;
@@ -52,13 +53,21 @@ function clampInt(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.round(value)));
 }
 
+function toolSafetyToleranceMax(tool: ToolName) {
+  return tool === "inpaint" ? 6 : 5;
+}
+
+function safeOutputFormat(value: unknown) {
+  return value === "jpeg" || value === "webp" || value === "png" ? value : "png";
+}
+
 function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) {
   if (tool === "erase") {
     const payload: Record<string, unknown> = {
       image: normalizeImageInput(body.image),
       mask: normalizeImageInput(body.mask),
       dilate_pixels: clampInt(body.dilatePixels ?? 10, 0, 25),
-      safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, 6),
+      safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool)),
       output_format: outputFormat
     };
     if (typeof body.seed === "number") payload.seed = body.seed;
@@ -71,7 +80,7 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
       prompt: body.prompt || "",
       steps: clampInt(body.steps ?? 50, 15, 50),
       guidance: typeof body.guidance === "number" ? body.guidance : 30,
-      safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, 6),
+      safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool)),
       output_format: outputFormat
     };
     if (typeof body.seed === "number") payload.seed = body.seed;
@@ -81,6 +90,8 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
     input_image: normalizeImageInput(body.image),
     width: body.canvasWidth,
     height: body.canvasHeight,
+    auto_crop: Boolean(body.autoCrop),
+    safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool)),
     mode: body.mode === "fast" ? "fast" : "high",
     output_format: outputFormat
   };
@@ -152,7 +163,7 @@ export async function POST(request: NextRequest) {
   if (providerValidation) return jsonError(providerValidation);
 
   const endpointName = toolConfig.endpoint;
-  const outputFormat = body.outputFormat || "png";
+  const outputFormat = safeOutputFormat(body.outputFormat);
   const payload = buildToolPayload(tool, preparedBody, outputFormat);
   const title = body.title || `${tool}-edit`;
   const promptForFiles = body.prompt?.trim() || `[${tool} pass, no prompt]`;

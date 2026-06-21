@@ -90,9 +90,12 @@ export function useDashboardState() {
   const [toolDilatePixels, setToolDilatePixels] = useState(10);
   const [toolGuidance, setToolGuidance] = useState(30);
   const [toolSteps, setToolSteps] = useState(50);
+  const [toolSafetyTolerance, setToolSafetyTolerance] = useState(2);
+  const [toolOutputFormat, setToolOutputFormat] = useState<"png" | "jpeg" | "webp">("png");
   const [outpaintOffsetX, setOutpaintOffsetX] = useState("");
   const [outpaintOffsetY, setOutpaintOffsetY] = useState("");
   const [outpaintMode, setOutpaintMode] = useState<"high" | "fast">("high");
+  const [outpaintAutoCrop, setOutpaintAutoCrop] = useState(false);
   const [audioAssignments, setAudioAssignments] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -548,6 +551,9 @@ export function useDashboardState() {
       dilatePixels: toolDilatePixels,
       guidance: toolGuidance,
       steps: toolSteps,
+      safetyTolerance: toolSafetyTolerance,
+      outputFormat: toolOutputFormat,
+      autoCrop: outpaintAutoCrop,
       canvasWidth: width,
       canvasHeight: height,
       offsetX: outpaintOffsetX,
@@ -674,12 +680,18 @@ export function useDashboardState() {
     setToolGuidance,
     toolSteps,
     setToolSteps,
+    toolSafetyTolerance,
+    setToolSafetyTolerance,
+    toolOutputFormat,
+    setToolOutputFormat,
     outpaintOffsetX,
     setOutpaintOffsetX,
     outpaintOffsetY,
     setOutpaintOffsetY,
     outpaintMode,
     setOutpaintMode,
+    outpaintAutoCrop,
+    setOutpaintAutoCrop,
     glyphSettings,
     activeGlyphDraft,
     updateGlyphSettings,

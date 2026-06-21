@@ -15,6 +15,9 @@ function toolInput(overrides: Partial<ToolRunInput> = {}): ToolRunInput {
     dilatePixels: 10,
     guidance: 30,
     steps: 50,
+    safetyTolerance: 2,
+    outputFormat: "png",
+    autoCrop: false,
     canvasWidth: 1024,
     canvasHeight: 1024,
     offsetX: "",
@@ -55,6 +58,8 @@ describe("buildToolRequestBody", () => {
     expect(body.sourceAssetId).toBe("asset-1");
     expect(body.guidance).toBeUndefined();
     expect(body.steps).toBeUndefined();
+    expect(body.safetyTolerance).toBe(2);
+    expect(body.outputFormat).toBe("png");
   });
 
   it("forwards fill guidance and steps for inpaint", () => {
@@ -67,17 +72,24 @@ describe("buildToolRequestBody", () => {
 
   it("omits the mask and parses offsets for outpaint", () => {
     const body = buildToolRequestBody(
-      toolInput({ mode: "outpaint", prompt: "extend", offsetX: "120", offsetY: "", canvasWidth: 1536 })
+      toolInput({ mode: "outpaint", prompt: "extend", offsetX: "120", offsetY: "", canvasWidth: 1536, autoCrop: true })
     );
     expect(body.mask).toBeUndefined();
     expect(body.offsetX).toBe(120);
     expect(body.offsetY).toBeNull();
     expect(body.canvasWidth).toBe(1536);
     expect(body.prompt).toBe("extend");
+    expect(body.autoCrop).toBe(true);
   });
 
   it("parses a numeric seed and nulls a blank one", () => {
     expect(buildToolRequestBody(toolInput({ seed: "42" })).seed).toBe(42);
     expect(buildToolRequestBody(toolInput({ seed: "" })).seed).toBeNull();
+  });
+
+  it("clamps safety tolerance by tool contract", () => {
+    expect(buildToolRequestBody(toolInput({ mode: "erase", safetyTolerance: 9 })).safetyTolerance).toBe(5);
+    expect(buildToolRequestBody(toolInput({ mode: "outpaint", safetyTolerance: 9 })).safetyTolerance).toBe(5);
+    expect(buildToolRequestBody(toolInput({ mode: "inpaint", prompt: "replace", safetyTolerance: 9 })).safetyTolerance).toBe(6);
   });
 });

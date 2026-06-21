@@ -87,9 +87,12 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           dilatePixels={state.toolDilatePixels}
           guidance={state.toolGuidance}
           steps={state.toolSteps}
+          safetyTolerance={state.toolSafetyTolerance}
+          outputFormat={state.toolOutputFormat}
           offsetX={state.outpaintOffsetX}
           offsetY={state.outpaintOffsetY}
           outpaintMode={state.outpaintMode}
+          autoCrop={state.outpaintAutoCrop}
           isGenerating={state.isGenerating}
           error={state.error || state.balance.error || ""}
           onWidthChange={state.setWidth}
@@ -100,9 +103,12 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onDilatePixelsChange={state.setToolDilatePixels}
           onGuidanceChange={state.setToolGuidance}
           onStepsChange={state.setToolSteps}
+          onSafetyToleranceChange={state.setToolSafetyTolerance}
+          onOutputFormatChange={state.setToolOutputFormat}
           onOffsetXChange={state.setOutpaintOffsetX}
           onOffsetYChange={state.setOutpaintOffsetY}
           onOutpaintModeChange={state.setOutpaintMode}
+          onAutoCropChange={state.setOutpaintAutoCrop}
           onClearMask={() => state.setToolMask("")}
           onRun={() => void state.runWorkspaceTool()}
         />

@@ -1,8 +1,9 @@
-import { Eraser, Fingerprint, Maximize2, Paintbrush } from "lucide-react";
+import { ChevronDown, Eraser, Fingerprint, Maximize2, Paintbrush } from "lucide-react";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
 import type { AssetRecord, WorkspaceMode } from "@/lib/types";
+import type { ToolOutputFormat } from "@/lib/dashboard-tools";
 
 type ToolMode = Exclude<WorkspaceMode, "prompt">;
 
@@ -45,9 +46,12 @@ type ToolRunPanelProps = {
   dilatePixels: number;
   guidance: number;
   steps: number;
+  safetyTolerance: number;
+  outputFormat: ToolOutputFormat;
   offsetX: string;
   offsetY: string;
   outpaintMode: "high" | "fast";
+  autoCrop: boolean;
   isGenerating: boolean;
   error: string;
   onWidthChange: (value: number) => void;
@@ -58,9 +62,12 @@ type ToolRunPanelProps = {
   onDilatePixelsChange: (value: number) => void;
   onGuidanceChange: (value: number) => void;
   onStepsChange: (value: number) => void;
+  onSafetyToleranceChange: (value: number) => void;
+  onOutputFormatChange: (value: ToolOutputFormat) => void;
   onOffsetXChange: (value: string) => void;
   onOffsetYChange: (value: string) => void;
   onOutpaintModeChange: (value: "high" | "fast") => void;
+  onAutoCropChange: (value: boolean) => void;
   onClearMask: () => void;
   onRun: () => void;
 };
@@ -71,6 +78,8 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
   const needsPrompt = props.mode === "inpaint" || props.mode === "outpaint";
   const needsMask = props.mode === "erase" || props.mode === "inpaint";
   const isGlyphs = props.mode === "glyphs";
+  const safetyToleranceMax = props.mode === "inpaint" ? 6 : 5;
+  const safetyTolerance = Math.min(props.safetyTolerance, safetyToleranceMax);
   const runBlocked =
     !props.sourceAsset ||
     isGlyphs ||
@@ -199,6 +208,49 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
           Glyphs runs locally: drag a box over an icon on the canvas, tune colors/cut, then
           Vectorize and Save to the library (PNG + SVG). No BFL credits used.
         </p>
+      )}
+
+      {!isGlyphs && (
+        <details className="toolAdvanced">
+          <summary>
+            <span>Advanced</span>
+            <ChevronDown className="toolAdvancedChevron" size={15} />
+          </summary>
+          <div className="toolAdvancedFields">
+            <label>
+              Safety tolerance · {safetyTolerance}
+              <input
+                type="range"
+                min={0}
+                max={safetyToleranceMax}
+                step={1}
+                value={safetyTolerance}
+                onChange={(event) => props.onSafetyToleranceChange(Number(event.target.value))}
+              />
+            </label>
+            <label>
+              Output format
+              <select
+                value={props.outputFormat}
+                onChange={(event) => props.onOutputFormatChange(event.target.value as ToolOutputFormat)}
+              >
+                <option value="png">PNG</option>
+                <option value="jpeg">JPEG</option>
+                <option value="webp">WebP</option>
+              </select>
+            </label>
+            {props.mode === "outpaint" && (
+              <label className="toolToggleRow">
+                <input
+                  type="checkbox"
+                  checked={props.autoCrop}
+                  onChange={(event) => props.onAutoCropChange(event.target.checked)}
+                />
+                Auto crop
+              </label>
+            )}
+          </div>
+        </details>
       )}
 
       {needsPrompt && (

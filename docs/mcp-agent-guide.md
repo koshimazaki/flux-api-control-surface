@@ -98,9 +98,9 @@ filesystem paths.
 1. `GET /api/outputs`
 2. Select an image URL/data URL.
 3. `POST /api/bfl/tools`
-   - `tool=erase` needs `image` and `mask`.
-   - `tool=inpaint` needs `image`, `mask`, and `prompt`; optional `guidance` defaults to `30` and `steps` defaults to `50`.
-   - `tool=outpaint` needs `image`, `canvasWidth`, `canvasHeight`, and offsets.
+   - `tool=erase` needs `image` and `mask`; optional `dilatePixels`, `seed`, `safetyTolerance`, and `outputFormat`.
+   - `tool=inpaint` needs `image`, `mask`, and `prompt`; optional `guidance`, `steps`, `seed`, `safetyTolerance`, and `outputFormat`.
+   - `tool=outpaint` needs `image`, `canvasWidth`, and `canvasHeight`; optional offsets, `mode`, `autoCrop`, `safetyTolerance`, `outputFormat`, and prompt guidance.
 4. `GET /api/outputs` to recover the edited result.
 
 ### Glyph Vectorize

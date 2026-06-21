@@ -2,6 +2,7 @@ import { estimateTokens } from "./pricing";
 import type { AssetRecord, RunLogEntry } from "./types";
 
 export type ToolApiMode = "erase" | "inpaint" | "outpaint";
+export type ToolOutputFormat = "png" | "jpeg" | "webp";
 
 export type ToolRunInput = {
   mode: ToolApiMode;
@@ -13,6 +14,9 @@ export type ToolRunInput = {
   dilatePixels: number;
   guidance: number;
   steps: number;
+  safetyTolerance: number;
+  outputFormat: ToolOutputFormat;
+  autoCrop: boolean;
   canvasWidth: number;
   canvasHeight: number;
   offsetX: string;
@@ -44,6 +48,14 @@ function parsedOffset(value: string) {
   return Number.isFinite(parsed) ? Math.round(parsed) : null;
 }
 
+function toolSafetyToleranceMax(mode: ToolApiMode) {
+  return mode === "inpaint" ? 6 : 5;
+}
+
+function clampToolSafetyTolerance(mode: ToolApiMode, value: number) {
+  return Math.max(0, Math.min(toolSafetyToleranceMax(mode), Math.round(value)));
+}
+
 export function buildToolRequestBody(input: ToolRunInput) {
   const seed = input.seed.trim() ? Number(input.seed) : null;
   const title = `${input.mode}-${input.sourceAsset.title || input.sourceAsset.id}`;
@@ -57,12 +69,14 @@ export function buildToolRequestBody(input: ToolRunInput) {
     dilatePixels: input.dilatePixels,
     guidance: input.mode === "inpaint" ? input.guidance : undefined,
     steps: input.mode === "inpaint" ? input.steps : undefined,
+    safetyTolerance: clampToolSafetyTolerance(input.mode, input.safetyTolerance),
+    autoCrop: input.mode === "outpaint" ? input.autoCrop : undefined,
     canvasWidth: input.canvasWidth,
     canvasHeight: input.canvasHeight,
     offsetX: parsedOffset(input.offsetX),
     offsetY: parsedOffset(input.offsetY),
     mode: input.outpaintMode,
-    outputFormat: "png" as const,
+    outputFormat: input.outputFormat,
     title,
     sourceAssetId: input.sourceAsset.id
   };

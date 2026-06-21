@@ -267,6 +267,56 @@
   resize: vertical;
 }
 
+.toolAdvanced {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.toolAdvanced summary {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px;
+  color: var(--soft);
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toolAdvanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.toolAdvancedChevron {
+  flex: 0 0 auto;
+  color: var(--muted);
+  transition: transform 160ms ease;
+}
+
+.toolAdvanced[open] .toolAdvancedChevron {
+  transform: rotate(180deg);
+}
+
+.toolAdvancedFields {
+  display: grid;
+  gap: 10px;
+  padding: 0 10px 10px;
+}
+
+.toolToggleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolToggleRow input {
+  width: auto;
+}
+
 .maskPaintViewport,
 .outpaintViewport {
   position: relative;
