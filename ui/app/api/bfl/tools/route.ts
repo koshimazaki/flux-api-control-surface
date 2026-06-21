@@ -14,6 +14,7 @@ import {
   saveOutputFiles
 } from "@/lib/bfl-server";
 import { embedPngMetadata } from "@/lib/png-metadata";
+import { prepareToolImageInput, prepareToolMaskInput } from "@/lib/bfl-tool-inputs";
 import { getBflImageTool, validateBflToolRequest } from "@/lib/provider-registry";
 import { syncOutputToRemote } from "@/lib/remote-archive";
 
@@ -37,6 +38,7 @@ type ToolBody = {
   mode?: "high" | "fast";
   guidance?: number;
   steps?: number;
+  safetyTolerance?: number;
   outputFormat?: "jpeg" | "png" | "webp";
   title?: string;
   sourceAssetId?: string;
@@ -56,6 +58,7 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
       image: normalizeImageInput(body.image),
       mask: normalizeImageInput(body.mask),
       dilate_pixels: clampInt(body.dilatePixels ?? 10, 0, 25),
+      safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, 6),
       output_format: outputFormat
     };
     if (typeof body.seed === "number") payload.seed = body.seed;
@@ -66,11 +69,12 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
       image: normalizeImageInput(body.image),
       mask: normalizeImageInput(body.mask),
       prompt: body.prompt || "",
+      steps: clampInt(body.steps ?? 50, 15, 50),
+      guidance: typeof body.guidance === "number" ? body.guidance : 30,
+      safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, 6),
       output_format: outputFormat
     };
     if (typeof body.seed === "number") payload.seed = body.seed;
-    if (typeof body.guidance === "number") payload.guidance = body.guidance;
-    if (typeof body.steps === "number") payload.steps = clampInt(body.steps, 15, 50);
     return payload;
   }
   const payload: Record<string, unknown> = {
@@ -117,14 +121,30 @@ export async function POST(request: NextRequest) {
   const origin = new URL(request.url).origin;
   const resolvedBody: ToolBody = {
     ...body,
-    image: await resolveImageInput(body.image, origin),
+    image: await resolveImageInput(body.image, origin, body.sourceAssetId),
     mask: await resolveImageInput(body.mask, origin)
   };
-  const validation = validateToolBody(tool, body);
+  const validation = validateToolBody(tool, resolvedBody);
   if (validation) return jsonError(validation);
+
+  let preparedBody = resolvedBody;
+  try {
+    const source = await prepareToolImageInput(resolvedBody.image, "source image");
+    preparedBody = {
+      ...resolvedBody,
+      image: source.base64
+    };
+    if (tool === "erase" || tool === "inpaint") {
+      const mask = await prepareToolMaskInput(resolvedBody.mask, source, "mask");
+      preparedBody.mask = mask.base64;
+    }
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Invalid image tool input.", 400);
+  }
+
   const providerValidation = validateBflToolRequest({
     tool: toolConfig,
-    image: resolvedBody.image,
+    image: preparedBody.image,
     canvasWidth: body.canvasWidth,
     canvasHeight: body.canvasHeight,
     mode: body.mode
@@ -133,7 +153,7 @@ export async function POST(request: NextRequest) {
 
   const endpointName = toolConfig.endpoint;
   const outputFormat = body.outputFormat || "png";
-  const payload = buildToolPayload(tool, resolvedBody, outputFormat);
+  const payload = buildToolPayload(tool, preparedBody, outputFormat);
   const title = body.title || `${tool}-edit`;
   const promptForFiles = body.prompt?.trim() || `[${tool} pass, no prompt]`;
 

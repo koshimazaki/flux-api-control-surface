@@ -129,7 +129,7 @@ function localOutputIdFromUrl(value: string, origin?: string) {
   }
 }
 
-export async function resolveImageInput(value?: string, origin?: string) {
+export async function resolveImageInput(value?: string, origin?: string, fallbackOutputId?: string | null) {
   if (!value) return value;
   const outputId = localOutputIdFromUrl(value.trim(), origin);
   if (outputId) {
@@ -138,6 +138,10 @@ export async function resolveImageInput(value?: string, origin?: string) {
       if (remote) return remote.buffer.toString("base64");
     }
     const output = await findLocalOutputImage(outputId.id);
+    if (output) return (await readFile(output.imagePath)).toString("base64");
+  }
+  if (fallbackOutputId) {
+    const output = await findLocalOutputImage(fallbackOutputId);
     if (output) return (await readFile(output.imagePath)).toString("base64");
   }
   return normalizeImageInput(value.trim());
