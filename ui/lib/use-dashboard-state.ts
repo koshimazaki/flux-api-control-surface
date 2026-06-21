@@ -88,6 +88,8 @@ export function useDashboardState() {
   const [toolMask, setToolMask] = useState("");
   const [toolBrushSize, setToolBrushSize] = useState(48);
   const [toolDilatePixels, setToolDilatePixels] = useState(10);
+  const [toolGuidance, setToolGuidance] = useState(30);
+  const [toolSteps, setToolSteps] = useState(50);
   const [outpaintOffsetX, setOutpaintOffsetX] = useState("");
   const [outpaintOffsetY, setOutpaintOffsetY] = useState("");
   const [outpaintMode, setOutpaintMode] = useState<"high" | "fast">("high");
@@ -544,6 +546,8 @@ export function useDashboardState() {
       prompt: promptText,
       seed,
       dilatePixels: toolDilatePixels,
+      guidance: toolGuidance,
+      steps: toolSteps,
       canvasWidth: width,
       canvasHeight: height,
       offsetX: outpaintOffsetX,
@@ -666,6 +670,10 @@ export function useDashboardState() {
     setToolBrushSize,
     toolDilatePixels,
     setToolDilatePixels,
+    toolGuidance,
+    setToolGuidance,
+    toolSteps,
+    setToolSteps,
     outpaintOffsetX,
     setOutpaintOffsetX,
     outpaintOffsetY,

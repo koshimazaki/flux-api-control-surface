@@ -43,6 +43,8 @@ type ToolRunPanelProps = {
   mask: string;
   brushSize: number;
   dilatePixels: number;
+  guidance: number;
+  steps: number;
   offsetX: string;
   offsetY: string;
   outpaintMode: "high" | "fast";
@@ -54,6 +56,8 @@ type ToolRunPanelProps = {
   onPromptChange: (value: string) => void;
   onBrushSizeChange: (value: number) => void;
   onDilatePixelsChange: (value: number) => void;
+  onGuidanceChange: (value: number) => void;
+  onStepsChange: (value: number) => void;
   onOffsetXChange: (value: string) => void;
   onOffsetYChange: (value: string) => void;
   onOutpaintModeChange: (value: "high" | "fast") => void;
@@ -115,6 +119,33 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
               Clear mask
             </button>
           </div>
+        </>
+      )}
+
+      {props.mode === "inpaint" && (
+        <>
+          <label>
+            Guidance · {props.guidance}
+            <input
+              type="range"
+              min={1}
+              max={50}
+              step={1}
+              value={props.guidance}
+              onChange={(event) => props.onGuidanceChange(Number(event.target.value))}
+            />
+          </label>
+          <label>
+            Steps · {props.steps}
+            <input
+              type="range"
+              min={15}
+              max={50}
+              step={1}
+              value={props.steps}
+              onChange={(event) => props.onStepsChange(Number(event.target.value))}
+            />
+          </label>
         </>
       )}
 

@@ -169,7 +169,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     body: {
       erase: "tool=image, mask, dilatePixels",
-      inpaint: "tool=image, mask, prompt, seed",
+      inpaint: "tool=image, mask, prompt, seed, guidance, steps",
       outpaint: "tool=image, canvasWidth, canvasHeight, offsetX, offsetY, mode"
     },
     example: {

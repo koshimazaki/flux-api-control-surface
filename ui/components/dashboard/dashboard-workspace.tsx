@@ -85,6 +85,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           mask={state.toolMask}
           brushSize={state.toolBrushSize}
           dilatePixels={state.toolDilatePixels}
+          guidance={state.toolGuidance}
+          steps={state.toolSteps}
           offsetX={state.outpaintOffsetX}
           offsetY={state.outpaintOffsetY}
           outpaintMode={state.outpaintMode}
@@ -96,6 +98,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onPromptChange={state.setPromptText}
           onBrushSizeChange={state.setToolBrushSize}
           onDilatePixelsChange={state.setToolDilatePixels}
+          onGuidanceChange={state.setToolGuidance}
+          onStepsChange={state.setToolSteps}
           onOffsetXChange={state.setOutpaintOffsetX}
           onOffsetYChange={state.setOutpaintOffsetY}
           onOutpaintModeChange={state.setOutpaintMode}

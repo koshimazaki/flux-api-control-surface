@@ -13,6 +13,8 @@ function toolInput(overrides: Partial<ToolRunInput> = {}): ToolRunInput {
     prompt: "",
     seed: "",
     dilatePixels: 10,
+    guidance: 30,
+    steps: 50,
     canvasWidth: 1024,
     canvasHeight: 1024,
     offsetX: "",
@@ -51,6 +53,16 @@ describe("buildToolRequestBody", () => {
     expect(body.mask).toBe("data:image/png;base64,mm");
     expect(body.image).toBe("data:image/png;base64,xx");
     expect(body.sourceAssetId).toBe("asset-1");
+    expect(body.guidance).toBeUndefined();
+    expect(body.steps).toBeUndefined();
+  });
+
+  it("forwards fill guidance and steps for inpaint", () => {
+    const body = buildToolRequestBody(toolInput({ mode: "inpaint", prompt: "replace it", guidance: 24, steps: 42 }));
+    expect(body.tool).toBe("inpaint");
+    expect(body.prompt).toBe("replace it");
+    expect(body.guidance).toBe(24);
+    expect(body.steps).toBe(42);
   });
 
   it("omits the mask and parses offsets for outpaint", () => {

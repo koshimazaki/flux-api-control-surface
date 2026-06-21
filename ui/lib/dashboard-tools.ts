@@ -11,6 +11,8 @@ export type ToolRunInput = {
   prompt: string;
   seed: string;
   dilatePixels: number;
+  guidance: number;
+  steps: number;
   canvasWidth: number;
   canvasHeight: number;
   offsetX: string;
@@ -53,6 +55,8 @@ export function buildToolRequestBody(input: ToolRunInput) {
     prompt: input.mode === "erase" ? undefined : input.prompt,
     seed: Number.isFinite(seed as number) ? seed : null,
     dilatePixels: input.dilatePixels,
+    guidance: input.mode === "inpaint" ? input.guidance : undefined,
+    steps: input.mode === "inpaint" ? input.steps : undefined,
     canvasWidth: input.canvasWidth,
     canvasHeight: input.canvasHeight,
     offsetX: parsedOffset(input.offsetX),

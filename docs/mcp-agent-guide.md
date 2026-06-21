@@ -99,7 +99,7 @@ filesystem paths.
 2. Select an image URL/data URL.
 3. `POST /api/bfl/tools`
    - `tool=erase` needs `image` and `mask`.
-   - `tool=inpaint` needs `image`, `mask`, and `prompt`.
+   - `tool=inpaint` needs `image`, `mask`, and `prompt`; optional `guidance` defaults to `30` and `steps` defaults to `50`.
    - `tool=outpaint` needs `image`, `canvasWidth`, `canvasHeight`, and offsets.
 4. `GET /api/outputs` to recover the edited result.
 
