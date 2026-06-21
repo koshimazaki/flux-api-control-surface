@@ -19,6 +19,7 @@ venv/
 /samples/
 /datasets/
 /caption-jobs/
+/notes/
 
 # Generated media/model artefacts are local by default. Force-add intentional
 # small docs examples explicitly if the public repo needs them.
