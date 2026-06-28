@@ -187,6 +187,60 @@ export function buildToolAssetRecord(data: any, input: ToolRunInput): AssetRecor
   };
 }
 
+export function buildVtoGarmentCompositeAsset(data: any, input: ToolRunInput): AssetRecord | null {
+  const composite = data.garmentComposite;
+  if (input.mode !== "vto" || !composite?.imageDataUrl) return null;
+  const timestamp = Date.now();
+  const assetId = composite.id || `${data.id || `tool-${timestamp}`}-garment-collage`;
+  const outputUrl = `/api/outputs/${encodeURIComponent(assetId)}/image`;
+  const garmentNames = input.vtoGarments
+    .map((asset) => compactTitlePart(asset.title || asset.id, "garment"))
+    .filter(Boolean);
+  const title = composite.title || ["VTO garment collage", garmentNames.slice(0, 2).join(" + ")].filter(Boolean).join(" - ");
+  return {
+    id: assetId,
+    title,
+    createdAt: new Date(timestamp).toISOString(),
+    timestamp,
+    imageDataUrl: composite.imageDataUrl,
+    imageUrl: outputUrl,
+    image_url: outputUrl,
+    sampleUrl: outputUrl,
+    model: "vto-garment-composite",
+    prompt: `[vto garment collage sent to BFL] ${input.prompt.trim()}`.trim(),
+    status: "complete",
+    width: composite.width,
+    height: composite.height,
+    aspectRatio: composite.width && composite.height ? `${composite.width}:${composite.height}` : "1:1",
+    provider: "local-vto-preflight",
+    payload: {
+      sourceAssetId: input.sourceAsset.id,
+      garmentSummary: data.garmentSummary || null,
+      garmentCount: composite.count,
+      garmentAssetIds: input.vtoGarments.map((asset) => asset.id)
+    },
+    references: input.vtoGarments.map((asset, index) => ({
+      id: asset.id,
+      name: asset.title || asset.id || `garment ${index + 1}`,
+      value: assetImageSource(asset),
+      assetId: asset.id
+    })),
+    runSettings: {
+      provider: "local-vto-preflight",
+      operation: "vto-garment-composite",
+      sourceAssetId: input.sourceAsset.id,
+      garmentCount: composite.count,
+      sentToBflAs: "garment"
+    },
+    sourceAssetId: input.sourceAsset.id,
+    operation: "vto-garment-composite",
+    assetKind: "asset",
+    localImagePath: composite.outputFiles?.imagePath ?? null,
+    localPromptPath: composite.outputFiles?.promptPath ?? null,
+    localMetadataPath: composite.outputFiles?.metadataPath ?? null
+  };
+}
+
 export function buildToolRunLogEntry(asset: AssetRecord, started: number): RunLogEntry {
   return {
     id: asset.id,

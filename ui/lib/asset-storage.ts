@@ -93,8 +93,13 @@ export function stripAssetForStorage(asset: AssetRecord) {
 }
 
 export function normalizeLibraryRecord(item: any): AssetRecord | null {
-  const imageUrl = item.imageDataUrl || item.imageUrl || item.image_url || item.sampleUrl;
-  if (!imageUrl) return null;
+  const imageUrl = item.imageDataUrl || item.imageUrl || item.image_url || item.sampleUrl || "";
+  const canHydrateStoredBlob =
+    Boolean(item.id) &&
+    (Boolean(item.localImagePath || item.localMetadataPath) ||
+      String(item.provider || "").startsWith("local") ||
+      item.operation === "vto-garment-composite");
+  if (!imageUrl && !canHydrateStoredBlob) return null;
   return {
     id: item.id || `asset-${Date.now()}`,
     title: item.title,

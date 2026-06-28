@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { normalizeLibraryRecord } from "@/lib/asset-storage";
 import { mergeAssetRecords } from "@/lib/dashboard-assets";
 import type { AssetRecord } from "@/lib/types";
 
@@ -51,6 +52,30 @@ describe("mergeAssetRecords", () => {
       assetKind: "asset",
       localSvgPath: "outputs/glyph.svg",
       is_favorite: true
+    });
+  });
+});
+
+describe("normalizeLibraryRecord", () => {
+  it("drops image-less records that cannot hydrate a stored blob", () => {
+    expect(normalizeLibraryRecord({ id: "prompt-only", title: "prompt only", prompt: "text" })).toBeNull();
+  });
+
+  it("keeps legacy local VTO collage records so IndexedDB hydration can restore the image", () => {
+    const asset = normalizeLibraryRecord({
+      id: "vto-result-garment-collage",
+      title: "VTO garment collage",
+      provider: "local-vto-preflight",
+      operation: "vto-garment-composite",
+      model: "vto-garment-composite",
+      prompt: "[vto garment collage sent to BFL]"
+    });
+
+    expect(asset).toMatchObject({
+      id: "vto-result-garment-collage",
+      imageDataUrl: "",
+      provider: "local-vto-preflight",
+      operation: "vto-garment-composite"
     });
   });
 });

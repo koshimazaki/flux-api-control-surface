@@ -146,6 +146,10 @@ function transitionCue(currentCue: string, nextCue: string, nextToken: string) {
   return `By the end of this range, begin morphing toward ${nextToken}: ${nextCue}.`;
 }
 
+function assetImageSource(asset: AssetRecord) {
+  return asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url || "";
+}
+
 function referenceKeyForShot(shot?: AudioShot) {
   return shot?.imageSourceId || shot?.imageName || shot?.id || "";
 }
@@ -183,7 +187,7 @@ export function imageOptionsFromSources(assets: AssetRecord[], collectionItems: 
   const gallery = assets.map((asset): ImageOption => ({
     id: `asset:${asset.id}`,
     name: asset.title || asset.id,
-    imageDataUrl: asset.imageDataUrl,
+    imageDataUrl: assetImageSource(asset),
     prompt: asset.prompt,
     source: "gallery"
   }));

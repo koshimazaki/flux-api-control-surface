@@ -215,6 +215,41 @@ pre {
   font-family: var(--font-mono);
 }
 
+.assetPrompt {
+  position: relative;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.46);
+  overflow: hidden;
+}
+
+.assetPromptCopy {
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  min-height: 24px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.66);
+  backdrop-filter: blur(10px);
+}
+
+.assetPromptCopy.copied {
+  color: var(--gold);
+  border-color: rgba(207, 182, 123, 0.7);
+}
+
+.assetPrompt pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  max-height: 160px;
+  padding-right: 40px;
+}
+
 .assetButtons {
   margin-top: 8px;
   display: grid;
@@ -250,9 +285,9 @@ pre {
 
 .assetReferenceMenu {
   position: absolute;
-  z-index: 5;
-  right: 0;
-  bottom: calc(100% + 7px);
+  z-index: 20;
+  left: calc(100% + 8px);
+  top: -4px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;
@@ -264,16 +299,30 @@ pre {
   backdrop-filter: blur(18px);
   padding: 7px;
   opacity: 0;
-  pointer-events: none;
-  transform: translateY(5px);
-  transition: opacity 140ms ease, transform 140ms ease;
+  visibility: hidden;
+  pointer-events: auto;
+  transform: translateX(-5px);
+  transition:
+    opacity 140ms ease 850ms,
+    transform 140ms ease 850ms,
+    visibility 0ms linear 1000ms;
+}
+
+.assetReferenceMenu::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -10px;
+  width: 10px;
+  height: 100%;
 }
 
 .assetReferenceAction:hover .assetReferenceMenu,
 .assetReferenceAction:focus-within .assetReferenceMenu {
   opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
+  visibility: visible;
+  transform: translateX(0);
+  transition-delay: 0ms;
 }
 
 .assetReferenceMenu button {
@@ -285,10 +334,8 @@ pre {
 }
 
 .lightboxReferenceAction .assetReferenceMenu {
-  right: auto;
-  left: 0;
-  bottom: auto;
-  top: calc(100% + 7px);
+  left: calc(100% + 8px);
+  top: 0;
 }
 
 

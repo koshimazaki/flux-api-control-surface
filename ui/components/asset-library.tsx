@@ -1,5 +1,6 @@
 import {
   BookmarkPlus,
+  Check,
   Clipboard,
   Download,
   Eraser,
@@ -21,9 +22,10 @@ import {
   Sparkles,
   Square,
   Trash2,
-  Upload
+  Upload,
+  UserRound
 } from "lucide-react";
-import type { ChangeEvent, DragEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-badge";
 import { copyText } from "@/lib/clipboard";
@@ -52,6 +54,7 @@ type AssetLibraryProps = {
   onToggleFavorite: (id: string) => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
+  onSendToVtoGarment: (asset: AssetRecord) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSavePromptToLibrary: (asset: AssetRecord) => void;
   onToggleSelected: (id: string) => void;
@@ -103,11 +106,30 @@ function imageFilesFromTransfer(event: DragEvent) {
 }
 
 export function AssetLibrary(props: AssetLibraryProps) {
+  const [copiedPromptAssetId, setCopiedPromptAssetId] = useState<string | null>(null);
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const assetGridStyle = {
     gridTemplateColumns: `repeat(${props.gridSize}, minmax(0, 1fr))`
   };
   const groupedAssets = groupAssetsByDate(props.filteredAssets);
   const addImageTarget = referenceDropTargets.find((target) => target.id === "add-image") || referenceDropTargets[0];
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    };
+  }, []);
+
+  async function copyAssetPrompt(asset: AssetRecord) {
+    if (!asset.prompt.trim()) return;
+    const didCopy = await copyText(asset.prompt);
+    if (!didCopy) return;
+    setCopiedPromptAssetId(asset.id);
+    if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    copyResetTimer.current = setTimeout(() => {
+      setCopiedPromptAssetId((current) => (current === asset.id ? null : current));
+    }, 1000);
+  }
 
   function onImageImport(event: ChangeEvent<HTMLInputElement>) {
     props.onImportImages(Array.from(event.target.files || []));
@@ -190,6 +212,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                 const badges = props.assetBadges[asset.id] || [];
                 const origin = assetOrigin(asset);
                 const OriginIcon = origin.icon;
+                const isPromptCopied = copiedPromptAssetId === asset.id;
                 const cardClass = [
                   "assetCard",
                   isSelected ? "selectedAsset" : "",
@@ -264,7 +287,18 @@ export function AssetLibrary(props: AssetLibraryProps) {
                         request: asset.payload
                       }, null, 2)}</pre>
                     )}
-                    <pre>{asset.prompt}</pre>
+                    <div className="assetPrompt">
+                      <button
+                        type="button"
+                        className={isPromptCopied ? "assetPromptCopy copied" : "assetPromptCopy"}
+                        onClick={() => void copyAssetPrompt(asset)}
+                        title={isPromptCopied ? "Prompt copied" : "Copy full prompt"}
+                        disabled={!asset.prompt.trim()}
+                      >
+                        {isPromptCopied ? <Check size={13} /> : <Clipboard size={13} />}
+                      </button>
+                      <pre>{asset.prompt}</pre>
+                    </div>
                     <div className="assetButtons">
                       <div className="assetButtonGroup">
                         <button onClick={() => props.onSendToPrompt(asset)} title="Send prompt to Generate">
@@ -295,7 +329,10 @@ export function AssetLibrary(props: AssetLibraryProps) {
                         <button onClick={() => props.onSendToWorkspace(asset, "erase")} title="Send to Erase">
                           <Eraser size={15} />
                         </button>
-                        <button onClick={() => props.onSendToWorkspace(asset, "vto")} title="Send to VTO">
+                        <button onClick={() => props.onSendToWorkspace(asset, "vto")} title="Use as VTO person">
+                          <UserRound size={15} />
+                        </button>
+                        <button onClick={() => props.onSendToVtoGarment(asset)} title="Add as next VTO garment">
                           <Shirt size={15} />
                         </button>
                         <button onClick={() => props.onSendToWorkspace(asset, "outpaint")} title="Send to Outpaint">
@@ -330,9 +367,6 @@ export function AssetLibrary(props: AssetLibraryProps) {
                         </button>
                         <button onClick={() => props.onDownload(asset)} title="Download">
                           <Download size={15} />
-                        </button>
-                        <button onClick={() => void copyText(asset.prompt)} title="Copy prompt">
-                          <Clipboard size={15} />
                         </button>
                         <button onClick={() => props.onDelete(asset.id)} title="Delete from browser library">
                           <Trash2 size={15} />

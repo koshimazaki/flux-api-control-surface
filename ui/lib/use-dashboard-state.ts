@@ -20,6 +20,7 @@ import {
   buildToolFailureLogEntry,
   buildToolRequestBody,
   buildToolRunLogEntry,
+  buildVtoGarmentCompositeAsset,
   executeToolRun,
   toolRunBlocker,
   type ToolRunInput
@@ -608,6 +609,19 @@ export function useDashboardState() {
     setWorkspaceMode("vto");
     setRecoveryMessage(`Added ${asset.title || asset.id} as VTO garment ${slotIndex + 1}.`);
   }
+  function sendAssetToNextVtoGarment(asset: AssetRecord) {
+    const slotIndex = vtoGarmentAssetIds.findIndex((assetId) => !assetId);
+    setWorkspaceMode("vto");
+    setSelectedAsset(null);
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (slotIndex === -1) {
+      setRecoveryMessage("All four VTO garment slots are full. Clear a garment slot before adding another item.");
+      return null;
+    }
+    setVtoGarmentAsset(slotIndex, asset);
+    return slotIndex + 1;
+  }
   async function assetFromVtoReferencePayload(payload: string) {
     const reference = parseReferenceDragPayload(payload);
     if (!reference) return null;
@@ -702,13 +716,15 @@ export function useDashboardState() {
     try {
       const data = await executeToolRun(buildToolRequestBody(input));
       const asset = buildToolAssetRecord(data, input);
+      const garmentCompositeAsset = buildVtoGarmentCompositeAsset(data, input);
+      if (garmentCompositeAsset) await persistAssetImage(garmentCompositeAsset.id, garmentCompositeAsset.imageDataUrl);
       await persistAssetImage(asset.id, data.imageDataUrl);
-      setAssets((current) => [asset, ...current]);
+      setAssets((current) => [asset, ...(garmentCompositeAsset ? [garmentCompositeAsset] : []), ...current]);
       setBalance({ credits: data.submit?.creditsAfter ?? balance.credits, checkedAt: Date.now() });
       setRunLog((current) => [buildToolRunLogEntry(asset, started), ...current]);
       setSelectedAsset(asset);
       setRecoveryMessage(
-        `${workspaceModeLabels[workspaceMode]} complete for ${toolSourceAsset.title || toolSourceAsset.id}.`
+        `${workspaceModeLabels[workspaceMode]} complete for ${toolSourceAsset.title || toolSourceAsset.id}${garmentCompositeAsset ? "; saved the garment collage to the gallery." : "."}`
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Tool run failed";
@@ -905,6 +921,7 @@ export function useDashboardState() {
     sendAssetToPrompt,
     addAssetToPromptReferences,
     sendAssetToWorkspace,
+    sendAssetToNextVtoGarment,
     importToolSourceFiles,
     loadToolSourceFromDropPayload,
     clearToolSourceAsset,

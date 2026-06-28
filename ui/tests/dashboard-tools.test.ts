@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { buildToolAssetRecord, buildToolRequestBody, toolRunBlocker, type ToolRunInput } from "@/lib/dashboard-tools";
+import {
+  buildToolAssetRecord,
+  buildToolRequestBody,
+  buildVtoGarmentCompositeAsset,
+  toolRunBlocker,
+  type ToolRunInput
+} from "@/lib/dashboard-tools";
 import type { AssetRecord } from "@/lib/types";
 
 const sourceAsset = { id: "asset-1", title: "tropical membrane flower", imageDataUrl: "data:image/png;base64,xx" } as AssetRecord;
 const garmentAsset = { id: "garment-1", title: "surf jacket", imageDataUrl: "data:image/png;base64,gg" } as AssetRecord;
+const secondGarmentAsset = { id: "garment-2", title: "linen trousers", imageDataUrl: "data:image/png;base64,tt" } as AssetRecord;
 
 function toolInput(overrides: Partial<ToolRunInput> = {}): ToolRunInput {
   return {
@@ -138,5 +145,62 @@ describe("buildToolAssetRecord", () => {
       toolInput({ mode: "deblur", prompt: "ignored global prompt" })
     );
     expect(asset.prompt).toBe("[deblur pass, no prompt]");
+  });
+});
+
+describe("buildVtoGarmentCompositeAsset", () => {
+  it("creates a local gallery asset for the exact VTO garment collage sent to BFL", () => {
+    const asset = buildVtoGarmentCompositeAsset(
+      {
+        id: "vto-result-1",
+        garmentSummary: { count: 2, composite: true, width: 1024, height: 1024 },
+        garmentComposite: {
+          id: "vto-result-1-garment-collage",
+          title: "vto garment collage - vto - wear this outfit - garment surf jacket",
+          imageDataUrl: "data:image/png;base64,collage",
+          count: 2,
+          width: 1024,
+          height: 1024,
+          outputFiles: {
+            imagePath: "../outputs/flux-api-control-surface/vto-result-1-garment-collage.png",
+            promptPath: "../outputs/flux-api-control-surface/vto-result-1-garment-collage.prompt.txt",
+            metadataPath: "../outputs/flux-api-control-surface/vto-result-1-garment-collage.json"
+          }
+        }
+      },
+      toolInput({
+        mode: "vto",
+        prompt: "wear this outfit",
+        vtoGarments: [garmentAsset, secondGarmentAsset]
+      })
+    );
+
+    expect(asset).toMatchObject({
+      id: "vto-result-1-garment-collage",
+      title: "vto garment collage - vto - wear this outfit - garment surf jacket",
+      imageDataUrl: "data:image/png;base64,collage",
+      imageUrl: "/api/outputs/vto-result-1-garment-collage/image",
+      sampleUrl: "/api/outputs/vto-result-1-garment-collage/image",
+      model: "vto-garment-composite",
+      provider: "local-vto-preflight",
+      operation: "vto-garment-composite",
+      assetKind: "asset",
+      width: 1024,
+      height: 1024,
+      sourceAssetId: "asset-1",
+      localImagePath: "../outputs/flux-api-control-surface/vto-result-1-garment-collage.png"
+    });
+    expect(asset?.payload.garmentAssetIds).toEqual(["garment-1", "garment-2"]);
+    expect(asset?.references.map((reference) => reference.name)).toEqual(["surf jacket", "linen trousers"]);
+    expect(asset?.runSettings?.sentToBflAs).toBe("garment");
+  });
+
+  it("omits the local collage card when VTO did not create a composite", () => {
+    expect(
+      buildVtoGarmentCompositeAsset(
+        { id: "vto-result-1", garmentSummary: { count: 1, composite: false, width: 640, height: 640 } },
+        toolInput({ mode: "vto", prompt: "wear this", vtoGarments: [garmentAsset] })
+      )
+    ).toBeNull();
   });
 });

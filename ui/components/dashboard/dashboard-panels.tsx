@@ -68,6 +68,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onToggleFavorite={state.toggleFavorite}
           onSendToPrompt={state.sendAssetToPrompt}
           onSendToWorkspace={state.sendAssetToWorkspace}
+          onSendToVtoGarment={state.sendAssetToNextVtoGarment}
           onSendToReference={state.sendAssetToReference}
           onSavePromptToLibrary={(asset) => void state.saveAssetPromptToLibrary(asset)}
           onToggleSelected={state.toggleAssetSelection}

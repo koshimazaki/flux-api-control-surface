@@ -47,6 +47,18 @@ type ToolBody = {
   sourceAssetId?: string;
 };
 
+type LocalOutputFiles = Awaited<ReturnType<typeof saveOutputFiles>>;
+
+type GarmentCompositeResponse = {
+  id?: string;
+  title?: string;
+  imageDataUrl: string;
+  count: number;
+  width: number;
+  height: number;
+  outputFiles?: LocalOutputFiles;
+};
+
 function jsonError(message: string, status = 400, details?: unknown) {
   return NextResponse.json({ error: message, details }, { status });
 }
@@ -175,6 +187,8 @@ export async function POST(request: NextRequest) {
   let preparedBody = resolvedBody;
   let maskCoverage: number | null = null;
   let garmentSummary: { count: number; composite: boolean; width: number; height: number } | null = null;
+  let garmentComposite: GarmentCompositeResponse | null = null;
+  let garmentCompositeBuffer: Buffer | null = null;
   let sourceDimensions: { width: number; height: number } | null = null;
   try {
     const source = await prepareToolImageInput(resolvedBody.image, "source image");
@@ -197,6 +211,15 @@ export async function POST(request: NextRequest) {
         width: garment.width,
         height: garment.height
       };
+      if (garment.composite) {
+        garmentCompositeBuffer = Buffer.from(garment.base64, "base64");
+        garmentComposite = {
+          imageDataUrl: `data:image/png;base64,${garment.base64}`,
+          count: garment.count,
+          width: garment.width,
+          height: garment.height
+        };
+      }
     }
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Invalid image tool input.", 400);
@@ -302,6 +325,60 @@ export async function POST(request: NextRequest) {
       extension,
       metadata
     });
+    if (garmentComposite && garmentCompositeBuffer) {
+      const compositeId = `${submitted.id || `${Date.now()}`}-garment-collage`;
+      const compositeTitle = `vto garment collage - ${title}`;
+      const compositePrompt = `[vto garment collage sent to BFL] ${promptForFiles}`.trim();
+      const compositeMetadata = {
+        id: compositeId,
+        model: "vto-garment-composite",
+        provider: "local-vto-preflight",
+        endpointName,
+        tool,
+        sourceAssetId: body.sourceAssetId || null,
+        garmentSummary,
+        operation: "vto-garment-composite",
+        assetKind: "asset",
+        runSettings: {
+          title: compositeTitle,
+          provider: "local-vto-preflight",
+          model: "vto-garment-composite",
+          endpointName,
+          tool,
+          sourceAssetId: body.sourceAssetId || null,
+          garmentSummary,
+          operation: "vto-garment-composite",
+          sentToBflAs: "garment",
+          requestId: submitted.id ?? null,
+          createdAt: new Date().toISOString()
+        },
+        payload: {
+          prompt: compositePrompt,
+          width: garmentComposite.width,
+          height: garmentComposite.height,
+          sourceAssetId: body.sourceAssetId || null,
+          garmentSummary,
+          garmentCount: garmentComposite.count,
+          sentToBflAs: "garment"
+        }
+      };
+      const compositeBuffer = embedPngMetadata(garmentCompositeBuffer, compositeMetadata);
+      const compositeOutputFiles = await saveOutputFiles({
+        id: compositeId,
+        title: compositeTitle,
+        prompt: compositePrompt,
+        imageBuffer: compositeBuffer,
+        extension: "png",
+        metadata: compositeMetadata
+      });
+      garmentComposite = {
+        ...garmentComposite,
+        id: compositeId,
+        title: compositeTitle,
+        imageDataUrl: `data:image/png;base64,${compositeBuffer.toString("base64")}`,
+        outputFiles: compositeOutputFiles
+      };
+    }
     let remoteOutput = null;
     try {
       remoteOutput = await syncOutputToRemote({
@@ -324,6 +401,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ...metadata,
       imageDataUrl,
+      garmentComposite,
       outputFiles: {
         ...localOutputFiles,
         remote: remoteOutput

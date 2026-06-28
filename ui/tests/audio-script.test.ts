@@ -3,10 +3,12 @@ import type { AudioBandKey, AudioEventKind, AudioMarker } from "@/lib/audio-anal
 import {
   buildAudioPrompt,
   defaultMotionPrompt,
+  imageOptionsFromSources,
   isDefaultMotionPrompt,
   syncShots,
   type AudioShot
 } from "@/lib/audio-script";
+import type { AssetRecord } from "@/lib/types";
 
 function marker(overrides: Partial<AudioMarker> = {}): AudioMarker {
   return {
@@ -84,6 +86,32 @@ describe("syncShots", () => {
   it("fills an empty prompt with the marker default", () => {
     const next = syncShots([marker({ kind: "hat", band: "high" })], [shot({ prompt: "" })]);
     expect(next[0].prompt).toBe(defaultMotionPrompt({ kind: "hat", band: "high" }, 0));
+  });
+});
+
+describe("imageOptionsFromSources", () => {
+  it("keeps recovered gallery outputs that only have a local image URL", () => {
+    const options = imageOptionsFromSources(
+      [
+        {
+          id: "recent-output",
+          title: "recent output",
+          imageDataUrl: "",
+          imageUrl: "/api/outputs/recent-output/image",
+          image_url: "/api/outputs/recent-output/image",
+          sampleUrl: "/api/outputs/recent-output/image",
+          prompt: "recent prompt"
+        } as AssetRecord
+      ],
+      []
+    );
+
+    expect(options).toHaveLength(1);
+    expect(options[0]).toMatchObject({
+      id: "asset:recent-output",
+      imageDataUrl: "/api/outputs/recent-output/image",
+      source: "gallery"
+    });
   });
 });
 
