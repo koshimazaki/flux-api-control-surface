@@ -26,7 +26,7 @@ const allRoutes = readdirSync(apiDir, { recursive: true })
 // Routes intentionally NOT wrapped as MCP tools, classified so a brand-new
 // uncovered route can't slip through unnoticed.
 const DISCOVERY_ONLY = ["/api/mcp/guide", "/api/mcp/status", "/api/bfl_dashboard/v1/manifest"];
-const INTERNAL_ONLY = ["/api/outputs/[id]/image"];
+const INTERNAL_ONLY = ["/api/outputs/[id]/image", "/api/bfl/tools/vto-composite"];
 const KNOWN_AUDIO_GAP = ["/api/audio/guide", "/api/audio/slice"];
 
 describe("local MCP tool registry", () => {

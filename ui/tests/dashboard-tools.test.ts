@@ -78,6 +78,9 @@ describe("buildToolRequestBody", () => {
     expect(body.title).toContain("wear the jacket");
     expect(body.title).toContain("surf jacket");
     expect(body.garments).toEqual(["data:image/png;base64,gg"]);
+    expect(body.garmentAssetIds).toEqual(["garment-1"]);
+    expect(body.garmentTitles).toEqual(["surf jacket"]);
+    expect(body.sourceAssetTitle).toBe("tropical membrane flower");
     expect(body.mask).toBeUndefined();
     expect(body.guidance).toBeUndefined();
     expect(body.steps).toBeUndefined();
@@ -137,6 +140,7 @@ describe("buildToolAssetRecord", () => {
     );
     expect(asset.title).toContain("man on the beach");
     expect(asset.prompt).toBe("man on the beach");
+    expect(asset.references.map((reference) => reference.assetId)).toEqual(["garment-1"]);
   });
 
   it("marks source-only tool outputs as no-prompt passes", () => {

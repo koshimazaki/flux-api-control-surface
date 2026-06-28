@@ -103,6 +103,9 @@ export function buildToolTitle(input: Pick<ToolRunInput, "mode" | "prompt" | "so
 export function buildToolRequestBody(input: ToolRunInput) {
   const seed = input.seed.trim() ? Number(input.seed) : null;
   const title = buildToolTitle(input);
+  const garmentAssetIds = input.mode === "vto" ? input.vtoGarments.map((asset) => asset.id) : undefined;
+  const garmentTitles =
+    input.mode === "vto" ? input.vtoGarments.map((asset) => asset.title || asset.id || "garment") : undefined;
   return {
     apiKey: input.apiKey.trim() || undefined,
     tool: input.mode,
@@ -110,6 +113,8 @@ export function buildToolRequestBody(input: ToolRunInput) {
     mask: input.mode === "erase" ? input.mask : undefined,
     prompt: input.mode === "vto" || input.mode === "outpaint" ? input.prompt : undefined,
     garments: input.mode === "vto" ? input.vtoGarments.map((asset) => assetImageSource(asset)).filter(Boolean) : undefined,
+    garmentAssetIds,
+    garmentTitles,
     seed: Number.isFinite(seed as number) ? seed : null,
     dilatePixels: input.dilatePixels,
     guidance: undefined,
@@ -125,7 +130,8 @@ export function buildToolRequestBody(input: ToolRunInput) {
     mode: input.mode === "outpaint" ? input.outpaintMode : undefined,
     outputFormat: toolOutputFormat(input.mode, input.outputFormat),
     title,
-    sourceAssetId: input.sourceAsset.id
+    sourceAssetId: input.sourceAsset.id,
+    sourceAssetTitle: input.sourceAsset.title || input.sourceAsset.id
   };
 }
 
@@ -137,6 +143,27 @@ export async function executeToolRun(body: Record<string, unknown>) {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "Tool run failed");
+  return data;
+}
+
+export async function createVtoGarmentComposite(input: ToolRunInput) {
+  const body = buildToolRequestBody(input);
+  const response = await fetch("/api/bfl/tools/vto-composite", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image: body.image,
+      prompt: body.prompt,
+      garments: body.garments,
+      garmentAssetIds: body.garmentAssetIds,
+      garmentTitles: body.garmentTitles,
+      title: body.title,
+      sourceAssetId: body.sourceAssetId,
+      sourceAssetTitle: body.sourceAssetTitle
+    })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Could not create VTO garment collage");
   return data;
 }
 
@@ -165,7 +192,15 @@ export function buildToolAssetRecord(data: any, input: ToolRunInput): AssetRecor
         : input.sourceAsset.aspectRatio,
     provider: "bfl-api",
     payload: data.payload || {},
-    references: [],
+    references:
+      input.mode === "vto"
+        ? input.vtoGarments.map((asset, index) => ({
+            id: asset.id,
+            name: asset.title || asset.id || `garment ${index + 1}`,
+            value: assetImageSource(asset),
+            assetId: asset.id
+          }))
+        : [],
     runSettings: data.runSettings,
     costCredits: data.submit?.cost ?? data.submit?.creditDelta ?? null,
     inputMp: data.submit?.inputMp ?? null,

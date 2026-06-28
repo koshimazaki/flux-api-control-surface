@@ -45,6 +45,10 @@ type ToolBody = {
   outputFormat?: "jpeg" | "png" | "webp";
   title?: string;
   sourceAssetId?: string;
+  sourceAssetTitle?: string;
+  garmentAssetIds?: string[];
+  garmentTitles?: string[];
+  saveGarmentComposite?: boolean;
 };
 
 type LocalOutputFiles = Awaited<ReturnType<typeof saveOutputFiles>>;
@@ -254,6 +258,8 @@ export async function POST(request: NextRequest) {
   const payload = buildToolPayload(tool, preparedBody, outputFormat);
   const title = body.title || `${tool}-edit`;
   const promptForFiles = body.prompt?.trim() || `[${tool} pass, no prompt]`;
+  const garmentAssetIds = Array.isArray(body.garmentAssetIds) ? body.garmentAssetIds.filter(Boolean).slice(0, 4) : [];
+  const garmentTitles = Array.isArray(body.garmentTitles) ? body.garmentTitles.filter(Boolean).slice(0, 4) : [];
 
   try {
     const creditsBefore = await getCredits(apiKey);
@@ -280,6 +286,9 @@ export async function POST(request: NextRequest) {
       endpointName,
       tool,
       sourceAssetId: body.sourceAssetId || null,
+      sourceAssetTitle: body.sourceAssetTitle || null,
+      garmentAssetIds,
+      garmentTitles,
       garmentSummary,
       runSettings: {
         title,
@@ -288,6 +297,9 @@ export async function POST(request: NextRequest) {
         endpointName,
         tool,
         sourceAssetId: body.sourceAssetId || null,
+        sourceAssetTitle: body.sourceAssetTitle || null,
+        garmentAssetIds,
+        garmentTitles,
         maskCoverage,
         garmentSummary,
         outputFormat,
@@ -325,7 +337,7 @@ export async function POST(request: NextRequest) {
       extension,
       metadata
     });
-    if (garmentComposite && garmentCompositeBuffer) {
+    if (garmentComposite && garmentCompositeBuffer && body.saveGarmentComposite !== false) {
       const compositeId = `${submitted.id || `${Date.now()}`}-garment-collage`;
       const compositeTitle = `vto garment collage - ${title}`;
       const compositePrompt = `[vto garment collage sent to BFL] ${promptForFiles}`.trim();
@@ -336,6 +348,9 @@ export async function POST(request: NextRequest) {
         endpointName,
         tool,
         sourceAssetId: body.sourceAssetId || null,
+        sourceAssetTitle: body.sourceAssetTitle || null,
+        garmentAssetIds,
+        garmentTitles,
         garmentSummary,
         operation: "vto-garment-composite",
         assetKind: "asset",
@@ -346,6 +361,9 @@ export async function POST(request: NextRequest) {
           endpointName,
           tool,
           sourceAssetId: body.sourceAssetId || null,
+          sourceAssetTitle: body.sourceAssetTitle || null,
+          garmentAssetIds,
+          garmentTitles,
           garmentSummary,
           operation: "vto-garment-composite",
           sentToBflAs: "garment",
@@ -357,6 +375,9 @@ export async function POST(request: NextRequest) {
           width: garmentComposite.width,
           height: garmentComposite.height,
           sourceAssetId: body.sourceAssetId || null,
+          sourceAssetTitle: body.sourceAssetTitle || null,
+          garmentAssetIds,
+          garmentTitles,
           garmentSummary,
           garmentCount: garmentComposite.count,
           sentToBflAs: "garment"

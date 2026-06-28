@@ -21,6 +21,7 @@ import {
   buildToolRequestBody,
   buildToolRunLogEntry,
   buildVtoGarmentCompositeAsset,
+  createVtoGarmentComposite,
   executeToolRun,
   toolRunBlocker,
   type ToolRunInput
@@ -712,19 +713,50 @@ export function useDashboardState() {
     }
     setError("");
     setIsGenerating(true);
+    let preflightCompositeAsset: AssetRecord | null = null;
     const started = Date.now();
     try {
-      const data = await executeToolRun(buildToolRequestBody(input));
+      const requestBody = buildToolRequestBody(input);
+      const submittedGarmentCount = Array.isArray(requestBody.garments) ? requestBody.garments.length : 0;
+      if (input.mode === "vto" && submittedGarmentCount > 1) {
+        try {
+          const compositeData = await createVtoGarmentComposite(input);
+          preflightCompositeAsset = buildVtoGarmentCompositeAsset(compositeData, input);
+          if (preflightCompositeAsset) {
+            await persistAssetImage(preflightCompositeAsset.id, preflightCompositeAsset.imageDataUrl);
+            setAssets((current) => [preflightCompositeAsset!, ...current]);
+            setActiveTab("assets");
+            setRecoveryMessage("Saved the VTO garment collage to the gallery; running Virtual Try-On.");
+          }
+        } catch (error) {
+          console.warn("Could not save VTO garment collage preflight", error);
+        }
+      }
+      if (preflightCompositeAsset) (requestBody as Record<string, unknown>).saveGarmentComposite = false;
+      const data = await executeToolRun(requestBody);
       const asset = buildToolAssetRecord(data, input);
-      const garmentCompositeAsset = buildVtoGarmentCompositeAsset(data, input);
+      const garmentCompositeAsset = preflightCompositeAsset ? null : buildVtoGarmentCompositeAsset(data, input);
       if (garmentCompositeAsset) await persistAssetImage(garmentCompositeAsset.id, garmentCompositeAsset.imageDataUrl);
       await persistAssetImage(asset.id, data.imageDataUrl);
-      setAssets((current) => [asset, ...(garmentCompositeAsset ? [garmentCompositeAsset] : []), ...current]);
+      setAssets((current) => {
+        if (!preflightCompositeAsset) return [asset, ...(garmentCompositeAsset ? [garmentCompositeAsset] : []), ...current];
+        const compositeIndex = current.findIndex((item) => item.id === preflightCompositeAsset?.id);
+        if (compositeIndex === -1) return [preflightCompositeAsset, asset, ...current];
+        const next = [...current];
+        next.splice(compositeIndex + 1, 0, asset);
+        return next;
+      });
       setBalance({ credits: data.submit?.creditsAfter ?? balance.credits, checkedAt: Date.now() });
       setRunLog((current) => [buildToolRunLogEntry(asset, started), ...current]);
       setSelectedAsset(asset);
       setRecoveryMessage(
-        `${workspaceModeLabels[workspaceMode]} complete for ${toolSourceAsset.title || toolSourceAsset.id}${garmentCompositeAsset ? "; saved the garment collage to the gallery." : "."}`
+        `${workspaceModeLabels[workspaceMode]} complete for ${toolSourceAsset.title || toolSourceAsset.id}${
+          garmentCompositeAsset
+            ? "; saved the garment collage to the gallery."
+            : preflightCompositeAsset
+              ? "; garment collage is already in the gallery."
+              : "."
+        }`
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Tool run failed";
