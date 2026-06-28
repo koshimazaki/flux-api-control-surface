@@ -3,7 +3,8 @@ import {
   buildKleinLoraConfigYaml,
   buildKleinLoraDataset,
   ensureCaptionTrigger,
-  resolveKleinLoraConfig
+  resolveKleinLoraConfig,
+  type KleinLoraConfigOptions
 } from "@/lib/finetune-dataset";
 import { sanitizeZipName } from "@/lib/zip-archive";
 import type { TrainingCollection, TrainingCollectionItem } from "@/lib/types";
@@ -204,5 +205,24 @@ describe("FLUX.2 klein dataset hardening", () => {
     expect(config.baseModel).toBe("evil-model injected: true");
     // And the interpolated comment can't spawn a real top-level YAML key.
     expect(buildKleinLoraConfigYaml(config)).not.toMatch(/^injected:/m);
+  });
+
+  it("coerces non-string JSON config values instead of throwing (raw-route input)", () => {
+    // The dataset route forwards raw JSON config, so a number can arrive where a
+    // string is typed (e.g. learningRate: 0.0001). It must coerce, not throw on
+    // .trim()/.replace()/.toLowerCase().
+    const rawConfig = {
+      learningRate: 0.0001,
+      name: 123,
+      triggerToken: 456,
+      datasetDir: 789
+    } as unknown as KleinLoraConfigOptions;
+    const config = resolveKleinLoraConfig({ name: "x", triggerToken: "bfl_x" }, rawConfig);
+    expect(config.learningRate).toBe("0.0001");
+    expect(config.name).toBe("123");
+    expect(config.triggerToken).toBe("456");
+    expect(config.datasetDir).toBe("789");
+    // A full build with numeric config must succeed end-to-end (previously 400'd).
+    expect(() => buildKleinLoraDataset(collection, rawConfig)).not.toThrow();
   });
 });

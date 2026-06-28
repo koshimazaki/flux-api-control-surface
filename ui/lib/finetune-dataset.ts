@@ -166,10 +166,20 @@ function clampNumber(value: number | undefined, fallback: number, min: number, m
   return Math.min(max, Math.max(min, numeric));
 }
 
+// Coerce an option to a string. The dataset route accepts raw JSON config, so a
+// caller may legitimately send a field as a JSON number (e.g. learningRate:
+// 0.0001) or another type. Coercing here keeps the string operations below from
+// throwing on a non-string instead of falling back cleanly.
+function asText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return "";
+}
+
 // Only accept a numeric-ish learning rate; anything else falls back to the
 // default so it cannot inject arbitrary text into the YAML scalar.
-function safeLearningRate(value: string | undefined): string {
-  const trimmed = (value || "").trim();
+function safeLearningRate(value: unknown): string {
+  const trimmed = asText(value).trim();
   return /^[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?$/.test(trimmed) ? trimmed : "1e-4";
 }
 
@@ -180,12 +190,12 @@ export function resolveKleinLoraConfig(
   // Strip control chars (incl. newlines) so the trigger can't break comment lines;
   // quote-escaping for scalar positions is handled by yamlString().
   const triggerToken =
-    (options.triggerToken || collection.triggerToken || DEFAULT_TRIGGER_TOKEN).replace(/[\u0000-\u001f]+/g, " ").trim() ||
+    (asText(options.triggerToken) || asText(collection.triggerToken) || DEFAULT_TRIGGER_TOKEN).replace(/[\u0000-\u001f]+/g, " ").trim() ||
     DEFAULT_TRIGGER_TOKEN;
   const rank = clampInt(options.rank, 16, 1, 256);
   return {
     triggerToken,
-    name: slugify(options.name || collection.name || "klein_lora") || "klein_lora",
+    name: slugify(asText(options.name) || asText(collection.name) || "klein_lora") || "klein_lora",
     resolution: clampInt(options.resolution, 1024, 256, 2048),
     rank,
     alpha: clampInt(options.alpha, rank, 1, 512),
@@ -194,9 +204,9 @@ export function resolveKleinLoraConfig(
     batchSize: clampInt(options.batchSize, 1, 1, 64),
     saveEvery: clampInt(options.saveEvery, 250, 1, 100_000),
     captionDropoutRate: clampNumber(options.captionDropoutRate, 0.05, 0, 1),
-    datasetDir: (options.datasetDir || "dataset").replace(/^\.?\/+/, "").replace(/\.{2,}/g, ".").replace(/\/+$/, "") || "dataset",
-    outputDir: (options.outputDir || "output").replace(/^\.?\/+/, "").replace(/\.{2,}/g, ".").replace(/\/+$/, "") || "output",
-    baseModel: (options.baseModel || KLEIN_LORA_BASE_MODEL).replace(/[\u0000-\u001f]+/g, " ").trim() || KLEIN_LORA_BASE_MODEL
+    datasetDir: (asText(options.datasetDir) || "dataset").replace(/^\.?\/+/, "").replace(/\.{2,}/g, ".").replace(/\/+$/, "") || "dataset",
+    outputDir: (asText(options.outputDir) || "output").replace(/^\.?\/+/, "").replace(/\.{2,}/g, ".").replace(/\/+$/, "") || "output",
+    baseModel: (asText(options.baseModel) || KLEIN_LORA_BASE_MODEL).replace(/[\u0000-\u001f]+/g, " ").trim() || KLEIN_LORA_BASE_MODEL
   };
 }
 

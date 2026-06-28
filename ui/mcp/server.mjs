@@ -3,7 +3,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const DEFAULT_BASE_URL = "http://localhost:3000";
+// 127.0.0.1, not localhost: `npm run dev`/`start` bind Next with `-H 127.0.0.1`
+// (IPv4 only), so a `localhost` default would fail to connect on hosts where it
+// resolves to ::1 first. Override with BFL_DASHBOARD_URL for non-default setups.
+const DEFAULT_BASE_URL = "http://127.0.0.1:3000";
 const baseUrl = (process.env.BFL_DASHBOARD_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
 
 function result(data) {
