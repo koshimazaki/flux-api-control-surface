@@ -28,6 +28,19 @@
   border-radius: 8px;
 }
 
+.lightboxInner.glyphAssetLightbox img {
+  box-sizing: border-box;
+  padding: clamp(18px, 5vw, 54px);
+}
+
+.lightboxInner.glyphPreviewOnLight img {
+  background: #fff;
+}
+
+.lightboxInner.glyphPreviewOnDark img {
+  background: #030303;
+}
+
 .lightboxMeta {
   min-width: 0;
   display: flex;

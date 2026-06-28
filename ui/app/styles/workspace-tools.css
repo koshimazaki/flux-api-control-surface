@@ -169,6 +169,18 @@
   padding: 10px;
 }
 
+.canvasSurface.glyphPreviewOnLight {
+  --canvas-check-light: rgba(0, 0, 0, 0.025);
+  --canvas-check-dark: rgba(0, 0, 0, 0.045);
+  --canvas-check-base: #fdfdfb;
+}
+
+.canvasSurface.glyphPreviewOnDark {
+  --canvas-check-light: rgba(255, 255, 255, 0.07);
+  --canvas-check-dark: rgba(255, 255, 255, 0.035);
+  --canvas-check-base: #030303;
+}
+
 .glyphResult img {
   max-width: 100%;
   max-height: 220px;
@@ -299,6 +311,53 @@
 .glyphButtons button[title="Clear selection"] {
   flex: 0 0 auto;
   width: 40px;
+}
+
+.glyphPreviewLightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(5, 11, 8, 0.82);
+}
+
+.glyphPreviewLightboxInner {
+  position: relative;
+  width: min(960px, 100%);
+  height: min(86vh, 960px);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 8px;
+  background: #fff;
+  padding: clamp(18px, 5vw, 52px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+}
+
+.glyphPreviewLightbox.glyphPreviewOnDark .glyphPreviewLightboxInner {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #030303;
+}
+
+.glyphPreviewLightbox img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.glyphPreviewClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.62);
+  color: var(--cream);
+  backdrop-filter: blur(14px);
 }
 
 .imageToolMeta {

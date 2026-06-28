@@ -17,7 +17,7 @@ type UseToolSourceDeps = {
   workspaceMode: WorkspaceMode;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
   setAssets: (updater: (current: AssetRecord[]) => AssetRecord[]) => void;
-  setToolSourceAssetId: (id: string | null) => void;
+  setSourceAssetIdForMode: (mode: Exclude<WorkspaceMode, "prompt">, id: string | null) => void;
   setSelectedAsset: (asset: AssetRecord | null) => void;
   setError: (value: string) => void;
   setRecoveryMessage: (value: string) => void;
@@ -34,7 +34,7 @@ export function useToolSource(deps: UseToolSourceDeps) {
     workspaceMode,
     setWorkspaceMode,
     setAssets,
-    setToolSourceAssetId,
+    setSourceAssetIdForMode,
     setSelectedAsset,
     setError,
     setRecoveryMessage,
@@ -42,7 +42,8 @@ export function useToolSource(deps: UseToolSourceDeps) {
   } = deps;
 
   function loadToolSourceAsset(asset: AssetRecord) {
-    setToolSourceAssetId(asset.id);
+    if (workspaceMode === "prompt") return;
+    setSourceAssetIdForMode(workspaceMode, asset.id);
     setSelectedAsset(null);
     setError("");
     setRecoveryMessage(`Loaded ${asset.title || asset.id} in ${toolWorkspaceLabel(workspaceMode)}.`);
@@ -50,7 +51,7 @@ export function useToolSource(deps: UseToolSourceDeps) {
 
   function sendAssetToWorkspace(asset: AssetRecord, mode: Exclude<WorkspaceMode, "prompt">) {
     setWorkspaceMode(mode);
-    setToolSourceAssetId(asset.id);
+    setSourceAssetIdForMode(mode, asset.id);
     setSelectedAsset(null);
     setRecoveryMessage(`Loaded ${asset.title || asset.id} in ${workspaceModeLabels[mode]}.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -102,7 +103,7 @@ export function useToolSource(deps: UseToolSourceDeps) {
   }
 
   function clearToolSourceAsset() {
-    setToolSourceAssetId(null);
+    if (workspaceMode !== "prompt") setSourceAssetIdForMode(workspaceMode, null);
   }
 
   return {

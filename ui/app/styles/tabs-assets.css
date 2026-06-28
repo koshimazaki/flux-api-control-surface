@@ -128,6 +128,16 @@
   overflow: hidden;
 }
 
+.assetImageButton.glyphAssetPreview {
+  display: grid;
+  place-items: center;
+  background: #fdfdfb;
+}
+
+.assetImageButton.glyphAssetPreview.glyphPreviewOnDark {
+  background: #030303;
+}
+
 .assetOriginBadge {
   position: absolute;
   left: 8px;
@@ -178,6 +188,12 @@
   height: 100%;
   display: block;
   object-fit: cover;
+}
+
+.assetImageButton.glyphAssetPreview img {
+  box-sizing: border-box;
+  object-fit: contain;
+  padding: clamp(8px, 8%, 22px);
 }
 
 .assetMeta {

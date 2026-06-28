@@ -32,12 +32,14 @@ import { getBflModel } from "@/lib/provider-registry";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import { referenceDropTargets, referenceRoleConfig, referenceRoleToken } from "@/lib/reference-roles";
 import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
+import { glyphPreviewBackgroundForSvg, type GlyphPreviewBackground } from "@/lib/glyph-svg";
 import { useBalance } from "@/lib/dashboard/use-balance";
 import { useGlyphLabCache } from "@/lib/dashboard/use-glyph-lab-cache";
 import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
 import { useReferences } from "@/lib/dashboard/use-references";
 import { useToolSource, workspaceModeLabels } from "@/lib/dashboard/use-tool-source";
 import { useTrainingCollections } from "@/lib/dashboard/use-training-collections";
+import { loadToolWorkspaceCache, persistToolWorkspaceCache } from "@/lib/dashboard/workspace-cache";
 import type {
   AssetBadge,
   AssetRecord,
@@ -74,12 +76,13 @@ function errorMessage(error: unknown, fallback: string) {
 
 export function useDashboardState() {
   // Generate prompt state stays separate from image-tool prompt state.
+  const [workspaceCacheSeed] = useState(loadToolWorkspaceCache);
   const [apiKey, setApiKey] = useState("");
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null);
   const [isSavingApiKey, setIsSavingApiKey] = useState(false);
   const [promptText, setPromptText] = useState("");
-  const [vtoPromptText, setVtoPromptText] = useState("");
-  const [outpaintPromptText, setOutpaintPromptText] = useState("");
+  const [vtoPromptText, setVtoPromptText] = useState(workspaceCacheSeed.vtoPromptText);
+  const [outpaintPromptText, setOutpaintPromptText] = useState(workspaceCacheSeed.outpaintPromptText);
   const [promptSourceAssetId, setPromptSourceAssetId] = useState<string | null>(null);
   const [model, setModel] = useState("pro-preview");
   const [width, setWidth] = useState(1024);
@@ -90,9 +93,11 @@ export function useDashboardState() {
   const [batchMode, setBatchMode] = useState<BatchMode>("current");
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTab>("assets");
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("prompt");
-  const [toolSourceAssetId, setToolSourceAssetId] = useState<string | null>(null);
-  const [vtoGarmentAssetIds, setVtoGarmentAssetIds] = useState<(string | null)[]>([null, null, null, null]);
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(workspaceCacheSeed.workspaceMode);
+  const [toolSourceAssetId, setToolSourceAssetId] = useState<string | null>(workspaceCacheSeed.sharedSourceAssetId);
+  const [vtoSourceAssetId, setVtoSourceAssetId] = useState<string | null>(workspaceCacheSeed.vtoSourceAssetId);
+  const [glyphSourceAssetId, setGlyphSourceAssetId] = useState<string | null>(workspaceCacheSeed.glyphSourceAssetId);
+  const [vtoGarmentAssetIds, setVtoGarmentAssetIds] = useState<(string | null)[]>(workspaceCacheSeed.vtoGarmentAssetIds);
   const [toolMask, setToolMask] = useState("");
   const [toolBrushSize, setToolBrushSize] = useState(48);
   const [toolDilatePixels, setToolDilatePixels] = useState(10);
@@ -100,10 +105,10 @@ export function useDashboardState() {
   const [toolSteps, setToolSteps] = useState(50);
   const [toolSafetyTolerance, setToolSafetyTolerance] = useState(2);
   const [toolOutputFormat, setToolOutputFormat] = useState<"png" | "jpeg" | "webp">("png");
-  const [outpaintOffsetX, setOutpaintOffsetX] = useState("");
-  const [outpaintOffsetY, setOutpaintOffsetY] = useState("");
-  const [outpaintMode, setOutpaintMode] = useState<"high" | "fast">("high");
-  const [outpaintAutoCrop, setOutpaintAutoCrop] = useState(false);
+  const [outpaintOffsetX, setOutpaintOffsetX] = useState(workspaceCacheSeed.outpaintOffsetX);
+  const [outpaintOffsetY, setOutpaintOffsetY] = useState(workspaceCacheSeed.outpaintOffsetY);
+  const [outpaintMode, setOutpaintMode] = useState<"high" | "fast">(workspaceCacheSeed.outpaintMode);
+  const [outpaintAutoCrop, setOutpaintAutoCrop] = useState(workspaceCacheSeed.outpaintAutoCrop);
   const [audioAssignments, setAudioAssignments] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -131,6 +136,25 @@ export function useDashboardState() {
       setOutpaintPromptText(promptText);
       setRecoveryMessage("Copied Generate prompt to Outpaint prompt.");
     }
+  }
+
+  function sourceAssetIdForMode(mode: WorkspaceMode) {
+    if (mode === "vto") return vtoSourceAssetId;
+    if (mode === "glyphs") return glyphSourceAssetId;
+    if (mode === "erase" || mode === "outpaint" || mode === "deblur") return toolSourceAssetId;
+    return null;
+  }
+
+  function setSourceAssetIdForMode(mode: Exclude<WorkspaceMode, "prompt">, id: string | null) {
+    if (mode === "vto") {
+      setVtoSourceAssetId(id);
+      return;
+    }
+    if (mode === "glyphs") {
+      setGlyphSourceAssetId(id);
+      return;
+    }
+    setToolSourceAssetId(id);
   }
 
   // Domain hooks. Destructured into the same local names the body/return already use.
@@ -168,6 +192,8 @@ export function useDashboardState() {
     setRecoveryMessage,
     onAssetRemoved: (id) => {
       if (toolSourceAssetId === id) setToolSourceAssetId(null);
+      if (vtoSourceAssetId === id) setVtoSourceAssetId(null);
+      if (glyphSourceAssetId === id) setGlyphSourceAssetId(null);
       if (promptSourceAssetId === id) setPromptSourceAssetId(null);
       setVtoGarmentAssetIds((current) => current.map((assetId) => (assetId === id ? null : assetId)));
     }
@@ -289,9 +315,10 @@ export function useDashboardState() {
   );
   const outputMegapixels = useMemo(() => estimateMegapixels(width, height), [width, height]);
   const batchTotalEstimate = costEstimate.credits * Math.max(1, batchCount);
+  const activeToolSourceAssetId = sourceAssetIdForMode(workspaceMode);
   const toolSourceAsset = useMemo(
-    () => assets.find((asset) => asset.id === toolSourceAssetId) || null,
-    [assets, toolSourceAssetId]
+    () => assets.find((asset) => asset.id === activeToolSourceAssetId) || null,
+    [assets, activeToolSourceAssetId]
   );
   const vtoGarmentSlots = useMemo(
     () => vtoGarmentAssetIds.map((id) => (id ? assets.find((asset) => asset.id === id) || null : null)),
@@ -306,7 +333,7 @@ export function useDashboardState() {
     activeGlyphDraft,
     updateGlyphSettings,
     updateActiveGlyphDraft
-  } = useGlyphLabCache(toolSourceAsset?.id);
+  } = useGlyphLabCache(glyphSourceAssetId || undefined);
   const {
     sendAssetToWorkspace,
     importToolSourceFiles,
@@ -317,7 +344,7 @@ export function useDashboardState() {
     workspaceMode,
     setWorkspaceMode,
     setAssets,
-    setToolSourceAssetId,
+    setSourceAssetIdForMode,
     setSelectedAsset,
     setError,
     setRecoveryMessage,
@@ -340,11 +367,25 @@ export function useDashboardState() {
     if (promptSourceAssetId) {
       (badges[promptSourceAssetId] ||= []).push({ label: "prompt", kind: "prompt", title: "Prompt loaded in editor" });
     }
-    if (toolSourceAssetId && workspaceMode !== "prompt") {
+    if (toolSourceAssetId && (workspaceMode === "erase" || workspaceMode === "outpaint" || workspaceMode === "deblur")) {
       (badges[toolSourceAssetId] ||= []).push({
         label: workspaceModeLabels[workspaceMode],
         kind: workspaceMode,
         title: `Active ${workspaceModeLabels[workspaceMode]} source`
+      });
+    }
+    if (vtoSourceAssetId) {
+      (badges[vtoSourceAssetId] ||= []).push({
+        label: workspaceModeLabels.vto,
+        kind: "vto",
+        title: "Active VTO person/source"
+      });
+    }
+    if (glyphSourceAssetId) {
+      (badges[glyphSourceAssetId] ||= []).push({
+        label: workspaceModeLabels.glyphs,
+        kind: "glyphs",
+        title: "Active Glyphs source"
       });
     }
     vtoGarmentSlots.forEach((asset, index) => {
@@ -356,12 +397,54 @@ export function useDashboardState() {
       });
     });
     return badges;
-  }, [references, audioAssignments, promptSourceAssetId, toolSourceAssetId, workspaceMode, vtoGarmentSlots]);
+  }, [
+    references,
+    audioAssignments,
+    promptSourceAssetId,
+    toolSourceAssetId,
+    workspaceMode,
+    vtoSourceAssetId,
+    glyphSourceAssetId,
+    vtoGarmentSlots
+  ]);
 
   useEffect(() => {
     // masks are resolution-bound; drop them whenever the tool source changes
     setToolMask("");
-  }, [toolSourceAssetId]);
+  }, [activeToolSourceAssetId]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () =>
+        persistToolWorkspaceCache({
+          workspaceMode,
+          sharedSourceAssetId: toolSourceAssetId,
+          vtoSourceAssetId,
+          glyphSourceAssetId,
+          vtoGarmentAssetIds,
+          vtoPromptText,
+          outpaintPromptText,
+          outpaintOffsetX,
+          outpaintOffsetY,
+          outpaintMode,
+          outpaintAutoCrop
+        }),
+      150
+    );
+    return () => window.clearTimeout(timer);
+  }, [
+    workspaceMode,
+    toolSourceAssetId,
+    vtoSourceAssetId,
+    glyphSourceAssetId,
+    vtoGarmentAssetIds,
+    vtoPromptText,
+    outpaintPromptText,
+    outpaintOffsetX,
+    outpaintOffsetY,
+    outpaintMode,
+    outpaintAutoCrop
+  ]);
 
   async function refreshApiKeyStatus() {
     try {
@@ -741,9 +824,9 @@ export function useDashboardState() {
       setAssets((current) => {
         if (!preflightCompositeAsset) return [asset, ...(garmentCompositeAsset ? [garmentCompositeAsset] : []), ...current];
         const compositeIndex = current.findIndex((item) => item.id === preflightCompositeAsset?.id);
-        if (compositeIndex === -1) return [preflightCompositeAsset, asset, ...current];
+        if (compositeIndex === -1) return [asset, preflightCompositeAsset, ...current];
         const next = [...current];
-        next.splice(compositeIndex + 1, 0, asset);
+        next.splice(compositeIndex, 0, asset);
         return next;
       });
       setBalance({ credits: data.submit?.creditsAfter ?? balance.credits, checkedAt: Date.now() });
@@ -773,8 +856,10 @@ export function useDashboardState() {
     width: number;
     height: number;
     sourceAsset: AssetRecord;
+    previewBackground?: GlyphPreviewBackground;
   }) {
     const id = `glyph-${Date.now()}`;
+    const previewBackground = payload.previewBackground || glyphPreviewBackgroundForSvg(payload.svg);
     const asset: AssetRecord = {
       id,
       title: `glyph: ${payload.sourceAsset.title || payload.sourceAsset.id}`,
@@ -791,16 +876,35 @@ export function useDashboardState() {
       height: payload.height,
       aspectRatio: `${payload.width}:${payload.height}`,
       provider: "local-glyph",
-      payload: { svg: payload.svg },
+      payload: { svg: payload.svg, previewBackground },
       references: [],
       sourceAssetId: payload.sourceAsset.id,
       operation: "glyphs",
-      assetKind: "asset"
+      assetKind: "asset",
+      runSettings: {
+        provider: "local-glyph",
+        model: "imagetracer",
+        operation: "glyphs",
+        sourceAssetId: payload.sourceAsset.id,
+        previewBackground,
+        outputFormat: "png+svg"
+      }
     };
     await persistAssetImage(id, payload.pngDataUrl);
     setAssets((current) => [asset, ...current]);
-    setSelectedAsset(asset);
+    setActiveTab("assets");
+    setSearchQuery("");
+    setSelectedAsset(null);
     setRecoveryMessage(`Saved glyph from ${payload.sourceAsset.title || payload.sourceAsset.id} to the library.`);
+  }
+
+  function clearDashboardAssets() {
+    clearAssets();
+    setToolSourceAssetId(null);
+    setVtoSourceAssetId(null);
+    setGlyphSourceAssetId(null);
+    setPromptSourceAssetId(null);
+    setVtoGarmentAssetIds([null, null, null, null]);
   }
 
   return {
@@ -853,7 +957,7 @@ export function useDashboardState() {
     setActiveTab,
     workspaceMode,
     setWorkspaceMode,
-    toolSourceAssetId,
+    toolSourceAssetId: activeToolSourceAssetId,
     toolSourceAsset,
     vtoGarmentSlots,
     loadVtoGarmentFromDropPayload,
@@ -964,7 +1068,7 @@ export function useDashboardState() {
     sendAssetToReference,
     addReferenceFromDragPayload,
     downloadAssetImage,
-    clearAssets,
+    clearAssets: clearDashboardAssets,
     toggleAssetSelection,
     addSelectedAssetsToCollection,
     addCollectionFiles,

@@ -29,6 +29,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "r
 import { PanelHeader } from "@/components/ui/panel-header";
 import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-badge";
 import { copyText } from "@/lib/clipboard";
+import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import { referenceDropTargets } from "@/lib/reference-roles";
 import type { AssetBadge, AssetRecord, AspectRatio, ReferenceRole, WorkspaceMode } from "@/lib/types";
@@ -213,6 +214,10 @@ export function AssetLibrary(props: AssetLibraryProps) {
                 const origin = assetOrigin(asset);
                 const OriginIcon = origin.icon;
                 const isPromptCopied = copiedPromptAssetId === asset.id;
+                const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
+                const imageButtonClass = ["assetImageButton", glyphPreviewBackground ? "glyphAssetPreview" : "", glyphPreviewClassName(glyphPreviewBackground)]
+                  .filter(Boolean)
+                  .join(" ");
                 const cardClass = [
                   "assetCard",
                   isSelected ? "selectedAsset" : "",
@@ -238,7 +243,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                       </div>
                     )}
                     <button
-                      className="assetImageButton"
+                      className={imageButtonClass}
                       onClick={() => props.onOpen(asset)}
                       style={getAspectStyle(props.aspectRatio)}
                       draggable

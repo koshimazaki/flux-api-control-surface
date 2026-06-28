@@ -54,6 +54,24 @@ describe("mergeAssetRecords", () => {
       is_favorite: true
     });
   });
+
+  it("keeps local-only glyphs in place when polling refreshes server outputs", () => {
+    const result = mergeAssetRecords(
+      [
+        asset("local-glyph", {
+          provider: "local-glyph",
+          operation: "glyphs",
+          assetKind: "asset",
+          imageUrl: ""
+        }),
+        asset("server-output")
+      ],
+      [asset("server-output", { title: "refreshed server output" })]
+    );
+
+    expect(result.assets.map((item) => item.id)).toEqual(["local-glyph", "server-output"]);
+    expect(result.assets[1].title).toBe("refreshed server output");
+  });
 });
 
 describe("normalizeLibraryRecord", () => {

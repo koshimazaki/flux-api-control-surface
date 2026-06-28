@@ -1,4 +1,5 @@
 import { Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, Send, Shirt } from "lucide-react";
+import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { referenceDropTargets } from "@/lib/reference-roles";
 import type { AssetRecord, ReferenceRole, WorkspaceMode } from "@/lib/types";
 
@@ -17,10 +18,14 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, on
   if (!asset) return null;
   const imageSource = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
   const addImageTarget = referenceDropTargets.find((target) => target.id === "add-image") || referenceDropTargets[0];
+  const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
+  const innerClassName = ["lightboxInner", glyphPreviewBackground ? "glyphAssetLightbox" : "", glyphPreviewClassName(glyphPreviewBackground)]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="lightbox" onClick={onClose}>
-      <div className="lightboxInner" onClick={(event) => event.stopPropagation()}>
+      <div className={innerClassName} onClick={(event) => event.stopPropagation()}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={imageSource} alt={asset.title || asset.id} />
         <div className="lightboxMeta">

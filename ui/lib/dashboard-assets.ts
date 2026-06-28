@@ -22,53 +22,48 @@ export function safeSetItem(key: string, value: string) {
 
 export function mergeAssetRecords(current: AssetRecord[], incoming: AssetRecord[]) {
   const currentById = new Map(current.map((asset) => [asset.id, asset]));
-  const seen = new Set<string>();
+  const incomingById = new Map<string, AssetRecord>();
   let added = 0;
   let changed = false;
 
-  const mergedIncoming = incoming
-    .filter((asset) => {
-      if (seen.has(asset.id)) return false;
-      seen.add(asset.id);
-      return true;
-    })
-    .map((asset) => {
-      const existing = currentById.get(asset.id);
-      if (!existing) {
-        added += 1;
-        changed = true;
-        return asset;
-      }
-      if (
-        existing.title !== asset.title ||
-        existing.provider !== asset.provider ||
-        existing.operation !== asset.operation ||
-        existing.assetKind !== asset.assetKind ||
-        existing.imageUrl !== asset.imageUrl ||
-        existing.localImagePath !== asset.localImagePath ||
-        existing.localMetadataPath !== asset.localMetadataPath ||
-        existing.localSvgPath !== asset.localSvgPath
-      ) {
-        changed = true;
-      }
-      return {
-        ...existing,
-        ...asset,
-        imageDataUrl: asset.imageDataUrl || existing.imageDataUrl,
-        is_favorite: existing.is_favorite ?? asset.is_favorite
-      };
-    });
+  incoming.forEach((asset) => {
+    if (!incomingById.has(asset.id)) incomingById.set(asset.id, asset);
+  });
 
-  const remainingCurrent = current.filter((asset) => {
-    if (seen.has(asset.id)) return false;
-    seen.add(asset.id);
+  const newIncoming = Array.from(incomingById.values()).filter((asset) => {
+    if (currentById.has(asset.id)) return false;
+    added += 1;
+    changed = true;
     return true;
+  });
+
+  const mergedCurrent = current.map((existing) => {
+    const asset = incomingById.get(existing.id);
+    if (!asset) return existing;
+    if (
+      existing.title !== asset.title ||
+      existing.provider !== asset.provider ||
+      existing.operation !== asset.operation ||
+      existing.assetKind !== asset.assetKind ||
+      existing.imageUrl !== asset.imageUrl ||
+      existing.localImagePath !== asset.localImagePath ||
+      existing.localMetadataPath !== asset.localMetadataPath ||
+      existing.localSvgPath !== asset.localSvgPath
+    ) {
+      changed = true;
+    }
+    return {
+      ...existing,
+      ...asset,
+      imageDataUrl: asset.imageDataUrl || existing.imageDataUrl,
+      is_favorite: existing.is_favorite ?? asset.is_favorite
+    };
   });
 
   return {
     added,
     changed,
-    assets: changed ? [...mergedIncoming, ...remainingCurrent] : current
+    assets: changed ? [...newIncoming, ...mergedCurrent] : current
   };
 }
 

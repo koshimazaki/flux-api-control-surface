@@ -1,6 +1,7 @@
 import ImageTracer from "imagetracerjs";
 import sharp from "sharp";
 import { clampRectToBounds, placementRect, targetSizeFor, type Rect } from "@/lib/glyph-geometry";
+import { cleanTraceSvg } from "@/lib/glyph-svg";
 
 export type ServerGlyphSettings = {
   colors?: number;
@@ -81,7 +82,7 @@ function traceRawImage(data: Buffer, width: number, height: number, colors: numb
     data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength)
   } as ImageData;
 
-  return ImageTracer.imagedataToSVG(imageData, {
+  return cleanTraceSvg(ImageTracer.imagedataToSVG(imageData, {
     numberofcolors: colors,
     pathomit: minArea,
     ltres: 1,
@@ -89,7 +90,7 @@ function traceRawImage(data: Buffer, width: number, height: number, colors: numb
     rightangleenhance: 1,
     linefilter: 1,
     scale: 1
-  });
+  }));
 }
 
 async function composeGlyphPngBuffer(

@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, RotateCcw, Save, Wand2 } from "lucide-react";
+import { Download, RotateCcw, Save, Wand2, X } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { CanvasSurface } from "@/components/ui/canvas-surface";
@@ -9,6 +9,7 @@ import { assetImageSource } from "@/lib/dashboard-tools";
 import { clampRectToBounds, isUsableSelection, normalizeSelection, targetSizeFor, type Rect } from "@/lib/glyph-geometry";
 import { composeGlyphPng, cropImageRegion, downloadSvg, loadImage, vectorizeCanvas } from "@/lib/glyph-vectorize";
 import type { GlyphLabDraft, GlyphLabSettings } from "@/lib/glyph-lab-state";
+import { glyphPreviewBackgroundForSvg, glyphPreviewClassName, svgDataUrl, type GlyphPreviewBackground } from "@/lib/glyph-svg";
 import { useElementSize } from "@/lib/use-element-size";
 import type { AssetRecord } from "@/lib/types";
 
@@ -18,6 +19,7 @@ export type GlyphSavePayload = {
   width: number;
   height: number;
   sourceAsset: AssetRecord;
+  previewBackground: GlyphPreviewBackground;
 };
 
 type GlyphLabProps = {
@@ -37,6 +39,7 @@ export function GlyphLab({ sourceAsset, settings, draft, onSettingsChange, onDra
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [status, setStatus] = useState<"idle" | "tracing" | "saving">("idle");
   const [error, setError] = useState("");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const src = assetImageSource(sourceAsset);
   const stageSize = useElementSize(stageRef);
@@ -80,7 +83,7 @@ export function GlyphLab({ sourceAsset, settings, draft, onSettingsChange, onDra
     const point = pointToNatural(event);
     if (!point || !naturalSize) return;
     dragStart.current = point;
-    onDraftChange({ selection: { x: point.x, y: point.y, width: 0, height: 0 } });
+    onDraftChange({ selection: { x: point.x, y: point.y, width: 0, height: 0 }, result: null });
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
@@ -89,7 +92,7 @@ export function GlyphLab({ sourceAsset, settings, draft, onSettingsChange, onDra
     const point = pointToNatural(event);
     if (!point) return;
     const raw = normalizeSelection(dragStart.current.x, dragStart.current.y, point.x, point.y);
-    onDraftChange({ selection: clampRectToBounds(raw, naturalSize.width, naturalSize.height) });
+    onDraftChange({ selection: clampRectToBounds(raw, naturalSize.width, naturalSize.height), result: null });
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
@@ -99,7 +102,7 @@ export function GlyphLab({ sourceAsset, settings, draft, onSettingsChange, onDra
 
   function selectAll() {
     if (!naturalSize) return;
-    onDraftChange({ selection: { x: 0, y: 0, width: naturalSize.width, height: naturalSize.height } });
+    onDraftChange({ selection: { x: 0, y: 0, width: naturalSize.width, height: naturalSize.height }, result: null });
   }
 
   async function runVectorize() {
@@ -129,7 +132,14 @@ export function GlyphLab({ sourceAsset, settings, draft, onSettingsChange, onDra
     try {
       const target = targetSizeFor(targetMode, { x: 0, y: 0, width: result.width, height: result.height });
       const pngDataUrl = await composeGlyphPng(result.svg, result.width, result.height, target);
-      await onSave({ pngDataUrl, svg: result.svg, width: target.width, height: target.height, sourceAsset });
+      await onSave({
+        pngDataUrl,
+        svg: result.svg,
+        width: target.width,
+        height: target.height,
+        sourceAsset,
+        previewBackground: glyphPreviewBackgroundForSvg(result.svg)
+      });
     } catch {
       setError("Could not save the glyph.");
     } finally {
@@ -137,7 +147,8 @@ export function GlyphLab({ sourceAsset, settings, draft, onSettingsChange, onDra
     }
   }
 
-  const resultSrc = result ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(result.svg)}` : "";
+  const resultSrc = result ? svgDataUrl(result.svg) : "";
+  const resultPreviewClass = glyphPreviewClassName(result ? glyphPreviewBackgroundForSvg(result.svg) : "light");
   const hasSelection = isUsableSelection(selection);
   const busy = status !== "idle";
 
@@ -173,7 +184,16 @@ export function GlyphLab({ sourceAsset, settings, draft, onSettingsChange, onDra
       </CanvasSurface>
 
       <div className="glyphPanel">
-        <CanvasSurface className="glyphResult" variant="glyph" checkerSize={22} aria-label="Vector preview">
+        <CanvasSurface
+          className={["glyphResult", resultPreviewClass].filter(Boolean).join(" ")}
+          variant="glyph"
+          checkerSize={22}
+          aria-label="Vector preview"
+          onDoubleClick={() => {
+            if (result) setIsPreviewOpen(true);
+          }}
+          title={result ? "Open vector preview" : undefined}
+        >
           {result ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={resultSrc} alt="Vectorized glyph" />
@@ -220,12 +240,24 @@ export function GlyphLab({ sourceAsset, settings, draft, onSettingsChange, onDra
             <Download size={15} />
             SVG
           </button>
-          <button type="button" onClick={() => onDraftChange({ selection: null })} disabled={!selection || busy} title="Clear selection">
+          <button type="button" onClick={() => onDraftChange({ selection: null, result: null })} disabled={!selection || busy} title="Clear selection">
             <RotateCcw size={15} />
           </button>
         </div>
         {error && <p className="errorText">{error}</p>}
       </div>
+
+      {isPreviewOpen && result && (
+        <div className={["glyphPreviewLightbox", resultPreviewClass].filter(Boolean).join(" ")} onClick={() => setIsPreviewOpen(false)}>
+          <div className="glyphPreviewLightboxInner" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="glyphPreviewClose" onClick={() => setIsPreviewOpen(false)} title="Close preview">
+              <X size={18} />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={resultSrc} alt="Vectorized glyph preview" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

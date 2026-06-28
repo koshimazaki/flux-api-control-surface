@@ -6,6 +6,7 @@ import { embedPngMetadata } from "@/lib/png-metadata";
 import { resolveImageInput, saveOutputFiles, slugify } from "@/lib/bfl-server";
 import { toWorkspaceRelativePath, workspaceRoot } from "@/lib/local-paths";
 import { vectorizeGlyphImage, type ServerGlyphSettings } from "@/lib/glyph-server";
+import { glyphPreviewBackgroundForSvg } from "@/lib/glyph-svg";
 import type { Rect } from "@/lib/glyph-geometry";
 
 export const runtime = "nodejs";
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
     const sourceLabel = body.sourceTitle || sourceAssetId || "image";
     const title = body.title || `glyph-${result.colors}c-${slugify(sourceLabel) || "asset"}`;
     const prompt = `Local glyph vectorization from ${sourceLabel}: ${result.colors} colors, ${result.minArea}px despeckle.`;
+    const previewBackground = glyphPreviewBackgroundForSvg(result.svg);
     const metadata = {
       id,
       model: "local-glyph",
@@ -107,7 +109,8 @@ export async function POST(request: NextRequest) {
         maxTraceSize: result.maxTraceSize,
         selection: result.selection,
         width: result.outputWidth,
-        height: result.outputHeight
+        height: result.outputHeight,
+        previewBackground
       },
       runSettings: {
         title,
@@ -121,6 +124,7 @@ export async function POST(request: NextRequest) {
         minArea: result.minArea,
         targetMode: result.targetMode,
         maxTraceSize: result.maxTraceSize,
+        previewBackground,
         outputFormat: "png+svg",
         createdAt: new Date().toISOString()
       },

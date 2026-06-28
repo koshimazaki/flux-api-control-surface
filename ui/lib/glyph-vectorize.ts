@@ -1,5 +1,6 @@
 import ImageTracer from "imagetracerjs";
 import { clampRectToBounds, placementRect, type Rect } from "@/lib/glyph-geometry";
+import { cleanTraceSvg, svgDataUrl } from "@/lib/glyph-svg";
 
 /** Load an image source (data URL or remote URL) into a decoded HTMLImageElement. */
 export function loadImage(src: string): Promise<HTMLImageElement> {
@@ -72,7 +73,7 @@ export function vectorizeCanvas(canvas: HTMLCanvasElement, settings: TraceSettin
   const context = source.getContext("2d");
   if (!context) return "";
   const imageData = context.getImageData(0, 0, source.width, source.height);
-  return ImageTracer.imagedataToSVG(imageData, {
+  return cleanTraceSvg(ImageTracer.imagedataToSVG(imageData, {
     numberofcolors: Math.max(2, Math.round(settings.colors)),
     pathomit: Math.max(0, Math.round(settings.minArea)),
     ltres: 1,
@@ -80,7 +81,7 @@ export function vectorizeCanvas(canvas: HTMLCanvasElement, settings: TraceSettin
     rightangleenhance: 1,
     linefilter: 1,
     scale: 1
-  });
+  }));
 }
 
 /**
@@ -100,8 +101,7 @@ export async function composeGlyphPng(
   const context = canvas.getContext("2d");
   if (!context) return "";
   const dest = placementRect(glyphWidth, glyphHeight, target.width, target.height, padding);
-  const blobUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  const image = await loadImage(blobUrl);
+  const image = await loadImage(svgDataUrl(svg));
   context.drawImage(image, dest.x, dest.y, dest.width, dest.height);
   return canvas.toDataURL("image/png");
 }
