@@ -8,12 +8,22 @@ export type ReferenceRoleConfig = {
   cue: string;
 };
 
+export type ReferenceDropTarget = {
+  id: string;
+  role: ReferenceRole;
+  label: string;
+  shortLabel: string;
+  token: string;
+  hint: string;
+  emptyLabel: string;
+};
+
 export const referenceRoleOptions: ReferenceRoleConfig[] = [
   {
     id: "character",
     label: "Character",
     shortLabel: "Char",
-    hint: "identity, costume, materials",
+    hint: "person, form",
     cue:
       "Use this image for the character identity, silhouette, costume, body language, and material design. Do not copy its background unless the prompt asks for it."
   },
@@ -29,7 +39,7 @@ export const referenceRoleOptions: ReferenceRoleConfig[] = [
     id: "environment",
     label: "Environment",
     shortLabel: "Env",
-    hint: "world, biome, atmosphere",
+    hint: "world",
     cue:
       "Use this image for environment, world logic, terrain, atmosphere, surrounding objects, and spatial mood. Let the main prompt control the subject action."
   },
@@ -37,23 +47,34 @@ export const referenceRoleOptions: ReferenceRoleConfig[] = [
     id: "pose",
     label: "Pose",
     shortLabel: "Pose",
-    hint: "posture, camera, composition",
+    hint: "portrait, camera",
     cue:
       "Use this image for pose, posture, camera angle, framing, gesture, and composition only. Preserve the requested character and style from the other references."
   },
   {
     id: "loose",
-    label: "Loose",
-    shortLabel: "Loose",
-    hint: "optional secondary cue",
+    label: "Image",
+    shortLabel: "Image",
+    hint: "extra ref",
     cue:
       "Use this image as a loose secondary cue for useful details, props, lighting accents, textures, or mood. Keep it subordinate to character, style, pose, and environment references."
   }
 ];
 
 const referenceRoleById = new Map(referenceRoleOptions.map((option) => [option.id, option]));
-const defaultRolesByIndex: ReferenceRole[] = ["character", "style", "environment", "pose"];
-export const referenceRoleTokenPattern = /@(character|style|environment|pose|loose)\b/gi;
+const defaultRolesByIndex: ReferenceRole[] = ["character", "pose", "environment", "style", "style", "loose"];
+export const referenceRoleTokenPattern = /@(char|character|style1|style2|style|env|environment|pose|img|image|extra|loose)\b/gi;
+
+export const referenceDropTargets: ReferenceDropTarget[] = [
+  { id: "character", role: "character", label: "Character", shortLabel: "Char", token: "@char", hint: "person, form", emptyLabel: "Add character" },
+  { id: "pose", role: "pose", label: "Pose", shortLabel: "Pose", token: "@pose", hint: "portrait, camera", emptyLabel: "Add pose" },
+  { id: "environment", role: "environment", label: "Environment", shortLabel: "Env", token: "@env", hint: "world", emptyLabel: "Add environment" },
+  { id: "style-1", role: "style", label: "Style 1", shortLabel: "Style 1", token: "@style1", hint: "aesthetic 1", emptyLabel: "Add style 1" },
+  { id: "style-2", role: "style", label: "Style 2", shortLabel: "Style 2", token: "@style2", hint: "aesthetic 2", emptyLabel: "Add style 2" },
+  { id: "add-image", role: "loose", label: "Add Image", shortLabel: "Image", token: "@img", hint: "extra ref", emptyLabel: "Add image" }
+];
+
+const referenceDropTargetById = new Map(referenceDropTargets.map((target) => [target.id, target]));
 
 export function referenceRoleForIndex(index: number): ReferenceRole {
   return defaultRolesByIndex[index] || "loose";
@@ -61,6 +82,10 @@ export function referenceRoleForIndex(index: number): ReferenceRole {
 
 export function normalizeReferenceRole(role: unknown, index = 0): ReferenceRole {
   const normalized = typeof role === "string" ? role.toLowerCase() : "";
+  if (normalized === "char") return "character";
+  if (normalized === "env") return "environment";
+  if (normalized === "style1" || normalized === "style2") return "style";
+  if (normalized === "img" || normalized === "extra" || normalized === "image" || normalized === "ref") return "loose";
   return referenceRoleById.has(normalized as ReferenceRole)
     ? (normalized as ReferenceRole)
     : referenceRoleForIndex(index);
@@ -75,7 +100,16 @@ export function referenceToken(index: number) {
 }
 
 export function referenceRoleToken(role: unknown, index = 0) {
-  return `@${normalizeReferenceRole(role, index)}`;
+  const normalized = normalizeReferenceRole(role, index);
+  if (normalized === "character") return "@char";
+  if (normalized === "environment") return "@env";
+  if (normalized === "loose") return "@img";
+  return `@${normalized}`;
+}
+
+export function referenceTargetToken(reference: Pick<ReferenceImage, "targetId" | "role">, index = 0) {
+  const target = reference.targetId ? referenceDropTargetById.get(reference.targetId) : null;
+  return target?.token || referenceRoleToken(reference.role, index);
 }
 
 export function referenceDisplayName(reference: ReferenceImage, index: number) {

@@ -9,6 +9,7 @@ export type ReferenceDragPayload = {
   index?: number;
   name?: string;
   value?: string;
+  targetId?: string;
   assetId?: string;
 };
 
@@ -24,6 +25,7 @@ export function setReferenceDragData(dataTransfer: DataTransfer, reference: Refe
       index,
       name: referenceDisplayName(reference, index),
       value: reference.value,
+      targetId: reference.targetId,
       assetId: reference.assetId
     })
   );

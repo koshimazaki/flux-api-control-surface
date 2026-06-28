@@ -33,7 +33,7 @@ function envApiKey() {
   return null;
 }
 
-function assertUsableApiKey(value: unknown) {
+export function assertUsableApiKey(value: unknown) {
   if (typeof value !== "string") throw new Error("API key must be a string.");
   const apiKey = value.trim();
   if (apiKey.length < 12) throw new Error("API key looks too short.");

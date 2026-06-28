@@ -66,10 +66,10 @@ export const agentWorkflowGuide = {
       ]
     },
     {
-      name: "Erase, inpaint, or outpaint a saved image",
+      name: "Erase, virtual try-on, outpaint, or deblur a saved image",
       steps: [
         `GET ${agentRouteMap.outputs}`,
-        `POST ${agentRouteMap.tools} with tool=erase, inpaint, or outpaint`,
+        `POST ${agentRouteMap.tools} with tool=erase, vto, outpaint, or deblur`,
         `GET ${agentRouteMap.outputs} to recover the edited result`
       ]
     },
@@ -129,6 +129,7 @@ export const agentWorkflowGuide = {
     "Create a two-prompt permutation plan from the cybernetic flower library, then execute it locally so outputs appear in the dashboard.",
     "Use this recovered gallery image as @character and another as @style, then generate four FLUX.2 Pro options.",
     "Outpaint this saved output to 16:9, save the result, and make it available in /api/outputs.",
+    "Deblur this imported source image, then use the sharpened result as a gallery reference.",
     "Given audio markers, render an audio-reactive guide MP4 and attach it to the next video-model prompt record.",
     "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery."
   ],

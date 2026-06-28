@@ -64,7 +64,7 @@ only whether a key is configured; they never return the raw key.
 | Plan prompt-library permutations | Local `/api/dashboard/run-plan` |
 | Execute a batch and save outputs locally | Local `/api/dashboard/batch` |
 | Generate one saved dashboard output | Local `/api/bfl/generate` |
-| Erase, inpaint, or outpaint a saved image | Local `/api/bfl/tools` |
+| Erase, virtual try-on, outpaint, or deblur a saved image | Local `/api/bfl/tools` |
 | Vectorize saved images into SVG/PNG glyphs | Local `/api/glyphs/vectorize` |
 | Recover output gallery records | Local `/api/outputs` |
 | Render an audio-reactive guide MP4 | Local `/api/audio/guide` HTTP route |
@@ -99,8 +99,9 @@ filesystem paths.
 2. Select an image URL/data URL.
 3. `POST /api/bfl/tools`
    - `tool=erase` needs `image` and `mask`; optional `dilatePixels`, `seed`, `safetyTolerance`, and `outputFormat`.
-   - `tool=inpaint` needs `image`, `mask`, and `prompt`; optional `guidance`, `steps`, `seed`, `safetyTolerance`, and `outputFormat`.
+   - `tool=vto` needs `image`, one or more `garments[]`, and `prompt`; optional `seed`, `safetyTolerance`, and `outputFormat`.
    - `tool=outpaint` needs `image`, `canvasWidth`, and `canvasHeight`; optional offsets, `mode`, `autoCrop`, `safetyTolerance`, `outputFormat`, and prompt guidance.
+   - `tool=deblur` needs `image`; optional `seed`, `safetyTolerance`, and `outputFormat`.
 4. `GET /api/outputs` to recover the edited result.
 
 ### Glyph Vectorize

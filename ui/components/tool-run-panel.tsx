@@ -1,4 +1,4 @@
-import { ChevronDown, Eraser, Fingerprint, Maximize2, Paintbrush } from "lucide-react";
+import { ChevronDown, Clipboard, Eraser, Fingerprint, Focus, Maximize2, Shirt } from "lucide-react";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
@@ -14,17 +14,23 @@ const toolRunCopy: Record<ToolMode, { title: string; action: string; endpoint: s
     endpoint: "flux-tools/erase-v1",
     icon: Eraser
   },
-  inpaint: {
-    title: "Inpaint",
-    action: "Run Inpaint",
-    endpoint: "flux-pro-1.0-fill",
-    icon: Paintbrush
+  vto: {
+    title: "Virtual Try-On",
+    action: "Run VTO",
+    endpoint: "flux-tools/vto-v1",
+    icon: Shirt
   },
   outpaint: {
     title: "Outpaint",
     action: "Run Outpaint",
     endpoint: "flux-tools/outpainting-v1",
     icon: Maximize2
+  },
+  deblur: {
+    title: "Deblur",
+    action: "Run Deblur",
+    endpoint: "flux-tools/deblur-v1",
+    icon: Focus
   },
   glyphs: {
     title: "Glyphs",
@@ -41,6 +47,7 @@ type ToolRunPanelProps = {
   height: number;
   seed: string;
   promptText: string;
+  vtoGarmentCount: number;
   mask: string;
   brushSize: number;
   dilatePixels: number;
@@ -69,22 +76,28 @@ type ToolRunPanelProps = {
   onOutpaintModeChange: (value: "high" | "fast") => void;
   onAutoCropChange: (value: boolean) => void;
   onClearMask: () => void;
+  onUseGeneratePrompt: () => void;
   onRun: () => void;
 };
 
 export function ToolRunPanel(props: ToolRunPanelProps) {
   const copy = toolRunCopy[props.mode];
   const Icon = copy.icon;
-  const needsPrompt = props.mode === "inpaint" || props.mode === "outpaint";
-  const needsMask = props.mode === "erase" || props.mode === "inpaint";
+  const needsPrompt = props.mode === "vto" || props.mode === "outpaint";
+  const needsMask = props.mode === "erase";
   const isGlyphs = props.mode === "glyphs";
-  const safetyToleranceMax = props.mode === "inpaint" ? 6 : 5;
+  const supportsSafetyTolerance = props.mode === "vto" || props.mode === "deblur";
+  const outputFormats: ToolOutputFormat[] =
+    props.mode === "erase" || props.mode === "outpaint" ? ["png", "jpeg"] : ["png", "jpeg", "webp"];
+  const safetyToleranceMax = 5;
   const safetyTolerance = Math.min(props.safetyTolerance, safetyToleranceMax);
+  const promptLabel =
+    props.mode === "vto" ? "VTO prompt" : props.mode === "outpaint" ? "Outpaint prompt (optional)" : "Prompt";
   const runBlocked =
     !props.sourceAsset ||
     isGlyphs ||
     (needsMask && !props.mask) ||
-    (props.mode === "inpaint" && !props.promptText.trim());
+    (props.mode === "vto" && (!props.vtoGarmentCount || !props.promptText.trim()));
 
   return (
     <aside className="panel controls toolControls">
@@ -131,31 +144,8 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
         </>
       )}
 
-      {props.mode === "inpaint" && (
-        <>
-          <label>
-            Guidance · {props.guidance}
-            <input
-              type="range"
-              min={1}
-              max={50}
-              step={1}
-              value={props.guidance}
-              onChange={(event) => props.onGuidanceChange(Number(event.target.value))}
-            />
-          </label>
-          <label>
-            Steps · {props.steps}
-            <input
-              type="range"
-              min={15}
-              max={50}
-              step={1}
-              value={props.steps}
-              onChange={(event) => props.onStepsChange(Number(event.target.value))}
-            />
-          </label>
-        </>
+      {props.mode === "vto" && (
+        <MetaBox className="toolEndpointBox" label="Garments" value={`${props.vtoGarmentCount}/4`} />
       )}
 
       {props.mode === "outpaint" && (
@@ -210,6 +200,13 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
         </p>
       )}
 
+      {props.mode === "deblur" && (
+        <p className="toolStubNote">
+          Deblur sharpens the whole source image. It does not use a mask or prompt, so only seed,
+          safety tolerance, and output format are sent.
+        </p>
+      )}
+
       {!isGlyphs && (
         <details className="toolAdvanced">
           <summary>
@@ -217,26 +214,30 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
             <ChevronDown className="toolAdvancedChevron" size={15} />
           </summary>
           <div className="toolAdvancedFields">
-            <label>
-              Safety tolerance · {safetyTolerance}
-              <input
-                type="range"
-                min={0}
-                max={safetyToleranceMax}
-                step={1}
-                value={safetyTolerance}
-                onChange={(event) => props.onSafetyToleranceChange(Number(event.target.value))}
-              />
-            </label>
+            {supportsSafetyTolerance && (
+              <label>
+                Safety tolerance · {safetyTolerance}
+                <input
+                  type="range"
+                  min={0}
+                  max={safetyToleranceMax}
+                  step={1}
+                  value={safetyTolerance}
+                  onChange={(event) => props.onSafetyToleranceChange(Number(event.target.value))}
+                />
+              </label>
+            )}
             <label>
               Output format
               <select
-                value={props.outputFormat}
+                value={outputFormats.includes(props.outputFormat) ? props.outputFormat : "png"}
                 onChange={(event) => props.onOutputFormatChange(event.target.value as ToolOutputFormat)}
               >
-                <option value="png">PNG</option>
-                <option value="jpeg">JPEG</option>
-                <option value="webp">WebP</option>
+                {outputFormats.map((format) => (
+                  <option key={format} value={format}>
+                    {format.toUpperCase()}
+                  </option>
+                ))}
               </select>
             </label>
             {props.mode === "outpaint" && (
@@ -255,7 +256,13 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
 
       {needsPrompt && (
         <label>
-          Prompt {props.mode === "outpaint" ? "(optional, experimental)" : ""}
+          <span className="toolPromptHeader">
+            {promptLabel}
+            <button type="button" onClick={props.onUseGeneratePrompt} title="Copy Generate prompt">
+              <Clipboard size={14} />
+              Use Generate
+            </button>
+          </span>
           <textarea
             className="toolPrompt"
             value={props.promptText}

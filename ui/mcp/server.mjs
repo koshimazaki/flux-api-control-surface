@@ -81,6 +81,48 @@ const selectionSchema = z
   })
   .optional();
 
+const imageInputSchema = z.string().min(1);
+const seedSchema = z.number().nullable().optional();
+const toolBaseSchema = z.object({
+  apiKey: z.string().optional(),
+  image: imageInputSchema.describe("Source image URL, data URL, or raw base64."),
+  seed: seedSchema,
+  title: z.string().optional(),
+  sourceAssetId: z.string().optional()
+});
+const imageToolPayloadSchema = z.discriminatedUnion("tool", [
+  toolBaseSchema.extend({
+    tool: z.literal("erase"),
+    mask: imageInputSchema.describe("Mask URL, data URL, or raw base64. White pixels are edited."),
+    dilatePixels: z.number().int().min(0).max(25).optional(),
+    outputFormat: z.enum(["png", "jpeg"]).optional()
+  }),
+  toolBaseSchema.extend({
+    tool: z.literal("vto"),
+    garment: imageInputSchema.optional(),
+    garments: z.array(imageInputSchema).min(1).max(4).optional(),
+    prompt: z.string().min(1),
+    safetyTolerance: z.number().int().min(0).max(5).optional(),
+    outputFormat: z.enum(["png", "jpeg", "webp"]).optional()
+  }),
+  toolBaseSchema.extend({
+    tool: z.literal("outpaint"),
+    canvasWidth: z.number().int().min(64),
+    canvasHeight: z.number().int().min(64),
+    offsetX: z.number().nullable().optional(),
+    offsetY: z.number().nullable().optional(),
+    mode: z.enum(["high", "fast"]).optional(),
+    autoCrop: z.boolean().optional(),
+    prompt: z.string().optional(),
+    outputFormat: z.enum(["png", "jpeg"]).optional()
+  }),
+  toolBaseSchema.extend({
+    tool: z.literal("deblur"),
+    safetyTolerance: z.number().int().min(0).max(5).optional(),
+    outputFormat: z.enum(["png", "jpeg", "webp"]).optional()
+  })
+]);
+
 const server = new McpServer({
   name: "bfl-dashboard",
   version: "0.1.0"
@@ -212,9 +254,9 @@ server.registerTool(
   "run_image_tool",
   {
     title: "Run Image Tool",
-    description: "Run erase, inpaint, or outpaint through the local dashboard route and save the result.",
+    description: "Run erase, virtual try-on, outpaint, or deblur through the local dashboard route and save the result.",
     inputSchema: {
-      payload: z.record(z.string(), z.unknown())
+      payload: imageToolPayloadSchema
     },
     annotations: {
       destructiveHint: false,
@@ -370,6 +412,82 @@ server.registerTool(
     }
   },
   async ({ payload }) => result(await post("/api/bfl_dashboard/v1/caption_agent", payload))
+);
+
+server.registerTool(
+  "build_finetune_dataset",
+  {
+    title: "Build Finetune Dataset",
+    description:
+      "Export a FLUX.2 [klein] LoRA dataset (flat image + .txt caption sidecars, AI-Toolkit config.yaml, README) from a training collection and save it under the local outputs dir.",
+    inputSchema: {
+      collection: z.record(z.string(), z.unknown()).describe("Training collection with name, triggerToken, and items[]."),
+      config: z.record(z.string(), z.unknown()).optional().describe("Optional AI-Toolkit overrides (resolution, rank, steps, datasetDir, outputDir).")
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async ({ collection, config }) => result(await post("/api/finetune/dataset", { collection, config }))
+);
+
+server.registerTool(
+  "register_finetune",
+  {
+    title: "Register Finetune",
+    description:
+      "Register or update a BFL hosted finetune by finetune_id (from a manual BFL Dashboard upload). Clamps defaultStrength to 0..2.",
+    inputSchema: {
+      finetuneId: z.string().min(1).describe("The finetune_id returned by the BFL Dashboard."),
+      label: z.string().optional(),
+      triggerWord: z.string().optional(),
+      defaultStrength: z.number().optional().describe("0..2, default 1.2."),
+      comment: z.string().optional(),
+      id: z.string().optional().describe("Existing registry id to update in place.")
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async (record) => result(await post("/api/finetunes", { record }))
+);
+
+server.registerTool(
+  "list_finetunes",
+  {
+    title: "List Finetunes",
+    description: "List registered BFL hosted finetunes (finetune_id, trigger word, default strength).",
+    inputSchema: {}
+  },
+  async () => result(await requestJson("/api/finetunes"))
+);
+
+server.registerTool(
+  "generate_with_finetune",
+  {
+    title: "Generate With Finetune",
+    description:
+      "Generate through the hosted FLUX.2 [klein] finetuned endpoint using a registered finetune_id, and save the result into the dashboard gallery.",
+    inputSchema: {
+      finetuneId: z.string().min(1).describe("Registered finetune_id to generate with."),
+      prompt: z.string().min(1),
+      finetuneStrength: z.number().optional().describe("0..2, default 1.2."),
+      width: z.number().int().optional(),
+      height: z.number().int().optional(),
+      seed: z.number().nullable().optional(),
+      outputFormat: z.enum(["png", "jpeg", "webp"]).optional(),
+      references: z.array(z.string().min(1)).max(4).optional(),
+      title: z.string().optional(),
+      apiKey: z.string().optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async (payload) => result(await post("/api/bfl/generate", payload))
 );
 
 const transport = new StdioServerTransport();

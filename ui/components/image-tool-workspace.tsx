@@ -1,4 +1,4 @@
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Shirt, UserRound, X } from "lucide-react";
 import type { DragEvent as ReactDragEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useRef, useState } from "react";
 import { IconButton } from "@/components/ui/icon-button";
@@ -18,6 +18,7 @@ import type { GlyphLabDraft, GlyphLabSettings } from "@/lib/glyph-lab-state";
 import { BFL_IMAGE_OPTION_MIME, BFL_REFERENCE_MIME } from "@/lib/reference-drag";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
+const VTO_SLOT_COUNT = 4;
 
 const toolCopy: Record<ImageToolMode, { title: string; eyebrow: string; endpoint: string }> = {
   erase: {
@@ -25,15 +26,20 @@ const toolCopy: Record<ImageToolMode, { title: string; eyebrow: string; endpoint
     eyebrow: "Mask cleanup",
     endpoint: "flux-tools/erase-v1"
   },
-  inpaint: {
-    title: "Inpaint",
-    eyebrow: "Mask replacement",
-    endpoint: "flux-pro-1.0-fill"
+  vto: {
+    title: "Virtual Try-On",
+    eyebrow: "Person and garment",
+    endpoint: "flux-tools/vto-v1"
   },
   outpaint: {
     title: "Outpaint",
     eyebrow: "Canvas expansion",
     endpoint: "flux-tools/outpainting-v1"
+  },
+  deblur: {
+    title: "Deblur",
+    eyebrow: "Blur removal",
+    endpoint: "flux-tools/deblur-v1"
   },
   glyphs: {
     title: "Glyphs",
@@ -48,6 +54,132 @@ function EmptyToolState() {
       <ImagePlus size={34} />
       <strong>No source image</strong>
       <span>Drop an image or drag an asset into this workspace.</span>
+    </div>
+  );
+}
+
+function DeblurPreview({ asset }: { asset: AssetRecord }) {
+  return (
+    <div className="deblurPreview">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={assetImageSource(asset)} alt={asset.title || asset.id} />
+      <small className="maskPaintHint">whole-image deblur · no mask or prompt</small>
+    </div>
+  );
+}
+
+function imageFilesFromTransfer(event: ReactDragEvent) {
+  return Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
+}
+
+function dragPayloadFromTransfer(event: ReactDragEvent) {
+  return (
+    event.dataTransfer.getData(BFL_IMAGE_OPTION_MIME) ||
+    event.dataTransfer.getData(BFL_REFERENCE_MIME) ||
+    event.dataTransfer.getData("text/plain")
+  );
+}
+
+type VtoPreviewProps = {
+  sourceAsset: AssetRecord | null;
+  garmentAssets: (AssetRecord | null)[];
+  onSourceDropPayload: (payload: string) => void;
+  onSourceFiles: (files: File[]) => void;
+  onGarmentDropPayload: (slotIndex: number, payload: string) => void;
+  onGarmentFiles: (slotIndex: number, files: File[]) => void;
+  onClearGarment: (slotIndex: number) => void;
+};
+
+function VtoPreview(props: VtoPreviewProps) {
+  const garmentSlots = Array.from({ length: VTO_SLOT_COUNT }, (_, index) => props.garmentAssets[index] || null);
+
+  function handleSourceDrop(event: ReactDragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    const payload = dragPayloadFromTransfer(event);
+    if (payload) {
+      props.onSourceDropPayload(payload);
+      return;
+    }
+    props.onSourceFiles(imageFilesFromTransfer(event));
+  }
+
+  function handleGarmentDrop(event: ReactDragEvent, slotIndex: number) {
+    event.preventDefault();
+    event.stopPropagation();
+    const payload = dragPayloadFromTransfer(event);
+    if (payload) {
+      props.onGarmentDropPayload(slotIndex, payload);
+      return;
+    }
+    props.onGarmentFiles(slotIndex, imageFilesFromTransfer(event).slice(0, 1));
+  }
+
+  function setAssetDrag(event: ReactDragEvent, asset: AssetRecord) {
+    event.dataTransfer.setData(BFL_IMAGE_OPTION_MIME, `asset:${asset.id}`);
+    event.dataTransfer.setData("text/plain", `asset:${asset.id}`);
+    event.dataTransfer.effectAllowed = "copy";
+  }
+
+  return (
+    <div className="vtoStage">
+      <div
+        className={props.sourceAsset ? "vtoPersonDrop active" : "vtoPersonDrop"}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={handleSourceDrop}
+      >
+        {props.sourceAsset ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={assetImageSource(props.sourceAsset)}
+            alt={props.sourceAsset.title || props.sourceAsset.id}
+            draggable
+            onDragStart={(event) => setAssetDrag(event, props.sourceAsset!)}
+          />
+        ) : (
+          <div className="vtoEmptyDrop">
+            <UserRound size={28} />
+            <strong>Person</strong>
+            <span>Source image</span>
+          </div>
+        )}
+      </div>
+      <div className="vtoGarmentRail">
+        {garmentSlots.map((asset, index) => (
+          <div
+            className={asset ? "vtoGarmentSlot active" : "vtoGarmentSlot"}
+            key={`vto-garment-${index}`}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => handleGarmentDrop(event, index)}
+          >
+            <div className="vtoSlotHeader">
+              <span>
+                <Shirt size={13} />
+                Garment {index + 1}
+              </span>
+              {asset && (
+                <IconButton title="Clear garment" onClick={() => props.onClearGarment(index)}>
+                  <X size={12} />
+                </IconButton>
+              )}
+            </div>
+            {asset ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={assetImageSource(asset)}
+                alt={asset.title || asset.id}
+                draggable
+                onDragStart={(event) => setAssetDrag(event, asset)}
+              />
+            ) : (
+              <div className="vtoSlotEmpty">
+                <ImagePlus size={17} />
+                <span>Drop image</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -210,6 +342,7 @@ type ImageToolWorkspaceProps = {
   offsetY: string;
   glyphSettings: GlyphLabSettings;
   glyphDraft: GlyphLabDraft;
+  vtoGarmentAssets: (AssetRecord | null)[];
   onMaskChange: (mask: string) => void;
   onOffsetXChange: (value: string) => void;
   onOffsetYChange: (value: string) => void;
@@ -219,6 +352,9 @@ type ImageToolWorkspaceProps = {
   onClearSource: () => void;
   onSourceDropPayload: (payload: string) => void;
   onSourceFiles: (files: File[]) => void;
+  onVtoGarmentDropPayload: (slotIndex: number, payload: string) => void;
+  onVtoGarmentFiles: (slotIndex: number, files: File[]) => void;
+  onClearVtoGarment: (slotIndex: number) => void;
 };
 
 export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
@@ -235,10 +371,6 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
     );
   }
 
-  function imageFilesFromTransfer(event: ReactDragEvent) {
-    return Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
-  }
-
   function handleDragOver(event: ReactDragEvent) {
     if (!isSourceDrag(event)) return;
     event.preventDefault();
@@ -246,10 +378,7 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
   }
 
   function handleDrop(event: ReactDragEvent) {
-    const assetPayload =
-      event.dataTransfer.getData(BFL_IMAGE_OPTION_MIME) ||
-      event.dataTransfer.getData(BFL_REFERENCE_MIME) ||
-      event.dataTransfer.getData("text/plain");
+    const assetPayload = dragPayloadFromTransfer(event);
     const imageFiles = imageFilesFromTransfer(event);
     if (!assetPayload && !imageFiles.length) {
       setIsDropActive(false);
@@ -265,8 +394,21 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
   }
 
   function renderStage() {
+    if (mode === "vto") {
+      return (
+        <VtoPreview
+          sourceAsset={sourceAsset}
+          garmentAssets={props.vtoGarmentAssets}
+          onSourceDropPayload={props.onSourceDropPayload}
+          onSourceFiles={props.onSourceFiles}
+          onGarmentDropPayload={props.onVtoGarmentDropPayload}
+          onGarmentFiles={props.onVtoGarmentFiles}
+          onClearGarment={props.onClearVtoGarment}
+        />
+      );
+    }
     if (!sourceAsset) return <EmptyToolState />;
-    if (mode === "erase" || mode === "inpaint") {
+    if (mode === "erase") {
       return (
         <MaskCanvas
           key={sourceAsset.id}
@@ -290,6 +432,9 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
           onOffsetYChange={props.onOffsetYChange}
         />
       );
+    }
+    if (mode === "deblur") {
+      return <DeblurPreview key={sourceAsset.id} asset={sourceAsset} />;
     }
     return (
       <GlyphLab
@@ -335,8 +480,18 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
         <MetaBox label="Source" value={sourceAsset ? sourceAsset.model : "None"} />
         <MetaBox label="Operation" value={copy.eyebrow} />
         <MetaBox
-          label="Mask"
-          value={mode === "erase" || mode === "inpaint" ? (props.mask ? "painted" : "empty") : "n/a"}
+          label={mode === "vto" ? "Garments" : "Mask"}
+          value={
+            mode === "erase"
+              ? props.mask
+                ? "painted"
+                : "empty"
+              : mode === "vto"
+                ? `${props.vtoGarmentAssets.filter(Boolean).length}/${VTO_SLOT_COUNT}`
+              : mode === "deblur"
+                ? "whole image"
+                : "n/a"
+          }
         />
       </div>
     </section>

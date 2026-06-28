@@ -29,7 +29,7 @@ describe("agent route catalog", () => {
   });
 
   it("documents browser-local gaps instead of implying every workflow is server-routable", () => {
-    expect(localAgentCoverage.imageTools).toMatch(/erase, inpaint, and outpaint/i);
+    expect(localAgentCoverage.imageTools).toMatch(/erase, virtual try-on, outpaint, and deblur/i);
     expect(localAgentCoverage.glyphs).toMatch(/server-side SVG\/PNG glyph vectorization/i);
     expect(localAgentCoverage.audio).toMatch(/audio slicing and guide rendering/i);
     expect(localAgentCoverage.uiSync).toMatch(/polls for new server outputs/i);

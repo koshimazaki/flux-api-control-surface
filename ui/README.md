@@ -140,9 +140,12 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
 
 - **Erase** (`flux-tools/erase-v1`): paint a mask directly on the image
   (white = remove, shift-drag unpaints), set mask dilation, run. No prompt.
-- **Inpaint** (`flux-pro-1.0-fill`): paint a mask plus a replacement prompt.
+- **Virtual Try-On** (`flux-tools/vto-v1`): use the source image as the person
+  and one to four garment slots as the garment reference canvas.
 - **Outpaint** (`flux-tools/outpainting-v1`): set target canvas size, optional
   pixel offsets (empty = centered), high/fast mode, optional experimental prompt.
+- **Deblur** (`flux-tools/deblur-v1`): sharpen the whole source image while
+  preserving the scene. No prompt or mask.
 - **Glyphs**: local SVG/PNG vectorization. The browser workspace can select a
   region visually, and agents can call `/api/glyphs/vectorize` for saved outputs.
 
@@ -170,7 +173,7 @@ The UI is also an agent/MCP-facing local API:
   `/api/bfl/generate` request bodies with token/cost estimates.
 - `POST /api/dashboard/batch` dry-runs or executes a control-surface batch. Execution
   calls the local BFL route and saves image/prompt/metadata files.
-- `POST /api/bfl/tools` runs erase/inpaint/outpaint on an existing image with the
+- `POST /api/bfl/tools` runs erase/vto/outpaint/deblur on an existing image with the
   same output persistence and provenance as generations.
 - `GET /api/mcp/manifest` describes the complete local route surface plus native
   FLUX MCP handoff options.

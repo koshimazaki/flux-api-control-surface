@@ -1,4 +1,4 @@
-import { RefreshCcw, WalletCards } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 
 type BalanceCardProps = {
   balanceCredits: number | null;
@@ -19,7 +19,6 @@ export function BalanceCard({ balanceCredits, totalActualCredits, isCheckingBala
         <RefreshCcw className={isCheckingBalance ? "spin" : ""} size={15} />
         Check
       </button>
-      <WalletCards size={18} />
     </div>
   );
 }

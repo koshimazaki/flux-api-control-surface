@@ -102,6 +102,7 @@
   }
 
   .maskPaintViewport,
+  .deblurPreview,
   .outpaintViewport,
   .glyphStage {
     min-height: 320px;

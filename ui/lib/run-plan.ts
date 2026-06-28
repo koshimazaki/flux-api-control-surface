@@ -1,6 +1,7 @@
 import { estimateMinimumCost, estimateTokens } from "./pricing";
 import { buildComboPrompt, chunk, combinations, comboIdFromPrompts } from "./prompt-combo";
-import { BFL_MAX_REFERENCES } from "./provider-registry";
+import { composeReferencePrompt } from "./prompt-utils";
+import { getBflModel, maxReferencesForBflModel } from "./provider-registry";
 import type { PromptRecord } from "./types";
 
 export type RunPlanBody = {
@@ -24,14 +25,6 @@ export type RunPlanBody = {
   outputFormat?: "jpeg" | "png" | "webp";
 };
 
-function compactPrompt(raw: string) {
-  try {
-    return JSON.stringify(JSON.parse(raw));
-  } catch {
-    return raw;
-  }
-}
-
 function clampCount(value: unknown) {
   const count = typeof value === "number" && Number.isFinite(value) ? Math.floor(value) : 1;
   return Math.max(1, Math.min(300, count));
@@ -42,21 +35,16 @@ function clampParallel(value: unknown) {
   return Math.max(1, Math.min(8, count));
 }
 
-function applyReferenceCue(prompt: string, referenceCue?: string, hasReferences?: boolean) {
-  if (!hasReferences) return compactPrompt(prompt);
-  return `${compactPrompt(prompt)}\n\nReference roles: ${referenceCue || "Use supplied images as visual references while preserving the prompt subject."}`;
-}
-
 function clampReferenceWeight(value: unknown) {
   const weight = typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 80;
   return Math.max(0, Math.min(100, weight));
 }
 
-function normalizedReferences(value: unknown) {
+function normalizedReferences(value: unknown, maxReferences: number) {
   return Array.isArray(value)
     ? value
         .filter((reference): reference is string => typeof reference === "string" && Boolean(reference.trim()))
-        .slice(0, BFL_MAX_REFERENCES)
+        .slice(0, maxReferences)
     : [];
 }
 
@@ -104,17 +92,19 @@ function selectPrompts(prompts: PromptRecord[], body: RunPlanBody) {
 export function buildRunPlan(prompts: PromptRecord[], body: RunPlanBody) {
   const parallel = clampParallel(body.parallel);
   const model = body.model || "pro-preview";
+  const modelConfig = getBflModel(model) || getBflModel("pro-preview");
+  const maxReferences = modelConfig?.maxReferences ?? maxReferencesForBflModel(model);
   const width = body.width || 1024;
   const height = body.height || 1024;
   const outputFormat = body.outputFormat || "png";
-  const promptUpsampling = !model.includes("klein") && body.promptUpsampling !== false;
-  const references = normalizedReferences(body.references);
+  const promptUpsampling = Boolean(modelConfig?.supportsPromptUpsampling) && body.promptUpsampling !== false;
+  const references = normalizedReferences(body.references, maxReferences);
   const hasReferences = Boolean(body.hasReferences || references.length);
   const cost = estimateMinimumCost(model, hasReferences);
   const selected = selectPrompts(prompts, body);
 
   const requests = selected.map((prompt, index) => {
-    const promptText = applyReferenceCue(prompt.prompt, body.referenceCue, hasReferences);
+    const promptText = composeReferencePrompt(prompt.prompt, body.referenceCue, hasReferences);
     return {
       title: prompt.id,
       endpoint: "/api/bfl/generate",
@@ -152,6 +142,7 @@ export function buildRunPlan(prompts: PromptRecord[], body: RunPlanBody) {
       serverUrl: "https://mcp.bfl.ai",
       tool: "generate_image",
       maxParallelHint: 8,
+      maxReferences,
       groups: groups.map((items, index) => ({
         group: index + 1,
         prompts: items.map((item) => item.body),

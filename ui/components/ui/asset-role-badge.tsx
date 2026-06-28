@@ -1,10 +1,11 @@
 import {
   Eraser,
   Fingerprint,
+  Focus,
   ImagePlus,
   Maximize2,
   Music,
-  Paintbrush,
+  Shirt,
   Send
 } from "lucide-react";
 import type { AssetBadge, WorkspaceMode } from "@/lib/types";
@@ -14,14 +15,16 @@ const badgeIcons = {
   reference: ImagePlus,
   prompt: Send,
   erase: Eraser,
-  inpaint: Paintbrush,
+  vto: Shirt,
   outpaint: Maximize2,
+  deblur: Focus,
   glyphs: Fingerprint
 };
 
 const rolePriority: AssetBadge["kind"][] = [
-  "inpaint",
+  "vto",
   "outpaint",
+  "deblur",
   "erase",
   "glyphs",
   "reference",
@@ -39,8 +42,9 @@ export function assetRoleClassName(badges: AssetBadge[]) {
 }
 
 export function workspaceRoleLabel(mode: Exclude<WorkspaceMode, "prompt">) {
-  if (mode === "inpaint") return "Inpaint";
+  if (mode === "vto") return "VTO";
   if (mode === "outpaint") return "Outpaint";
+  if (mode === "deblur") return "Deblur";
   if (mode === "erase") return "Erase";
   return "Glyphs";
 }

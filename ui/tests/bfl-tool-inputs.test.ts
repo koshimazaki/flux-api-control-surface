@@ -1,12 +1,22 @@
 import sharp from "sharp";
-import { describe, expect, it } from "vitest";
-import { prepareToolImageInput, prepareToolMaskInput } from "@/lib/bfl-tool-inputs";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { prepareToolImageInput, prepareToolMaskInput, prepareVtoGarmentInput } from "@/lib/bfl-tool-inputs";
+import {
+  assertSafeRemoteImageUrl,
+  fetchRemoteImageBuffer,
+  isBlockedRemoteAddress,
+  MAX_IMAGE_INPUT_BYTES
+} from "@/lib/remote-image-fetch";
 
 function dataUrl(buffer: Buffer, mime = "image/png") {
   return `data:${mime};base64,${buffer.toString("base64")}`;
 }
 
 describe("BFL tool input preparation", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("re-encodes a source image as clean PNG base64", async () => {
     const source = await sharp({
       create: {
@@ -49,5 +59,58 @@ describe("BFL tool input preparation", () => {
     await expect(prepareToolImageInput("not-image-bytes", "source image")).rejects.toThrow(
       /Invalid or unsupported source image/
     );
+  });
+
+  it("rejects private and local remote image addresses before fetch", async () => {
+    expect(isBlockedRemoteAddress("127.0.0.1")).toBe(true);
+    expect(isBlockedRemoteAddress("10.0.0.12")).toBe(true);
+    expect(isBlockedRemoteAddress("169.254.169.254")).toBe(true);
+    expect(isBlockedRemoteAddress("8.8.8.8")).toBe(false);
+    await expect(assertSafeRemoteImageUrl("http://8.8.8.8/image.png", { allowedHosts: [] })).rejects.toThrow(/https/i);
+    await expect(assertSafeRemoteImageUrl("https://127.0.0.1/image.png", { allowedHosts: [] })).rejects.toThrow(
+      /private or local/i
+    );
+  });
+
+  it("fetches remote inputs without redirects and enforces response size caps", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("", {
+        status: 200,
+        headers: { "content-length": String(MAX_IMAGE_INPUT_BYTES + 1) }
+      })
+    );
+
+    await expect(fetchRemoteImageBuffer("https://8.8.8.8/image.png", "source image", { allowedHosts: [] })).rejects.toThrow(
+      /input limit/
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://8.8.8.8/image.png",
+      expect.objectContaining({ cache: "no-store", redirect: "manual" })
+    );
+  });
+
+  it("composes multiple VTO garments onto one clean reference canvas", async () => {
+    const top = await sharp({
+      create: {
+        width: 64,
+        height: 96,
+        channels: 3,
+        background: "#244cff"
+      }
+    }).png().toBuffer();
+    const bottom = await sharp({
+      create: {
+        width: 80,
+        height: 64,
+        channels: 3,
+        background: "#f2d04d"
+      }
+    }).png().toBuffer();
+
+    const garment = await prepareVtoGarmentInput([dataUrl(top), dataUrl(bottom)]);
+    const metadata = await sharp(Buffer.from(garment.base64, "base64")).metadata();
+
+    expect(garment).toMatchObject({ count: 2, composite: true, width: 1024, height: 1024 });
+    expect(metadata).toMatchObject({ format: "png", width: 1024, height: 1024 });
   });
 });

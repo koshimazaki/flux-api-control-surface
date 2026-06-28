@@ -13,7 +13,8 @@ import {
   saveOutputFiles
 } from "@/lib/bfl-server";
 import { embedPngMetadata } from "@/lib/png-metadata";
-import { getBflModel, validateBflGenerationRequest } from "@/lib/provider-registry";
+import { resolveFinetuneGeneration } from "@/lib/finetune-registry";
+import { bflFinetunedKleinModel, getBflModel, validateBflGenerationRequest } from "@/lib/provider-registry";
 import { syncOutputToRemote } from "@/lib/remote-archive";
 
 export const runtime = "nodejs";
@@ -32,6 +33,8 @@ type GenerateBody = {
   references?: string[];
   referenceWeight?: number;
   title?: string;
+  finetuneId?: string;
+  finetuneStrength?: number | null;
 };
 
 function jsonError(message: string, status = 400, details?: unknown) {
@@ -46,6 +49,8 @@ function buildRunSettings(options: {
   references: string[];
   referenceWeight?: number;
   promptUpsampling: boolean;
+  finetuneId?: string | null;
+  finetuneStrength?: number | null;
   submitted: Record<string, any>;
 }) {
   return {
@@ -61,6 +66,8 @@ function buildRunSettings(options: {
     safetyTolerance: options.payload.safety_tolerance ?? null,
     referenceCount: options.references.length,
     referenceWeight: options.referenceWeight ?? null,
+    finetuneId: options.finetuneId ?? null,
+    finetuneStrength: options.finetuneStrength ?? null,
     requestId: options.submitted.id ?? null,
     submittedCost: options.submitted.cost ?? null,
     inputMp: options.submitted.input_mp ?? null,
@@ -79,12 +86,16 @@ export async function POST(request: NextRequest) {
 
   const apiKey = await resolveApiKey(body.apiKey);
   const prompt = body.prompt?.trim();
-  const model = body.model || "pro-preview";
-  const modelConfig = getBflModel(model);
+  // When a finetuneId is present, generation targets the hosted klein finetuned
+  // endpoint with klein-9b capabilities, regardless of the requested model.
+  const finetune = resolveFinetuneGeneration(body);
+  const requestedModel = body.model || "pro-preview";
+  const modelConfig = finetune ? bflFinetunedKleinModel() : getBflModel(requestedModel);
 
   if (!apiKey) return jsonError("FLUX API key is required");
   if (!prompt) return jsonError("Prompt is required");
-  if (!modelConfig) return jsonError(`Unknown model: ${model}`);
+  if (!modelConfig) return jsonError(`Unknown model: ${requestedModel}`);
+  const model = modelConfig.value;
 
   const origin = new URL(request.url).origin;
   const references = Array.isArray(body.references) ? body.references.filter(Boolean) : [];
@@ -101,7 +112,7 @@ export async function POST(request: NextRequest) {
   });
   if (validation) return jsonError(validation);
 
-  const endpointName = modelConfig.endpoint;
+  const endpointName = finetune ? finetune.endpoint : modelConfig.endpoint;
   const outputFormat = body.outputFormat || "png";
   const payload: Record<string, unknown> = {
     prompt,
@@ -114,6 +125,10 @@ export async function POST(request: NextRequest) {
   if (typeof body.seed === "number") payload.seed = body.seed;
   if (modelConfig.supportsPromptUpsampling && !shouldUpsample) payload.disable_pup = true;
   if (typeof body.safetyTolerance === "number") payload.safety_tolerance = body.safetyTolerance;
+  if (finetune) {
+    payload.finetune_id = finetune.payload.finetune_id;
+    payload.finetune_strength = finetune.payload.finetune_strength;
+  }
   normalizedReferences.forEach((reference, index) => {
     payload[index === 0 ? "input_image" : `input_image_${index + 1}`] = reference;
   });
@@ -143,6 +158,8 @@ export async function POST(request: NextRequest) {
       references: normalizedReferences,
       referenceWeight: body.referenceWeight,
       promptUpsampling: shouldUpsample,
+      finetuneId: finetune?.finetuneId ?? null,
+      finetuneStrength: finetune?.finetuneStrength ?? null,
       submitted
     });
     const metadata = {
@@ -151,6 +168,7 @@ export async function POST(request: NextRequest) {
       sampleUrl,
       model,
       endpointName,
+      finetune: finetune ? { id: finetune.finetuneId, strength: finetune.finetuneStrength } : null,
       runSettings,
       payload: safePayload,
       submit: {

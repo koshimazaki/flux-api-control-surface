@@ -28,7 +28,7 @@ The main screen includes:
 - prompt library and prompt editor;
 - run panel with model, dimensions, batch mode, reference roles, and estimates;
 - asset gallery with favorites, metadata, reference sending, and downloads;
-- image tools for Erase, Inpaint, Outpaint, and Glyphs;
+- image tools for Erase, Virtual Try-On, Outpaint, Deblur, and Glyphs;
 - audio/script workflow for analysis-driven prompt composition;
 - MCP/API panel with local route guidance.
 
@@ -63,7 +63,7 @@ local dashboard origin.
 - `POST /api/dashboard/run-plan`: turn prompts into concrete generation bodies.
 - `POST /api/dashboard/batch`: dry-run or execute batch plans.
 - `POST /api/bfl/generate`: generate one saved FLUX output.
-- `POST /api/bfl/tools`: erase, inpaint, or outpaint an existing image.
+- `POST /api/bfl/tools`: erase, virtual try-on, outpaint, or deblur an existing image.
 - `POST /api/bfl/credits`: check BFL credits through the resolved local key.
 - `GET /api/outputs`: recover filesystem and optional R2/D1 outputs.
 - `GET /api/mcp/guide`: agent-readable MCP guide.

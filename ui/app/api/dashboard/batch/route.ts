@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BFL_MAX_REFERENCES } from "@/lib/provider-registry";
+import { maxReferencesForBflModel } from "@/lib/provider-registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,13 +60,17 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const references = Array.isArray(body.references)
-    ? body.references.filter(Boolean).slice(0, BFL_MAX_REFERENCES)
-    : [];
   const continueOnError = body.continueOnError !== false;
   const results = [];
 
   for (const item of plan.requests || []) {
+    const model = String(item.body?.model || body.model || "pro-preview");
+    const maxReferences = maxReferencesForBflModel(model);
+    const references = Array.isArray(item.body?.references)
+      ? item.body.references.filter(Boolean).slice(0, maxReferences)
+      : Array.isArray(body.references)
+        ? body.references.filter(Boolean).slice(0, maxReferences)
+        : [];
     const started = Date.now();
     const generateResponse = await fetch(`${origin}${item.endpoint}`, {
       method: item.method || "POST",

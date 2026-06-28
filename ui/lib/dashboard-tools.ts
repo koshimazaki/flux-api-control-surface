@@ -1,12 +1,13 @@
 import { estimateTokens } from "./pricing";
 import type { AssetRecord, RunLogEntry } from "./types";
 
-export type ToolApiMode = "erase" | "inpaint" | "outpaint";
+export type ToolApiMode = "erase" | "vto" | "outpaint" | "deblur";
 export type ToolOutputFormat = "png" | "jpeg" | "webp";
 
 export type ToolRunInput = {
   mode: ToolApiMode;
   sourceAsset: AssetRecord;
+  vtoGarments: AssetRecord[];
   apiKey: string;
   mask: string;
   prompt: string;
@@ -29,14 +30,17 @@ export function assetImageSource(asset: AssetRecord | null) {
 }
 
 export function toolRunBlocker(
-  input: Pick<ToolRunInput, "mode" | "mask" | "prompt"> & { hasSource: boolean }
+  input: Pick<ToolRunInput, "mode" | "mask" | "prompt"> & { garmentCount?: number; hasSource: boolean }
 ) {
   if (!input.hasSource) return "Select a source image from the assets library.";
-  if ((input.mode === "erase" || input.mode === "inpaint") && !input.mask) {
+  if (input.mode === "erase" && !input.mask) {
     return "Paint a mask over the area you want to change first.";
   }
-  if (input.mode === "inpaint" && !input.prompt.trim()) {
-    return "Inpaint needs a prompt describing the replacement (use Erase for prompt-free removal).";
+  if (input.mode === "vto" && !input.garmentCount) {
+    return "Add at least one garment reference for Virtual Try-On.";
+  }
+  if (input.mode === "vto" && !input.prompt.trim()) {
+    return "Virtual Try-On needs a styling prompt.";
   }
   return "";
 }
@@ -48,35 +52,78 @@ function parsedOffset(value: string) {
   return Number.isFinite(parsed) ? Math.round(parsed) : null;
 }
 
-function toolSafetyToleranceMax(mode: ToolApiMode) {
-  return mode === "inpaint" ? 6 : 5;
+function toolSafetyToleranceMax(_mode: ToolApiMode) {
+  return 5;
+}
+
+function toolSupportsSafetyTolerance(mode: ToolApiMode) {
+  return mode === "vto" || mode === "deblur";
 }
 
 function clampToolSafetyTolerance(mode: ToolApiMode, value: number) {
   return Math.max(0, Math.min(toolSafetyToleranceMax(mode), Math.round(value)));
 }
 
+function toolOutputFormat(mode: ToolApiMode, value: ToolOutputFormat): ToolOutputFormat {
+  if (mode === "erase" || mode === "outpaint") {
+    return value === "jpeg" ? "jpeg" : "png";
+  }
+  return value;
+}
+
+function compactTitlePart(value?: string, fallback = "asset") {
+  const trimmed = value?.trim().replace(/\s+/g, " ") || "";
+  return (trimmed || fallback).slice(0, 72);
+}
+
+function noPromptLabel(mode: ToolApiMode) {
+  return `[${mode} pass, no prompt]`;
+}
+
+export function toolSubmittedPrompt(input: Pick<ToolRunInput, "mode" | "prompt">) {
+  if (input.mode === "vto" || input.mode === "outpaint") {
+    return input.prompt.trim() || noPromptLabel(input.mode);
+  }
+  return noPromptLabel(input.mode);
+}
+
+export function buildToolTitle(input: Pick<ToolRunInput, "mode" | "prompt" | "sourceAsset" | "vtoGarments">) {
+  const sourceTitle = compactTitlePart(input.sourceAsset.title || input.sourceAsset.id);
+  const promptTitle = compactTitlePart(input.prompt, "");
+  if (input.mode === "vto") {
+    const garmentTitle = input.vtoGarments[0] ? compactTitlePart(input.vtoGarments[0].title || input.vtoGarments[0].id) : "";
+    return ["vto", promptTitle || sourceTitle, garmentTitle ? `garment ${garmentTitle}` : ""].filter(Boolean).join(" - ");
+  }
+  if (input.mode === "outpaint") {
+    return ["outpaint", promptTitle || sourceTitle].filter(Boolean).join(" - ");
+  }
+  return `${input.mode} - ${sourceTitle}`;
+}
+
 export function buildToolRequestBody(input: ToolRunInput) {
   const seed = input.seed.trim() ? Number(input.seed) : null;
-  const title = `${input.mode}-${input.sourceAsset.title || input.sourceAsset.id}`;
+  const title = buildToolTitle(input);
   return {
     apiKey: input.apiKey.trim() || undefined,
     tool: input.mode,
     image: assetImageSource(input.sourceAsset),
-    mask: input.mode === "outpaint" ? undefined : input.mask,
-    prompt: input.mode === "erase" ? undefined : input.prompt,
+    mask: input.mode === "erase" ? input.mask : undefined,
+    prompt: input.mode === "vto" || input.mode === "outpaint" ? input.prompt : undefined,
+    garments: input.mode === "vto" ? input.vtoGarments.map((asset) => assetImageSource(asset)).filter(Boolean) : undefined,
     seed: Number.isFinite(seed as number) ? seed : null,
     dilatePixels: input.dilatePixels,
-    guidance: input.mode === "inpaint" ? input.guidance : undefined,
-    steps: input.mode === "inpaint" ? input.steps : undefined,
-    safetyTolerance: clampToolSafetyTolerance(input.mode, input.safetyTolerance),
+    guidance: undefined,
+    steps: undefined,
+    safetyTolerance: toolSupportsSafetyTolerance(input.mode)
+      ? clampToolSafetyTolerance(input.mode, input.safetyTolerance)
+      : undefined,
     autoCrop: input.mode === "outpaint" ? input.autoCrop : undefined,
-    canvasWidth: input.canvasWidth,
-    canvasHeight: input.canvasHeight,
+    canvasWidth: input.mode === "outpaint" ? input.canvasWidth : undefined,
+    canvasHeight: input.mode === "outpaint" ? input.canvasHeight : undefined,
     offsetX: parsedOffset(input.offsetX),
     offsetY: parsedOffset(input.offsetY),
-    mode: input.outpaintMode,
-    outputFormat: input.outputFormat,
+    mode: input.mode === "outpaint" ? input.outpaintMode : undefined,
+    outputFormat: toolOutputFormat(input.mode, input.outputFormat),
     title,
     sourceAssetId: input.sourceAsset.id
   };
@@ -95,9 +142,11 @@ export async function executeToolRun(body: Record<string, unknown>) {
 
 export function buildToolAssetRecord(data: any, input: ToolRunInput): AssetRecord {
   const assetId = data.id || `tool-${Date.now()}`;
+  const title = buildToolTitle(input);
+  const submittedPrompt = toolSubmittedPrompt(input);
   return {
     id: assetId,
-    title: `${input.mode}: ${input.sourceAsset.title || input.sourceAsset.id}`,
+    title,
     createdAt: new Date().toISOString(),
     timestamp: Date.now(),
     imageDataUrl: data.imageDataUrl,
@@ -105,7 +154,7 @@ export function buildToolAssetRecord(data: any, input: ToolRunInput): AssetRecor
     image_url: data.sampleUrl,
     sampleUrl: data.sampleUrl,
     model: data.model || data.endpointName,
-    prompt: input.mode === "erase" ? input.sourceAsset.prompt : input.prompt || input.sourceAsset.prompt,
+    prompt: submittedPrompt,
     status: "complete",
     width: input.mode === "outpaint" ? input.canvasWidth : input.sourceAsset.width,
     height: input.mode === "outpaint" ? input.canvasHeight : input.sourceAsset.height,
@@ -159,16 +208,17 @@ export function buildToolRunLogEntry(asset: AssetRecord, started: number): RunLo
 }
 
 export function buildToolFailureLogEntry(input: ToolRunInput, started: number, message: string): RunLogEntry {
+  const submittedPrompt = toolSubmittedPrompt(input);
   return {
     id: `failed-${input.mode}-${Date.now()}`,
-    title: `${input.mode}: ${input.sourceAsset.title || input.sourceAsset.id}`,
+    title: buildToolTitle(input),
     timestamp: Date.now(),
     model: input.mode,
     status: "failed",
-    promptTokens: estimateTokens(input.prompt || ""),
+    promptTokens: estimateTokens(submittedPrompt),
     estimatedCredits: 0,
     durationMs: Date.now() - started,
     error: message,
-    prompt: input.prompt
+    prompt: submittedPrompt
   };
 }

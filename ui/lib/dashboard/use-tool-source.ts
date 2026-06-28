@@ -6,8 +6,9 @@ import type { AssetRecord, WorkspaceMode } from "@/lib/types";
 
 export const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, string> = {
   erase: "Erase",
-  inpaint: "Inpaint",
+  vto: "VTO",
   outpaint: "Outpaint",
+  deblur: "Deblur",
   glyphs: "Glyphs"
 };
 

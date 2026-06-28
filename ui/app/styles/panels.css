@@ -159,6 +159,7 @@ small {
 
 .promptList,
 .promptEditor,
+.submittedPromptBox textarea,
 .controls,
 .referenceCue,
 pre {
@@ -168,6 +169,7 @@ pre {
 
 .promptList::-webkit-scrollbar,
 .promptEditor::-webkit-scrollbar,
+.submittedPromptBox textarea::-webkit-scrollbar,
 .controls::-webkit-scrollbar,
 .referenceCue::-webkit-scrollbar,
 pre::-webkit-scrollbar {
@@ -325,6 +327,45 @@ pre::-webkit-scrollbar {
   color: var(--muted);
   font-size: 11.5px;
   line-height: 1.4;
+}
+
+.submittedPromptBox {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(237, 237, 237, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.34);
+  padding: 8px;
+}
+
+.submittedPromptBox > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.submittedPromptBox strong {
+  color: var(--cream);
+  font-size: 12px;
+}
+
+.submittedPromptBox button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.submittedPromptBox textarea {
+  min-height: 118px;
+  max-height: 190px;
+  resize: vertical;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.48);
+  color: var(--grey-1);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .editorActions {

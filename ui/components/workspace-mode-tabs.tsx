@@ -1,12 +1,13 @@
-import { Eraser, Fingerprint, Maximize2, Paintbrush, Sparkles } from "lucide-react";
+import { Eraser, Fingerprint, Focus, Maximize2, Shirt, Sparkles } from "lucide-react";
 import { TabButtonBar, type TabButtonItem } from "@/components/ui/tab-button-bar";
 import type { WorkspaceMode } from "@/lib/types";
 
 const modes: TabButtonItem<WorkspaceMode>[] = [
-  { id: "prompt", label: "Prompt", icon: Sparkles },
+  { id: "prompt", label: "Generate", icon: Sparkles },
   { id: "erase", label: "Erase", icon: Eraser },
-  { id: "inpaint", label: "Inpaint", icon: Paintbrush },
   { id: "outpaint", label: "Outpaint", icon: Maximize2 },
+  { id: "deblur", label: "Deblur", icon: Focus },
+  { id: "vto", label: "VTO", icon: Shirt },
   { id: "glyphs", label: "Glyphs", icon: Fingerprint }
 ];
 

@@ -40,3 +40,8 @@
   font-size: 13px;
 }
 
+.lightbox .assetButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

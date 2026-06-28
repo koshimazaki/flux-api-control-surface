@@ -1,5 +1,6 @@
-import { Download, Eraser, Fingerprint, ImagePlus, Maximize2, Paintbrush, Send } from "lucide-react";
-import type { AssetRecord, WorkspaceMode } from "@/lib/types";
+import { Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, Send, Shirt } from "lucide-react";
+import { referenceDropTargets } from "@/lib/reference-roles";
+import type { AssetRecord, ReferenceRole, WorkspaceMode } from "@/lib/types";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
 
@@ -8,13 +9,14 @@ type LightboxProps = {
   onClose: () => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
-  onSendToReference: (asset: AssetRecord) => void;
+  onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onDownload: (asset: AssetRecord) => void;
 };
 
 export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onDownload }: LightboxProps) {
   if (!asset) return null;
   const imageSource = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
+  const addImageTarget = referenceDropTargets.find((target) => target.id === "add-image") || referenceDropTargets[0];
 
   return (
     <div className="lightbox" onClick={onClose}>
@@ -33,21 +35,42 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, on
               <Send size={15} />
               Prompt
             </button>
-            <button onClick={() => onSendToReference(asset)}>
-              <ImagePlus size={15} />
-              Reference
-            </button>
+            <div className="assetReferenceAction lightboxReferenceAction">
+              <button
+                onClick={() => onSendToReference(asset, addImageTarget.role, addImageTarget.id)}
+                title="Add image reference"
+              >
+                <ImagePlus size={15} />
+                Reference
+              </button>
+              <div className="assetReferenceMenu" aria-label="Use as reference">
+                {referenceDropTargets.map((target) => (
+                  <button
+                    type="button"
+                    key={target.id}
+                    onClick={() => onSendToReference(asset, target.role, target.id)}
+                    title={`Use as ${target.label} reference`}
+                  >
+                    {target.shortLabel}
+                  </button>
+                ))}
+              </div>
+            </div>
             <button onClick={() => onSendToWorkspace(asset, "erase")}>
               <Eraser size={15} />
               Erase
             </button>
-            <button onClick={() => onSendToWorkspace(asset, "inpaint")}>
-              <Paintbrush size={15} />
-              Inpaint
+            <button onClick={() => onSendToWorkspace(asset, "vto")}>
+              <Shirt size={15} />
+              VTO
             </button>
             <button onClick={() => onSendToWorkspace(asset, "outpaint")}>
               <Maximize2 size={15} />
               Outpaint
+            </button>
+            <button onClick={() => onSendToWorkspace(asset, "deblur")}>
+              <Focus size={15} />
+              Deblur
             </button>
             <button onClick={() => onSendToWorkspace(asset, "glyphs")}>
               <Fingerprint size={15} />

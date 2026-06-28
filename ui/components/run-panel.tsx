@@ -1,19 +1,19 @@
-import { Database, ImagePlus, Layers, Sparkles, X } from "lucide-react";
-import type { DragEvent as ReactDragEvent } from "react";
+import { Database, ImagePlus, Images, Layers, Mountain, Move, Palette, Sparkles, UserRound, X } from "lucide-react";
+import { useState, type DragEvent as ReactDragEvent } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
 import {
+  type ReferenceDropTarget,
+  referenceDropTargets,
   referenceDisplayName,
   referencePreviewSrc,
   referenceRoleConfig,
-  referenceRoleOptions,
-  referenceRoleToken,
   referenceToken
 } from "@/lib/reference-roles";
-import { BFL_IMAGE_OPTION_MIME, setReferenceDragData } from "@/lib/reference-drag";
-import type { AssetRecord, BatchMode, ReferenceImage, ReferenceRole } from "@/lib/types";
+import { BFL_IMAGE_OPTION_MIME, BFL_REFERENCE_MIME, parseReferenceDragPayload, setReferenceDragData } from "@/lib/reference-drag";
+import type { BatchMode, ReferenceImage, ReferenceRole } from "@/lib/types";
 import { estimateMegapixels, modelOptions } from "@/lib/pricing";
 
 const REFERENCE_WEIGHT_STEPS = [
@@ -22,6 +22,14 @@ const REFERENCE_WEIGHT_STEPS = [
   { label: "Strong", value: 80 },
   { label: "Anchor", value: 100 }
 ];
+
+const roleIcons: Record<ReferenceRole, typeof UserRound> = {
+  character: UserRound,
+  style: Palette,
+  environment: Mountain,
+  pose: Move,
+  loose: Images
+};
 
 type RunPanelProps = {
   model: string;
@@ -34,13 +42,14 @@ type RunPanelProps = {
   selectedPromptCount: number;
   permutationPairCount: number;
   batchProgress: { current: number; total: number } | null;
-  assets: AssetRecord[];
   references: ReferenceImage[];
+  maxReferences: number;
   primaryReferenceUrl: string;
   primaryReferencePreview?: string;
   referenceWeight: number;
   referenceCue: string;
   promptTokens: number;
+  promptTokenLimit?: number;
   estimatedCredits: number;
   estimatedUsd: number;
   costLabel: string;
@@ -59,13 +68,13 @@ type RunPanelProps = {
   onClearPrimaryReference: () => void;
   onReferenceWeightChange: (value: number) => void;
   onReferenceCueChange: (value: string) => void;
-  onReferenceFiles: (files: File[], role?: ReferenceRole) => void;
-  onReferenceDropPayload: (payload: string, role?: ReferenceRole) => void;
-  onReferenceAssetSelect: (assetId: string, role?: ReferenceRole) => void;
+  onReferenceFiles: (files: File[], role?: ReferenceRole, targetId?: string) => void;
+  onReferenceDropPayload: (payload: string, role?: ReferenceRole, targetId?: string) => void;
   onGenerate: () => void;
 };
 
 export function RunPanel(props: RunPanelProps) {
+  const [dragTargetId, setDragTargetId] = useState("");
   const megapixels = estimateMegapixels(props.width, props.height);
   const progressPct = props.batchProgress
     ? Math.max(0, Math.min(100, (props.batchProgress.current / props.batchProgress.total) * 100))
@@ -78,35 +87,88 @@ export function RunPanel(props: RunPanelProps) {
     0
   );
   const referenceWeightLabel = REFERENCE_WEIGHT_STEPS[referenceWeightIndex].label;
-  const galleryAssets = props.assets || [];
-  const primaryRole = referenceRoleConfig(props.references[0]?.role, 0);
+  const activeReferenceCount = props.references.filter((reference) => Boolean(reference.value)).length;
+  const promptTokenLabel = props.promptTokenLimit
+    ? `${props.promptTokens} / ${props.promptTokenLimit.toLocaleString()} tok`
+    : `${props.promptTokens} tok`;
   const referencesWithIndex = props.references.map((reference, index) => ({ reference, index }));
-  const referencedAssetSlots = new Map(
-    referencesWithIndex
-      .filter(({ reference }) => reference.assetId)
-      .map(({ reference, index }) => [reference.assetId, `${referenceToken(index)} ${referenceRoleConfig(reference.role, index).shortLabel}`])
-  );
-  const activeReferencesByRole = referenceRoleOptions.map((role) => ({
-    role,
-    references: referencesWithIndex.filter(
-      ({ reference, index }) => Boolean(reference.value) && referenceRoleConfig(reference.role, index).id === role.id
-    )
-  }));
+  const targetReferences = new Map<string, typeof referencesWithIndex>();
+  const seenLegacyTargetsByRole = new Map<ReferenceRole, number>();
+
+  referenceDropTargets.forEach((target) => {
+    const explicitReferences = referencesWithIndex.filter(
+      ({ reference }) => Boolean(reference.value) && reference.targetId === target.id
+    );
+    const legacyRoleReferences = referencesWithIndex.filter(
+      ({ reference, index }) =>
+        Boolean(reference.value) &&
+        !reference.targetId &&
+        referenceRoleConfig(reference.role, index).id === target.role
+    );
+    const occurrence = seenLegacyTargetsByRole.get(target.role) || 0;
+    seenLegacyTargetsByRole.set(target.role, occurrence + 1);
+    const legacyReferences =
+      target.role === "style" ? legacyRoleReferences.slice(occurrence, occurrence + 1) : legacyRoleReferences;
+    targetReferences.set(target.id, [...explicitReferences, ...legacyReferences]);
+  });
 
   function updateReference(id: string, patch: Partial<ReferenceImage>) {
     props.onReferencesChange(props.references.map((reference) => (reference.id === id ? { ...reference, ...patch } : reference)));
   }
 
-  function handleReferenceDrop(event: ReactDragEvent, role?: ReferenceRole) {
+  function removeReference(id: string) {
+    props.onReferencesChange(props.references.filter((reference) => reference.id !== id));
+  }
+
+  function updateReferenceTarget(id: string, target: ReferenceDropTarget) {
+    props.onReferencesChange(
+      props.references.map((reference) =>
+        reference.id === id ? { ...reference, role: target.role, targetId: target.id } : reference
+      )
+    );
+  }
+
+  function referenceDragClass(targetId: string, hasReferences: boolean) {
+    return ["referenceRoleDrop", hasReferences ? "active" : "", dragTargetId === targetId ? "dragOver" : ""]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function handleReferenceDragOver(event: ReactDragEvent, targetId: string) {
     event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    if (dragTargetId !== targetId) setDragTargetId(targetId);
+  }
+
+  function handleReferenceDragLeave(event: ReactDragEvent, targetId: string) {
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return;
+    setDragTargetId((current) => (current === targetId ? "" : current));
+  }
+
+  function handleReferenceDrop(event: ReactDragEvent, target?: ReferenceDropTarget) {
+    event.preventDefault();
+    setDragTargetId("");
+    const referencePayload = event.dataTransfer.getData(BFL_REFERENCE_MIME);
+    if (referencePayload && target) {
+      const draggedReference = parseReferenceDragPayload(referencePayload);
+      if (draggedReference?.id && props.references.some((reference) => reference.id === draggedReference.id)) {
+        updateReferenceTarget(draggedReference.id, target);
+        return;
+      }
+    }
     const payload =
       event.dataTransfer.getData(BFL_IMAGE_OPTION_MIME) ||
       event.dataTransfer.getData("text/plain");
     if (payload.startsWith("asset:")) {
-      props.onReferenceDropPayload(payload, role);
+      props.onReferenceDropPayload(payload, target?.role, target?.id);
       return;
     }
-    props.onReferenceFiles(Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")), role);
+    props.onReferenceFiles(
+      Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")),
+      target?.role,
+      target?.id
+    );
   }
 
   return (
@@ -116,7 +178,7 @@ export function RunPanel(props: RunPanelProps) {
       </PanelHeader>
 
       <div className="costGrid">
-        <MetaBox label="Prompt" value={`${props.promptTokens} tok`} />
+        <MetaBox label="Prompt" value={promptTokenLabel} />
         <MetaBox label="Output" value={`${megapixels.toFixed(2)} MP`} />
         <MetaBox label="Est." value={`${props.estimatedCredits.toFixed(2)} cr`} />
         <MetaBox label="USD" value={`$${props.estimatedUsd.toFixed(3)}`} />
@@ -205,7 +267,7 @@ export function RunPanel(props: RunPanelProps) {
       </div>
 
       <div className="referenceHeader">
-        <span>References</span>
+        <span>References {activeReferenceCount}/{props.maxReferences}</span>
         {(props.primaryReferencePreview || props.primaryReferenceUrl) && (
           <IconButton title="Clear reference" onClick={props.onClearPrimaryReference}>
             <X size={14} />
@@ -214,86 +276,93 @@ export function RunPanel(props: RunPanelProps) {
       </div>
 
       <div className="referenceRoleGrid">
-        {activeReferencesByRole.map(({ role, references }) => (
-          <div
-            className={references.length ? "referenceRoleDrop active" : "referenceRoleDrop"}
-            key={role.id}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => handleReferenceDrop(event, role.id)}
-            title={role.cue}
-          >
-            <div>
-              <strong>
-                {role.label}
-                <code>{referenceRoleToken(role.id)}</code>
-              </strong>
-              <small>{role.hint}</small>
-            </div>
-            <select
-              className="referenceRoleAssetSelect"
-              value=""
-              disabled={!galleryAssets.length}
-              aria-label={`Add ${role.label} reference from gallery`}
-              onChange={(event) => {
-                const assetId = event.currentTarget.value;
-                if (assetId) props.onReferenceAssetSelect(assetId, role.id);
-              }}
-            >
-              <option value="">{galleryAssets.length ? "Add from gallery" : "No gallery images"}</option>
-              {galleryAssets.map((asset) => {
-                const slot = referencedAssetSlots.get(asset.id);
-                return (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.title || asset.id}{slot ? ` (${slot})` : ""}
-                  </option>
-                );
-              })}
-            </select>
-            <div className="referenceRoleThumbs">
-              {references.length ? (
-                references.slice(0, 3).map(({ reference, index }) => {
-                  const preview = referencePreviewSrc(reference);
-                  return preview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={reference.id}
-                      src={preview}
-                      alt={referenceDisplayName(reference, index)}
-                      draggable
-                      onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
-                    />
+        {referenceDropTargets.map((target) => (
+          (() => {
+            const role = referenceRoleConfig(target.role);
+            const references = targetReferences.get(target.id) || [];
+            const RoleIcon = roleIcons[target.role];
+            return (
+              <div
+                className={referenceDragClass(target.id, Boolean(references.length))}
+                key={target.id}
+                onDragOver={(event) => handleReferenceDragOver(event, target.id)}
+                onDragLeave={(event) => handleReferenceDragLeave(event, target.id)}
+                onDrop={(event) => handleReferenceDrop(event, target)}
+                title={role.cue}
+              >
+                <div className="referenceRoleTitle">
+                  <span>
+                    <RoleIcon size={14} />
+                    <strong>{target.label}</strong>
+                  </span>
+                </div>
+                <div className="referenceRoleMeta">
+                  <small>{target.hint}</small>
+                  <code>{target.token}</code>
+                </div>
+                <div className={references.length ? "referenceRoleThumbs" : "referenceRoleThumbs empty"}>
+                  {references.length ? (
+                    references.slice(0, 4).map(({ reference, index }) => {
+                      const preview = referencePreviewSrc(reference);
+                      return (
+                        <div className="referenceRoleThumb" key={reference.id}>
+                          {preview ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={preview}
+                              alt={referenceDisplayName(reference, index)}
+                              draggable
+                              onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
+                            />
+                          ) : (
+                            <span
+                              draggable
+                              onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
+                            >
+                              {referenceToken(index)}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="referenceThumbRemove"
+                            title={`Remove ${referenceToken(index)}`}
+                            onClick={() => removeReference(reference.id)}
+                          >
+                            <X size={12} />
+                          </button>
+                          <em>{referenceToken(index)}</em>
+                        </div>
+                      );
+                    })
                   ) : (
-                    <span
-                      key={reference.id}
-                      draggable
-                      onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
-                    >
-                      {referenceToken(index)}
-                    </span>
-                  );
-                })
-              ) : (
-                <span>Drop</span>
-              )}
-            </div>
-          </div>
+                    <span className="referenceRoleEmpty">{target.emptyLabel}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })()
         ))}
       </div>
 
       <div
-        className="referenceDropzone"
-        onDragOver={(event) => event.preventDefault()}
+        className={dragTargetId === "all" ? "referenceDropzone dragOver" : "referenceDropzone"}
+        onDragOver={(event) => handleReferenceDragOver(event, "all")}
+        onDragLeave={(event) => handleReferenceDragLeave(event, "all")}
         onDrop={(event) => handleReferenceDrop(event)}
       >
         <Database size={15} />
-        <span>Drop gallery cards or image files here, or paste hosted URLs below</span>
+        <span>Drop gallery cards or image files here for the next open reference slot</span>
       </div>
 
       <div
         className="referenceUrlBar"
-        onDragOver={(event) => event.preventDefault()}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+        }}
         onDrop={(event) => {
           event.preventDefault();
+          setDragTargetId("");
           props.onPrimaryReferenceFiles(Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")));
         }}
       >
@@ -313,25 +382,16 @@ export function RunPanel(props: RunPanelProps) {
           onChange={(event) => props.onPrimaryReferenceUrlChange(event.target.value)}
           placeholder="Reference image URL"
         />
-        <select
-          value={primaryRole.id}
-          disabled={!props.references[0]}
-          onChange={(event) => {
-            if (props.references[0]) updateReference(props.references[0].id, { role: event.target.value as ReferenceRole });
-          }}
-          aria-label="Primary reference role"
-        >
-          {referenceRoleOptions.map((role) => (
-            <option key={role.id} value={role.id}>
-              {role.label}
-            </option>
-          ))}
-        </select>
+        {props.references[0] && (
+          <button type="button" className="referenceUrlClear" title="Remove primary reference" onClick={props.onClearPrimaryReference}>
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       <div className="referenceWeightControl">
         <div>
-          <span>Reference weight</span>
+          <span>Reference influence</span>
           <strong>{referenceWeightLabel} · {props.referenceWeight}</strong>
         </div>
         <input
@@ -382,27 +442,21 @@ export function RunPanel(props: RunPanelProps) {
                   {slotIndex + 1}
                 </div>
               )}
-              <select
-                value={role.id}
-                aria-label={`${referenceToken(slotIndex)} role`}
-                onChange={(event) => updateReference(reference.id, { role: event.target.value as ReferenceRole })}
-              >
-                {referenceRoleOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <div className="referenceItemMeta">
+                <strong>{referenceToken(slotIndex)}</strong>
+                <span>{role.label}</span>
+              </div>
               <input
                 value={reference.value}
                 placeholder={`Image ${slotIndex + 1} URL or data URL`}
                 onChange={(event) => updateReference(reference.id, { value: event.target.value })}
               />
               <button
+                type="button"
                 title="Remove reference"
-                onClick={() => props.onReferencesChange(props.references.filter((item) => item.id !== reference.id))}
+                onClick={() => removeReference(reference.id)}
               >
-                x
+                <X size={14} />
               </button>
             </div>
           );

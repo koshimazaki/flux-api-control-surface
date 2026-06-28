@@ -16,6 +16,7 @@ export type ReferenceImage = {
   name: string;
   value: string;
   role?: ReferenceRole;
+  targetId?: string;
   assetId?: string;
 };
 
@@ -23,7 +24,7 @@ export type ReferenceRole = "character" | "style" | "environment" | "pose" | "lo
 
 export type BatchMode = "current" | "library" | "permutations";
 
-export type WorkspaceMode = "prompt" | "erase" | "inpaint" | "outpaint" | "glyphs";
+export type WorkspaceMode = "prompt" | "erase" | "vto" | "outpaint" | "deblur" | "glyphs";
 
 export type DashboardTab = "script" | "audio" | "assets" | "runs" | "collections" | "apis" | "mcp" | "system";
 
@@ -145,4 +146,18 @@ export type TrainingCollection = {
   createdAt: number;
   updatedAt: number;
   items: TrainingCollectionItem[];
+};
+
+// A registered BFL hosted finetune. The app cannot upload .safetensors (no BFL
+// API for that — it is manual in the BFL Dashboard); it only stores the
+// finetune_id returned there so it can drive hosted finetuned inference.
+export type FinetuneRecord = {
+  id: string;
+  finetuneId: string;
+  label: string;
+  baseModel: "flux2-klein-9b";
+  triggerWord: string;
+  defaultStrength: number;
+  comment?: string;
+  createdAt: string;
 };

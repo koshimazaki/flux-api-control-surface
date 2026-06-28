@@ -6,7 +6,7 @@ import {
   referenceDisplayName,
   referencePreviewSrc,
   referenceRoleConfig,
-  referenceRoleToken,
+  referenceTargetToken,
   referenceToken
 } from "@/lib/reference-roles";
 import { BFL_IMAGE_OPTION_MIME, setReferenceDragData } from "@/lib/reference-drag";
@@ -24,6 +24,7 @@ type PromptEditorProps = {
   onReset: () => void;
   references: ReferenceImage[];
   submittedReferenceCue: string;
+  submittedPrompt: string;
   promptSourceAsset?: AssetRecord | null;
   onReferenceDropPayload: (payload: string) => number | null | void;
   onReferenceFiles: (files: File[]) => Promise<number[]>;
@@ -40,6 +41,7 @@ export function PromptEditor({
   onReset,
   references,
   submittedReferenceCue,
+  submittedPrompt,
   promptSourceAsset,
   onReferenceDropPayload,
   onReferenceFiles
@@ -117,7 +119,7 @@ export function PromptEditor({
       onDrop={(event) => void handleReferenceDrop(event)}
     >
       <PanelHeader
-        title={activePrompt?.id || "Prompt"}
+        title={activePrompt?.id || "Generate"}
         subtitle={activePrompt?.plant_form || "Structured FLUX.2 prompt"}
       >
         <div className="presetRow" role="group" aria-label="Look presets">
@@ -166,7 +168,7 @@ export function PromptEditor({
                   const role = referenceRoleConfig(reference.role, index);
                   const preview = referencePreviewSrc(reference);
                   const token = referenceToken(index);
-                  const roleToken = referenceRoleToken(role.id, index);
+                  const roleToken = referenceTargetToken(reference, index);
                   return (
                     <button
                       type="button"
@@ -191,6 +193,16 @@ export function PromptEditor({
                 })}
               </div>
               <p>{submittedReferenceCue}</p>
+              <div className="submittedPromptBox">
+                <div>
+                  <strong>Submitted prompt</strong>
+                  <button type="button" onClick={() => void copyText(submittedPrompt)}>
+                    <Clipboard size={14} />
+                    Copy
+                  </button>
+                </div>
+                <textarea value={submittedPrompt} readOnly spellCheck={false} />
+              </div>
             </>
           )}
         </div>

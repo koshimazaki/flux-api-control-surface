@@ -1,11 +1,11 @@
-import { compactPrompt } from "./prompt-utils";
+import { composeReferencePrompt } from "./prompt-utils";
 import { estimateTokens } from "./pricing";
 import {
   normalizeReferenceRole,
   referenceDisplayName,
   referenceRoleConfig,
-  referenceRoleToken,
   referenceRoleTokenPattern,
+  referenceTargetToken,
   referenceToken
 } from "./reference-roles";
 import type { AssetRecord, BatchMode, ReferenceImage, ReferenceRole, RunLogEntry } from "./types";
@@ -29,10 +29,7 @@ export function countPairPermutations(sourceCount: number) {
 }
 
 export function composePrompt(baseText: string, references: ReferenceImage[], referenceCue: string) {
-  const base = compactPrompt(baseText);
-  return references.some((reference) => Boolean(reference.value))
-    ? `${base}\n\nReference roles: ${referenceCue}`
-    : base;
+  return composeReferencePrompt(baseText, referenceCue, references.some((reference) => Boolean(reference.value)));
 }
 
 export function promptImageTokenNumbers(prompt: string) {
@@ -57,6 +54,8 @@ export function promptReferenceRoleTokens(prompt: string) {
 }
 
 export function missingPromptReferenceRoleTokens(prompt: string, references: ReferenceImage[]) {
+  // Role validation is semantic, not slot-specific: @style1 and @style2 both
+  // normalize to style here, while numbered @img tokens cover exact slot checks.
   const activeRoles = new Set(
     references
       .map((reference, index) => (reference.value ? normalizeReferenceRole(reference.role, index) : null))
@@ -77,10 +76,6 @@ export function referenceWeightCue(weight: number) {
   return `Reference influence: ${clamped}/100. Treat the reference image as a dominant visual anchor for structure, pose, and material.`;
 }
 
-export function weightedReferenceCue(referenceCue: string, weight: number) {
-  return `${referenceCue.trim()}\n${referenceWeightCue(weight)}`.trim();
-}
-
 export function buildReferenceCue(referenceCue: string, weight: number, references: ReferenceImage[]) {
   const activeReferences = references.filter((reference) => Boolean(reference.value));
   const referenceMap = activeReferences.map((reference, index) => {
@@ -88,7 +83,7 @@ export function buildReferenceCue(referenceCue: string, weight: number, referenc
     const name = referenceDisplayName(reference, index);
     const role = referenceRoleConfig(reference.role, index);
     return [
-      `${referenceRoleToken(role.id)} / ${referenceToken(index)} / image ${index + 1}: ${name}.`,
+      `${referenceTargetToken(reference, index)} / ${referenceToken(index)} / image ${index + 1}: ${name}.`,
       `Role: ${role.label}.`,
       `Sent to FLUX as ${imageField}.`,
       role.cue

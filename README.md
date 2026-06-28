@@ -31,7 +31,7 @@ npm run build
 ## What It Does
 
 - Generate FLUX.2 images through local Next.js API routes.
-- Run FLUX Erase, Inpaint/Fill, and Outpaint from saved gallery assets.
+- Run FLUX Erase, Virtual Try-On, Outpaint, and Deblur from saved gallery assets.
 - Manage prompts, prompt combos, reference roles, costs, credits, and run logs.
 - Save outputs as image, prompt text, JSON metadata, and PNG metadata.
 - Recover local filesystem outputs and optional Cloudflare R2/D1 archive records.

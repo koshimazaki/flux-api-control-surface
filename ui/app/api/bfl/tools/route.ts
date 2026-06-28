@@ -14,20 +14,22 @@ import {
   saveOutputFiles
 } from "@/lib/bfl-server";
 import { embedPngMetadata } from "@/lib/png-metadata";
-import { prepareToolImageInput, prepareToolMaskInput } from "@/lib/bfl-tool-inputs";
+import { prepareToolImageInput, prepareToolMaskInput, prepareVtoGarmentInput } from "@/lib/bfl-tool-inputs";
 import { getBflImageTool, validateBflToolRequest } from "@/lib/provider-registry";
 import { syncOutputToRemote } from "@/lib/remote-archive";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type ToolName = "erase" | "inpaint" | "outpaint";
+type ToolName = "erase" | "vto" | "outpaint" | "deblur";
 
 type ToolBody = {
   apiKey?: string;
   tool?: ToolName;
   image?: string;
   mask?: string;
+  garment?: string;
+  garments?: string[];
   prompt?: string;
   seed?: number | null;
   dilatePixels?: number;
@@ -53,33 +55,51 @@ function clampInt(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.round(value)));
 }
 
-function toolSafetyToleranceMax(tool: ToolName) {
-  return tool === "inpaint" ? 6 : 5;
+function toolSafetyToleranceMax(_tool: ToolName) {
+  return 5;
 }
 
-function safeOutputFormat(value: unknown) {
+function toolSupportsSafetyTolerance(tool: ToolName) {
+  return tool === "vto" || tool === "deblur";
+}
+
+function safeOutputFormat(tool: ToolName, value: unknown) {
+  if (tool === "erase" || tool === "outpaint") {
+    return value === "jpeg" || value === "png" ? value : "png";
+  }
   return value === "jpeg" || value === "webp" || value === "png" ? value : "png";
 }
 
 function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) {
+  if (tool === "deblur") {
+    const payload: Record<string, unknown> = {
+      image: normalizeImageInput(body.image),
+      output_format: outputFormat
+    };
+    if (toolSupportsSafetyTolerance(tool)) {
+      payload.safety_tolerance = clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool));
+    }
+    if (typeof body.seed === "number") payload.seed = body.seed;
+    return payload;
+  }
   if (tool === "erase") {
     const payload: Record<string, unknown> = {
       image: normalizeImageInput(body.image),
       mask: normalizeImageInput(body.mask),
       dilate_pixels: clampInt(body.dilatePixels ?? 10, 0, 25),
-      safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool)),
       output_format: outputFormat
     };
+    if (toolSupportsSafetyTolerance(tool)) {
+      payload.safety_tolerance = clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool));
+    }
     if (typeof body.seed === "number") payload.seed = body.seed;
     return payload;
   }
-  if (tool === "inpaint") {
+  if (tool === "vto") {
     const payload: Record<string, unknown> = {
-      image: normalizeImageInput(body.image),
-      mask: normalizeImageInput(body.mask),
-      prompt: body.prompt || "",
-      steps: clampInt(body.steps ?? 50, 15, 50),
-      guidance: typeof body.guidance === "number" ? body.guidance : 30,
+      person: normalizeImageInput(body.image),
+      garment: normalizeImageInput(body.garment),
+      prompt: body.prompt?.trim() || "",
       safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool)),
       output_format: outputFormat
     };
@@ -91,10 +111,12 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
     width: body.canvasWidth,
     height: body.canvasHeight,
     auto_crop: Boolean(body.autoCrop),
-    safety_tolerance: clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool)),
     mode: body.mode === "fast" ? "fast" : "high",
     output_format: outputFormat
   };
+  if (toolSupportsSafetyTolerance(tool)) {
+    payload.safety_tolerance = clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool));
+  }
   if (body.prompt?.trim()) payload.prompt = body.prompt.trim();
   if (typeof body.offsetX === "number") payload.reference_offset_x = Math.round(body.offsetX);
   if (typeof body.offsetY === "number") payload.reference_offset_y = Math.round(body.offsetY);
@@ -103,11 +125,14 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
 
 function validateToolBody(tool: ToolName, body: ToolBody) {
   if (!body.image) return "A source image is required.";
-  if ((tool === "erase" || tool === "inpaint") && !body.mask) {
+  if (tool === "erase" && !body.mask) {
     return "Paint a mask over the area first.";
   }
-  if (tool === "inpaint" && !body.prompt?.trim()) {
-    return "Inpaint needs a prompt describing the replacement (use Erase for prompt-free removal).";
+  if (tool === "vto" && !(body.garment || body.garments?.length)) {
+    return "Virtual Try-On needs at least one garment reference.";
+  }
+  if (tool === "vto" && !body.prompt?.trim()) {
+    return "Virtual Try-On needs a styling prompt.";
   }
   if (tool === "outpaint" && (!body.canvasWidth || !body.canvasHeight)) {
     return "Outpaint needs a target canvas width and height.";
@@ -130,32 +155,71 @@ export async function POST(request: NextRequest) {
   if (!tool || !toolConfig) return jsonError(`Unknown tool: ${tool || "(none)"}`);
 
   const origin = new URL(request.url).origin;
+  const garmentInputs = (body.garments?.length ? body.garments : body.garment ? [body.garment] : []).filter(Boolean);
+  const resolvedGarments =
+    garmentInputs.length > 0
+      ? (await Promise.all(garmentInputs.map((garment) => resolveImageInput(garment, origin)))).filter(
+          (garment): garment is string => Boolean(garment)
+        )
+      : undefined;
   const resolvedBody: ToolBody = {
     ...body,
     image: await resolveImageInput(body.image, origin, body.sourceAssetId),
-    mask: await resolveImageInput(body.mask, origin)
+    mask: await resolveImageInput(body.mask, origin),
+    garments: resolvedGarments
   };
+  if (resolvedBody.garments?.length) resolvedBody.garment = resolvedBody.garments[0];
   const validation = validateToolBody(tool, resolvedBody);
   if (validation) return jsonError(validation);
 
   let preparedBody = resolvedBody;
+  let maskCoverage: number | null = null;
+  let garmentSummary: { count: number; composite: boolean; width: number; height: number } | null = null;
+  let sourceDimensions: { width: number; height: number } | null = null;
   try {
     const source = await prepareToolImageInput(resolvedBody.image, "source image");
+    sourceDimensions = { width: source.width, height: source.height };
     preparedBody = {
       ...resolvedBody,
       image: source.base64
     };
-    if (tool === "erase" || tool === "inpaint") {
+    if (tool === "erase") {
       const mask = await prepareToolMaskInput(resolvedBody.mask, source, "mask");
       preparedBody.mask = mask.base64;
+      maskCoverage = mask.coverage;
+    }
+    if (tool === "vto") {
+      const garment = await prepareVtoGarmentInput(resolvedBody.garments || []);
+      preparedBody.garment = garment.base64;
+      garmentSummary = {
+        count: garment.count,
+        composite: garment.composite,
+        width: garment.width,
+        height: garment.height
+      };
     }
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Invalid image tool input.", 400);
   }
 
+  // A mask that thresholds to zero white pixels tells the erase endpoint to keep every
+  // pixel, so it returns the source unchanged while still costing a credit.
+  // Fail loudly instead of silently no-op'ing.
+  if (tool === "erase" && maskCoverage !== null && maskCoverage <= 0) {
+    return jsonError(
+      "The mask is empty — paint a white area over the region you want to replace, then run again.",
+      400
+    );
+  }
+  if (maskCoverage !== null) {
+    console.error(`[bfl/${tool}] endpoint=${toolConfig.endpoint} mask_coverage=${(maskCoverage * 100).toFixed(1)}%`);
+  }
+
   const providerValidation = validateBflToolRequest({
     tool: toolConfig,
     image: preparedBody.image,
+    imageWidth: sourceDimensions?.width,
+    imageHeight: sourceDimensions?.height,
     canvasWidth: body.canvasWidth,
     canvasHeight: body.canvasHeight,
     mode: body.mode
@@ -163,7 +227,7 @@ export async function POST(request: NextRequest) {
   if (providerValidation) return jsonError(providerValidation);
 
   const endpointName = toolConfig.endpoint;
-  const outputFormat = safeOutputFormat(body.outputFormat);
+  const outputFormat = safeOutputFormat(tool, body.outputFormat);
   const payload = buildToolPayload(tool, preparedBody, outputFormat);
   const title = body.title || `${tool}-edit`;
   const promptForFiles = body.prompt?.trim() || `[${tool} pass, no prompt]`;
@@ -193,6 +257,7 @@ export async function POST(request: NextRequest) {
       endpointName,
       tool,
       sourceAssetId: body.sourceAssetId || null,
+      garmentSummary,
       runSettings: {
         title,
         provider: "bfl-api",
@@ -200,6 +265,8 @@ export async function POST(request: NextRequest) {
         endpointName,
         tool,
         sourceAssetId: body.sourceAssetId || null,
+        maskCoverage,
+        garmentSummary,
         outputFormat,
         seed: typeof body.seed === "number" ? body.seed : null,
         requestId: submitted.id ?? null,

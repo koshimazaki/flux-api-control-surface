@@ -68,7 +68,7 @@ export function McpPanel(props: McpPanelProps) {
         tool: "generate_image",
         server: status?.serverUrl || "https://mcp.bfl.ai",
         note:
-          "Use /api/dashboard/run-plan for generation bodies, /api/bfl/tools for erase/inpaint/outpaint, and /api/audio/* for audio guide assets."
+          "Use /api/dashboard/run-plan for generation bodies, /api/bfl/tools for erase/vto/outpaint/deblur, and /api/audio/* for audio guide assets."
       },
       guide_route: status?.guideRoute || agentRouteMap.mcpGuide,
       coverage: status?.coverage || localAgentCoverage,

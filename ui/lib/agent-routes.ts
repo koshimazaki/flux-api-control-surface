@@ -55,7 +55,9 @@ export const agentRouteMap = {
   mcpManifest: "/api/mcp/manifest",
   mcpGuide: "/api/mcp/guide",
   apiManifest: "/api/bfl_dashboard/v1/manifest",
-  captionAgent: "/api/bfl_dashboard/v1/caption_agent"
+  captionAgent: "/api/bfl_dashboard/v1/caption_agent",
+  finetuneDataset: "/api/finetune/dataset",
+  finetunes: "/api/finetunes"
 };
 
 export const dashboardAgentRoutes: AgentRoute[] = [
@@ -163,14 +165,15 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     method: "POST",
     path: agentRouteMap.tools,
     purpose:
-      "Run FLUX image tools on an existing image: erase, inpaint, or outpaint. Saves outputs like /api/bfl/generate and records sourceAssetId provenance.",
+      "Run FLUX image tools on an existing image: erase, virtual try-on, outpaint, or deblur. Saves outputs like /api/bfl/generate and records sourceAssetId provenance.",
     sideEffects: true,
     category: "tools",
     auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     body: {
-      erase: "tool=image, mask, dilatePixels, seed, safetyTolerance, outputFormat",
-      inpaint: "tool=image, mask, prompt, seed, guidance, steps, safetyTolerance, outputFormat",
-      outpaint: "tool=image, canvasWidth, canvasHeight, offsetX, offsetY, mode, autoCrop, safetyTolerance, outputFormat"
+      erase: "tool=image, mask, dilatePixels, seed, outputFormat png|jpeg",
+      vto: "tool=image, garments[], prompt, seed, safetyTolerance, outputFormat",
+      outpaint: "tool=image, canvasWidth, canvasHeight, offsetX, offsetY, mode, autoCrop, outputFormat png|jpeg",
+      deblur: "tool=image, seed, safetyTolerance, outputFormat"
     },
     example: {
       tool: "outpaint",
@@ -277,12 +280,57 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       },
       dryRun: "boolean"
     }
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.finetuneDataset,
+    purpose:
+      "Export a FLUX.2 [klein] LoRA dataset (flat image + .txt caption sidecars, AI-Toolkit config.yaml, README) from a training collection and save it under the local outputs dir.",
+    sideEffects: true,
+    category: "agent",
+    body: {
+      collection: {
+        name: "string",
+        triggerToken: "string",
+        items: "array of collection items with imageDataUrl + caption"
+      },
+      config: "Optional AI-Toolkit overrides (resolution, rank, steps, learningRate, datasetDir, outputDir)."
+    }
+  },
+  {
+    method: "GET",
+    path: agentRouteMap.finetunes,
+    purpose: "List registered BFL hosted finetunes (finetune_id, trigger word, default strength).",
+    sideEffects: false,
+    category: "agent"
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.finetunes,
+    purpose:
+      "Register or update a BFL hosted finetune by finetune_id. Clamps defaultStrength to 0..2 and pins baseModel to flux2-klein-9b.",
+    sideEffects: true,
+    category: "agent",
+    body: {
+      finetuneId: "string (required, from the BFL Dashboard upload)",
+      label: "string",
+      triggerWord: "string",
+      defaultStrength: "number 0..2 (default 1.2)",
+      comment: "string"
+    }
+  },
+  {
+    method: "DELETE",
+    path: agentRouteMap.finetunes,
+    purpose: "Remove a registered finetune by id or finetune_id from the local gitignored registry.",
+    sideEffects: true,
+    category: "agent"
   }
 ];
 
 export const localAgentCoverage = {
   generation: "Wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate.",
-  imageTools: "Erase, inpaint, and outpaint are wired through /api/bfl/tools and the image-tool workspace.",
+  imageTools: "Erase, virtual try-on, outpaint, and deblur are wired through /api/bfl/tools and the image-tool workspace.",
   glyphs:
     "Server-side SVG/PNG glyph vectorization is wired through /api/glyphs/vectorize and saves recoverable local gallery outputs.",
   references:
@@ -314,7 +362,11 @@ export const localDashboardMcpTools = [
   "sync_reference_archive",
   "vectorize_glyph",
   "vectorize_glyph_batch",
-  "prepare_caption_job"
+  "prepare_caption_job",
+  "build_finetune_dataset",
+  "register_finetune",
+  "list_finetunes",
+  "generate_with_finetune"
 ];
 
 export const localMcpParityNotes = {

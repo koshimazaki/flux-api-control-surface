@@ -5,18 +5,19 @@ import {
   Eraser,
   Expand,
   Fingerprint,
+  Focus,
   Heart,
   ImagePlus,
   Info,
   LayoutGrid,
   Maximize2,
   PackagePlus,
-  Paintbrush,
   RectangleHorizontal,
   RectangleVertical,
   RotateCcw,
   Search,
   Send,
+  Shirt,
   Sparkles,
   Square,
   Trash2,
@@ -27,7 +28,8 @@ import { PanelHeader } from "@/components/ui/panel-header";
 import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-badge";
 import { copyText } from "@/lib/clipboard";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
-import type { AssetBadge, AssetRecord, AspectRatio, WorkspaceMode } from "@/lib/types";
+import { referenceDropTargets } from "@/lib/reference-roles";
+import type { AssetBadge, AssetRecord, AspectRatio, ReferenceRole, WorkspaceMode } from "@/lib/types";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
 
@@ -50,7 +52,7 @@ type AssetLibraryProps = {
   onToggleFavorite: (id: string) => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
-  onSendToReference: (asset: AssetRecord) => void;
+  onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSavePromptToLibrary: (asset: AssetRecord) => void;
   onToggleSelected: (id: string) => void;
   onToggleMetadata: (id: string) => void;
@@ -105,6 +107,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
     gridTemplateColumns: `repeat(${props.gridSize}, minmax(0, 1fr))`
   };
   const groupedAssets = groupAssetsByDate(props.filteredAssets);
+  const addImageTarget = referenceDropTargets.find((target) => target.id === "add-image") || referenceDropTargets[0];
 
   function onImageImport(event: ChangeEvent<HTMLInputElement>) {
     props.onImportImages(Array.from(event.target.files || []));
@@ -263,52 +266,78 @@ export function AssetLibrary(props: AssetLibraryProps) {
                     )}
                     <pre>{asset.prompt}</pre>
                     <div className="assetButtons">
-                      <button
-                        onClick={() => props.onToggleSelected(asset.id)}
-                        className={isSelected ? "selected" : ""}
-                        title={isSelected ? "Remove from collection selection" : "Select for collection"}
-                      >
-                        <PackagePlus size={15} />
-                      </button>
-                      <button onClick={() => props.onToggleFavorite(asset.id)} className={asset.is_favorite ? "hearted" : ""} title="Favorite">
-                        <Heart size={15} fill={asset.is_favorite ? "currentColor" : "none"} />
-                      </button>
-                      <button onClick={() => props.onSendToPrompt(asset)} title="Send prompt to editor">
-                        <Send size={15} />
-                      </button>
-                      <button onClick={() => props.onSendToWorkspace(asset, "erase")} title="Send to Erase">
-                        <Eraser size={15} />
-                      </button>
-                      <button onClick={() => props.onSendToWorkspace(asset, "inpaint")} title="Send to Inpaint">
-                        <Paintbrush size={15} />
-                      </button>
-                      <button onClick={() => props.onSendToWorkspace(asset, "outpaint")} title="Send to Outpaint">
-                        <Maximize2 size={15} />
-                      </button>
-                      <button onClick={() => props.onSendToWorkspace(asset, "glyphs")} title="Send to Glyphs">
-                        <Fingerprint size={15} />
-                      </button>
-                      <button onClick={() => props.onSendToReference(asset)} title="Send image to references">
-                        <ImagePlus size={15} />
-                      </button>
-                      <button onClick={() => props.onSavePromptToLibrary(asset)} title="Save prompt to library">
-                        <BookmarkPlus size={15} />
-                      </button>
-                      <button onClick={() => props.onToggleMetadata(asset.id)} title="Show metadata">
-                        <Info size={15} />
-                      </button>
-                      <button onClick={() => props.onOpen(asset)} title="Open">
-                        <Expand size={15} />
-                      </button>
-                      <button onClick={() => props.onDownload(asset)} title="Download">
-                        <Download size={15} />
-                      </button>
-                      <button onClick={() => void copyText(asset.prompt)} title="Copy prompt">
-                        <Clipboard size={15} />
-                      </button>
-                      <button onClick={() => props.onDelete(asset.id)} title="Delete from browser library">
-                        <Trash2 size={15} />
-                      </button>
+                      <div className="assetButtonGroup">
+                        <button onClick={() => props.onSendToPrompt(asset)} title="Send prompt to Generate">
+                          <Send size={15} />
+                        </button>
+                        <div className="assetReferenceAction">
+                          <button
+                            onClick={() => props.onSendToReference(asset, addImageTarget.role, addImageTarget.id)}
+                            title="Add image reference"
+                          >
+                            <ImagePlus size={15} />
+                          </button>
+                          <div className="assetReferenceMenu" aria-label="Use as reference">
+                            {referenceDropTargets.map((target) => (
+                              <button
+                                type="button"
+                                key={target.id}
+                                onClick={() => props.onSendToReference(asset, target.role, target.id)}
+                                title={`Use as ${target.label} reference`}
+                              >
+                                {target.shortLabel}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="assetButtonGroup">
+                        <button onClick={() => props.onSendToWorkspace(asset, "erase")} title="Send to Erase">
+                          <Eraser size={15} />
+                        </button>
+                        <button onClick={() => props.onSendToWorkspace(asset, "vto")} title="Send to VTO">
+                          <Shirt size={15} />
+                        </button>
+                        <button onClick={() => props.onSendToWorkspace(asset, "outpaint")} title="Send to Outpaint">
+                          <Maximize2 size={15} />
+                        </button>
+                        <button onClick={() => props.onSendToWorkspace(asset, "deblur")} title="Send to Deblur">
+                          <Focus size={15} />
+                        </button>
+                        <button onClick={() => props.onSendToWorkspace(asset, "glyphs")} title="Send to Glyphs">
+                          <Fingerprint size={15} />
+                        </button>
+                      </div>
+                      <div className="assetButtonGroup">
+                        <button
+                          onClick={() => props.onToggleSelected(asset.id)}
+                          className={isSelected ? "selected" : ""}
+                          title={isSelected ? "Remove from collection selection" : "Select for collection"}
+                        >
+                          <PackagePlus size={15} />
+                        </button>
+                        <button onClick={() => props.onToggleFavorite(asset.id)} className={asset.is_favorite ? "hearted" : ""} title="Favorite">
+                          <Heart size={15} fill={asset.is_favorite ? "currentColor" : "none"} />
+                        </button>
+                        <button onClick={() => props.onSavePromptToLibrary(asset)} title="Save prompt to library">
+                          <BookmarkPlus size={15} />
+                        </button>
+                        <button onClick={() => props.onToggleMetadata(asset.id)} title="Show metadata">
+                          <Info size={15} />
+                        </button>
+                        <button onClick={() => props.onOpen(asset)} title="Open">
+                          <Expand size={15} />
+                        </button>
+                        <button onClick={() => props.onDownload(asset)} title="Download">
+                          <Download size={15} />
+                        </button>
+                        <button onClick={() => void copyText(asset.prompt)} title="Copy prompt">
+                          <Clipboard size={15} />
+                        </button>
+                        <button onClick={() => props.onDelete(asset.id)} title="Delete from browser library">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { apiKeyStatus, deleteMacOsKeychainApiKey, writeMacOsKeychainApiKey } from "@/lib/server-api-key";
+import { apiKeyStatus, assertUsableApiKey, deleteMacOsKeychainApiKey, writeMacOsKeychainApiKey } from "@/lib/server-api-key";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +52,12 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return jsonError("Request body must be JSON");
+  }
+
+  try {
+    assertUsableApiKey(body.apiKey);
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Invalid API key", 400);
   }
 
   try {

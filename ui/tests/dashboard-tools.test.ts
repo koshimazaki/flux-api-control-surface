@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buildToolRequestBody, toolRunBlocker, type ToolRunInput } from "@/lib/dashboard-tools";
+import { buildToolAssetRecord, buildToolRequestBody, toolRunBlocker, type ToolRunInput } from "@/lib/dashboard-tools";
 import type { AssetRecord } from "@/lib/types";
 
-const sourceAsset = { id: "asset-1", imageDataUrl: "data:image/png;base64,xx" } as AssetRecord;
+const sourceAsset = { id: "asset-1", title: "tropical membrane flower", imageDataUrl: "data:image/png;base64,xx" } as AssetRecord;
+const garmentAsset = { id: "garment-1", title: "surf jacket", imageDataUrl: "data:image/png;base64,gg" } as AssetRecord;
 
 function toolInput(overrides: Partial<ToolRunInput> = {}): ToolRunInput {
   return {
     mode: "erase",
     sourceAsset,
+    vtoGarments: [],
     apiKey: "k",
     mask: "data:image/png;base64,mm",
     prompt: "",
@@ -32,19 +34,19 @@ describe("toolRunBlocker", () => {
     expect(toolRunBlocker({ mode: "erase", mask: "m", prompt: "", hasSource: false })).toMatch(/source image/i);
   });
 
-  it("blocks erase/inpaint without a mask", () => {
+  it("blocks erase without a mask", () => {
     expect(toolRunBlocker({ mode: "erase", mask: "", prompt: "", hasSource: true })).toMatch(/paint a mask/i);
-    expect(toolRunBlocker({ mode: "inpaint", mask: "", prompt: "x", hasSource: true })).toMatch(/paint a mask/i);
   });
 
-  // Regression for the inpaint-prompt guard added during the first review pass.
-  it("blocks inpaint that has a mask but no prompt", () => {
-    expect(toolRunBlocker({ mode: "inpaint", mask: "m", prompt: "   ", hasSource: true })).toMatch(/prompt/i);
+  it("blocks VTO without a garment or prompt", () => {
+    expect(toolRunBlocker({ mode: "vto", mask: "", prompt: "try this on", garmentCount: 0, hasSource: true })).toMatch(/garment/i);
+    expect(toolRunBlocker({ mode: "vto", mask: "", prompt: "   ", garmentCount: 1, hasSource: true })).toMatch(/prompt/i);
   });
 
-  it("allows a valid inpaint and a source-only outpaint", () => {
-    expect(toolRunBlocker({ mode: "inpaint", mask: "m", prompt: "replace it", hasSource: true })).toBe("");
+  it("allows valid VTO plus source-only outpaint and deblur", () => {
+    expect(toolRunBlocker({ mode: "vto", mask: "", prompt: "wear the jacket", garmentCount: 1, hasSource: true })).toBe("");
     expect(toolRunBlocker({ mode: "outpaint", mask: "", prompt: "", hasSource: true })).toBe("");
+    expect(toolRunBlocker({ mode: "deblur", mask: "", prompt: "", hasSource: true })).toBe("");
   });
 });
 
@@ -58,16 +60,20 @@ describe("buildToolRequestBody", () => {
     expect(body.sourceAssetId).toBe("asset-1");
     expect(body.guidance).toBeUndefined();
     expect(body.steps).toBeUndefined();
-    expect(body.safetyTolerance).toBe(2);
+    expect(body.safetyTolerance).toBeUndefined();
     expect(body.outputFormat).toBe("png");
   });
 
-  it("forwards fill guidance and steps for inpaint", () => {
-    const body = buildToolRequestBody(toolInput({ mode: "inpaint", prompt: "replace it", guidance: 24, steps: 42 }));
-    expect(body.tool).toBe("inpaint");
-    expect(body.prompt).toBe("replace it");
-    expect(body.guidance).toBe(24);
-    expect(body.steps).toBe(42);
+  it("forwards garments and prompt for VTO", () => {
+    const body = buildToolRequestBody(toolInput({ mode: "vto", prompt: "wear the jacket", vtoGarments: [garmentAsset] }));
+    expect(body.tool).toBe("vto");
+    expect(body.prompt).toBe("wear the jacket");
+    expect(body.title).toContain("wear the jacket");
+    expect(body.title).toContain("surf jacket");
+    expect(body.garments).toEqual(["data:image/png;base64,gg"]);
+    expect(body.mask).toBeUndefined();
+    expect(body.guidance).toBeUndefined();
+    expect(body.steps).toBeUndefined();
   });
 
   it("omits the mask and parses offsets for outpaint", () => {
@@ -80,6 +86,20 @@ describe("buildToolRequestBody", () => {
     expect(body.canvasWidth).toBe(1536);
     expect(body.prompt).toBe("extend");
     expect(body.autoCrop).toBe(true);
+    expect(body.title).toContain("extend");
+  });
+
+  it("sends deblur as a source-only image tool", () => {
+    const body = buildToolRequestBody(toolInput({ mode: "deblur", mask: "ignored", prompt: "ignored", seed: "88" }));
+    expect(body.tool).toBe("deblur");
+    expect(body.image).toBe("data:image/png;base64,xx");
+    expect(body.mask).toBeUndefined();
+    expect(body.prompt).toBeUndefined();
+    expect(body.canvasWidth).toBeUndefined();
+    expect(body.canvasHeight).toBeUndefined();
+    expect(body.mode).toBeUndefined();
+    expect(body.seed).toBe(88);
+    expect(body.safetyTolerance).toBe(2);
   });
 
   it("parses a numeric seed and nulls a blank one", () => {
@@ -88,8 +108,35 @@ describe("buildToolRequestBody", () => {
   });
 
   it("clamps safety tolerance by tool contract", () => {
-    expect(buildToolRequestBody(toolInput({ mode: "erase", safetyTolerance: 9 })).safetyTolerance).toBe(5);
-    expect(buildToolRequestBody(toolInput({ mode: "outpaint", safetyTolerance: 9 })).safetyTolerance).toBe(5);
-    expect(buildToolRequestBody(toolInput({ mode: "inpaint", prompt: "replace", safetyTolerance: 9 })).safetyTolerance).toBe(6);
+    expect(buildToolRequestBody(toolInput({ mode: "erase", safetyTolerance: 9 })).safetyTolerance).toBeUndefined();
+    expect(buildToolRequestBody(toolInput({ mode: "outpaint", safetyTolerance: 9 })).safetyTolerance).toBeUndefined();
+    expect(buildToolRequestBody(toolInput({ mode: "deblur", safetyTolerance: 9 })).safetyTolerance).toBe(5);
+    expect(buildToolRequestBody(toolInput({ mode: "vto", prompt: "wear this", vtoGarments: [garmentAsset], safetyTolerance: 9 })).safetyTolerance).toBe(5);
+  });
+
+  it("coerces unsupported tool output formats before submitting", () => {
+    expect(buildToolRequestBody(toolInput({ mode: "erase", outputFormat: "webp" })).outputFormat).toBe("png");
+    expect(buildToolRequestBody(toolInput({ mode: "outpaint", outputFormat: "webp" })).outputFormat).toBe("png");
+    expect(buildToolRequestBody(toolInput({ mode: "deblur", outputFormat: "webp" })).outputFormat).toBe("webp");
+    expect(buildToolRequestBody(toolInput({ mode: "vto", prompt: "wear this", vtoGarments: [garmentAsset], outputFormat: "webp" })).outputFormat).toBe("webp");
+  });
+});
+
+describe("buildToolAssetRecord", () => {
+  it("stores the submitted tool prompt instead of inheriting the source prompt", () => {
+    const asset = buildToolAssetRecord(
+      { id: "result-1", imageDataUrl: "data:image/png;base64,out", sampleUrl: "https://x/out.png", endpointName: "flux-tools/vto-v1" },
+      toolInput({ mode: "vto", prompt: "man on the beach", vtoGarments: [garmentAsset] })
+    );
+    expect(asset.title).toContain("man on the beach");
+    expect(asset.prompt).toBe("man on the beach");
+  });
+
+  it("marks source-only tool outputs as no-prompt passes", () => {
+    const asset = buildToolAssetRecord(
+      { id: "result-2", imageDataUrl: "data:image/png;base64,out", sampleUrl: "https://x/out.png", endpointName: "flux-tools/deblur-v1" },
+      toolInput({ mode: "deblur", prompt: "ignored global prompt" })
+    );
+    expect(asset.prompt).toBe("[deblur pass, no prompt]");
   });
 });

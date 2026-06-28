@@ -14,6 +14,7 @@ import {
   type BatchProgress
 } from "@/lib/dashboard-generation";
 import { persistAssetImage } from "@/lib/dashboard-assets";
+import { assetFromImageSource } from "@/lib/image-asset-import";
 import {
   buildToolAssetRecord,
   buildToolFailureLogEntry,
@@ -23,9 +24,11 @@ import {
   toolRunBlocker,
   type ToolRunInput
 } from "@/lib/dashboard-tools";
-import { formatPrompt } from "@/lib/prompt-utils";
+import { formatPrompt, stripReferenceCue } from "@/lib/prompt-utils";
 import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions } from "@/lib/pricing";
-import { referenceRoleConfig } from "@/lib/reference-roles";
+import { getBflModel } from "@/lib/provider-registry";
+import { parseReferenceDragPayload } from "@/lib/reference-drag";
+import { referenceDropTargets, referenceRoleConfig, referenceRoleToken } from "@/lib/reference-roles";
 import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
 import { useBalance } from "@/lib/dashboard/use-balance";
 import { useGlyphLabCache } from "@/lib/dashboard/use-glyph-lab-cache";
@@ -68,11 +71,13 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 export function useDashboardState() {
-  // Shared atoms consumed by more than one domain (prompt editor + run config + tool config).
+  // Generate prompt state stays separate from image-tool prompt state.
   const [apiKey, setApiKey] = useState("");
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null);
   const [isSavingApiKey, setIsSavingApiKey] = useState(false);
   const [promptText, setPromptText] = useState("");
+  const [vtoPromptText, setVtoPromptText] = useState("");
+  const [outpaintPromptText, setOutpaintPromptText] = useState("");
   const [promptSourceAssetId, setPromptSourceAssetId] = useState<string | null>(null);
   const [model, setModel] = useState("pro-preview");
   const [width, setWidth] = useState(1024);
@@ -85,6 +90,7 @@ export function useDashboardState() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("assets");
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("prompt");
   const [toolSourceAssetId, setToolSourceAssetId] = useState<string | null>(null);
+  const [vtoGarmentAssetIds, setVtoGarmentAssetIds] = useState<(string | null)[]>([null, null, null, null]);
   const [toolMask, setToolMask] = useState("");
   const [toolBrushSize, setToolBrushSize] = useState(48);
   const [toolDilatePixels, setToolDilatePixels] = useState(10);
@@ -100,10 +106,29 @@ export function useDashboardState() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
+  const activeModelConfig = useMemo(() => getBflModel(model) || getBflModel("pro-preview")!, [model]);
 
   function editPromptText(value: string) {
     setPromptSourceAssetId(null);
     setPromptText(value);
+  }
+
+  function toolPromptForMode(mode: WorkspaceMode) {
+    if (mode === "vto") return vtoPromptText;
+    if (mode === "outpaint") return outpaintPromptText;
+    return "";
+  }
+
+  function copyGeneratePromptToTool(mode: WorkspaceMode) {
+    if (mode === "vto") {
+      setVtoPromptText(promptText);
+      setRecoveryMessage("Copied Generate prompt to VTO prompt.");
+      return;
+    }
+    if (mode === "outpaint") {
+      setOutpaintPromptText(promptText);
+      setRecoveryMessage("Copied Generate prompt to Outpaint prompt.");
+    }
   }
 
   // Domain hooks. Destructured into the same local names the body/return already use.
@@ -142,6 +167,7 @@ export function useDashboardState() {
     onAssetRemoved: (id) => {
       if (toolSourceAssetId === id) setToolSourceAssetId(null);
       if (promptSourceAssetId === id) setPromptSourceAssetId(null);
+      setVtoGarmentAssetIds((current) => current.map((assetId) => (assetId === id ? null : assetId)));
     }
   });
 
@@ -160,9 +186,24 @@ export function useDashboardState() {
     addAssetReference,
     addAssetReferences,
     setPrimaryAssetReference,
-    sendAssetToReference,
+    sendAssetToReference: sendAssetToReferenceBase,
     addReferenceFromDragPayload
-  } = useReferences({ assets, setError });
+  } = useReferences({
+    assets,
+    maxReferences: activeModelConfig.maxReferences,
+    modelLabel: activeModelConfig.label,
+    setError
+  });
+
+  useEffect(() => {
+    if (references.length <= activeModelConfig.maxReferences) return;
+    setReferences(references.slice(0, activeModelConfig.maxReferences));
+    setRecoveryMessage(
+      `${activeModelConfig.label} accepts up to ${activeModelConfig.maxReferences} reference image${
+        activeModelConfig.maxReferences === 1 ? "" : "s"
+      }. Extra references were removed for this model.`
+    );
+  }, [activeModelConfig.label, activeModelConfig.maxReferences, references, setReferences]);
 
   const {
     prompts,
@@ -250,6 +291,10 @@ export function useDashboardState() {
     () => assets.find((asset) => asset.id === toolSourceAssetId) || null,
     [assets, toolSourceAssetId]
   );
+  const vtoGarmentSlots = useMemo(
+    () => vtoGarmentAssetIds.map((id) => (id ? assets.find((asset) => asset.id === id) || null : null)),
+    [assets, vtoGarmentAssetIds]
+  );
   const promptSourceAsset = useMemo(
     () => assets.find((asset) => asset.id === promptSourceAssetId) || null,
     [assets, promptSourceAssetId]
@@ -300,8 +345,16 @@ export function useDashboardState() {
         title: `Active ${workspaceModeLabels[workspaceMode]} source`
       });
     }
+    vtoGarmentSlots.forEach((asset, index) => {
+      if (!asset) return;
+      (badges[asset.id] ||= []).push({
+        label: `VTO ${index + 1}`,
+        kind: "vto",
+        title: `Virtual Try-On garment ${index + 1}`
+      });
+    });
     return badges;
-  }, [references, audioAssignments, promptSourceAssetId, toolSourceAssetId, workspaceMode]);
+  }, [references, audioAssignments, promptSourceAssetId, toolSourceAssetId, workspaceMode, vtoGarmentSlots]);
 
   useEffect(() => {
     // masks are resolution-bound; drop them whenever the tool source changes
@@ -401,14 +454,14 @@ export function useDashboardState() {
     const plannedMissingImageTokens = Array.from(
       new Set(
         items.flatMap((item) =>
-          missingPromptImageTokens(String(item.body.prompt || ""), references)
+          missingPromptImageTokens(stripReferenceCue(String(item.body.prompt || "")), references)
         )
       )
     ).sort((left, right) => left - right);
     const plannedMissingRoleTokens = Array.from(
       new Set(
         items.flatMap((item) =>
-          missingPromptReferenceRoleTokens(String(item.body.prompt || ""), references)
+          missingPromptReferenceRoleTokens(stripReferenceCue(String(item.body.prompt || "")), references)
         )
       )
     );
@@ -420,7 +473,7 @@ export function useDashboardState() {
     }
     if (plannedMissingRoleTokens.length) {
       setError(
-        `Planned prompt references ${plannedMissingRoleTokens.map((role) => `@${role}`).join(", ")} but the matching role has no image. Add an image to that reference role or remove the token.`
+        `Planned prompt references ${plannedMissingRoleTokens.map((role) => referenceRoleToken(role)).join(", ")} but the matching role has no image. Add an image to that reference role or remove the token.`
       );
       return;
     }
@@ -486,47 +539,118 @@ export function useDashboardState() {
     setRecoveryMessage(`Loaded prompt from ${asset.title || asset.id}.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  function addAssetToPromptReferences(payload: string, role?: ReferenceRole) {
+  function addAssetToPromptReferences(payload: string, role?: ReferenceRole, targetId?: string) {
     const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : payload;
     const asset = assets.find((item) => item.id === assetId);
     if (!asset) return null;
-    const slot = addAssetReference(asset, role);
+    const slot = addAssetReference(asset, role, targetId);
     if (!slot) return null;
-    const referenceRole = referenceRoleConfig(role, slot - 1);
+    const referenceRole = referenceDropTargets.find((target) => target.id === targetId) || referenceRoleConfig(role, slot - 1);
     setWorkspaceMode("prompt");
     setRecoveryMessage(
       `Added ${asset.title || asset.id} as ${referenceRole.label} @img${slot}. The submitted prompt includes the reference roles cue.`
     );
     return slot;
   }
-  async function addReferenceFiles(files: File[], role?: ReferenceRole) {
+
+  function sendAssetToReference(asset: AssetRecord, role?: ReferenceRole, targetId?: string) {
+    const slot = sendAssetToReferenceBase(asset, role, targetId);
+    if (!slot) return null;
+    const referenceRole = referenceDropTargets.find((target) => target.id === targetId) || referenceRoleConfig(role, slot - 1);
+    setWorkspaceMode("prompt");
+    setRecoveryMessage(`Added ${asset.title || asset.id} as ${referenceRole.label} @img${slot}.`);
+    return slot;
+  }
+  async function addReferenceFiles(files: File[], role?: ReferenceRole, targetId?: string) {
     const imported = await importImageAssetFiles(files, { assetKind: "reference", focusAssetsTab: false });
     if (!imported.length) return [];
-    const slots = addAssetReferences(imported, role);
+    const slots = addAssetReferences(imported, role, targetId);
     if (!slots.length) return [];
-    const roleLabel = role ? `${referenceRoleConfig(role).label} ` : "";
+    const roleLabel = targetId
+      ? `${referenceDropTargets.find((target) => target.id === targetId)?.label || referenceRoleConfig(role).label} `
+      : role
+        ? `${referenceRoleConfig(role).label} `
+        : "";
     setRecoveryMessage(`Added ${roleLabel}${slots.map((slot) => `@img${slot}`).join(", ")} to references.`);
     return slots;
   }
-  async function setPrimaryReferenceFiles(files: File[], role?: ReferenceRole) {
+  async function setPrimaryReferenceFiles(files: File[], role?: ReferenceRole, targetId?: string) {
     const [asset] = await importImageAssetFiles(files.slice(0, 1), {
       assetKind: "reference",
       focusAssetsTab: false
     });
     if (!asset) return null;
-    setPrimaryAssetReference(asset, role);
+    setPrimaryAssetReference(asset, role, targetId);
     setRecoveryMessage(`Added ${asset.title || asset.id} as the primary reference.`);
     return 1;
   }
-  async function addPromptReferenceFiles(files: File[], role?: ReferenceRole) {
-    const slots = await addReferenceFiles(files, role);
+  async function addPromptReferenceFiles(files: File[], role?: ReferenceRole, targetId?: string) {
+    const slots = await addReferenceFiles(files, role, targetId);
     if (!slots.length) return [];
-    const roleLabel = role ? `${referenceRoleConfig(role).label} ` : "";
+    const roleLabel = targetId
+      ? `${referenceDropTargets.find((target) => target.id === targetId)?.label || referenceRoleConfig(role).label} `
+      : role
+        ? `${referenceRoleConfig(role).label} `
+        : "";
     setWorkspaceMode("prompt");
     setRecoveryMessage(
       `Added ${roleLabel}${slots.map((slot) => `@img${slot}`).join(", ")} to prompt references.`
     );
     return slots;
+  }
+  function setVtoGarmentAsset(slotIndex: number, asset: AssetRecord) {
+    if (slotIndex < 0 || slotIndex > 3) return;
+    setVtoGarmentAssetIds((current) => {
+      const next = [...current];
+      next[slotIndex] = asset.id;
+      return next;
+    });
+    setWorkspaceMode("vto");
+    setRecoveryMessage(`Added ${asset.title || asset.id} as VTO garment ${slotIndex + 1}.`);
+  }
+  async function assetFromVtoReferencePayload(payload: string) {
+    const reference = parseReferenceDragPayload(payload);
+    if (!reference) return null;
+    if (reference.assetId) return assets.find((asset) => asset.id === reference.assetId) || null;
+    if (!reference.value) return null;
+
+    const asset = await assetFromImageSource({
+      id: reference.id ? `vto-reference-${reference.id}` : undefined,
+      name: reference.name || "VTO garment reference",
+      imageDataUrl: reference.value.startsWith("data:") ? reference.value : undefined,
+      imageUrl: reference.value.startsWith("data:") ? undefined : reference.value,
+      assetKind: "reference",
+      provider: "reference",
+      model: "reference-image",
+      payload: {
+        source: "vto-reference-drag",
+        referenceId: reference.id,
+        referenceIndex: reference.index
+      }
+    });
+    if (asset.imageDataUrl?.startsWith("data:")) await persistAssetImage(asset.id, asset.imageDataUrl);
+    setAssets((current) => [asset, ...current.filter((item) => item.id !== asset.id)]);
+    return asset;
+  }
+  async function loadVtoGarmentFromDropPayload(slotIndex: number, payload: string) {
+    const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : payload;
+    const asset = assets.find((item) => item.id === assetId) || (await assetFromVtoReferencePayload(payload));
+    if (!asset) return null;
+    setVtoGarmentAsset(slotIndex, asset);
+    return asset;
+  }
+  async function importVtoGarmentFiles(slotIndex: number, files: File[]) {
+    const [asset] = await importImageAssetFiles(files.slice(0, 1), { assetKind: "reference", focusAssetsTab: false });
+    if (!asset) return null;
+    setVtoGarmentAsset(slotIndex, asset);
+    return asset;
+  }
+  function clearVtoGarment(slotIndex: number) {
+    setVtoGarmentAssetIds((current) => {
+      const next = [...current];
+      next[slotIndex] = null;
+      return next;
+    });
   }
   async function runWorkspaceTool() {
     if (workspaceMode === "prompt") {
@@ -544,9 +668,10 @@ export function useDashboardState() {
     const input: ToolRunInput = {
       mode: workspaceMode,
       sourceAsset: toolSourceAsset,
+      vtoGarments: vtoGarmentSlots.filter((asset): asset is AssetRecord => Boolean(asset)),
       apiKey,
       mask: toolMask,
-      prompt: promptText,
+      prompt: toolPromptForMode(workspaceMode),
       seed,
       dilatePixels: toolDilatePixels,
       guidance: toolGuidance,
@@ -560,7 +685,13 @@ export function useDashboardState() {
       offsetY: outpaintOffsetY,
       outpaintMode
     };
-    const blocker = toolRunBlocker({ mode: input.mode, mask: input.mask, prompt: input.prompt, hasSource: true });
+    const blocker = toolRunBlocker({
+      mode: input.mode,
+      mask: input.mask,
+      prompt: input.prompt,
+      garmentCount: input.vtoGarments.length,
+      hasSource: true
+    });
     if (blocker) {
       setError(blocker);
       return;
@@ -638,6 +769,11 @@ export function useDashboardState() {
     selectedComboIds,
     promptText,
     setPromptText: editPromptText,
+    vtoPromptText,
+    setVtoPromptText,
+    outpaintPromptText,
+    setOutpaintPromptText,
+    copyGeneratePromptToTool,
     promptSourceAsset,
     referenceCue,
     effectiveReferenceCue,
@@ -648,6 +784,7 @@ export function useDashboardState() {
     setReferences,
     model,
     setModel,
+    activeModelConfig,
     width,
     setWidth,
     height,
@@ -670,6 +807,10 @@ export function useDashboardState() {
     setWorkspaceMode,
     toolSourceAssetId,
     toolSourceAsset,
+    vtoGarmentSlots,
+    loadVtoGarmentFromDropPayload,
+    importVtoGarmentFiles,
+    clearVtoGarment,
     toolMask,
     setToolMask,
     toolBrushSize,

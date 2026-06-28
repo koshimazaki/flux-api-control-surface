@@ -11,6 +11,14 @@ import type { DashboardState } from "@/lib/use-dashboard-state";
 
 export function DashboardWorkspace({ state }: { state: DashboardState }) {
   const imageToolMode = state.workspaceMode === "prompt" ? null : state.workspaceMode;
+  const toolPromptText =
+    imageToolMode === "vto" ? state.vtoPromptText : imageToolMode === "outpaint" ? state.outpaintPromptText : "";
+  const setToolPromptText =
+    imageToolMode === "vto"
+      ? state.setVtoPromptText
+      : imageToolMode === "outpaint"
+        ? state.setOutpaintPromptText
+        : () => undefined;
 
   return (
     <section className="workspace">
@@ -46,6 +54,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             offsetY={state.outpaintOffsetY}
             glyphSettings={state.glyphSettings}
             glyphDraft={state.activeGlyphDraft}
+            vtoGarmentAssets={state.vtoGarmentSlots}
             onMaskChange={state.setToolMask}
             onOffsetXChange={state.setOutpaintOffsetX}
             onOffsetYChange={state.setOutpaintOffsetY}
@@ -55,6 +64,9 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             onClearSource={state.clearToolSourceAsset}
             onSourceDropPayload={(payload) => void state.loadToolSourceFromDropPayload(payload)}
             onSourceFiles={(files) => void state.importToolSourceFiles(files)}
+            onVtoGarmentDropPayload={(slotIndex, payload) => void state.loadVtoGarmentFromDropPayload(slotIndex, payload)}
+            onVtoGarmentFiles={(slotIndex, files) => void state.importVtoGarmentFiles(slotIndex, files)}
+            onClearVtoGarment={state.clearVtoGarment}
           />
         ) : (
           <PromptEditor
@@ -63,6 +75,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             onPromptChange={state.setPromptText}
             references={state.references}
             submittedReferenceCue={state.effectiveReferenceCue}
+            submittedPrompt={state.promptForRun}
             promptSourceAsset={state.promptSourceAsset}
             onReferenceDropPayload={state.addAssetToPromptReferences}
             onReferenceFiles={state.addPromptReferenceFiles}
@@ -81,7 +94,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           width={state.width}
           height={state.height}
           seed={state.seed}
-          promptText={state.promptText}
+          promptText={toolPromptText}
+          vtoGarmentCount={state.vtoGarmentSlots.filter(Boolean).length}
           mask={state.toolMask}
           brushSize={state.toolBrushSize}
           dilatePixels={state.toolDilatePixels}
@@ -98,7 +112,10 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onWidthChange={state.setWidth}
           onHeightChange={state.setHeight}
           onSeedChange={state.setSeed}
-          onPromptChange={state.setPromptText}
+          onPromptChange={setToolPromptText}
+          onUseGeneratePrompt={() => {
+            if (imageToolMode) state.copyGeneratePromptToTool(imageToolMode);
+          }}
           onBrushSizeChange={state.setToolBrushSize}
           onDilatePixelsChange={state.setToolDilatePixels}
           onGuidanceChange={state.setToolGuidance}
@@ -124,13 +141,14 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           selectedPromptCount={state.selectedComboIds.length}
           permutationPairCount={state.permutationPairCount}
           batchProgress={state.batchProgress}
-          assets={state.assets}
           references={state.references}
+          maxReferences={state.activeModelConfig.maxReferences}
           primaryReferenceUrl={state.primaryReferenceUrl}
           primaryReferencePreview={state.primaryReferencePreview}
           referenceWeight={state.referenceWeight}
           referenceCue={state.referenceCue}
           promptTokens={state.promptTokens}
+          promptTokenLimit={state.activeModelConfig.promptTokenLimit}
           estimatedCredits={state.costEstimate.credits}
           estimatedUsd={state.costEstimate.usd}
           costLabel={state.costEstimate.label}
@@ -151,7 +169,6 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onReferenceCueChange={state.setReferenceCue}
           onReferenceFiles={state.addReferenceFiles}
           onReferenceDropPayload={state.addReferenceFromDragPayload}
-          onReferenceAssetSelect={(assetId, role) => state.addReferenceFromDragPayload(`asset:${assetId}`, role)}
           onGenerate={() => void state.generate()}
         />
       )}
