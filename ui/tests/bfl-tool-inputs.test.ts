@@ -72,6 +72,22 @@ describe("BFL tool input preparation", () => {
     );
   });
 
+  it("blocks IPv4-mapped/compatible IPv6 in both dotted and normalized hex form (SSRF guard)", async () => {
+    // The WHATWG URL parser normalizes [::ffff:127.0.0.1] to ::ffff:7f00:1, so a
+    // dotted-only check would let loopback/metadata through an IPv6 literal.
+    expect(isBlockedRemoteAddress("::ffff:127.0.0.1")).toBe(true); // dotted
+    expect(isBlockedRemoteAddress("::ffff:7f00:1")).toBe(true); // 127.0.0.1, hex
+    expect(isBlockedRemoteAddress("::ffff:a9fe:a9fe")).toBe(true); // 169.254.169.254 metadata
+    expect(isBlockedRemoteAddress("::1")).toBe(true); // loopback
+    expect(isBlockedRemoteAddress("fe80::1")).toBe(true); // link-local
+    expect(isBlockedRemoteAddress("fc00::1")).toBe(true); // unique-local
+    expect(isBlockedRemoteAddress("::ffff:8.8.8.8")).toBe(false); // public mapped is allowed
+    // End-to-end: the cloud-metadata endpoint via an IPv6-mapped literal must be refused.
+    await expect(
+      assertSafeRemoteImageUrl("https://[::ffff:169.254.169.254]/latest/meta-data/", { allowedHosts: [] })
+    ).rejects.toThrow(/private or local/i);
+  });
+
   it("fetches remote inputs without redirects and enforces response size caps", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("", {
