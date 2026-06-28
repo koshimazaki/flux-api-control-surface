@@ -36,7 +36,7 @@ npm run build
 - Save outputs as image, prompt text, JSON metadata, and PNG metadata.
 - Recover local filesystem outputs and optional Cloudflare R2/D1 archive records.
 - Vectorize saved images into SVG/PNG glyph assets.
-- Prepare reference collections and captioning jobs for LoRA dataset workflows.
+- Prepare reference collections, caption jobs, LoRA datasets, and finetune runs.
 - Expose local HTTP/MCP-compatible routes for agents.
 
 ## Key Handling

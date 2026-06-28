@@ -6,7 +6,7 @@ The dashboard and the official FLUX MCP should be used together.
   OAuth sign-in, direct generation, edits, variations, history, and credits.
 - **This local control surface** is the workbench surface: prompt libraries,
   run plans, saved outputs, reference roles, audio guide assets, FLUX image tool
-  provenance, caption jobs, and UI-visible local artifacts.
+  provenance, caption jobs, finetune registry, and UI-visible local artifacts.
 
 In short: use hosted FLUX MCP for direct BFL creative operations; use the local
 dashboard API when the work should land back in this repo's gallery, prompts,
@@ -46,7 +46,8 @@ The local MCP wrapper exposes the JSON dashboard workflows: `get_manifest`,
 `check_credits`, `build_run_plan`, `run_batch`, `generate_saved_image`,
 `run_image_tool`, `save_prompt`, `delete_prompt`, `list_reference_archive`,
 `sync_reference_archive`, `vectorize_glyph`, `vectorize_glyph_batch`, and
-`prepare_caption_job`.
+`prepare_caption_job`, `build_finetune_dataset`, `register_finetune`,
+`list_finetunes`, and `generate_with_finetune`.
 
 The local dashboard resolves paid API calls from a per-request `apiKey`,
 `BFL_API_KEY`, `FLUX_API_KEY`, or a macOS Keychain item. MCP/status routes report
@@ -70,6 +71,9 @@ only whether a key is configured; they never return the raw key.
 | Render an audio-reactive guide MP4 | Local `/api/audio/guide` HTTP route |
 | Slice/loop uploaded audio | Local `/api/audio/slice` HTTP route |
 | Prepare a captioning job folder | Local `/api/bfl_dashboard/v1/caption_agent` |
+| Export a FLUX.2 [klein] LoRA dataset | Local `/api/finetune/dataset` or `build_finetune_dataset` |
+| Register or list hosted finetunes | Local `/api/finetunes`, `register_finetune`, or `list_finetunes` |
+| Generate with a registered finetune | Local `/api/bfl/generate` with `finetuneId` or `generate_with_finetune` |
 
 ## Agent Workflows
 
@@ -121,6 +125,18 @@ agent already has an analysis + marker payload, it can call:
 
 - `POST /api/audio/guide` to render the guide MP4.
 - `POST /api/audio/slice` to cut/loop audio for downstream video models.
+
+### FLUX.2 [klein] Finetune Loop
+
+1. Build or import a collection in the Collections tab.
+2. Use `POST /api/bfl_dashboard/v1/caption_agent` when captions need an agent pass.
+3. `POST /api/finetune/dataset` to write the LoRA image/caption sidecars,
+   `config.yaml`, and dataset README.
+4. Upload/train the exported dataset in the BFL Dashboard to obtain a
+   `finetune_id`.
+5. `POST /api/finetunes` to register the hosted finetune locally.
+6. `POST /api/bfl/generate` with `finetuneId` and optional `finetuneStrength`,
+   or call `generate_with_finetune` through the local MCP wrapper.
 
 ## Current Gaps
 

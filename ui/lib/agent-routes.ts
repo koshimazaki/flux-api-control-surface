@@ -339,6 +339,8 @@ export const localAgentCoverage = {
     "Server-side agents can read saved filesystem/R2 outputs through /api/outputs. Browser-imported local files live in browser storage until generated or exported.",
   audio:
     "Audio slicing and guide rendering are exposed as routes. Browser-side waveform analysis remains a UI workflow; agents can call /api/audio/guide when they already have an analysis payload.",
+  finetuning:
+    "FLUX.2 [klein] LoRA dataset export, hosted-finetune registration, listing, and finetuned generation are wired through /api/finetune/dataset, /api/finetunes, and /api/bfl/generate.",
   uiSync:
     "Agent-created outputs are visible through /api/outputs and the browser gallery polls for new server outputs. A push event stream is still optional future polish.",
   localOnly:
@@ -371,7 +373,7 @@ export const localDashboardMcpTools = [
 
 export const localMcpParityNotes = {
   wrapper:
-    "The stdio MCP wrapper covers the local JSON dashboard routes for discovery, assets, prompts, planning, generation, image tools, references, glyphs, credits, and caption job prep.",
+    "The stdio MCP wrapper covers the local JSON dashboard routes for discovery, assets, prompts, planning, generation, image tools, references, glyphs, credits, caption job prep, and finetune dataset/registry workflows.",
   httpOnly:
     "Audio guide rendering and audio slicing remain HTTP/UI workflows because those routes return binary media. Browser waveform analysis, drag/drop import, mask painting, and live React control remain UI or browser-automation workflows."
 };

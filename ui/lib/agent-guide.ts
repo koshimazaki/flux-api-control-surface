@@ -9,7 +9,7 @@ import {
 export const agentWorkflowGuide = {
   name: "FLUX Control Surface Agent Guide",
   purpose:
-    "Pair the hosted FLUX MCP with this local workbench API so agents can generate with BFL while keeping prompts, references, audio guides, tools, and recovered outputs visible in the dashboard.",
+    "Pair the hosted FLUX MCP with this local workbench API so agents can generate with BFL while keeping prompts, references, audio guides, tools, finetunes, and recovered outputs visible in the dashboard.",
   nativeFluxMcp: {
     serverUrl: nativeFluxMcp.serverUrl,
     role:
@@ -19,7 +19,7 @@ export const agentWorkflowGuide = {
   },
   localWorkbench: {
     role:
-      "Use the local dashboard routes when the agent should work with prompt libraries, saved outputs, reference roles, audio guide files, image-tool provenance, local archives, or UI-visible artifacts.",
+      "Use the local dashboard routes when the agent should work with prompt libraries, saved outputs, reference roles, audio guide files, image-tool provenance, finetune registry records, local archives, or UI-visible artifacts.",
     mcpWrapper: {
       tools: localDashboardMcpTools,
       coverage: localMcpParityNotes.wrapper,
@@ -38,12 +38,14 @@ export const agentWorkflowGuide = {
       prompts: agentRouteMap.prompts,
       audioGuide: agentRouteMap.audioGuide,
       audioSlice: agentRouteMap.audioSlice,
-      captionAgent: agentRouteMap.captionAgent
+      captionAgent: agentRouteMap.captionAgent,
+      finetuneDataset: agentRouteMap.finetuneDataset,
+      finetunes: agentRouteMap.finetunes
     }
   },
   useTogether: [
     "Ask the hosted FLUX MCP for quick creative exploration, variations, or BFL account history.",
-    "Use this local workbench API when the result should become a durable dashboard asset, prompt-library entry, reference set, audio/video guide, or captioning job.",
+    "Use this local workbench API when the result should become a durable dashboard asset, prompt-library entry, reference set, audio/video guide, captioning job, or finetune registry entry.",
     "When an agent uses /api/bfl/generate, /api/bfl/tools, or /api/dashboard/batch, the output is saved locally and can be recovered through /api/outputs."
   ],
   workflows: [
@@ -96,6 +98,16 @@ export const agentWorkflowGuide = {
         `POST ${agentRouteMap.captionAgent} with collection items and dryRun=true to inspect the job`,
         "Run without dryRun when the Codex CLI should caption the collection folder"
       ]
+    },
+    {
+      name: "Export/register/use a klein LoRA finetune",
+      steps: [
+        "Build or import a collection and make sure each item has an imageDataUrl plus caption",
+        `POST ${agentRouteMap.finetuneDataset} to write the LoRA sidecars, AI-Toolkit config, and dataset README`,
+        "Upload/train the exported dataset in the BFL Dashboard to obtain a finetune_id",
+        `POST ${agentRouteMap.finetunes} to register the hosted finetune locally`,
+        `POST ${agentRouteMap.generate} with finetuneId and optional finetuneStrength, or call generate_with_finetune`
+      ]
     }
   ],
   currentGaps: [
@@ -130,6 +142,7 @@ export const agentWorkflowGuide = {
     "Use this recovered gallery image as @character and another as @style, then generate four FLUX.2 Pro options.",
     "Outpaint this saved output to 16:9, save the result, and make it available in /api/outputs.",
     "Deblur this imported source image, then use the sharpened result as a gallery reference.",
+    "Export this collection as a FLUX.2 [klein] LoRA dataset, register the hosted finetune_id, then generate with strength 1.2.",
     "Given audio markers, render an audio-reactive guide MP4 and attach it to the next video-model prompt record.",
     "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery."
   ],

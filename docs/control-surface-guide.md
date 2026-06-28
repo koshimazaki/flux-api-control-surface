@@ -70,6 +70,10 @@ local dashboard origin.
 - `GET /api/mcp/manifest`: local route manifest.
 - `POST /api/glyphs/vectorize`: create SVG/PNG glyph outputs.
 - `GET/POST /api/reference-archive`: import or sync reference collections.
+- `POST /api/finetune/dataset`: export a FLUX.2 [klein] LoRA dataset with
+  captions and AI-Toolkit config.
+- `GET/POST/DELETE /api/finetunes`: list, register, or remove hosted BFL
+  finetune IDs for local generation.
 - `POST /api/audio/guide` and `POST /api/audio/slice`: render audio guide assets
   when the caller already has analysis/marker data.
 
@@ -95,8 +99,9 @@ BFL_DASHBOARD_URL=http://localhost:3017 npm run mcp
 The local wrapper covers the JSON dashboard workflows: manifest/context, key
 status, credits, prompt list/save/delete, run plans, batch execution, saved
 generation, image tools, reference archive list/sync, glyph vectorization, and
-caption job prep. Audio guide/slice routes return binary media and remain
-HTTP/UI workflows for now.
+caption job prep, plus finetune dataset export, registry, and generation.
+Audio guide/slice routes return binary media and remain HTTP/UI workflows for
+now.
 
 ## Optional Cloudflare Archive
 

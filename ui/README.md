@@ -107,8 +107,9 @@ The Collections tab can also sync a folder-style reference set to the same
 Worker under `BFL-API/references/<collection-id>/`. Use `Add folder`, then
 `Sync refs` to upload source/reference images to R2/D1. `Import refs` pulls
 those Cloudflare-hosted references back into the active collection, which makes
-it easy to mix a fresh folder with an older dataset before exporting a LoRA ZIP.
-The local HTML reference view is available at `/api/reference-archive?format=html`.
+it easy to mix a fresh folder with an older dataset before exporting a LoRA ZIP
+or FLUX.2 [klein] dataset. The local HTML reference view is available at
+`/api/reference-archive?format=html`.
 
 ## Balance + Cost
 
@@ -181,6 +182,11 @@ The UI is also an agent/MCP-facing local API:
   archived R2/D1 outputs back into the gallery.
 - `GET /api/reference-archive` hydrates Cloudflare reference folders back into
   the collection builder; `POST /api/reference-archive` syncs collection images.
+- `POST /api/finetune/dataset` exports a FLUX.2 [klein] LoRA dataset with image
+  sidecars, captions, AI-Toolkit config, and README.
+- `GET/POST/DELETE /api/finetunes` manages the local hosted-finetune registry.
+- `POST /api/bfl/generate` also accepts `finetuneId` and optional
+  `finetuneStrength` for registered hosted finetunes.
 
 ## MCP Note
 
@@ -188,5 +194,6 @@ BFL MCP is useful inside MCP clients such as Codex or Claude because it owns the
 OAuth flow and native BFL tool calls. This browser UI uses BFL's HTTP API for
 saved local outputs. The local stdio MCP wrapper exposes the JSON dashboard
 routes for prompts, plans, generation, tools, references, glyphs, credits, and
-caption job prep; binary audio export and browser-only interactions still use
-HTTP/UI or browser automation.
+caption job prep, plus finetune dataset export, registry, and finetuned
+generation; binary audio export and browser-only interactions still use HTTP/UI
+or browser automation.
