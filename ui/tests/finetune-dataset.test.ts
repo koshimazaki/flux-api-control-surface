@@ -184,6 +184,16 @@ describe("FLUX.2 klein dataset hardening", () => {
     expect(() => buildKleinLoraDataset(spoofed)).toThrow(/not a valid PNG, JPEG, or WebP/);
   });
 
+  it("rejects a partial PNG signature (first 4 magic bytes only, not the full 8)", () => {
+    // base64 of [0x89,0x50,0x4e,0x47,0,0,0,0] — "\x89PNG" then zeros, NOT the full
+    // 89 50 4E 47 0D 0A 1A 0A signature. The old 4-byte check wrongly accepted it.
+    const partialPng: TrainingCollection = {
+      ...collection,
+      items: [item({ name: "partial", caption: "x", imageDataUrl: "data:image/png;base64,iVBORwAAAAA=" })]
+    };
+    expect(() => buildKleinLoraDataset(partialPng)).toThrow(/not a valid PNG, JPEG, or WebP/);
+  });
+
   it("strips control characters from an overridden base model so it cannot break the YAML comment", () => {
     const config = resolveKleinLoraConfig(
       { name: "x", triggerToken: "bfl_x" },

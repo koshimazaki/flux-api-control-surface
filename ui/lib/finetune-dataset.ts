@@ -95,7 +95,19 @@ type DecodedImage = { bytes: Uint8Array; ext: "png" | "jpg" | "webp" };
 // MIME wrapping non-image bytes) is rejected and the on-disk extension matches
 // the actual content.
 function detectImageExt(bytes: Uint8Array): DecodedImage["ext"] | null {
-  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+  // Full 8-byte PNG signature (89 50 4E 47 0D 0A 1A 0A). Checking only the first
+  // four would accept "\x89PNG" followed by arbitrary bytes as a PNG.
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
     return "png";
   }
   if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpg";
