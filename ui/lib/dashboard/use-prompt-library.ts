@@ -6,9 +6,26 @@ import {
   saveStandalonePromptRecord,
   upsertPromptRecord
 } from "@/lib/dashboard-prompts";
-import { buildComboPrompt as buildComboPromptText, comboIdFromPrompts, uniqueText } from "@/lib/prompt-combo";
+import {
+  buildComboPrompt as buildComboPromptText,
+  comboIdFromPrompts,
+  comboModeLabels,
+  comboPromptFormat,
+  defaultComboSettings,
+  normalizeComboMode,
+  normalizeComboSettings,
+  uniqueText,
+  type ComboMode,
+  type ComboSettings
+} from "@/lib/prompt-combo";
 import { countPairPermutations } from "@/lib/dashboard-generation";
-import { ALL_PROMPT_LIBRARY_ID, buildPromptLibraryOptions, promptLibraryId } from "@/lib/prompt-library-groups";
+import {
+  ALL_PROMPT_LIBRARY_ID,
+  buildPromptLibraryOptions,
+  promptLibraryComboPreset,
+  promptLibraryId,
+  promptLibraryLabel
+} from "@/lib/prompt-library-groups";
 import { formatPrompt } from "@/lib/prompt-utils";
 import type { AssetRecord, BatchMode, PromptRecord } from "@/lib/types";
 
@@ -20,12 +37,29 @@ type UsePromptLibraryDeps = {
   setRecoveryMessage: (value: string) => void;
 };
 
+const COMBO_SETTINGS_CACHE_KEY = "bfl-combo-settings";
+
+function loadComboSettings() {
+  if (typeof window === "undefined") return defaultComboSettings;
+  try {
+    return normalizeComboSettings(JSON.parse(window.localStorage.getItem(COMBO_SETTINGS_CACHE_KEY) || "null"));
+  } catch {
+    return defaultComboSettings;
+  }
+}
+
+function persistComboSettings(settings: ComboSettings) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(COMBO_SETTINGS_CACHE_KEY, JSON.stringify(settings));
+}
+
 export function usePromptLibrary(deps: UsePromptLibraryDeps) {
   const { setPromptText, setSeed, setBatchMode, setError, setRecoveryMessage } = deps;
   const [prompts, setPrompts] = useState<PromptRecord[]>([]);
   const [activeId, setActiveId] = useState("");
   const [activePromptLibraryId, setActivePromptLibraryId] = useState(ALL_PROMPT_LIBRARY_ID);
   const [selectedComboIds, setSelectedComboIds] = useState<string[]>([]);
+  const [comboSettings, setComboSettingsState] = useState<ComboSettings>(defaultComboSettings);
   const [lastDeletedPrompt, setLastDeletedPrompt] = useState<PromptRecord | null>(null);
 
   const activePrompt = useMemo(() => prompts.find((prompt) => prompt.id === activeId), [activeId, prompts]);
@@ -51,6 +85,15 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     const record = prompts.find((item) => item.id === id);
     if (record) selectPromptRecord(record);
   }
+  function applyPromptLibraryComboPreset(id: string) {
+    const preset = promptLibraryComboPreset(id);
+    if (!preset) return;
+    const normalized = normalizeComboSettings(preset);
+    setComboSettingsState(normalized);
+    persistComboSettings(normalized);
+    setRecoveryMessage(`Loaded ${promptLibraryLabel(id)} combo settings.`);
+    setError("");
+  }
   function selectPromptLibrary(id: string) {
     setActivePromptLibraryId(id);
     const nextPrompts = id === ALL_PROMPT_LIBRARY_ID
@@ -59,25 +102,48 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     if (nextPrompts.length && !nextPrompts.some((prompt) => prompt.id === activeId)) {
       selectPromptRecord(nextPrompts[0]);
     }
+    applyPromptLibraryComboPreset(id);
   }
   function toggleComboPrompt(id: string) {
     setSelectedComboIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
     );
   }
+  function saveComboSettings(settings: Partial<ComboSettings>) {
+    const normalized = normalizeComboSettings(settings);
+    setComboSettingsState(normalized);
+    persistComboSettings(normalized);
+    setRecoveryMessage("Saved combo settings.");
+    setError("");
+  }
+  function updateComboMode(mode: ComboMode) {
+    const normalized = normalizeComboSettings({ ...comboSettings, mode: normalizeComboMode(mode) });
+    setComboSettingsState(normalized);
+    persistComboSettings(normalized);
+    setRecoveryMessage(`${comboModeLabels[normalized.mode]} combo mode selected.`);
+    setError("");
+  }
+  function updateComboEnvironment(environment: string) {
+    const normalized = normalizeComboSettings({ ...comboSettings, environment });
+    setComboSettingsState(normalized);
+    persistComboSettings(normalized);
+    setError("");
+  }
   function createComboPrompt() {
     const chosen = selectedComboIds
       .map((id) => prompts.find((prompt) => prompt.id === id))
       .filter(Boolean) as PromptRecord[];
     if (chosen.length < 2) return;
-    const comboId = comboIdFromPrompts(chosen);
-    const formattedPrompt = buildComboPromptText(chosen);
+    const comboId = comboIdFromPrompts(chosen, `combo_${comboSettings.mode}`);
+    const formattedPrompt = buildComboPromptText(chosen, { mode: comboSettings.mode, settings: comboSettings });
     const record: PromptRecord = {
       id: comboId,
       species: "combo",
       seed: chosen[0]?.seed,
       plant_form: uniqueText(chosen.map((item) => item.plant_form)).join(" + "),
-      prompt: formattedPrompt
+      prompt_format: comboPromptFormat(comboSettings.mode),
+      prompt: formattedPrompt,
+      combo: { mode: comboSettings.mode, sources: chosen.map((item) => item.id) }
     };
     setPrompts((current) => [record, ...current.filter((prompt) => prompt.id !== comboId)]);
     setActiveId(record.id);
@@ -85,6 +151,20 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     setSeed(String(record.seed || ""));
     setSelectedComboIds([record.id]);
     setBatchMode("current");
+    setError("");
+  }
+  function resetComboPrompt() {
+    const activePrompt = prompts.find((prompt) => prompt.id === activeId);
+    const fallback =
+      prompts.find((prompt) => prompt.id !== activeId && prompt.species !== "combo" && prompt.species !== "permutation") ||
+      prompts.find((prompt) => prompt.id !== activeId) ||
+      prompts[0];
+    setSelectedComboIds([]);
+    setBatchMode("current");
+    if (activePrompt?.species === "combo" || activePrompt?.species === "permutation" || activePrompt?.id.startsWith("combo_")) {
+      if (fallback) selectPromptRecord(fallback);
+    }
+    setRecoveryMessage("Cleared combo selection.");
     setError("");
   }
   async function savePrompt(activePromptText: string, seed: string, saveAsNew = false) {
@@ -210,6 +290,10 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
   }
 
   useEffect(() => {
+    setComboSettingsState(loadComboSettings());
+  }, []);
+
+  useEffect(() => {
     fetch("/api/prompts")
       .then((response) => response.json())
       .then((records: PromptRecord[]) => {
@@ -226,6 +310,7 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     activeId,
     activePromptLibraryId,
     selectedComboIds,
+    comboSettings,
     lastDeletedPrompt,
     activePrompt,
     promptLibraryOptions,
@@ -235,7 +320,11 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     selectPrompt,
     selectPromptLibrary,
     toggleComboPrompt,
+    saveComboSettings,
+    updateComboMode,
+    updateComboEnvironment,
     createComboPrompt,
+    resetComboPrompt,
     savePrompt,
     deletePrompt,
     undoDeletePrompt,

@@ -25,7 +25,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           selectedIds={state.selectedComboIds}
           pairCount={state.permutationPairCount}
           estimatedCredits={state.costEstimate.credits * state.permutationPairCount}
-          isGenerating={state.isGenerating}
+          isGenerating={state.isToolGenerating}
           onToggleSelected={state.toggleComboPrompt}
           onSelectAll={state.selectAllPromptSources}
           onClearSelection={state.clearPromptSources}

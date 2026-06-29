@@ -11,7 +11,12 @@ const prompts: PromptRecord[] = [
   },
   {
     id: "sample_02",
-    prompt: "A clean cybernetic botanical pair.",
+    species: "bat flower",
+    plant_form: "whisker tendrils",
+    prompt: JSON.stringify({
+      subjects: [{ description: "black bat flower with long whisker tendrils" }],
+      environment: "moonlit greenhouse"
+    }),
     seed: 12
   }
 ];
@@ -81,6 +86,26 @@ describe("buildRunPlan", () => {
 
     expect(plan.requests[0].body.references).toEqual(references.slice(0, 4));
     expect(plan.nativeFluxMcpHandoff.maxReferences).toBe(4);
+  });
+
+  it("uses the selected combo mode for permutation prompts", () => {
+    const morphPlan = buildRunPlan(prompts, {
+      batchMode: "permutations",
+      promptIds: ["sample_01", "sample_02"],
+      comboMode: "morph",
+      comboSettings: { environment: "humid jungle glasshouse" }
+    });
+    const stackPlan = buildRunPlan(prompts, {
+      batchMode: "permutations",
+      promptIds: ["sample_01", "sample_02"],
+      comboMode: "stack"
+    });
+
+    expect(morphPlan.requests[0].title).toContain("perm_morph");
+    expect(morphPlan.requests[0].body.prompt).toContain("A (primary species/anatomy)");
+    expect(morphPlan.requests[0].body.prompt).not.toContain("combo_sources");
+    expect(stackPlan.requests[0].title).toContain("perm_stack");
+    expect(stackPlan.requests[0].body.prompt).toContain("combo_sources");
   });
 
   it("lets the submitted seed override saved prompt seeds across batch modes", () => {

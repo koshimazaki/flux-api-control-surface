@@ -94,6 +94,31 @@ function applyPresetToPromptObject(prompt: unknown, preset: PromptPreset) {
   }
 }
 
+function applyEnvironmentToPromptObject(prompt: unknown, environment: string) {
+  if (!prompt || typeof prompt !== "object" || Array.isArray(prompt)) return;
+  const record = prompt as Record<string, any>;
+  record.environment = environment;
+
+  if (Array.isArray(record.combo_sources)) {
+    record.combo_sources.forEach((source) => {
+      if (source && typeof source === "object" && !Array.isArray(source)) {
+        applyEnvironmentToPromptObject((source as Record<string, any>).prompt, environment);
+      }
+    });
+  }
+}
+
+function applyEnvironmentToText(raw: string, environment: string) {
+  const trimmed = raw.trim();
+  if (!trimmed) return `Environment: ${environment}.`;
+  const nextEnvironment = `Environment: ${environment}.`;
+  if (/Environment:\s*[^.]+\.?/i.test(trimmed)) {
+    return trimmed.replace(/Environment:\s*[^.]+\.?/i, nextEnvironment);
+  }
+  const separator = /[.!?]$/.test(trimmed) ? " " : ". ";
+  return `${trimmed}${separator}${nextEnvironment}`;
+}
+
 export function applyPresetToPrompt(raw: string, preset: PromptPreset) {
   try {
     const parsed = JSON.parse(raw);
@@ -101,6 +126,18 @@ export function applyPresetToPrompt(raw: string, preset: PromptPreset) {
     return JSON.stringify(parsed, null, 2);
   } catch {
     return `${raw.trim()}. ${preset.style}, ${preset.lighting}, ${preset.lens}.`;
+  }
+}
+
+export function applyEnvironmentToPrompt(raw: string, environment: string) {
+  const cleanEnvironment = environment.trim();
+  if (!cleanEnvironment) return raw;
+  try {
+    const parsed = JSON.parse(raw);
+    applyEnvironmentToPromptObject(parsed, cleanEnvironment);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return applyEnvironmentToText(raw, cleanEnvironment);
   }
 }
 

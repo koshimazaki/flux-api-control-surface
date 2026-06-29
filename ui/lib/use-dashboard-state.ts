@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   buildAssetRecord,
   buildCompleteRunLog,
@@ -12,7 +12,8 @@ import {
   missingPromptImageTokens,
   missingPromptReferenceRoleTokens,
   parseSeed,
-  type BatchProgress
+  type BatchProgress,
+  type PlanRequestItem
 } from "@/lib/dashboard-generation";
 import { persistAssetImage } from "@/lib/dashboard-assets";
 import { assetFromImageSource } from "@/lib/image-asset-import";
@@ -29,7 +30,12 @@ import {
 } from "@/lib/dashboard-tools";
 import { formatPrompt, stripReferenceCue } from "@/lib/prompt-utils";
 import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions } from "@/lib/pricing";
-import { randomSeedString } from "@/lib/seed";
+import { advanceSeed, randomSeedString } from "@/lib/seed";
+import {
+  GENERATION_QUEUE_CONCURRENCY,
+  summarizeGenerationQueue,
+  type GenerationQueueJob
+} from "@/lib/generation-queue";
 import { getBflModel } from "@/lib/provider-registry";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import { referenceDropTargets, referenceRoleConfig, referenceRoleToken } from "@/lib/reference-roles";
@@ -41,16 +47,29 @@ import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
 import { useReferences } from "@/lib/dashboard/use-references";
 import { useToolSource, workspaceModeLabels } from "@/lib/dashboard/use-tool-source";
 import { useTrainingCollections } from "@/lib/dashboard/use-training-collections";
-import { loadToolWorkspaceCache, persistToolWorkspaceCache } from "@/lib/dashboard/workspace-cache";
+import {
+  defaultToolWorkspaceCache,
+  loadToolWorkspaceCache,
+  persistToolWorkspaceCache
+} from "@/lib/dashboard/workspace-cache";
 import type {
   AssetBadge,
   AssetRecord,
   BatchMode,
   DashboardTab,
+  ReferenceImage,
   ReferenceRole,
   WorkspaceMode,
   ApiKeyStatus
 } from "@/lib/types";
+
+type QueuedGenerationRun = {
+  id: string;
+  item: PlanRequestItem;
+  apiKey: string;
+  model: string;
+  references: ReferenceImage[];
+};
 
 type ApiKeyRouteResponse = Partial<ApiKeyStatus> & {
   deleted?: boolean;
@@ -78,13 +97,13 @@ function errorMessage(error: unknown, fallback: string) {
 
 export function useDashboardState() {
   // Generate prompt state stays separate from image-tool prompt state.
-  const [workspaceCacheSeed] = useState(loadToolWorkspaceCache);
+  const [hasHydratedWorkspaceCache, setHasHydratedWorkspaceCache] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null);
   const [isSavingApiKey, setIsSavingApiKey] = useState(false);
   const [promptText, setPromptText] = useState("");
-  const [vtoPromptText, setVtoPromptText] = useState(workspaceCacheSeed.vtoPromptText);
-  const [outpaintPromptText, setOutpaintPromptText] = useState(workspaceCacheSeed.outpaintPromptText);
+  const [vtoPromptText, setVtoPromptText] = useState(defaultToolWorkspaceCache.vtoPromptText);
+  const [outpaintPromptText, setOutpaintPromptText] = useState(defaultToolWorkspaceCache.outpaintPromptText);
   const [promptSourceAssetId, setPromptSourceAssetId] = useState<string | null>(null);
   const [model, setModel] = useState("pro-preview");
   const [width, setWidth] = useState(1024);
@@ -94,13 +113,15 @@ export function useDashboardState() {
   const [promptUpsampling, setPromptUpsampling] = useState(true);
   const [batchCount, setBatchCount] = useState(1);
   const [batchMode, setBatchMode] = useState<BatchMode>("current");
-  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
+  const [batchProgress] = useState<BatchProgress | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTab>("assets");
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(workspaceCacheSeed.workspaceMode);
-  const [toolSourceAssetId, setToolSourceAssetId] = useState<string | null>(workspaceCacheSeed.sharedSourceAssetId);
-  const [vtoSourceAssetId, setVtoSourceAssetId] = useState<string | null>(workspaceCacheSeed.vtoSourceAssetId);
-  const [glyphSourceAssetId, setGlyphSourceAssetId] = useState<string | null>(workspaceCacheSeed.glyphSourceAssetId);
-  const [vtoGarmentAssetIds, setVtoGarmentAssetIds] = useState<(string | null)[]>(workspaceCacheSeed.vtoGarmentAssetIds);
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(defaultToolWorkspaceCache.workspaceMode);
+  const [toolSourceAssetId, setToolSourceAssetId] = useState<string | null>(defaultToolWorkspaceCache.sharedSourceAssetId);
+  const [vtoSourceAssetId, setVtoSourceAssetId] = useState<string | null>(defaultToolWorkspaceCache.vtoSourceAssetId);
+  const [glyphSourceAssetId, setGlyphSourceAssetId] = useState<string | null>(defaultToolWorkspaceCache.glyphSourceAssetId);
+  const [vtoGarmentAssetIds, setVtoGarmentAssetIds] = useState<(string | null)[]>(
+    defaultToolWorkspaceCache.vtoGarmentAssetIds
+  );
   const [toolMask, setToolMask] = useState("");
   const [toolBrushSize, setToolBrushSize] = useState(48);
   const [toolDilatePixels, setToolDilatePixels] = useState(10);
@@ -108,12 +129,16 @@ export function useDashboardState() {
   const [toolSteps, setToolSteps] = useState(50);
   const [toolSafetyTolerance, setToolSafetyTolerance] = useState(2);
   const [toolOutputFormat, setToolOutputFormat] = useState<"png" | "jpeg" | "webp">("png");
-  const [outpaintOffsetX, setOutpaintOffsetX] = useState(workspaceCacheSeed.outpaintOffsetX);
-  const [outpaintOffsetY, setOutpaintOffsetY] = useState(workspaceCacheSeed.outpaintOffsetY);
-  const [outpaintMode, setOutpaintMode] = useState<"high" | "fast">(workspaceCacheSeed.outpaintMode);
-  const [outpaintAutoCrop, setOutpaintAutoCrop] = useState(workspaceCacheSeed.outpaintAutoCrop);
+  const [outpaintOffsetX, setOutpaintOffsetX] = useState(defaultToolWorkspaceCache.outpaintOffsetX);
+  const [outpaintOffsetY, setOutpaintOffsetY] = useState(defaultToolWorkspaceCache.outpaintOffsetY);
+  const [outpaintMode, setOutpaintMode] = useState<"high" | "fast">(defaultToolWorkspaceCache.outpaintMode);
+  const [outpaintAutoCrop, setOutpaintAutoCrop] = useState(defaultToolWorkspaceCache.outpaintAutoCrop);
   const [audioAssignments, setAudioAssignments] = useState<Record<string, string>>({});
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isToolGenerating, setIsToolGenerating] = useState(false);
+  const [generationQueue, setGenerationQueue] = useState<GenerationQueueJob[]>([]);
+  const pendingGenerationRunsRef = useRef<QueuedGenerationRun[]>([]);
+  const activeGenerationRunCountRef = useRef(0);
+  const generationQueueSerialRef = useRef(0);
   const [error, setError] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const activeModelConfig = useMemo(() => getBflModel(model) || getBflModel("pro-preview")!, [model]);
@@ -153,7 +178,7 @@ export function useDashboardState() {
   }
 
   function advanceSeedIfUnlocked() {
-    if (!seedLocked) setSeedValue(randomSeedString());
+    setSeedValue((current) => advanceSeed(seedLocked, current));
   }
 
   function editPromptText(value: string) {
@@ -279,6 +304,7 @@ export function useDashboardState() {
     activeId,
     activePromptLibraryId,
     selectedComboIds,
+    comboSettings,
     lastDeletedPrompt,
     activePrompt,
     promptLibraryOptions,
@@ -287,7 +313,11 @@ export function useDashboardState() {
     selectPrompt,
     selectPromptLibrary,
     toggleComboPrompt,
+    saveComboSettings,
+    updateComboMode,
+    updateComboEnvironment,
     createComboPrompt,
+    resetComboPrompt,
     deletePrompt,
     undoDeletePrompt,
     saveSequencePrompt,
@@ -325,6 +355,8 @@ export function useDashboardState() {
   });
 
   const { balance, setBalance, isCheckingBalance, checkBalance } = useBalance(apiKey);
+  const generationQueueSummary = useMemo(() => summarizeGenerationQueue(generationQueue), [generationQueue]);
+  const isGenerating = isToolGenerating || generationQueueSummary.active > 0;
 
   const runPlanPayload = useMemo(
     () =>
@@ -341,9 +373,11 @@ export function useDashboardState() {
         promptUpsampling,
         referenceCue: effectiveReferenceCue,
         referenceWeight,
-        references
+        references,
+        comboMode: comboSettings.mode,
+        comboSettings
       }),
-    [activeId, batchCount, batchMode, effectiveReferenceCue, height, model, promptText, promptUpsampling, referenceWeight, references, seed, selectedComboIds, width]
+    [activeId, batchCount, batchMode, comboSettings, effectiveReferenceCue, height, model, promptText, promptUpsampling, referenceWeight, references, seed, selectedComboIds, width]
   );
   const promptForRun = useMemo(
     () => composePrompt(promptText, references, effectiveReferenceCue),
@@ -450,11 +484,28 @@ export function useDashboardState() {
   ]);
 
   useEffect(() => {
+    const cache = loadToolWorkspaceCache();
+    setWorkspaceMode(cache.workspaceMode);
+    setToolSourceAssetId(cache.sharedSourceAssetId);
+    setVtoSourceAssetId(cache.vtoSourceAssetId);
+    setGlyphSourceAssetId(cache.glyphSourceAssetId);
+    setVtoGarmentAssetIds(cache.vtoGarmentAssetIds);
+    setVtoPromptText(cache.vtoPromptText);
+    setOutpaintPromptText(cache.outpaintPromptText);
+    setOutpaintOffsetX(cache.outpaintOffsetX);
+    setOutpaintOffsetY(cache.outpaintOffsetY);
+    setOutpaintMode(cache.outpaintMode);
+    setOutpaintAutoCrop(cache.outpaintAutoCrop);
+    setHasHydratedWorkspaceCache(true);
+  }, []);
+
+  useEffect(() => {
     // masks are resolution-bound; drop them whenever the tool source changes
     setToolMask("");
   }, [activeToolSourceAssetId]);
 
   useEffect(() => {
+    if (!hasHydratedWorkspaceCache) return;
     const timer = window.setTimeout(
       () =>
         persistToolWorkspaceCache({
@@ -475,6 +526,7 @@ export function useDashboardState() {
     return () => window.clearTimeout(timer);
   }, [
     workspaceMode,
+    hasHydratedWorkspaceCache,
     toolSourceAssetId,
     vtoSourceAssetId,
     glyphSourceAssetId,
@@ -561,6 +613,80 @@ export function useDashboardState() {
     return importPromptJsonWithText(promptText);
   }
 
+  function updateGenerationQueueJob(id: string, patch: Partial<GenerationQueueJob>) {
+    setGenerationQueue((current) => current.map((job) => (job.id === id ? { ...job, ...patch } : job)));
+  }
+
+  function startQueuedGenerationRuns() {
+    while (
+      activeGenerationRunCountRef.current < GENERATION_QUEUE_CONCURRENCY &&
+      pendingGenerationRunsRef.current.length
+    ) {
+      const next = pendingGenerationRunsRef.current.shift();
+      if (!next) return;
+      activeGenerationRunCountRef.current += 1;
+      void runQueuedGenerationRun(next);
+    }
+  }
+
+  async function runQueuedGenerationRun(run: QueuedGenerationRun) {
+    const started = Date.now();
+    updateGenerationQueueJob(run.id, { status: "running", startedAt: started });
+    try {
+      const data = await executePlannedGeneration(run.item, run.apiKey, run.references);
+      const asset = buildAssetRecord(data, run.item, run.references);
+      await persistAssetImage(asset.id, data.imageDataUrl);
+      setAssets((current) => [asset, ...current]);
+      setBalance((current) => ({ credits: data.submit?.creditsAfter ?? current.credits, checkedAt: Date.now() }));
+      setRunLog((current) => [buildCompleteRunLog(asset, started, run.item), ...current]);
+      updateGenerationQueueJob(run.id, { status: "complete", finishedAt: Date.now() });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Generation failed";
+      setRunLog((current) => [buildFailedRunLog(run.item, started, run.model, message), ...current]);
+      updateGenerationQueueJob(run.id, { status: "failed", error: message, finishedAt: Date.now() });
+      setError(`${run.item.title}: ${message}`);
+    } finally {
+      activeGenerationRunCountRef.current = Math.max(0, activeGenerationRunCountRef.current - 1);
+      startQueuedGenerationRuns();
+    }
+  }
+
+  function enqueueGenerationItems(items: PlanRequestItem[]) {
+    const now = Date.now();
+    const referencesSnapshot = references.map((reference) => ({ ...reference }));
+    const apiKeySnapshot = apiKey;
+    const modelSnapshot = model;
+    const runs = items.map((item) => {
+      generationQueueSerialRef.current += 1;
+      const id = `generation-${now}-${generationQueueSerialRef.current}`;
+      return {
+        run: {
+          id,
+          item,
+          apiKey: apiKeySnapshot,
+          model: modelSnapshot,
+          references: referencesSnapshot
+        } satisfies QueuedGenerationRun,
+        job: {
+          id,
+          title: item.title,
+          status: "queued" as const,
+          createdAt: now,
+          batchIndex: item.batchIndex,
+          batchTotal: item.batchTotal,
+          promptTokens: item.promptTokens,
+          estimatedCredits: item.estimatedCredits
+        }
+      };
+    });
+    pendingGenerationRunsRef.current.push(...runs.map(({ run }) => run));
+    setGenerationQueue((current) => [...current, ...runs.map(({ job }) => job)]);
+    setRecoveryMessage(
+      `Queued ${runs.length} generation${runs.length === 1 ? "" : "s"}; up to ${GENERATION_QUEUE_CONCURRENCY} can run in parallel.`
+    );
+    startQueuedGenerationRuns();
+  }
+
   async function generate(payload = runPlanPayload, mode = batchMode) {
     if (mode === "permutations" && selectedComboIds.length < 2) {
       setError("Select at least two prompts before running selected permutations.");
@@ -605,33 +731,8 @@ export function useDashboardState() {
       return;
     }
     setError("");
-    setIsGenerating(true);
-    setActiveTab("runs");
-    let failures = 0;
-    try {
-      for (const item of items) {
-        const started = Date.now();
-        setBatchProgress({ current: item.batchIndex, total: item.batchTotal });
-        try {
-          const data = await executePlannedGeneration(item, apiKey, references);
-          const asset = buildAssetRecord(data, item, references);
-          await persistAssetImage(asset.id, data.imageDataUrl);
-          setAssets((current) => [asset, ...current]);
-          setBalance({ credits: data.submit?.creditsAfter ?? balance.credits, checkedAt: Date.now() });
-          setRunLog((current) => [buildCompleteRunLog(asset, started, item), ...current]);
-        } catch (err) {
-          failures += 1;
-          const message = err instanceof Error ? err.message : "Generation failed";
-          setRunLog((current) => [buildFailedRunLog(item, started, model, message), ...current]);
-        }
-      }
-      setError(failures ? `${failures} of ${items.length} generations failed.` : "");
-      if (!failures) setActiveTab("assets");
-      if (!failures) advanceSeedIfUnlocked();
-    } finally {
-      setIsGenerating(false);
-      setBatchProgress(null);
-    }
+    enqueueGenerationItems(items);
+    advanceSeedIfUnlocked();
   }
   async function runPermutationScript() {
     const scriptCount = clampBatchCount(permutationPairCount);
@@ -652,7 +753,9 @@ export function useDashboardState() {
       promptUpsampling,
       referenceCue: effectiveReferenceCue,
       referenceWeight,
-      references
+      references,
+      comboMode: comboSettings.mode,
+      comboSettings
     });
     setBatchMode("permutations");
     setBatchCount(scriptCount);
@@ -838,7 +941,7 @@ export function useDashboardState() {
     }
     input = { ...input, seed: ensureSubmissionSeed().text };
     setError("");
-    setIsGenerating(true);
+    setIsToolGenerating(true);
     let preflightCompositeAsset: AssetRecord | null = null;
     const started = Date.now();
     try {
@@ -890,7 +993,7 @@ export function useDashboardState() {
       setRunLog((current) => [buildToolFailureLogEntry(input, started, message), ...current]);
       setError(message);
     } finally {
-      setIsGenerating(false);
+      setIsToolGenerating(false);
     }
   }
 
@@ -963,6 +1066,7 @@ export function useDashboardState() {
     activeId,
     activePromptLibraryId,
     selectedComboIds,
+    comboSettings,
     promptText,
     setPromptText: editPromptText,
     vtoPromptText,
@@ -1060,6 +1164,10 @@ export function useDashboardState() {
     isSyncingReferences,
     isImportingReferences,
     isGenerating,
+    isToolGenerating,
+    generationQueue,
+    generationQueueSummary,
+    generationQueueConcurrency: GENERATION_QUEUE_CONCURRENCY,
     error,
     recoveryMessage,
     setRecoveryMessage,
@@ -1081,7 +1189,11 @@ export function useDashboardState() {
     selectPrompt,
     selectPromptLibrary,
     toggleComboPrompt,
+    saveComboSettings,
+    updateComboMode,
+    updateComboEnvironment,
     createComboPrompt,
+    resetComboPrompt,
     savePrompt,
     deletePrompt,
     undoDeletePrompt,

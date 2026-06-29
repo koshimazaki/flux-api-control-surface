@@ -16,6 +16,7 @@ import {
 import { BFL_IMAGE_OPTION_MIME, BFL_REFERENCE_MIME, parseReferenceDragPayload, setReferenceDragData } from "@/lib/reference-drag";
 import type { BatchMode, ReferenceImage, ReferenceRole } from "@/lib/types";
 import { estimateMegapixels, modelOptions } from "@/lib/pricing";
+import type { GenerationQueueJob, GenerationQueueSummary } from "@/lib/generation-queue";
 
 const REFERENCE_WEIGHT_STEPS = [
   { label: "Hint", value: 0 },
@@ -56,6 +57,9 @@ type RunPanelProps = {
   estimatedUsd: number;
   costLabel: string;
   isGenerating: boolean;
+  generationQueue: GenerationQueueJob[];
+  generationQueueSummary: GenerationQueueSummary;
+  generationQueueConcurrency: number;
   error: string;
   onModelChange: (value: string) => void;
   onWidthChange: (value: number) => void;
@@ -96,6 +100,16 @@ export function RunPanel(props: RunPanelProps) {
     ? `${props.promptTokens} / ${props.promptTokenLimit.toLocaleString()} tok`
     : `${props.promptTokens} tok`;
   const referencesWithIndex = props.references.map((reference, index) => ({ reference, index }));
+  const visibleQueueJobs = props.generationQueue
+    .filter((job) => job.status === "queued" || job.status === "running")
+    .slice(0, 6);
+  const generateLabel = props.isGenerating
+    ? props.batchCount > 1
+      ? "Queue Batch"
+      : "Queue Next"
+    : props.batchCount > 1
+      ? "Generate Batch"
+      : "Generate";
   const targetReferences = new Map<string, typeof referencesWithIndex>();
   const seenLegacyTargetsByRole = new Map<ReferenceRole, number>();
 
@@ -271,6 +285,40 @@ export function RunPanel(props: RunPanelProps) {
             </small>
           </div>
         )}
+      </div>
+
+      <div className="queueBox">
+        <div className="queueHeader">
+          <span>Job queue</span>
+          <small>
+            {props.generationQueueSummary.running}/{props.generationQueueConcurrency} running ·{" "}
+            {props.generationQueueSummary.queued} lined up
+          </small>
+        </div>
+        <div className="queueMeter" aria-hidden="true">
+          {Array.from({ length: props.generationQueueConcurrency }, (_, index) => (
+            <span
+              key={index}
+              className={index < props.generationQueueSummary.running ? "running" : ""}
+            />
+          ))}
+        </div>
+        <div className="queueList">
+          {visibleQueueJobs.map((job) => (
+            <div className={`queueJob ${job.status}`} key={job.id}>
+              <strong>{job.title}</strong>
+              <small>
+                {job.status === "running" ? "working" : "queued"} · {job.batchIndex}/{job.batchTotal}
+              </small>
+            </div>
+          ))}
+          {!visibleQueueJobs.length && (
+            <div className="queueEmpty">
+              <span>Ready</span>
+              <small>Generate clicks can stack here.</small>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="referenceHeader">
@@ -476,14 +524,8 @@ export function RunPanel(props: RunPanelProps) {
         onChange={(event) => props.onReferenceCueChange(event.target.value)}
       />
 
-      <RunButton isRunning={props.isGenerating} onClick={() => props.onGenerate()}>
-        {props.isGenerating
-          ? props.batchProgress
-            ? `Running ${props.batchProgress.current}/${props.batchProgress.total}`
-            : "Generating"
-          : props.batchCount > 1
-            ? "Generate Batch"
-            : "Generate"}
+      <RunButton isRunning={props.isGenerating} onClick={() => props.onGenerate()} disableWhenRunning={false}>
+        {generateLabel}
       </RunButton>
       {props.error && <p className="errorText">{props.error}</p>}
     </aside>

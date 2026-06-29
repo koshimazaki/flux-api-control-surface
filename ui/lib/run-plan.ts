@@ -1,5 +1,14 @@
 import { estimateMinimumCost, estimateTokens } from "./pricing";
-import { buildComboPrompt, chunk, combinations, comboIdFromPrompts } from "./prompt-combo";
+import {
+  buildComboPrompt,
+  chunk,
+  combinations,
+  comboIdFromPrompts,
+  normalizeComboMode,
+  normalizeComboSettings,
+  type ComboMode,
+  type ComboSettings
+} from "./prompt-combo";
 import { composeReferencePrompt } from "./prompt-utils";
 import { getBflModel, maxReferencesForBflModel } from "./provider-registry";
 import type { PromptRecord } from "./types";
@@ -23,6 +32,8 @@ export type RunPlanBody = {
   references?: string[];
   hasReferences?: boolean;
   outputFormat?: "jpeg" | "png" | "webp";
+  comboMode?: ComboMode;
+  comboSettings?: Partial<ComboSettings>;
 };
 
 function clampCount(value: unknown) {
@@ -54,14 +65,16 @@ function selectPrompts(prompts: PromptRecord[], body: RunPlanBody) {
     const ids = new Set(body.promptIds);
     const sources = prompts.filter((prompt) => ids.has(prompt.id));
     const size = Math.max(2, Math.min(4, body.permutationSize || 2));
+    const comboSettings = normalizeComboSettings({ ...body.comboSettings, mode: body.comboMode });
+    const comboMode = normalizeComboMode(body.comboMode ?? comboSettings.mode);
     return combinations(sources, size)
       .slice(0, count)
       .map((combo, index) => ({
-        id: `${comboIdFromPrompts(combo, `perm_${index + 1}`)}`,
+        id: `${comboIdFromPrompts(combo, `perm_${comboMode}_${index + 1}`)}`,
         species: "permutation",
         seed: combo.find((record) => typeof record.seed === "number")?.seed,
         plant_form: combo.map((record) => record.plant_form).filter(Boolean).join(" + "),
-        prompt: buildComboPrompt(combo)
+        prompt: buildComboPrompt(combo, { mode: comboMode, settings: comboSettings })
       }));
   }
   if (body.promptIds?.length) {

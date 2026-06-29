@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { REDACTED_IMAGE_PLACEHOLDER } from "./bfl-server";
 import { toWorkspaceRelativePath } from "./local-paths";
 import { estimateTokens } from "./pricing";
 import type { AssetRecord } from "./types";
@@ -123,7 +124,13 @@ export async function readLocalOutputAssets(options: OutputAssetReadOptions = {}
       const metadata = JSON.parse(metadataText);
       const id = outputIdFor(metadata, base);
       const promptPath = `${base}.prompt.txt`;
-      const prompt = metadata.payload?.prompt || (await readFile(promptPath, "utf8").catch(() => ""));
+      const payloadPrompt = typeof metadata.payload?.prompt === "string" ? metadata.payload.prompt : "";
+      // Older outputs stored a redacted prompt in metadata; the .prompt.txt sidecar
+      // always holds the real prompt, so prefer it whenever the payload is empty or redacted.
+      const prompt =
+        payloadPrompt && payloadPrompt !== REDACTED_IMAGE_PLACEHOLDER
+          ? payloadPrompt
+          : (await readFile(promptPath, "utf8").catch(() => "")) || payloadPrompt;
       const imageDataUrl = includeImageData
         ? `data:${imageMime(imagePath)};base64,${(await readFile(imagePath)).toString("base64")}`
         : "";

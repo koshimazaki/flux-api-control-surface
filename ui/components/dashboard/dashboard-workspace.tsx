@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { BalanceCard } from "@/components/balance-card";
 import { ImageToolWorkspace } from "@/components/image-tool-workspace";
 import { PromptEditor } from "@/components/prompt-editor";
@@ -11,17 +12,22 @@ import type { DashboardState } from "@/lib/use-dashboard-state";
 
 export function DashboardWorkspace({ state }: { state: DashboardState }) {
   const imageToolMode = state.workspaceMode === "prompt" ? null : state.workspaceMode;
+  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode));
   const toolPromptText =
     imageToolMode === "vto" ? state.vtoPromptText : imageToolMode === "outpaint" ? state.outpaintPromptText : "";
   const setToolPromptText =
     imageToolMode === "vto"
       ? state.setVtoPromptText
       : imageToolMode === "outpaint"
-        ? state.setOutpaintPromptText
-        : () => undefined;
+      ? state.setOutpaintPromptText
+      : () => undefined;
+
+  useEffect(() => {
+    setLibraryCollapsed(Boolean(imageToolMode));
+  }, [imageToolMode]);
 
   return (
-    <section className="workspace">
+    <section className={["workspace", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
       <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
       <BalanceCard
         balanceCredits={state.balance.credits}
@@ -35,9 +41,16 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
         activeLibraryId={state.activePromptLibraryId}
         activeId={state.activeId}
         selectedIds={state.selectedComboIds}
+        comboSettings={state.comboSettings}
+        collapsed={libraryCollapsed}
+        canCollapse
         onLibraryChange={state.selectPromptLibrary}
         onSelect={state.selectPrompt}
         onToggleSelected={state.toggleComboPrompt}
+        onComboModeChange={state.updateComboMode}
+        onComboSettingsSave={state.saveComboSettings}
+        onClearCombo={state.resetComboPrompt}
+        onCollapsedChange={setLibraryCollapsed}
         onBuildCombo={state.createComboPrompt}
         onExport={() => downloadText("bfl-flower-prompts.json", JSON.stringify(state.prompts, null, 2))}
       />
@@ -77,6 +90,9 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             submittedReferenceCue={state.effectiveReferenceCue}
             submittedPrompt={state.promptForRun}
             promptSourceAsset={state.promptSourceAsset}
+            environmentOptions={state.comboSettings.environmentOptions}
+            activeEnvironment={state.comboSettings.environment}
+            onEnvironmentSelect={state.updateComboEnvironment}
             onReferenceDropPayload={state.addAssetToPromptReferences}
             onReferenceFiles={state.addPromptReferenceFiles}
             onImport={state.importPromptJson}
@@ -157,6 +173,9 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           estimatedUsd={state.costEstimate.usd}
           costLabel={state.costEstimate.label}
           isGenerating={state.isGenerating}
+          generationQueue={state.generationQueue}
+          generationQueueSummary={state.generationQueueSummary}
+          generationQueueConcurrency={state.generationQueueConcurrency}
           error={state.error || state.balance.error || ""}
           onModelChange={state.setModel}
           onWidthChange={state.setWidth}

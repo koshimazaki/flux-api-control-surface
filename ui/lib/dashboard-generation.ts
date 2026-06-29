@@ -1,5 +1,6 @@
 import { composeReferencePrompt } from "./prompt-utils";
 import { estimateTokens } from "./pricing";
+import type { ComboMode, ComboSettings } from "./prompt-combo";
 import {
   normalizeReferenceRole,
   referenceDisplayName,
@@ -123,6 +124,8 @@ export function buildRunPlanPayload(options: {
   referenceCue: string;
   referenceWeight: number;
   references: ReferenceImage[];
+  comboMode: ComboMode;
+  comboSettings: ComboSettings;
 }) {
   const hasReferences = options.references.some((reference) => Boolean(reference.value));
   return {
@@ -142,7 +145,9 @@ export function buildRunPlanPayload(options: {
     referenceCue: options.referenceCue,
     referenceWeight: clampReferenceWeight(options.referenceWeight),
     hasReferences,
-    outputFormat: "png" as const
+    outputFormat: "png" as const,
+    comboMode: options.comboMode,
+    comboSettings: options.comboSettings
   };
 }
 

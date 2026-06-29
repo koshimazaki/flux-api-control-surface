@@ -431,5 +431,60 @@
     "plant_form": "phone glass opening into light petals",
     "prompt_format": "text",
     "prompt": "Photorealistic product photograph of one unbranded smartphone lying on a dark reflective surface. Blank black screen, thin metal edge, clean centered crop, no app icons. Design hint for later audio-reactive transformation: the screen glass can ripple to the beat, split into luminous panels, and open into a geometric mechanical flower. Fuji film look, shallow depth of field, no logo, no text, no humans."
+  },
+  {
+    "id": "alien_abyssal_glass_ray_01",
+    "domain": "alien_creatures",
+    "seed": 5301,
+    "species": "abyssal glass ray",
+    "location": "abyssal deep ocean trench",
+    "lighting": "blue-black bioluminescent rim light",
+    "plant_form": "transparent manta-like fins, soft cartilage wings, glowing nerve filaments, glassy membrane body",
+    "prompt_format": "json",
+    "prompt": "{\"scene\":\"macro specimen photograph of a single invented alien aquatic creature on a clean dark plane, animation-friendly source image\",\"subjects\":[{\"description\":\"abyssal glass ray; transparent manta-like fins, soft cartilage wings, glowing nerve filaments, glassy membrane body, alien marine silhouette\",\"position\":\"centered dominant specimen, readable at thumbnail size\",\"action\":\"held still as a training-ready creature source image with clear anatomy and maskable edges\"}],\"style\":\"cinematic xenobiology macro photography, premium source-image quality, natural grain, high-frequency organic detail, elegant alien realism\",\"environment\":\"abyssal deep ocean trench, blue-black water, drifting marine snow, pressure-lit bioluminescence\",\"lighting\":\"blue-black bioluminescent rim light with soft internal glow\",\"composition\":\"stable centered crop, one dominant creature, readable silhouette, fins and membranes separated from the background, room for motion graphics\",\"camera\":{\"angle\":\"high three-quarter side/top specimen view, showing wing span and translucent internal organs\",\"lens\":\"90mm macro lens with controlled perspective, stable tabletop framing\",\"depth_of_field\":\"controlled macro depth with the main body and fin edges sharp\"},\"materials\":\"transparent cartilage, wet glass membranes, luminous nerves, soft organic tissue, tiny mineral specks\",\"delivery\":\"clean unmarked label-free creature image, no text, no watermark, no humans, usable as source material for video generation\"}"
+  },
+  {
+    "id": "alien_siphonophore_crown_01",
+    "domain": "alien_creatures",
+    "seed": 5302,
+    "species": "siphonophore crown medusa",
+    "location": "humid alien jungle canopy",
+    "lighting": "humid green glow with magenta bioluminescent accents",
+    "plant_form": "crown-like translucent bells, chain colony tendrils, stinging glass threads, floating colonial organs",
+    "prompt_format": "json",
+    "prompt": "{\"scene\":\"macro specimen photograph of a single invented alien colonial creature on a clean plane, animation-friendly source image\",\"subjects\":[{\"description\":\"siphonophore crown medusa; crown-like translucent bells, chain colony tendrils, stinging glass threads, floating colonial organs, alien aquatic-insect presence\",\"position\":\"centered dominant specimen, readable at thumbnail size\",\"action\":\"held still as a training-ready creature source image with clear tendril structure and maskable edges\"}],\"style\":\"cinematic xenobiology macro photography, premium source-image quality, natural grain, wet biological detail, elegant strange realism\",\"environment\":\"humid alien jungle canopy, wet black leaves, fungal mist, predatory bioluminescent undergrowth\",\"lighting\":\"humid green glow with magenta bioluminescent accents and soft rim light\",\"composition\":\"stable centered crop, one dominant creature, crown silhouette readable, trailing tendrils contained inside safe margins\",\"camera\":{\"angle\":\"front-high three-quarter specimen view, showing crown volume and hanging tendril depth\",\"lens\":\"100mm macro lens with compressed perspective and crisp tendril detail\",\"depth_of_field\":\"shallow cinematic depth with the crown sharp and tendrils gently falling off\"},\"materials\":\"translucent jelly, wet glass bells, glowing colony nodes, filament tendrils, pearlescent tissue\",\"delivery\":\"clean unmarked label-free creature image, no text, no watermark, no humans, usable as source material for video generation\"}"
+  },
+  {
+    "id": "alien_antarctic_ice_kraken_larva_01",
+    "domain": "alien_creatures",
+    "seed": 5303,
+    "species": "Antarctic ice kraken larva",
+    "location": "Antarctic ice shelf cavern",
+    "lighting": "pale polar light through blue ice",
+    "plant_form": "small kraken larva body, ice-crystal shell plates, pale tendrils, frost-glass eyes, brine gill vents",
+    "prompt_format": "json",
+    "prompt": "{\"scene\":\"macro specimen photograph of a single invented alien polar creature on a clean ice-dark plane, animation-friendly source image\",\"subjects\":[{\"description\":\"Antarctic ice kraken larva; small kraken larva body, ice-crystal shell plates, pale tendrils, frost-glass eyes, brine gill vents, eerie polar organism\",\"position\":\"centered dominant specimen, readable at thumbnail size\",\"action\":\"held still as a training-ready creature source image with clear tentacle anatomy and maskable edges\"}],\"style\":\"cinematic xenobiology macro photography, premium source-image quality, natural grain, crisp frozen detail, elegant alien realism\",\"environment\":\"Antarctic ice shelf cavern, blue ice, frozen brine pools, pale polar light\",\"lighting\":\"pale polar light through blue ice with cold rim highlights\",\"composition\":\"stable centered crop, one dominant creature, tentacles and shell plates readable, clean silhouette against a simple plane\",\"camera\":{\"angle\":\"low side/top specimen view, showing shell height, face detail, and tentacle spread\",\"lens\":\"90mm macro lens, controlled cold studio perspective\",\"depth_of_field\":\"controlled macro focus with eyes, shell plates, and nearest tendrils sharp\"},\"materials\":\"ice-crystal shell, frost glass eyes, translucent brine tissue, pale tendrils, cold wet organic texture\",\"delivery\":\"clean unmarked label-free creature image, no text, no watermark, no humans, usable as source material for video generation\"}"
+  },
+  {
+    "id": "alien_dune_nudibranch_worm_01",
+    "domain": "alien_creatures",
+    "seed": 5304,
+    "species": "dune nudibranch sandworm",
+    "location": "wind-carved alien dune desert",
+    "lighting": "hard desert rim light with heat shimmer",
+    "plant_form": "sandworm body, nudibranch frills, mineral armor scales, sensory horns, dust-breathing gill folds",
+    "prompt_format": "json",
+    "prompt": "{\"scene\":\"macro specimen photograph of a single invented alien desert creature on a clean mineral plane, animation-friendly source image\",\"subjects\":[{\"description\":\"dune nudibranch sandworm; sandworm body, nudibranch frills, mineral armor scales, sensory horns, dust-breathing gill folds, alien dune organism\",\"position\":\"centered dominant specimen, readable at thumbnail size\",\"action\":\"held still as a training-ready creature source image with clear frill anatomy and maskable edges\"}],\"style\":\"cinematic xenobiology macro photography, premium source-image quality, natural grain, tactile mineral detail, strange elegant realism\",\"environment\":\"wind-carved alien dune desert, mineral sand, heat haze, sandworm-scale burrows\",\"lighting\":\"hard desert rim light with heat shimmer and low amber bounce\",\"composition\":\"stable centered crop, one dominant creature, serpentine body readable, frills and horns separated from the background\",\"camera\":{\"angle\":\"low high-side specimen view along the body, showing worm length and frilled silhouette\",\"lens\":\"80mm macro lens with stable close framing and slight telephoto compression\",\"depth_of_field\":\"controlled macro depth with the head, frills, and nearest body plates sharp\"},\"materials\":\"mineral armor scales, dry translucent frills, sand-polished skin, dusty gill folds, ceramic horn texture\",\"delivery\":\"clean unmarked label-free creature image, no text, no watermark, no humans, usable as source material for video generation\"}"
+  },
+  {
+    "id": "alien_lab_mycelium_cephalopod_01",
+    "domain": "alien_creatures",
+    "seed": 5305,
+    "species": "lab mycelium cephalopod",
+    "location": "sterile xenobiology laboratory tank",
+    "lighting": "clinical white light with cyan containment glow",
+    "plant_form": "cephalopod mantle, branching mycelium arms, soft bacterial biofilm skin, glassy sensor nodules",
+    "prompt_format": "json",
+    "prompt": "{\"scene\":\"macro specimen photograph of a single invented alien lab creature on a clean containment plane, animation-friendly source image\",\"subjects\":[{\"description\":\"lab mycelium cephalopod; cephalopod mantle, branching mycelium arms, soft bacterial biofilm skin, glassy sensor nodules, engineered alien organism\",\"position\":\"centered dominant specimen, readable at thumbnail size\",\"action\":\"held still as a training-ready creature source image with clear arm branching and maskable edges\"}],\"style\":\"cinematic xenobiology macro photography, premium source-image quality, natural grain, controlled clinical realism, precise biological detail\",\"environment\":\"sterile xenobiology laboratory tank, glass containment, cold instruments, clinical rim light\",\"lighting\":\"clinical white light with cyan containment glow and crisp wet highlights\",\"composition\":\"stable centered crop, one dominant creature, branching arms contained inside safe margins, clean readable silhouette\",\"camera\":{\"angle\":\"front-high three-quarter specimen view, showing mantle volume and branching arms\",\"lens\":\"100mm macro lens with controlled studio perspective\",\"depth_of_field\":\"controlled macro depth with mantle, sensor nodules, and leading arms sharp\"},\"materials\":\"soft mycelium tissue, bacterial biofilm sheen, wet cephalopod skin, glass sensor nodules, translucent lab-grown membranes\",\"delivery\":\"clean unmarked label-free creature image, no text, no watermark, no humans, usable as source material for video generation\"}"
   }
 ]

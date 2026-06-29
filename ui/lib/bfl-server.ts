@@ -98,14 +98,20 @@ export function contentTypeForExtension(extension: string, fallback: string) {
   return fallback;
 }
 
+export const REDACTED_IMAGE_PLACEHOLDER = "[image input omitted]";
+
+// Payload keys whose values are human-readable text and must never be redacted,
+// even when long. JSON prompts routinely exceed the size cutoff, so without this
+// the stored (and later reloaded) prompt would collapse to the placeholder.
+const PRESERVED_TEXT_KEYS = new Set(["prompt"]);
+
 export function redactImagePayload(payload: Record<string, unknown>) {
   return Object.fromEntries(
-    Object.entries(payload).map(([key, value]) => [
-      key,
-      typeof value === "string" && (value.startsWith("data:") || value.length > 2048)
-        ? "[image input omitted]"
-        : value
-    ])
+    Object.entries(payload).map(([key, value]) => {
+      if (typeof value !== "string" || PRESERVED_TEXT_KEYS.has(key)) return [key, value];
+      const looksLikeImageData = value.startsWith("data:") || value.length > 2048;
+      return [key, looksLikeImageData ? REDACTED_IMAGE_PLACEHOLDER : value];
+    })
   );
 }
 

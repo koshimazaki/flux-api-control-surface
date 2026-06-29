@@ -10,6 +10,10 @@
     height: auto;
   }
 
+  .workspace.libraryCollapsed {
+    grid-template-columns: 58px minmax(360px, 1fr);
+  }
+
   .controls {
     min-height: 0;
     overflow: visible;
@@ -63,6 +67,21 @@
       "run";
   }
 
+  .workspace.libraryCollapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .collapsedLibrary {
+    min-height: 68px;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .collapsedLibrary span,
+  .collapsedLibrary small {
+    writing-mode: horizontal-tb;
+  }
+
   .panel {
     min-height: 0;
   }
@@ -99,6 +118,14 @@
 
   .workspaceMain {
     min-height: 0;
+  }
+
+  .comboEnvironmentRow {
+    grid-template-columns: minmax(0, 1fr) 34px;
+  }
+
+  .comboEnvironmentRow input:first-child {
+    grid-column: 1 / -1;
   }
 
   .maskPaintViewport,

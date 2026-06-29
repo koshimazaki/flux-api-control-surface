@@ -202,6 +202,10 @@ h2 {
   height: clamp(680px, calc(100vh - 132px), 900px);
 }
 
+.workspace.libraryCollapsed {
+  grid-template-columns: 58px minmax(520px, 1fr) 340px;
+}
+
 .workspace > .library {
   grid-area: library;
 }

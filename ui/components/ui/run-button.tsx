@@ -8,11 +8,12 @@ type RunButtonProps = {
   children: ReactNode;
   icon?: LucideIcon;
   disabled?: boolean;
+  disableWhenRunning?: boolean;
 };
 
-export function RunButton({ isRunning, onClick, children, icon: Icon = Play, disabled }: RunButtonProps) {
+export function RunButton({ isRunning, onClick, children, icon: Icon = Play, disabled, disableWhenRunning = true }: RunButtonProps) {
   return (
-    <button className="generateButton" onClick={onClick} disabled={disabled || isRunning}>
+    <button className="generateButton" onClick={onClick} disabled={disabled || (disableWhenRunning && isRunning)} aria-busy={isRunning}>
       {isRunning ? <LoaderCircle className="spin" size={18} /> : <Icon size={18} />}
       {children}
     </button>

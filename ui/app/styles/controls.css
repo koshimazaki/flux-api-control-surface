@@ -122,3 +122,79 @@
   background: linear-gradient(90deg, var(--green-light), var(--violet));
 }
 
+.queueBox {
+  display: grid;
+  gap: 9px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.queueHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.queueHeader small {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.queueMeter {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.queueMeter span {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(243, 241, 230, 0.12);
+}
+
+.queueMeter span.running {
+  background: linear-gradient(90deg, var(--green-light), var(--cyan));
+  box-shadow: 0 0 10px rgba(136, 225, 188, 0.32);
+}
+
+.queueList {
+  display: grid;
+  gap: 6px;
+}
+
+.queueJob,
+.queueEmpty {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(243, 241, 230, 0.09);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.32);
+  padding: 7px 8px;
+}
+
+.queueJob strong,
+.queueEmpty span {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.queueJob small,
+.queueEmpty small {
+  color: var(--muted);
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.queueJob.running {
+  border-color: rgba(136, 225, 188, 0.4);
+}

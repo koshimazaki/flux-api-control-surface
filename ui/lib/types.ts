@@ -1,3 +1,8 @@
+export type PromptComboMeta = {
+  mode: string;
+  sources: string[];
+};
+
 export type PromptRecord = {
   id: string;
   domain?: string;
@@ -9,6 +14,7 @@ export type PromptRecord = {
   plant_form?: string;
   prompt_format?: string;
   updated_at?: string;
+  combo?: PromptComboMeta;
 };
 
 export type ReferenceImage = {

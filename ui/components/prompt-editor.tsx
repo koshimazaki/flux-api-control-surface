@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from "react";
-import { Clipboard, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
+import { Clipboard, MapPin, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { PanelHeader } from "@/components/ui/panel-header";
 import {
@@ -11,7 +11,8 @@ import {
 } from "@/lib/reference-roles";
 import { BFL_IMAGE_OPTION_MIME, setReferenceDragData } from "@/lib/reference-drag";
 import type { AssetRecord, PromptRecord, ReferenceImage } from "@/lib/types";
-import { applyPresetToPrompt, compactPrompt, presets } from "@/lib/prompt-utils";
+import { comboEnvironmentLabel, promptHeaderSummary, type ComboEnvironmentOption } from "@/lib/prompt-combo";
+import { applyEnvironmentToPrompt, applyPresetToPrompt, compactPrompt, presets } from "@/lib/prompt-utils";
 
 type PromptEditorProps = {
   activePrompt?: PromptRecord;
@@ -26,6 +27,9 @@ type PromptEditorProps = {
   submittedReferenceCue: string;
   submittedPrompt: string;
   promptSourceAsset?: AssetRecord | null;
+  environmentOptions: ComboEnvironmentOption[];
+  activeEnvironment: string;
+  onEnvironmentSelect: (environment: string) => void;
   onReferenceDropPayload: (payload: string) => number | null | void;
   onReferenceFiles: (files: File[]) => Promise<number[]>;
 };
@@ -43,23 +47,43 @@ export function PromptEditor({
   submittedReferenceCue,
   submittedPrompt,
   promptSourceAsset,
+  environmentOptions,
+  activeEnvironment,
+  onEnvironmentSelect,
   onReferenceDropPayload,
   onReferenceFiles
 }: PromptEditorProps) {
   const [activePresetId, setActivePresetId] = useState("");
+  const [appliedEnvironmentId, setAppliedEnvironmentId] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const activeReferences = references
     .map((reference, index) => ({ reference, index }))
     .filter(({ reference }) => Boolean(reference.value));
 
-  // Clear the "plugged in" indicator when a different prompt is loaded.
+  // Clear the "plugged in" indicators when a different prompt is loaded.
   useEffect(() => {
     setActivePresetId("");
+    setAppliedEnvironmentId("");
   }, [activePrompt?.id]);
+
+  // Compact header summary: combo / prompt base plus any look + environment applied this session.
+  const appliedEnvironment = environmentOptions.find((environment) => environment.id === appliedEnvironmentId);
+  const headerSummary = promptHeaderSummary({
+    fallbackId: activePrompt?.id,
+    combo: activePrompt?.combo,
+    lightingLabel: presets.find((preset) => preset.id === activePresetId)?.label,
+    environmentLabel: appliedEnvironment ? comboEnvironmentLabel(appliedEnvironment) : undefined
+  });
 
   function applyPreset(preset: (typeof presets)[number]) {
     onPromptChange(applyPresetToPrompt(promptText, preset));
     setActivePresetId(preset.id);
+  }
+
+  function applyEnvironment(environment: ComboEnvironmentOption) {
+    onPromptChange(applyEnvironmentToPrompt(promptText, environment.description));
+    onEnvironmentSelect(environment.id);
+    setAppliedEnvironmentId(environment.id);
   }
 
   function editPrompt(value: string) {
@@ -119,24 +143,43 @@ export function PromptEditor({
       onDrop={(event) => void handleReferenceDrop(event)}
     >
       <PanelHeader
-        title={activePrompt?.id || "Generate"}
+        title={<span className="promptHeaderTitle" title={headerSummary}>{headerSummary}</span>}
         subtitle={activePrompt?.plant_form || "Structured FLUX.2 prompt"}
       >
         <div className="presetRow" role="group" aria-label="Look presets">
-          {presets.map((preset) => {
-            const active = preset.id === activePresetId;
-            return (
-              <button
-                key={preset.id}
-                className={active ? "presetToggle active" : "presetToggle"}
-                aria-pressed={active}
-                onClick={() => applyPreset(preset)}
-              >
-                <Wand2 size={15} />
-                {preset.label}
-              </button>
-            );
-          })}
+          <div className="presetGroup" role="radiogroup" aria-label="Lighting style">
+            {presets.map((preset) => {
+              const active = preset.id === activePresetId;
+              return (
+                <button
+                  key={preset.id}
+                  className={active ? "presetToggle active" : "presetToggle"}
+                  aria-pressed={active}
+                  onClick={() => applyPreset(preset)}
+                >
+                  <Wand2 size={15} />
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="presetGroup environmentPresetGroup" role="radiogroup" aria-label="Environment">
+            {environmentOptions.map((environment) => {
+              const active = environment.id === activeEnvironment;
+              return (
+                <button
+                  key={environment.id}
+                  className={active ? "presetToggle active" : "presetToggle"}
+                  aria-pressed={active}
+                  title={environment.description}
+                  onClick={() => applyEnvironment(environment)}
+                >
+                  <MapPin size={15} />
+                  {comboEnvironmentLabel(environment)}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </PanelHeader>
 
