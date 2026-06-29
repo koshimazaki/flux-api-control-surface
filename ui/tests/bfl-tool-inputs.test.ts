@@ -131,23 +131,27 @@ describe("BFL tool input preparation", () => {
     );
   });
 
-  it("assertSafeRemoteImageUrl returns the validated address to pin the socket to", async () => {
+  it("assertSafeRemoteImageUrl returns the validated address list to pin the socket to", async () => {
     const result = await assertSafeRemoteImageUrl("https://8.8.8.8/image.png", { allowedHosts: [] });
-    expect(result.address).toBe("8.8.8.8");
+    expect(result.addresses).toEqual(["8.8.8.8"]);
     expect(result.url.href).toBe("https://8.8.8.8/image.png");
   });
 
-  it("pinnedLookup always returns the pinned address regardless of the requested hostname", () => {
-    const lookup = pinnedLookup("203.0.113.7");
-    // net.connect single-address convention
+  it("pinnedLookup returns only the validated addresses regardless of the requested hostname", () => {
+    // Two validated addresses (dual-stack) so fallback is preserved while pinned.
+    const lookup = pinnedLookup(["203.0.113.7", "198.51.100.9"]);
+    // all: true convention -> the full validated list (Happy-Eyeballs fallback).
+    const all = vi.fn();
+    lookup("attacker-rebind.example.com", { all: true }, all);
+    expect(all).toHaveBeenCalledWith(null, [
+      { address: "203.0.113.7", family: 4 },
+      { address: "198.51.100.9", family: 4 }
+    ]);
+    // net.connect single-address convention -> the first validated address.
     const single = vi.fn();
     lookup("attacker-rebind.example.com", {}, single);
     expect(single).toHaveBeenCalledWith(null, "203.0.113.7", 4);
-    // all: true convention
-    const all = vi.fn();
-    lookup("attacker-rebind.example.com", { all: true }, all);
-    expect(all).toHaveBeenCalledWith(null, [{ address: "203.0.113.7", family: 4 }]);
-    // legacy callback-as-second-arg convention
+    // legacy callback-as-second-arg convention.
     const legacy = vi.fn();
     lookup("attacker-rebind.example.com", legacy);
     expect(legacy).toHaveBeenCalledWith(null, "203.0.113.7", 4);

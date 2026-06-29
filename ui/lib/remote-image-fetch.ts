@@ -159,18 +159,20 @@ export async function assertSafeRemoteImageUrl(
     if (isBlockedRemoteAddress(hostname)) {
       throw new Error(`Remote image host resolves to a private or local address: ${hostname}.`);
     }
-    return { url, address: hostname };
+    return { url, addresses: [hostname] };
   }
 
-  // Resolve ONCE and return a validated address so the caller can pin the socket
-  // to it. Re-resolving at fetch time would reopen a DNS-rebinding TOCTOU.
+  // Resolve ONCE and return the validated address list so the caller can pin the
+  // socket to it. Re-resolving at fetch time would reopen a DNS-rebinding TOCTOU.
+  // We return ALL records (every one is checked below) so the connector keeps its
+  // dual-stack fallback — just constrained to addresses we already validated.
   const records = await lookup(hostname, { all: true, verbatim: true });
   if (!records.length) throw new Error(`Remote image host could not be resolved: ${hostname}.`);
   const blocked = records.find((record) => isBlockedRemoteAddress(record.address));
   if (blocked) {
     throw new Error(`Remote image host resolves to a private or local address: ${blocked.address}.`);
   }
-  return { url, address: records[0].address };
+  return { url, addresses: records.map((record) => record.address) };
 }
 
 function assertByteLimit(size: number, maxBytes: number, label: string) {
@@ -183,24 +185,29 @@ export function assertImageBufferLimit(buffer: Buffer, label: string, maxBytes =
   assertByteLimit(buffer.byteLength, maxBytes, label);
 }
 
-// A net-style lookup that ALWAYS yields the single pre-validated address, so the
+// A net-style lookup that ALWAYS yields only the pre-validated addresses, so the
 // socket can't be re-pointed (DNS rebinding) between the safety check and the
-// request. SNI/Host stay the original hostname, so TLS still validates the cert.
-type LookupCallback = (err: NodeJS.ErrnoException | null, address: string | LookupAddress[], family?: number) => void;
-export function pinnedLookup(address: string) {
-  const family = net.isIP(address) || 4;
+// request — while still returning the full set so the connector keeps its
+// dual-stack fallback. SNI/Host stay the hostname, so TLS validates the cert.
+type LookupCallback = (err: NodeJS.ErrnoException | null, address?: string | LookupAddress[], family?: number) => void;
+export function pinnedLookup(addresses: string[]) {
+  const resolved = addresses.map((address) => ({ address, family: net.isIP(address) || 4 }));
   return (_hostname: string, options: unknown, callback?: LookupCallback): void => {
     const cb = (typeof options === "function" ? options : callback) as LookupCallback;
+    if (!resolved.length) {
+      cb(Object.assign(new Error("No validated address to connect to."), { code: "ENOTFOUND" }));
+      return;
+    }
     const wantsAll = typeof options === "object" && options !== null && (options as { all?: boolean }).all === true;
-    if (wantsAll) cb(null, [{ address, family }]);
-    else cb(null, address, family);
+    if (wantsAll) cb(null, resolved);
+    else cb(null, resolved[0].address, resolved[0].family);
   };
 }
 
 // GET an https URL while connecting only to `address` (the pre-validated IP).
 // Mirrors the previous fetch() guarantees: https-only, redirects refused, and a
 // hard byte cap enforced on both Content-Length and the streamed body.
-function fetchPinnedHttps(url: URL, address: string, label: string, maxBytes: number, timeoutMs: number): Promise<Buffer> {
+function fetchPinnedHttps(url: URL, addresses: string[], label: string, maxBytes: number, timeoutMs: number): Promise<Buffer> {
   const servername = url.hostname.replace(/^\[|\]$/g, "");
   return new Promise<Buffer>((resolve, reject) => {
     let settled = false;
@@ -222,8 +229,10 @@ function fetchPinnedHttps(url: URL, address: string, label: string, maxBytes: nu
       {
         method: "GET",
         servername,
-        lookup: pinnedLookup(address) as unknown as https.RequestOptions["lookup"]
-      },
+        // Happy-Eyeballs across the validated addresses, each socket pinned to one.
+        autoSelectFamily: true,
+        lookup: pinnedLookup(addresses) as unknown as https.RequestOptions["lookup"]
+      } as https.RequestOptions,
       (response) => {
         const status = response.statusCode ?? 0;
         if (status >= 300 && status < 400) {
@@ -265,6 +274,6 @@ function fetchPinnedHttps(url: URL, address: string, label: string, maxBytes: nu
 export async function fetchRemoteImageBuffer(rawUrl: string, label: string, options: RemoteImageFetchOptions = {}) {
   const maxBytes = options.maxBytes ?? MAX_IMAGE_INPUT_BYTES;
   const timeoutMs = options.timeoutMs ?? DEFAULT_REMOTE_IMAGE_FETCH_TIMEOUT_MS;
-  const { url, address } = await assertSafeRemoteImageUrl(rawUrl, { allowedHosts: options.allowedHosts });
-  return fetchPinnedHttps(url, address, label, maxBytes, timeoutMs);
+  const { url, addresses } = await assertSafeRemoteImageUrl(rawUrl, { allowedHosts: options.allowedHosts });
+  return fetchPinnedHttps(url, addresses, label, maxBytes, timeoutMs);
 }
