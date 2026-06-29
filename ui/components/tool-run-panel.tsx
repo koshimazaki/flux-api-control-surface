@@ -2,9 +2,11 @@ import { ChevronDown, Clipboard, Eraser, Fingerprint, Focus, Maximize2, Shirt } 
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import { JobQueue } from "@/components/ui/job-queue";
 import { SeedControl } from "@/components/seed-control";
 import type { AssetRecord, WorkspaceMode } from "@/lib/types";
 import type { ToolOutputFormat } from "@/lib/dashboard-tools";
+import type { GenerationQueueJob, GenerationQueueSummary } from "@/lib/generation-queue";
 
 type ToolMode = Exclude<WorkspaceMode, "prompt">;
 
@@ -62,6 +64,9 @@ type ToolRunPanelProps = {
   outpaintMode: "high" | "fast";
   autoCrop: boolean;
   isGenerating: boolean;
+  generationQueue: GenerationQueueJob[];
+  generationQueueSummary: GenerationQueueSummary;
+  generationQueueConcurrency: number;
   error: string;
   onWidthChange: (value: number) => void;
   onHeightChange: (value: number) => void;
@@ -284,6 +289,12 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
           onRandomize={props.onRandomSeed}
         />
       )}
+
+      <JobQueue
+        queue={props.generationQueue}
+        summary={props.generationQueueSummary}
+        concurrency={props.generationQueueConcurrency}
+      />
 
       <RunButton isRunning={props.isGenerating} onClick={props.onRun} disabled={runBlocked}>
         {copy.action}

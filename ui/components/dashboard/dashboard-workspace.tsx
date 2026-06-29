@@ -125,6 +125,9 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           outpaintMode={state.outpaintMode}
           autoCrop={state.outpaintAutoCrop}
           isGenerating={state.isGenerating}
+          generationQueue={state.generationQueue}
+          generationQueueSummary={state.generationQueueSummary}
+          generationQueueConcurrency={state.generationQueueConcurrency}
           error={state.error || state.balance.error || ""}
           onWidthChange={state.setWidth}
           onHeightChange={state.setHeight}

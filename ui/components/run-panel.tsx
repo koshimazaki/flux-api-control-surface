@@ -4,6 +4,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import { JobQueue } from "@/components/ui/job-queue";
 import { SeedControl } from "@/components/seed-control";
 import {
   type ReferenceDropTarget,
@@ -100,9 +101,6 @@ export function RunPanel(props: RunPanelProps) {
     ? `${props.promptTokens} / ${props.promptTokenLimit.toLocaleString()} tok`
     : `${props.promptTokens} tok`;
   const referencesWithIndex = props.references.map((reference, index) => ({ reference, index }));
-  const visibleQueueJobs = props.generationQueue
-    .filter((job) => job.status === "queued" || job.status === "running")
-    .slice(0, 6);
   const generateLabel = props.isGenerating
     ? props.batchCount > 1
       ? "Queue Batch"
@@ -225,14 +223,6 @@ export function RunPanel(props: RunPanelProps) {
         </label>
       </div>
 
-      <SeedControl
-        value={props.seed}
-        locked={props.seedLocked}
-        onChange={props.onSeedChange}
-        onLockedChange={props.onSeedLockedChange}
-        onRandomize={props.onRandomSeed}
-      />
-
       <label className="toggle">
         <input
           type="checkbox"
@@ -285,40 +275,6 @@ export function RunPanel(props: RunPanelProps) {
             </small>
           </div>
         )}
-      </div>
-
-      <div className="queueBox">
-        <div className="queueHeader">
-          <span>Job queue</span>
-          <small>
-            {props.generationQueueSummary.running}/{props.generationQueueConcurrency} running ·{" "}
-            {props.generationQueueSummary.queued} lined up
-          </small>
-        </div>
-        <div className="queueMeter" aria-hidden="true">
-          {Array.from({ length: props.generationQueueConcurrency }, (_, index) => (
-            <span
-              key={index}
-              className={index < props.generationQueueSummary.running ? "running" : ""}
-            />
-          ))}
-        </div>
-        <div className="queueList">
-          {visibleQueueJobs.map((job) => (
-            <div className={`queueJob ${job.status}`} key={job.id}>
-              <strong>{job.title}</strong>
-              <small>
-                {job.status === "running" ? "working" : "queued"} · {job.batchIndex}/{job.batchTotal}
-              </small>
-            </div>
-          ))}
-          {!visibleQueueJobs.length && (
-            <div className="queueEmpty">
-              <span>Ready</span>
-              <small>Generate clicks can stack here.</small>
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="referenceHeader">
@@ -522,6 +478,20 @@ export function RunPanel(props: RunPanelProps) {
         className="referenceCue"
         value={props.referenceCue}
         onChange={(event) => props.onReferenceCueChange(event.target.value)}
+      />
+
+      <SeedControl
+        value={props.seed}
+        locked={props.seedLocked}
+        onChange={props.onSeedChange}
+        onLockedChange={props.onSeedLockedChange}
+        onRandomize={props.onRandomSeed}
+      />
+
+      <JobQueue
+        queue={props.generationQueue}
+        summary={props.generationQueueSummary}
+        concurrency={props.generationQueueConcurrency}
       />
 
       <RunButton isRunning={props.isGenerating} onClick={() => props.onGenerate()} disableWhenRunning={false}>
