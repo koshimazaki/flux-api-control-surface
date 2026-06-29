@@ -15,7 +15,9 @@ import {
 import { embedPngMetadata } from "@/lib/png-metadata";
 import { resolveFinetuneGeneration } from "@/lib/finetune-registry";
 import { bflFinetunedKleinModel, getBflModel, validateBflGenerationRequest } from "@/lib/provider-registry";
+import { toStoredReferenceMeta } from "@/lib/reference-roles";
 import { syncOutputToRemote } from "@/lib/remote-archive";
+import type { ReferenceImage } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +33,7 @@ type GenerateBody = {
   promptUpsampling?: boolean;
   safetyTolerance?: number | null;
   references?: string[];
+  referenceMeta?: Array<Partial<ReferenceImage>>;
   referenceWeight?: number;
   title?: string;
   finetuneId?: string;
@@ -170,6 +173,8 @@ export async function POST(request: NextRequest) {
       endpointName,
       finetune: finetune ? { id: finetune.finetuneId, strength: finetune.finetuneStrength } : null,
       runSettings,
+      // Persisted so the gallery can rebuild reference thumbnails on reload.
+      references: toStoredReferenceMeta(body.referenceMeta),
       payload: safePayload,
       submit: {
         cost: submitted.cost ?? null,

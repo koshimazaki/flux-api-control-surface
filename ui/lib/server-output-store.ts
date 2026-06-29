@@ -3,6 +3,7 @@ import path from "node:path";
 import { REDACTED_IMAGE_PLACEHOLDER } from "./bfl-server";
 import { toWorkspaceRelativePath } from "./local-paths";
 import { estimateTokens } from "./pricing";
+import { referencesFromStoredMeta } from "./reference-roles";
 import type { AssetRecord } from "./types";
 
 export const OUTPUT_ROOT = path.resolve(process.cwd(), "..", "outputs", "flux-api-control-surface");
@@ -157,7 +158,7 @@ export async function readLocalOutputAssets(options: OutputAssetReadOptions = {}
             : undefined,
         provider: metadata.provider || metadata.runSettings?.provider || "bfl-api",
         payload: metadata.payload || {},
-        references: [],
+        references: referencesFromStoredMeta(metadata.references),
         runSettings: metadata.runSettings || {
           title: path.basename(base),
           provider: metadata.provider || metadata.runSettings?.provider || "bfl-api",

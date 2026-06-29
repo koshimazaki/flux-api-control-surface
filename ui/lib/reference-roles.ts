@@ -130,3 +130,49 @@ export function referencePreviewSrc(reference: ReferenceImage) {
   if (reference.assetId) return `/api/outputs/${encodeURIComponent(reference.assetId)}/image`;
   return "";
 }
+
+export type StoredReferenceMeta = {
+  assetId?: string;
+  role?: ReferenceRole;
+  name?: string;
+  targetId?: string;
+};
+
+// Persist only lightweight descriptors (never image data) in output metadata.
+// The gallery rebuilds reference thumbnails after a reload by resolving each
+// assetId through /api/outputs/:id/image, so the heavy base64 never needs saving.
+export function toStoredReferenceMeta(references: Array<Partial<ReferenceImage>> | undefined): StoredReferenceMeta[] {
+  if (!Array.isArray(references)) return [];
+  return references
+    .slice(0, 8)
+    .map((reference) => ({
+      assetId: typeof reference?.assetId === "string" ? reference.assetId : undefined,
+      role: reference?.role,
+      name: typeof reference?.name === "string" ? reference.name.slice(0, 200) : undefined,
+      targetId: typeof reference?.targetId === "string" ? reference.targetId : undefined
+    }))
+    .filter((reference) => Boolean(reference.assetId || reference.role || reference.name));
+}
+
+// Rebuild renderable references from stored descriptors. value is intentionally
+// empty so referencePreviewSrc resolves the thumbnail via assetId.
+export function referencesFromStoredMeta(stored: unknown): ReferenceImage[] {
+  if (!Array.isArray(stored)) return [];
+  return stored.flatMap((entry, index) => {
+    if (!entry || typeof entry !== "object") return [];
+    const meta = entry as Record<string, unknown>;
+    const assetId = typeof meta.assetId === "string" ? meta.assetId : undefined;
+    const role = typeof meta.role === "string" ? (meta.role as ReferenceRole) : undefined;
+    if (!assetId && !role) return [];
+    return [
+      {
+        id: assetId ? `${assetId}-ref-${index}` : `ref-${index}`,
+        name: typeof meta.name === "string" ? meta.name : `reference ${index + 1}`,
+        value: "",
+        role,
+        targetId: typeof meta.targetId === "string" ? meta.targetId : undefined,
+        assetId
+      } satisfies ReferenceImage
+    ];
+  });
+}

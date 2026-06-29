@@ -164,13 +164,22 @@ export async function fetchRunPlan(payload: Record<string, unknown>) {
 }
 
 export async function executePlannedGeneration(item: PlanRequestItem, apiKey: string, references: ReferenceImage[]) {
+  const activeReferences = references.filter((reference) => Boolean(reference.value));
   const response = await fetch(item.endpoint, {
     method: item.method || "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...item.body,
       apiKey: apiKey.trim() || undefined,
-      references: references.map((reference) => reference.value).filter(Boolean)
+      references: activeReferences.map((reference) => reference.value),
+      // Lightweight descriptors so the saved output can rebuild reference
+      // thumbnails after a reload (the image values themselves are not persisted).
+      referenceMeta: activeReferences.map((reference) => ({
+        assetId: reference.assetId,
+        role: reference.role,
+        name: reference.name,
+        targetId: reference.targetId
+      }))
     })
   });
   const data = await response.json();

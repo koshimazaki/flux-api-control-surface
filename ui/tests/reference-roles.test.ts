@@ -3,13 +3,15 @@ import {
   normalizeReferenceRole,
   referenceDropTargets,
   referencePreviewSrc,
+  referencesFromStoredMeta,
   referenceRoleConfig,
   referenceRoleForIndex,
   referenceRoleOptions,
   referenceRoleToken,
   referenceRoleTokenPattern,
   referenceTargetToken,
-  referenceToken
+  referenceToken,
+  toStoredReferenceMeta
 } from "@/lib/reference-roles";
 import type { ReferenceImage, ReferenceRole } from "@/lib/types";
 
@@ -128,6 +130,40 @@ describe("referencePreviewSrc resolves a thumbnail consistently", () => {
   it("returns empty only when there is nothing to show", () => {
     expect(referencePreviewSrc(reference({ value: "" }))).toBe("");
     expect(referencePreviewSrc(reference({ value: "[stored reference omitted]" }))).toBe("");
+  });
+});
+
+describe("reference persistence round-trips through output metadata", () => {
+  it("stores only lightweight descriptors, never image data", () => {
+    const stored = toStoredReferenceMeta([
+      { assetId: "a1", role: "character", name: "hero", targetId: "character", value: "data:image/png;base64,HUGE" },
+      { assetId: "a2", role: "style", name: "look", targetId: "style-1", value: "data:image/png;base64,ALSOHUGE" }
+    ]);
+    expect(stored).toEqual([
+      { assetId: "a1", role: "character", name: "hero", targetId: "character" },
+      { assetId: "a2", role: "style", name: "look", targetId: "style-1" }
+    ]);
+    // No value/base64 leaks into what we persist.
+    expect(JSON.stringify(stored)).not.toContain("base64");
+  });
+
+  it("drops empty descriptors and caps the list", () => {
+    expect(toStoredReferenceMeta([{ value: "data:image/png;base64,x" }])).toEqual([]);
+    expect(toStoredReferenceMeta(undefined)).toEqual([]);
+    expect(toStoredReferenceMeta(Array.from({ length: 12 }, (_, i) => ({ assetId: `a${i}` }))).length).toBe(8);
+  });
+
+  it("rebuilds renderable references whose thumbnail resolves via assetId", () => {
+    const rebuilt = referencesFromStoredMeta([{ assetId: "asset-7", role: "character", name: "hero" }]);
+    expect(rebuilt).toHaveLength(1);
+    expect(rebuilt[0]).toMatchObject({ assetId: "asset-7", role: "character", name: "hero", value: "" });
+    // The whole point: a reloaded reference still resolves a thumbnail.
+    expect(referencePreviewSrc(rebuilt[0])).toBe("/api/outputs/asset-7/image");
+  });
+
+  it("ignores malformed stored entries", () => {
+    expect(referencesFromStoredMeta(undefined)).toEqual([]);
+    expect(referencesFromStoredMeta([null, 3, {}, { foo: "bar" }])).toEqual([]);
   });
 });
 
