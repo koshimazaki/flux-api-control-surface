@@ -698,7 +698,6 @@ export function useDashboardState() {
     setWorkspaceMode("vto");
     setSelectedAsset(null);
     setError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
     if (slotIndex === -1) {
       setRecoveryMessage("All four VTO garment slots are full. Clear a garment slot before adding another item.");
       return null;

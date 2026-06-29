@@ -54,7 +54,7 @@ export function useToolSource(deps: UseToolSourceDeps) {
     setSourceAssetIdForMode(mode, asset.id);
     setSelectedAsset(null);
     setRecoveryMessage(`Loaded ${asset.title || asset.id} in ${workspaceModeLabels[mode]}.`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (mode !== "vto") window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function importToolSourceFiles(files: File[]) {

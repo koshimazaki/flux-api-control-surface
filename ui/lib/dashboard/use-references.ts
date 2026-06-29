@@ -149,7 +149,6 @@ export function useReferences({ assets, maxReferences, modelLabel, setError }: U
   function sendAssetToReference(asset: AssetRecord, role?: ReferenceRole, targetId?: string) {
     const slot = addAssetReference(asset, role, targetId);
     if (!slot) return null;
-    window.scrollTo({ top: 0, behavior: "smooth" });
     return slot;
   }
   function addReferenceFromDragPayload(payload: string, role?: ReferenceRole, targetId?: string) {

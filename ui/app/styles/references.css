@@ -194,6 +194,323 @@
   backdrop-filter: blur(12px);
 }
 
+.referenceDock {
+  position: fixed;
+  top: 12px;
+  left: max(18px, calc((100vw - 1880px) / 2 + 18px));
+  right: max(18px, calc((100vw - 1880px) / 2 + 18px));
+  z-index: 1200;
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(204, 213, 188, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 64%),
+    rgba(12, 14, 12, 0.78);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 20px rgba(0, 0, 0, 0.48),
+    0 22px 56px rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  padding: 10px 12px 12px;
+  pointer-events: none;
+  transform: translateY(-18px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    visibility 180ms ease;
+  visibility: hidden;
+}
+
+.referenceDock.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.referenceDock.collapsed {
+  padding-bottom: 10px;
+}
+
+.referenceDockHeader {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.referenceDockHeader > div:first-child {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.referenceDockHeader span,
+.referenceDockSlotTop span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.referenceDockHeader span {
+  color: var(--cream);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.referenceDockHeader strong {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.referenceDockHeader .iconButton {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+}
+
+.referenceDockHeaderThumbs {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.referenceDockHeaderThumbs img,
+.referenceDockHeaderThumbs span {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border: 1px solid rgba(237, 237, 237, 0.16);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.referenceDockHeaderThumbs img {
+  display: block;
+  object-fit: cover;
+}
+
+.referenceDockHeaderThumbs span {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.referenceDockBody {
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 1px;
+}
+
+.referenceDockBody::-webkit-scrollbar {
+  height: 8px;
+}
+
+.referenceDockSlots {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(116px, 1fr));
+  gap: 8px;
+  min-width: 820px;
+}
+
+.referenceDock.mode-vto .referenceDockSlots {
+  grid-template-columns: minmax(150px, 1.2fr) repeat(4, minmax(122px, 1fr));
+  min-width: 720px;
+}
+
+.referenceDockSlot {
+  min-width: 0;
+  min-height: 96px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 7px;
+  border: 1px dashed rgba(237, 237, 237, 0.18);
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
+    rgba(0, 0, 0, 0.26);
+  padding: 8px;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.referenceDockSlot.active {
+  border-style: solid;
+  border-color: rgba(159, 176, 157, 0.46);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 3px),
+    rgba(85, 102, 89, 0.16);
+}
+
+.referenceDockSlot.dragOver {
+  border-color: rgba(243, 241, 230, 0.72);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 3px),
+    rgba(85, 102, 89, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(243, 241, 230, 0.16), 0 0 0 1px rgba(159, 176, 157, 0.18);
+  transform: translateY(-1px);
+}
+
+.referenceDockSlotTop {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.referenceDockSlotTop strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cream);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.referenceDockSlotTop svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.referenceDockSlotTop code {
+  flex: 0 0 auto;
+  border: 1px solid rgba(237, 237, 237, 0.16);
+  border-radius: 999px;
+  background: rgba(237, 237, 237, 0.055);
+  padding: 2px 5px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.referenceDockThumbs {
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.referenceDockThumbs.empty {
+  display: grid;
+}
+
+.referenceDockThumb,
+.referenceDockAssetThumb {
+  position: relative;
+  width: 54px;
+  min-width: 0;
+  height: 54px;
+  flex: 0 0 54px;
+  cursor: grab;
+}
+
+.referenceDockAssetThumb {
+  width: 100%;
+  flex: 1 1 auto;
+}
+
+.referenceDockThumb img,
+.referenceDockThumb > span,
+.referenceDockAssetThumb img,
+.referenceDockEmpty {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.referenceDockThumb img,
+.referenceDockAssetThumb img {
+  display: block;
+  object-fit: cover;
+}
+
+.referenceDockAssetThumb img {
+  object-fit: contain;
+  padding: 4px;
+}
+
+.referenceDockThumb > span,
+.referenceDockEmpty {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.referenceDockEmpty {
+  align-content: center;
+  gap: 5px;
+  min-height: 54px;
+  border-style: dashed;
+  font-size: 10.5px;
+  text-align: center;
+}
+
+.referenceDockThumb button,
+.referenceDockAssetThumb button {
+  position: absolute;
+  z-index: 1;
+  top: -7px;
+  right: -7px;
+  width: 21px;
+  min-height: 21px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(12px);
+}
+
+.referenceDockThumb em,
+.referenceDockAssetThumb em {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(237, 237, 237, 0.16);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  color: var(--muted);
+  padding: 2px 5px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-style: normal;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.referenceDockMore {
+  width: 32px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(237, 237, 237, 0.16);
+  border-radius: 6px;
+  background: rgba(237, 237, 237, 0.055);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
 .fileButton {
   position: relative;
   overflow: hidden;
@@ -371,6 +688,32 @@
 }
 
 @media (max-width: 760px) {
+  .referenceDock {
+    top: 8px;
+    padding: 9px;
+  }
+
+  .referenceDockHeader {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .referenceDockHeader > div:first-child {
+    display: grid;
+    gap: 3px;
+  }
+
+  .referenceDockHeaderThumbs {
+    display: none;
+  }
+
+  .referenceDockSlots,
+  .referenceDock.mode-vto .referenceDockSlots {
+    grid-auto-columns: minmax(132px, 72vw);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    min-width: 0;
+  }
+
   .referenceRoleGrid {
     grid-template-columns: 1fr;
   }
