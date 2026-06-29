@@ -11,6 +11,7 @@ import {
   fetchRunPlan,
   missingPromptImageTokens,
   missingPromptReferenceRoleTokens,
+  parseSeed,
   type BatchProgress
 } from "@/lib/dashboard-generation";
 import { persistAssetImage } from "@/lib/dashboard-assets";
@@ -28,6 +29,7 @@ import {
 } from "@/lib/dashboard-tools";
 import { formatPrompt, stripReferenceCue } from "@/lib/prompt-utils";
 import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions } from "@/lib/pricing";
+import { randomSeedString } from "@/lib/seed";
 import { getBflModel } from "@/lib/provider-registry";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import { referenceDropTargets, referenceRoleConfig, referenceRoleToken } from "@/lib/reference-roles";
@@ -87,7 +89,8 @@ export function useDashboardState() {
   const [model, setModel] = useState("pro-preview");
   const [width, setWidth] = useState(1024);
   const [height, setHeight] = useState(1024);
-  const [seed, setSeed] = useState("");
+  const [seed, setSeedValue] = useState("");
+  const [seedLocked, setSeedLocked] = useState(false);
   const [promptUpsampling, setPromptUpsampling] = useState(true);
   const [batchCount, setBatchCount] = useState(1);
   const [batchMode, setBatchMode] = useState<BatchMode>("current");
@@ -114,6 +117,44 @@ export function useDashboardState() {
   const [error, setError] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const activeModelConfig = useMemo(() => getBflModel(model) || getBflModel("pro-preview")!, [model]);
+
+  useEffect(() => {
+    setSeedValue((current) => current.trim() || randomSeedString());
+  }, []);
+
+  function setSeed(value: string) {
+    setSeedValue(value);
+  }
+
+  function randomizeSeed() {
+    setSeedValue(randomSeedString());
+  }
+
+  function applyStoredSeed(value: string) {
+    const storedSeed = value.trim();
+    if (seedLocked) {
+      if (storedSeed) setSeedValue(storedSeed);
+      return;
+    }
+    setSeedValue((current) => current.trim() || randomSeedString());
+  }
+
+  function ensureSubmissionSeed() {
+    const parsed = parseSeed(seed);
+    if (parsed !== null) return { text: seed.trim(), value: parsed };
+    const nextSeed = randomSeedString();
+    setSeedValue(nextSeed);
+    return { text: nextSeed, value: Number(nextSeed) };
+  }
+
+  function withSubmissionSeed<T extends Record<string, unknown>>(payload: T) {
+    const submissionSeed = ensureSubmissionSeed();
+    return { ...payload, seed: submissionSeed.value };
+  }
+
+  function advanceSeedIfUnlocked() {
+    if (!seedLocked) setSeedValue(randomSeedString());
+  }
 
   function editPromptText(value: string) {
     setPromptSourceAssetId(null);
@@ -255,7 +296,7 @@ export function useDashboardState() {
     clearPromptSources,
     savePrompt: savePromptWithText,
     importPromptJson: importPromptJsonWithText
-  } = usePromptLibrary({ setPromptText: editPromptText, setSeed, setBatchMode, setError, setRecoveryMessage });
+  } = usePromptLibrary({ setPromptText: editPromptText, setSeed: applyStoredSeed, setBatchMode, setError, setRecoveryMessage });
 
   const {
     trainingCollection,
@@ -525,9 +566,10 @@ export function useDashboardState() {
       setError("Select at least two prompts before running selected permutations.");
       return;
     }
+    const payloadWithSeed = withSubmissionSeed(payload);
     let items;
     try {
-      items = await fetchRunPlan(payload);
+      items = await fetchRunPlan(payloadWithSeed);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not build run plan.");
       return;
@@ -585,6 +627,7 @@ export function useDashboardState() {
       }
       setError(failures ? `${failures} of ${items.length} generations failed.` : "");
       if (!failures) setActiveTab("assets");
+      if (!failures) advanceSeedIfUnlocked();
     } finally {
       setIsGenerating(false);
       setBatchProgress(null);
@@ -618,7 +661,7 @@ export function useDashboardState() {
   function sendAssetToPrompt(asset: AssetRecord) {
     setPromptText(formatPrompt(asset.prompt));
     setPromptSourceAssetId(asset.id);
-    setSeed(asset.seed ? String(asset.seed) : "");
+    applyStoredSeed(asset.seed ? String(asset.seed) : "");
     setModel(modelOptions.some((option) => option.value === asset.model) ? asset.model : "pro-preview");
     setWorkspaceMode("prompt");
     setRecoveryMessage(`Loaded prompt from ${asset.title || asset.id}.`);
@@ -762,7 +805,7 @@ export function useDashboardState() {
       setError("Select a source image from the assets library.");
       return;
     }
-    const input: ToolRunInput = {
+    let input: ToolRunInput = {
       mode: workspaceMode,
       sourceAsset: toolSourceAsset,
       vtoGarments: vtoGarmentSlots.filter((asset): asset is AssetRecord => Boolean(asset)),
@@ -793,6 +836,7 @@ export function useDashboardState() {
       setError(blocker);
       return;
     }
+    input = { ...input, seed: ensureSubmissionSeed().text };
     setError("");
     setIsGenerating(true);
     let preflightCompositeAsset: AssetRecord | null = null;
@@ -840,6 +884,7 @@ export function useDashboardState() {
               : "."
         }`
       );
+      advanceSeedIfUnlocked();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Tool run failed";
       setRunLog((current) => [buildToolFailureLogEntry(input, started, message), ...current]);
@@ -942,6 +987,9 @@ export function useDashboardState() {
     setHeight,
     seed,
     setSeed,
+    seedLocked,
+    setSeedLocked,
+    randomizeSeed,
     promptUpsampling,
     setPromptUpsampling,
     batchCount,

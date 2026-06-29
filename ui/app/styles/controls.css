@@ -16,6 +16,35 @@
   gap: 10px;
 }
 
+.seedControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px minmax(72px, auto);
+  gap: 8px;
+  align-items: end;
+}
+
+.seedControl .seedField {
+  min-width: 0;
+}
+
+.seedIconButton {
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+}
+
+.seedLockButton {
+  min-height: 38px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.seedLockButton.selected {
+  border-color: rgba(159, 176, 157, 0.74);
+  background: rgba(85, 102, 89, 0.34);
+  color: var(--cream);
+}
+
 .toggle {
   display: flex !important;
   grid-template-columns: 18px 1fr;

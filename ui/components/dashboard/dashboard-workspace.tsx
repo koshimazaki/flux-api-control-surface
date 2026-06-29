@@ -94,6 +94,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           width={state.width}
           height={state.height}
           seed={state.seed}
+          seedLocked={state.seedLocked}
           promptText={toolPromptText}
           vtoGarmentCount={state.vtoGarmentSlots.filter(Boolean).length}
           mask={state.toolMask}
@@ -112,6 +113,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onWidthChange={state.setWidth}
           onHeightChange={state.setHeight}
           onSeedChange={state.setSeed}
+          onSeedLockedChange={state.setSeedLocked}
+          onRandomSeed={state.randomizeSeed}
           onPromptChange={setToolPromptText}
           onUseGeneratePrompt={() => {
             if (imageToolMode) state.copyGeneratePromptToTool(imageToolMode);
@@ -135,6 +138,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           width={state.width}
           height={state.height}
           seed={state.seed}
+          seedLocked={state.seedLocked}
           promptUpsampling={state.promptUpsampling}
           batchCount={state.batchCount}
           batchMode={state.batchMode}
@@ -158,6 +162,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onWidthChange={state.setWidth}
           onHeightChange={state.setHeight}
           onSeedChange={state.setSeed}
+          onSeedLockedChange={state.setSeedLocked}
+          onRandomSeed={state.randomizeSeed}
           onPromptUpsamplingChange={state.setPromptUpsampling}
           onBatchCountChange={(value) => state.setBatchCount(clampBatchCount(value))}
           onBatchModeChange={state.setBatchMode}

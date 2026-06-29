@@ -88,7 +88,7 @@ describe("buildToolRequestBody", () => {
 
   it("omits the mask and parses offsets for outpaint", () => {
     const body = buildToolRequestBody(
-      toolInput({ mode: "outpaint", prompt: "extend", offsetX: "120", offsetY: "", canvasWidth: 1536, autoCrop: true })
+      toolInput({ mode: "outpaint", prompt: "extend", offsetX: "120", offsetY: "", canvasWidth: 1536, autoCrop: true, seed: "91" })
     );
     expect(body.mask).toBeUndefined();
     expect(body.offsetX).toBe(120);
@@ -96,6 +96,7 @@ describe("buildToolRequestBody", () => {
     expect(body.canvasWidth).toBe(1536);
     expect(body.prompt).toBe("extend");
     expect(body.autoCrop).toBe(true);
+    expect(body.seed).toBe(91);
     expect(body.title).toContain("extend");
   });
 

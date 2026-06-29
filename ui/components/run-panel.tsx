@@ -4,6 +4,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import { SeedControl } from "@/components/seed-control";
 import {
   type ReferenceDropTarget,
   referenceDropTargets,
@@ -36,6 +37,7 @@ type RunPanelProps = {
   width: number;
   height: number;
   seed: string;
+  seedLocked: boolean;
   promptUpsampling: boolean;
   batchCount: number;
   batchMode: BatchMode;
@@ -59,6 +61,8 @@ type RunPanelProps = {
   onWidthChange: (value: number) => void;
   onHeightChange: (value: number) => void;
   onSeedChange: (value: string) => void;
+  onSeedLockedChange: (value: boolean) => void;
+  onRandomSeed: () => void;
   onPromptUpsamplingChange: (value: boolean) => void;
   onBatchCountChange: (value: number) => void;
   onBatchModeChange: (value: BatchMode) => void;
@@ -207,10 +211,13 @@ export function RunPanel(props: RunPanelProps) {
         </label>
       </div>
 
-      <label>
-        Seed
-        <input value={props.seed} onChange={(event) => props.onSeedChange(event.target.value)} placeholder="optional" />
-      </label>
+      <SeedControl
+        value={props.seed}
+        locked={props.seedLocked}
+        onChange={props.onSeedChange}
+        onLockedChange={props.onSeedLockedChange}
+        onRandomize={props.onRandomSeed}
+      />
 
       <label className="toggle">
         <input

@@ -2,6 +2,7 @@ import { ChevronDown, Clipboard, Eraser, Fingerprint, Focus, Maximize2, Shirt } 
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import { SeedControl } from "@/components/seed-control";
 import type { AssetRecord, WorkspaceMode } from "@/lib/types";
 import type { ToolOutputFormat } from "@/lib/dashboard-tools";
 
@@ -46,6 +47,7 @@ type ToolRunPanelProps = {
   width: number;
   height: number;
   seed: string;
+  seedLocked: boolean;
   promptText: string;
   vtoGarmentCount: number;
   mask: string;
@@ -64,6 +66,8 @@ type ToolRunPanelProps = {
   onWidthChange: (value: number) => void;
   onHeightChange: (value: number) => void;
   onSeedChange: (value: string) => void;
+  onSeedLockedChange: (value: boolean) => void;
+  onRandomSeed: () => void;
   onPromptChange: (value: string) => void;
   onBrushSizeChange: (value: number) => void;
   onDilatePixelsChange: (value: number) => void;
@@ -271,11 +275,14 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
         </label>
       )}
 
-      {props.mode !== "outpaint" && !isGlyphs && (
-        <label>
-          Seed
-          <input value={props.seed} onChange={(event) => props.onSeedChange(event.target.value)} placeholder="optional" />
-        </label>
+      {!isGlyphs && (
+        <SeedControl
+          value={props.seed}
+          locked={props.seedLocked}
+          onChange={props.onSeedChange}
+          onLockedChange={props.onSeedLockedChange}
+          onRandomize={props.onRandomSeed}
+        />
       )}
 
       <RunButton isRunning={props.isGenerating} onClick={props.onRun} disabled={runBlocked}>

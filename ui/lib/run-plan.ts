@@ -115,7 +115,12 @@ export function buildRunPlan(prompts: PromptRecord[], body: RunPlanBody) {
         prompt: promptText,
         width,
         height,
-        seed: typeof prompt.seed === "number" ? prompt.seed : null,
+        seed:
+          typeof body.seed === "number"
+            ? body.seed + index
+            : typeof prompt.seed === "number"
+              ? prompt.seed
+              : null,
         outputFormat,
         promptUpsampling,
         referenceWeight: clampReferenceWeight(body.referenceWeight),

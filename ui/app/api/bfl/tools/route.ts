@@ -136,6 +136,7 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
   if (body.prompt?.trim()) payload.prompt = body.prompt.trim();
   if (typeof body.offsetX === "number") payload.reference_offset_x = Math.round(body.offsetX);
   if (typeof body.offsetY === "number") payload.reference_offset_y = Math.round(body.offsetY);
+  if (typeof body.seed === "number") payload.seed = body.seed;
   return payload;
 }
 
