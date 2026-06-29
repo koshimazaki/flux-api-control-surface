@@ -32,9 +32,50 @@ import { copyText } from "@/lib/clipboard";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import { referenceDropTargets } from "@/lib/reference-roles";
-import type { AssetBadge, AssetRecord, AspectRatio, ReferenceRole, WorkspaceMode } from "@/lib/types";
+import type { AssetBadge, AssetRecord, AspectRatio, ReferenceImage, ReferenceRole, WorkspaceMode } from "@/lib/types";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
+
+// References that carry an image we can preview (live data/URL) or an assetId we
+// can resolve through the local outputs endpoint. Empty slots are dropped.
+function displayableReferences(references: ReferenceImage[] | undefined) {
+  return (references ?? []).filter((reference) => Boolean(reference.value?.trim() || reference.assetId));
+}
+
+function referenceThumbSrc(reference: ReferenceImage) {
+  const value = reference.value?.trim();
+  if (value && (value.startsWith("data:") || value.startsWith("http") || value.startsWith("/"))) return value;
+  if (reference.assetId) return `/api/outputs/${encodeURIComponent(reference.assetId)}/image`;
+  return "";
+}
+
+function referenceLabel(reference: ReferenceImage, index: number) {
+  const name = reference.name?.trim();
+  const clean = name && name !== "[stored reference omitted]" ? name : `reference ${index + 1}`;
+  return reference.role ? `${reference.role}: ${clean}` : clean;
+}
+
+function referenceInitials(reference: ReferenceImage, index: number) {
+  const name = reference.name?.trim();
+  if (!name || name === "[stored reference omitted]") return `R${index + 1}`;
+  return name.slice(0, 2).toUpperCase();
+}
+
+function ReferenceThumb({ reference, index }: { reference: ReferenceImage; index: number }) {
+  const [failed, setFailed] = useState(false);
+  const src = referenceThumbSrc(reference);
+  const label = referenceLabel(reference, index);
+  return (
+    <span className="assetPromptRef" title={label}>
+      {src && !failed ? (
+        <img src={src} alt={label} loading="lazy" onError={() => setFailed(true)} />
+      ) : (
+        <span className="assetPromptRefFallback">{referenceInitials(reference, index)}</span>
+      )}
+      {reference.role ? <span className="assetPromptRefRole">{reference.role[0].toUpperCase()}</span> : null}
+    </span>
+  );
+}
 
 type AssetLibraryProps = {
   assets: AssetRecord[];
@@ -307,6 +348,18 @@ export function AssetLibrary(props: AssetLibraryProps) {
                         {isPromptCopied ? <Check size={13} /> : <Clipboard size={13} />}
                       </button>
                       <pre>{asset.prompt}</pre>
+                      {displayableReferences(asset.references).length > 0 && (
+                        <div className="assetPromptRefs">
+                          <span className="assetPromptRefsLabel">refs</span>
+                          {displayableReferences(asset.references).map((reference, index) => (
+                            <ReferenceThumb
+                              key={reference.id || `${asset.id}-ref-${index}`}
+                              reference={reference}
+                              index={index}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="assetButtons">
                       <div className="assetButtonGroup">
