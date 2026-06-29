@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   normalizeReferenceRole,
   referenceDropTargets,
+  referencePreviewSrc,
   referenceRoleConfig,
   referenceRoleForIndex,
   referenceRoleOptions,
@@ -10,7 +11,11 @@ import {
   referenceTargetToken,
   referenceToken
 } from "@/lib/reference-roles";
-import type { ReferenceRole } from "@/lib/types";
+import type { ReferenceImage, ReferenceRole } from "@/lib/types";
+
+function reference(partial: Partial<ReferenceImage>): ReferenceImage {
+  return { id: "r1", name: "ref", value: "", ...partial };
+}
 
 // Every prompt token the pattern can match, paired with the canonical role it
 // must collapse to. This is the contract the cue prose, the drop targets, and
@@ -97,6 +102,32 @@ describe("reference drop targets stay consistent with roles", () => {
     // Style is the only role that fans out to two slots (style-1 / style-2).
     const styleTargets = referenceDropTargets.filter((target) => target.role === "style");
     expect(styleTargets).toHaveLength(2);
+  });
+});
+
+describe("referencePreviewSrc resolves a thumbnail consistently", () => {
+  it("returns data and absolute http(s) values directly", () => {
+    expect(referencePreviewSrc(reference({ value: "data:image/png;base64,AAAA" }))).toBe("data:image/png;base64,AAAA");
+    expect(referencePreviewSrc(reference({ value: "https://cdn.bfl.ai/x.png" }))).toBe("https://cdn.bfl.ai/x.png");
+  });
+
+  it("accepts app-relative output URLs (the case that left @char empty)", () => {
+    // A reference sourced from a hydrated asset whose inline data URL was dropped
+    // resolves to /api/outputs/:id/image — previously rejected, now rendered.
+    const value = "/api/outputs/abc-123/image";
+    expect(referencePreviewSrc(reference({ value }))).toBe(value);
+  });
+
+  it("falls back to the durable assetId when the value is missing or redacted", () => {
+    expect(referencePreviewSrc(reference({ value: "", assetId: "asset-9" }))).toBe("/api/outputs/asset-9/image");
+    expect(referencePreviewSrc(reference({ value: "[stored reference omitted]", assetId: "asset-9" }))).toBe(
+      "/api/outputs/asset-9/image"
+    );
+  });
+
+  it("returns empty only when there is nothing to show", () => {
+    expect(referencePreviewSrc(reference({ value: "" }))).toBe("");
+    expect(referencePreviewSrc(reference({ value: "[stored reference omitted]" }))).toBe("");
   });
 });
 

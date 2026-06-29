@@ -2,7 +2,10 @@
   position: fixed;
   inset: 0;
   background: rgba(5, 11, 8, 0.9);
-  z-index: 50;
+  /* Fullscreen modal: must sit above every panel/dock it shares the .shell
+     stacking context with — the prompt library (.library, 80), combo popovers
+     (1000) and the reference dock (1200). */
+  z-index: 1500;
   display: grid;
   place-items: center;
   padding: 18px;

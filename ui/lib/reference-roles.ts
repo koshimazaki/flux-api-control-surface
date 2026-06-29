@@ -117,7 +117,16 @@ export function referenceDisplayName(reference: ReferenceImage, index: number) {
 }
 
 export function referencePreviewSrc(reference: ReferenceImage) {
-  return /^data:image\//i.test(reference.value) || /^https?:\/\//i.test(reference.value)
-    ? reference.value
-    : "";
+  const value = reference.value?.trim();
+  // Accept data URLs, absolute http(s) URLs, and app-relative paths such as
+  // /api/outputs/:id/image (what an asset resolves to once its inline data URL
+  // has been dropped on hydration). The old check only matched data:/http(s),
+  // so references pointing at a relative output URL rendered as an empty slot.
+  if (value && (/^data:/i.test(value) || /^https?:\/\//i.test(value) || value.startsWith("/"))) {
+    return value;
+  }
+  // Durable fallback: every asset-sourced reference keeps its assetId, so we can
+  // always resolve a thumbnail through the local outputs endpoint.
+  if (reference.assetId) return `/api/outputs/${encodeURIComponent(reference.assetId)}/image`;
+  return "";
 }

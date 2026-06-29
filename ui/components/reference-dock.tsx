@@ -84,6 +84,18 @@ function isAsset(asset: AssetRecord | null): asset is AssetRecord {
   return Boolean(asset);
 }
 
+// Renders a reference preview, falling back to the @img token text when there is
+// no usable src or the resolved image (e.g. an assetId outputs URL) fails to load.
+function ReferenceThumbImage({ reference, index }: { reference: ReferenceImage; index: number }) {
+  const [failed, setFailed] = useState(false);
+  const preview = referencePreviewSrc(reference);
+  if (!preview || failed) return <span>{referenceToken(index)}</span>;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={preview} alt={referenceDisplayName(reference, index)} onError={() => setFailed(true)} />
+  );
+}
+
 export function ReferenceDock({
   mode,
   references,
@@ -241,7 +253,6 @@ export function ReferenceDock({
   }
 
   function renderReferenceThumb(reference: ReferenceImage, index: number) {
-    const preview = referencePreviewSrc(reference);
     return (
       <div
         className="referenceDockThumb"
@@ -249,12 +260,7 @@ export function ReferenceDock({
         draggable
         onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
       >
-        {preview ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt={referenceDisplayName(reference, index)} />
-        ) : (
-          <span>{referenceToken(index)}</span>
-        )}
+        <ReferenceThumbImage reference={reference} index={index} />
         <button type="button" title={`Remove ${referenceToken(index)}`} onClick={() => removeReference(reference.id)}>
           <X size={11} />
         </button>

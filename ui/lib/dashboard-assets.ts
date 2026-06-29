@@ -56,6 +56,9 @@ export function mergeAssetRecords(current: AssetRecord[], incoming: AssetRecord[
       ...existing,
       ...asset,
       imageDataUrl: asset.imageDataUrl || existing.imageDataUrl,
+      // Server outputs don't persist the reference list, so they come back empty.
+      // Keep the references we already have rather than letting the poll wipe them.
+      references: asset.references?.length ? asset.references : existing.references,
       is_favorite: existing.is_favorite ?? asset.is_favorite
     };
   });

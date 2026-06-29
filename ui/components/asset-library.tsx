@@ -31,7 +31,7 @@ import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-b
 import { copyText } from "@/lib/clipboard";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
-import { referenceDropTargets } from "@/lib/reference-roles";
+import { referenceDropTargets, referencePreviewSrc } from "@/lib/reference-roles";
 import type { AssetBadge, AssetRecord, AspectRatio, ReferenceImage, ReferenceRole, WorkspaceMode } from "@/lib/types";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
@@ -40,13 +40,6 @@ type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
 // can resolve through the local outputs endpoint. Empty slots are dropped.
 function displayableReferences(references: ReferenceImage[] | undefined) {
   return (references ?? []).filter((reference) => Boolean(reference.value?.trim() || reference.assetId));
-}
-
-function referenceThumbSrc(reference: ReferenceImage) {
-  const value = reference.value?.trim();
-  if (value && (value.startsWith("data:") || value.startsWith("http") || value.startsWith("/"))) return value;
-  if (reference.assetId) return `/api/outputs/${encodeURIComponent(reference.assetId)}/image`;
-  return "";
 }
 
 function referenceLabel(reference: ReferenceImage, index: number) {
@@ -63,7 +56,7 @@ function referenceInitials(reference: ReferenceImage, index: number) {
 
 function ReferenceThumb({ reference, index }: { reference: ReferenceImage; index: number }) {
   const [failed, setFailed] = useState(false);
-  const src = referenceThumbSrc(reference);
+  const src = referencePreviewSrc(reference);
   const label = referenceLabel(reference, index);
   return (
     <span className="assetPromptRef" title={label}>
