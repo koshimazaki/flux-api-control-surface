@@ -1,3 +1,5 @@
+import { EventEmitter } from "node:events";
+import https from "node:https";
 import sharp from "sharp";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { prepareToolImageInput, prepareToolMaskInput, prepareVtoGarmentInput } from "@/lib/bfl-tool-inputs";
@@ -5,11 +7,32 @@ import {
   assertSafeRemoteImageUrl,
   fetchRemoteImageBuffer,
   isBlockedRemoteAddress,
-  MAX_IMAGE_INPUT_BYTES
+  MAX_IMAGE_INPUT_BYTES,
+  pinnedLookup
 } from "@/lib/remote-image-fetch";
 
 function dataUrl(buffer: Buffer, mime = "image/png") {
   return `data:${mime};base64,${buffer.toString("base64")}`;
+}
+
+// Stub https.request with a fake response so the pinned-fetch path is testable
+// without real network I/O. Returns the spy plus the fake request/response.
+function mockHttps(init: { statusCode: number; headers?: Record<string, string> }) {
+  const response = Object.assign(new EventEmitter(), {
+    statusCode: init.statusCode,
+    headers: init.headers ?? {},
+    destroy: () => {}
+  });
+  const request = Object.assign(new EventEmitter(), {
+    setTimeout: () => {},
+    end: () => {},
+    destroy: () => {}
+  });
+  const spy = vi.spyOn(https, "request").mockImplementation(((_url: unknown, _opts: unknown, cb: (res: unknown) => void) => {
+    queueMicrotask(() => cb(response));
+    return request;
+  }) as unknown as typeof https.request);
+  return { spy, response, request };
 }
 
 describe("BFL tool input preparation", () => {
@@ -88,21 +111,46 @@ describe("BFL tool input preparation", () => {
     ).rejects.toThrow(/private or local/i);
   });
 
-  it("fetches remote inputs without redirects and enforces response size caps", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("", {
-        status: 200,
-        headers: { "content-length": String(MAX_IMAGE_INPUT_BYTES + 1) }
-      })
-    );
+  it("pins the connection to the validated IP and enforces the response size cap", async () => {
+    const { spy } = mockHttps({ statusCode: 200, headers: { "content-length": String(MAX_IMAGE_INPUT_BYTES + 1) } });
 
     await expect(fetchRemoteImageBuffer("https://8.8.8.8/image.png", "source image", { allowedHosts: [] })).rejects.toThrow(
       /input limit/
     );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://8.8.8.8/image.png",
-      expect.objectContaining({ cache: "no-store", redirect: "manual" })
+    // Connection is pinned to the validated IP via lookup; SNI stays the host so
+    // TLS still validates — this is what closes the DNS-rebinding TOCTOU.
+    const [, opts] = spy.mock.calls[0] as unknown as [unknown, { servername?: string; lookup?: unknown }];
+    expect(opts.servername).toBe("8.8.8.8");
+    expect(typeof opts.lookup).toBe("function");
+  });
+
+  it("refuses redirects on the pinned fetch", async () => {
+    mockHttps({ statusCode: 302, headers: { location: "https://evil.example.com/" } });
+    await expect(fetchRemoteImageBuffer("https://8.8.8.8/image.png", "source image", { allowedHosts: [] })).rejects.toThrow(
+      /redirects are not followed/
     );
+  });
+
+  it("assertSafeRemoteImageUrl returns the validated address to pin the socket to", async () => {
+    const result = await assertSafeRemoteImageUrl("https://8.8.8.8/image.png", { allowedHosts: [] });
+    expect(result.address).toBe("8.8.8.8");
+    expect(result.url.href).toBe("https://8.8.8.8/image.png");
+  });
+
+  it("pinnedLookup always returns the pinned address regardless of the requested hostname", () => {
+    const lookup = pinnedLookup("203.0.113.7");
+    // net.connect single-address convention
+    const single = vi.fn();
+    lookup("attacker-rebind.example.com", {}, single);
+    expect(single).toHaveBeenCalledWith(null, "203.0.113.7", 4);
+    // all: true convention
+    const all = vi.fn();
+    lookup("attacker-rebind.example.com", { all: true }, all);
+    expect(all).toHaveBeenCalledWith(null, [{ address: "203.0.113.7", family: 4 }]);
+    // legacy callback-as-second-arg convention
+    const legacy = vi.fn();
+    lookup("attacker-rebind.example.com", legacy);
+    expect(legacy).toHaveBeenCalledWith(null, "203.0.113.7", 4);
   });
 
   it("composes multiple VTO garments onto one clean reference canvas", async () => {

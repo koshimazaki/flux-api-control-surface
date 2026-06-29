@@ -1,4 +1,6 @@
+import type { LookupAddress } from "node:dns";
 import { lookup } from "node:dns/promises";
+import https from "node:https";
 import net from "node:net";
 
 export const MAX_IMAGE_INPUT_BYTES = 20 * 1024 * 1024;
@@ -152,20 +154,23 @@ export async function assertSafeRemoteImageUrl(
     throw new Error(`Remote image host is not public: ${hostname}.`);
   }
 
+  // For a literal IP host there is no name resolution to race: pin the host itself.
   if (net.isIP(hostname)) {
     if (isBlockedRemoteAddress(hostname)) {
       throw new Error(`Remote image host resolves to a private or local address: ${hostname}.`);
     }
-    return url;
+    return { url, address: hostname };
   }
 
+  // Resolve ONCE and return a validated address so the caller can pin the socket
+  // to it. Re-resolving at fetch time would reopen a DNS-rebinding TOCTOU.
   const records = await lookup(hostname, { all: true, verbatim: true });
   if (!records.length) throw new Error(`Remote image host could not be resolved: ${hostname}.`);
   const blocked = records.find((record) => isBlockedRemoteAddress(record.address));
   if (blocked) {
     throw new Error(`Remote image host resolves to a private or local address: ${blocked.address}.`);
   }
-  return url;
+  return { url, address: records[0].address };
 }
 
 function assertByteLimit(size: number, maxBytes: number, label: string) {
@@ -178,52 +183,88 @@ export function assertImageBufferLimit(buffer: Buffer, label: string, maxBytes =
   assertByteLimit(buffer.byteLength, maxBytes, label);
 }
 
+// A net-style lookup that ALWAYS yields the single pre-validated address, so the
+// socket can't be re-pointed (DNS rebinding) between the safety check and the
+// request. SNI/Host stay the original hostname, so TLS still validates the cert.
+type LookupCallback = (err: NodeJS.ErrnoException | null, address: string | LookupAddress[], family?: number) => void;
+export function pinnedLookup(address: string) {
+  const family = net.isIP(address) || 4;
+  return (_hostname: string, options: unknown, callback?: LookupCallback): void => {
+    const cb = (typeof options === "function" ? options : callback) as LookupCallback;
+    const wantsAll = typeof options === "object" && options !== null && (options as { all?: boolean }).all === true;
+    if (wantsAll) cb(null, [{ address, family }]);
+    else cb(null, address, family);
+  };
+}
+
+// GET an https URL while connecting only to `address` (the pre-validated IP).
+// Mirrors the previous fetch() guarantees: https-only, redirects refused, and a
+// hard byte cap enforced on both Content-Length and the streamed body.
+function fetchPinnedHttps(url: URL, address: string, label: string, maxBytes: number, timeoutMs: number): Promise<Buffer> {
+  const servername = url.hostname.replace(/^\[|\]$/g, "");
+  return new Promise<Buffer>((resolve, reject) => {
+    let settled = false;
+    const fail = (error: Error) => {
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    };
+    const succeed = (buffer: Buffer) => {
+      if (!settled) {
+        settled = true;
+        resolve(buffer);
+      }
+    };
+
+    const request = https.request(
+      url.href,
+      {
+        method: "GET",
+        servername,
+        lookup: pinnedLookup(address) as unknown as https.RequestOptions["lookup"]
+      },
+      (response) => {
+        const status = response.statusCode ?? 0;
+        if (status >= 300 && status < 400) {
+          response.destroy();
+          return fail(new Error(`Could not fetch ${label}: redirects are not followed.`));
+        }
+        if (status < 200 || status >= 300) {
+          response.destroy();
+          return fail(new Error(`Could not fetch ${label}: HTTP ${status}`));
+        }
+        const declared = Number(response.headers["content-length"] || "0");
+        if (Number.isFinite(declared) && declared > maxBytes) {
+          response.destroy();
+          return fail(new Error(`${label} exceeds the ${formatBytes(maxBytes)} input limit.`));
+        }
+        const chunks: Buffer[] = [];
+        let total = 0;
+        response.on("data", (chunk: Buffer) => {
+          total += chunk.byteLength;
+          if (total > maxBytes) {
+            response.destroy();
+            fail(new Error(`${label} exceeds the ${formatBytes(maxBytes)} input limit.`));
+            return;
+          }
+          chunks.push(chunk);
+        });
+        response.on("end", () => succeed(Buffer.concat(chunks, total)));
+        response.on("error", fail);
+      }
+    );
+    request.on("error", fail);
+    request.setTimeout(timeoutMs, () => {
+      request.destroy(new Error(`Timed out fetching ${label}.`));
+    });
+    request.end();
+  });
+}
+
 export async function fetchRemoteImageBuffer(rawUrl: string, label: string, options: RemoteImageFetchOptions = {}) {
   const maxBytes = options.maxBytes ?? MAX_IMAGE_INPUT_BYTES;
   const timeoutMs = options.timeoutMs ?? DEFAULT_REMOTE_IMAGE_FETCH_TIMEOUT_MS;
-  const url = await assertSafeRemoteImageUrl(rawUrl, { allowedHosts: options.allowedHosts });
-  const controller = new AbortController();
-  let timedOut = false;
-  const timeout = setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    const response = await fetch(url.href, {
-      cache: "no-store",
-      redirect: "manual",
-      signal: controller.signal
-    });
-    if (response.status >= 300 && response.status < 400) {
-      throw new Error(`Could not fetch ${label}: redirects are not followed.`);
-    }
-    if (!response.ok) {
-      throw new Error(`Could not fetch ${label}: HTTP ${response.status}`);
-    }
-
-    const contentLength = Number(response.headers.get("content-length") || "0");
-    if (Number.isFinite(contentLength) && contentLength > 0) {
-      assertByteLimit(contentLength, maxBytes, label);
-    }
-    if (!response.body) throw new Error(`Could not read ${label} response body.`);
-
-    const reader = response.body.getReader();
-    const chunks: Buffer[] = [];
-    let total = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = Buffer.from(value);
-      total += chunk.byteLength;
-      assertByteLimit(total, maxBytes, label);
-      chunks.push(chunk);
-    }
-    return Buffer.concat(chunks, total);
-  } catch (error) {
-    if (timedOut) throw new Error(`Timed out fetching ${label}.`);
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+  const { url, address } = await assertSafeRemoteImageUrl(rawUrl, { allowedHosts: options.allowedHosts });
+  return fetchPinnedHttps(url, address, label, maxBytes, timeoutMs);
 }
