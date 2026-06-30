@@ -6,13 +6,16 @@ import type { AssetRecord, ReferenceImage, ReferenceRole } from "@/lib/types";
 
 const REFERENCES_STORAGE_KEY = "bfl-references";
 
-// Persist the working reference set as lightweight descriptors. Inline data URLs
-// are dropped when the reference is backed by an asset (the image is re-resolved
-// from that asset on load); references without a backing asset keep their value
-// so an uploaded image still survives a refresh.
+// Persist the working reference set as lightweight descriptors. Heavy inline data
+// URLs are swapped for a durable, resolvable outputs URL (never an empty string)
+// so a restored reference still renders, passes `Boolean(value)` filters, and
+// submits — the generate route resolves /api/outputs/:id/image back to image data.
+// Already-light values and uploads without a backing asset are kept as-is.
 function stripReferenceForStorage(reference: ReferenceImage): ReferenceImage {
-  const value = reference.assetId && reference.value.startsWith("data:") ? "" : reference.value;
-  return { ...reference, value };
+  if (reference.assetId && reference.value.startsWith("data:")) {
+    return { ...reference, value: `/api/outputs/${encodeURIComponent(reference.assetId)}/image` };
+  }
+  return reference;
 }
 
 type UseReferencesDeps = {
@@ -42,17 +45,19 @@ export function useReferences({ assets, maxReferences, modelLabel, setError }: U
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Restored descriptors carry no inline image; re-link it from the asset once the
-  // gallery has loaded so references render and are usable in a run.
+  // Upgrade asset-backed references to the asset's live source once the gallery
+  // has loaded — replaces a stored outputs URL with the real image (covers
+  // IndexedDB-only imports that the URL can't resolve, and renders inline).
   useEffect(() => {
     if (!assets.length) return;
     setReferences((current) => {
       let changed = false;
       const next = current.map((reference) => {
-        if (reference.value || !reference.assetId) return reference;
+        if (!reference.assetId) return reference;
         const asset = assets.find((item) => item.id === reference.assetId);
-        const value = asset ? asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url || "" : "";
-        if (!value) return reference;
+        if (!asset) return reference;
+        const value = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url || "";
+        if (!value || value === reference.value) return reference;
         changed = true;
         return { ...reference, value };
       });
