@@ -1,8 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { buildReferenceCue, readReferenceFiles } from "@/lib/dashboard-generation";
 import { defaultReferenceCue } from "@/lib/prompt-utils";
 import { referenceRoleForIndex } from "@/lib/reference-roles";
 import type { AssetRecord, ReferenceImage, ReferenceRole } from "@/lib/types";
+
+const REFERENCES_STORAGE_KEY = "bfl-references";
+
+// Persist the working reference set as lightweight descriptors. Inline data URLs
+// are dropped when the reference is backed by an asset (the image is re-resolved
+// from that asset on load); references without a backing asset keep their value
+// so an uploaded image still survives a refresh.
+function stripReferenceForStorage(reference: ReferenceImage): ReferenceImage {
+  const value = reference.assetId && reference.value.startsWith("data:") ? "" : reference.value;
+  return { ...reference, value };
+}
 
 type UseReferencesDeps = {
   assets: AssetRecord[];
@@ -15,7 +26,49 @@ export function useReferences({ assets, maxReferences, modelLabel, setError }: U
   const [referenceCue, setReferenceCue] = useState(defaultReferenceCue);
   const [referenceWeight, setReferenceWeight] = useState(80);
   const [references, setReferences] = useState<ReferenceImage[]>([]);
+  const [hasHydratedReferences, setHasHydratedReferences] = useState(false);
   const referenceLimit = Math.max(0, Math.floor(maxReferences));
+
+  // Restore the working reference set once on mount so role assignments survive a refresh.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REFERENCES_STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (Array.isArray(parsed)) setReferences(parsed.slice(0, referenceLimit));
+    } catch {
+      localStorage.removeItem(REFERENCES_STORAGE_KEY);
+    }
+    setHasHydratedReferences(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Restored descriptors carry no inline image; re-link it from the asset once the
+  // gallery has loaded so references render and are usable in a run.
+  useEffect(() => {
+    if (!assets.length) return;
+    setReferences((current) => {
+      let changed = false;
+      const next = current.map((reference) => {
+        if (reference.value || !reference.assetId) return reference;
+        const asset = assets.find((item) => item.id === reference.assetId);
+        const value = asset ? asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url || "" : "";
+        if (!value) return reference;
+        changed = true;
+        return { ...reference, value };
+      });
+      return changed ? next : current;
+    });
+  }, [assets]);
+
+  // Persist after hydration so the initial empty state never clobbers saved references.
+  useEffect(() => {
+    if (!hasHydratedReferences) return;
+    try {
+      localStorage.setItem(REFERENCES_STORAGE_KEY, JSON.stringify(references.map(stripReferenceForStorage)));
+    } catch {
+      // ignore quota / serialization failures
+    }
+  }, [references, hasHydratedReferences]);
 
   const effectiveReferenceCue = useMemo(
     () => buildReferenceCue(referenceCue, referenceWeight, references),
