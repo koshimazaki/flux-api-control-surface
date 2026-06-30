@@ -6,15 +6,37 @@ import type { AssetRecord, ReferenceImage, ReferenceRole } from "@/lib/types";
 
 const REFERENCES_STORAGE_KEY = "bfl-references";
 
-// Persist the working reference set as lightweight descriptors. Heavy inline data
-// URLs are swapped for a durable, resolvable outputs URL (never an empty string)
-// so a restored reference still renders, passes `Boolean(value)` filters, and
-// submits — the generate route resolves /api/outputs/:id/image back to image data.
-// Already-light values and uploads without a backing asset are kept as-is.
-function stripReferenceForStorage(reference: ReferenceImage): ReferenceImage {
-  if (reference.assetId && reference.value.startsWith("data:")) {
+function isHttpUrl(value: unknown): value is string {
+  return typeof value === "string" && /^https?:\/\//i.test(value);
+}
+
+// A reference value that must be re-linked to the asset's live image once the
+// gallery loads: either empty or the durable /api/outputs placeholder we persist
+// for server outputs. User-typed http(s) URLs and inline data URLs are left
+// untouched so a manual edit (or an already-live blob) is never clobbered.
+export function shouldRelinkReferenceValue(value: string | undefined): boolean {
+  return !value || value.startsWith("/api/outputs/");
+}
+
+// Persist the working reference set as lightweight descriptors. A heavy inline
+// data URL is swapped for the smallest value the BFL server can still resolve
+// after a refresh, in priority order:
+//   1. server output       -> /api/outputs/:id/image (durable, never expires)
+//   2. durable remote / any fetchable http(s) URL carried on the asset
+//   3. browser-only asset   -> keep the data URL, because a relative
+//      /api/outputs URL does NOT resolve for an id that is not a server output
+//      (resolveImageInput would forward the unfetchable path to BFL and fail).
+// Never persist an empty string: the 8 `Boolean(value)` consumers would drop the
+// reference from both the UI and the actual generation.
+export function stripReferenceForStorage(reference: ReferenceImage, assets: AssetRecord[]): ReferenceImage {
+  if (!reference.value.startsWith("data:") || !reference.assetId) return reference;
+  const asset = assets.find((item) => item.id === reference.assetId);
+  if (asset?.localImagePath) {
     return { ...reference, value: `/api/outputs/${encodeURIComponent(reference.assetId)}/image` };
   }
+  const remote = asset?.remoteImageUrl;
+  const fetchable = isHttpUrl(remote) ? remote : [asset?.imageUrl, asset?.image_url, asset?.sampleUrl].find(isHttpUrl);
+  if (fetchable) return { ...reference, value: fetchable };
   return reference;
 }
 
@@ -54,6 +76,7 @@ export function useReferences({ assets, maxReferences, modelLabel, setError }: U
       let changed = false;
       const next = current.map((reference) => {
         if (!reference.assetId) return reference;
+        if (!shouldRelinkReferenceValue(reference.value)) return reference;
         const asset = assets.find((item) => item.id === reference.assetId);
         if (!asset) return reference;
         const value = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url || "";
@@ -69,11 +92,12 @@ export function useReferences({ assets, maxReferences, modelLabel, setError }: U
   useEffect(() => {
     if (!hasHydratedReferences) return;
     try {
-      localStorage.setItem(REFERENCES_STORAGE_KEY, JSON.stringify(references.map(stripReferenceForStorage)));
+      const descriptors = references.map((reference) => stripReferenceForStorage(reference, assets));
+      localStorage.setItem(REFERENCES_STORAGE_KEY, JSON.stringify(descriptors));
     } catch {
       // ignore quota / serialization failures
     }
-  }, [references, hasHydratedReferences]);
+  }, [references, hasHydratedReferences, assets]);
 
   const effectiveReferenceCue = useMemo(
     () => buildReferenceCue(referenceCue, referenceWeight, references),
