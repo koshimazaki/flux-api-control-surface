@@ -119,13 +119,37 @@ function applyEnvironmentToText(raw: string, environment: string) {
   return `${trimmed}${separator}${nextEnvironment}`;
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function presetTextClause(preset: PromptPreset) {
+  return `${preset.style}, ${preset.lighting}, ${preset.lens}.`;
+}
+
+// Morph combos are plain text, so a preset can only be appended. Strip any
+// previously-applied preset clause first (matched against the known preset
+// phrasings, not a fragile period regex) so toggling looks replaces instead of
+// stacking — mirroring how environment behaves on text prompts.
+function applyPresetToText(raw: string, preset: PromptPreset) {
+  let text = raw;
+  for (const known of presets) {
+    text = text.replace(new RegExp(`\\s*\\.?\\s*${escapeRegExp(presetTextClause(known))}`, "g"), "");
+  }
+  text = text.trim();
+  const clause = presetTextClause(preset);
+  if (!text) return clause;
+  const separator = /[.!?]$/.test(text) ? " " : ". ";
+  return `${text}${separator}${clause}`;
+}
+
 export function applyPresetToPrompt(raw: string, preset: PromptPreset) {
   try {
     const parsed = JSON.parse(raw);
     applyPresetToPromptObject(parsed, preset);
     return JSON.stringify(parsed, null, 2);
   } catch {
-    return `${raw.trim()}. ${preset.style}, ${preset.lighting}, ${preset.lens}.`;
+    return applyPresetToText(raw, preset);
   }
 }
 
