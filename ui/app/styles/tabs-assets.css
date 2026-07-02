@@ -484,6 +484,11 @@ pre {
   border-color: rgba(206, 184, 133, 0.62);
 }
 
+.assetBadge-collection {
+  color: #9cc6cc;
+  border-color: rgba(156, 198, 204, 0.62);
+}
+
 .assetCard.assetRole-audio {
   border-color: rgba(159, 176, 157, 0.62);
 }
@@ -521,4 +526,9 @@ pre {
 .assetCard.assetRole-glyphs {
   border-color: rgba(206, 184, 133, 0.7);
   box-shadow: inset 0 0 0 1px rgba(206, 184, 133, 0.2);
+}
+
+.assetCard.assetRole-collection {
+  border-color: rgba(156, 198, 204, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(156, 198, 204, 0.2);
 }

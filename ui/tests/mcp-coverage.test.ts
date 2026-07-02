@@ -28,6 +28,7 @@ const allRoutes = readdirSync(apiDir, { recursive: true })
 const DISCOVERY_ONLY = ["/api/mcp/guide", "/api/mcp/status", "/api/bfl_dashboard/v1/manifest"];
 const INTERNAL_ONLY = ["/api/outputs/[id]/image", "/api/bfl/tools/vto-composite"];
 const KNOWN_AUDIO_GAP = ["/api/audio/guide", "/api/audio/slice"];
+const KNOWN_COLLECTIONS_GAP = ["/api/collections"];
 
 describe("local MCP tool registry", () => {
   it("registers exactly the documented tool set (no drift between code and the manifest list)", () => {
@@ -96,7 +97,7 @@ describe("MCP covers every core control-surface function", () => {
 });
 
 describe("MCP coverage gaps stay explicit", () => {
-  it("leaves only the audio routes unwrapped, and any NEW route must declare its coverage", () => {
+  it("leaves only declared HTTP-only routes unwrapped, and any NEW route must declare its coverage", () => {
     const uncovered = allRoutes.filter(
       (route) =>
         !mcpCalledRoutes.includes(route) &&
@@ -105,10 +106,11 @@ describe("MCP coverage gaps stay explicit", () => {
     );
     // If this fails because a new route appeared, either add an MCP tool for it
     // or classify it (discovery/internal/known-gap) — that is the whole point.
-    expect(uncovered.sort()).toEqual([...KNOWN_AUDIO_GAP].sort());
+    expect(uncovered.sort()).toEqual([...KNOWN_AUDIO_GAP, ...KNOWN_COLLECTIONS_GAP].sort());
   });
 
-  it("documents the audio/binary HTTP-only gap honestly in the parity notes", () => {
+  it("documents the audio/binary and collection HTTP-only gaps honestly in the parity notes", () => {
     expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("audio");
+    expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("collection");
   });
 });

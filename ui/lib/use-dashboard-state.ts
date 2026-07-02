@@ -40,6 +40,7 @@ import { getBflModel } from "@/lib/provider-registry";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import { referenceDropTargets, referenceRoleConfig, referenceRoleToken } from "@/lib/reference-roles";
 import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
+import { useAssetCollections } from "@/lib/dashboard/use-asset-collections";
 import { glyphPreviewBackgroundForSvg, type GlyphPreviewBackground } from "@/lib/glyph-svg";
 import { useBalance } from "@/lib/dashboard/use-balance";
 import { useGlyphLabCache } from "@/lib/dashboard/use-glyph-lab-cache";
@@ -266,6 +267,29 @@ export function useDashboardState() {
   });
 
   const {
+    assetCollections,
+    collectionFilter,
+    setCollectionFilter,
+    openedCollection,
+    openedCollectionId,
+    setOpenedCollectionId,
+    createAssetCollection,
+    addAssetsToCollection,
+    addSelectedAssetsToAssetCollection,
+    addFilesToCollection,
+    removeAssetFromCollection,
+    deleteAssetCollection,
+    exportAssetCollection
+  } = useAssetCollections({
+    assets,
+    selectedAssetIds,
+    setSelectedAssetIds,
+    setError,
+    setRecoveryMessage,
+    importImageAssetFiles
+  });
+
+  const {
     references,
     setReferences,
     referenceCue,
@@ -442,6 +466,15 @@ export function useDashboardState() {
     if (promptSourceAssetId) {
       (badges[promptSourceAssetId] ||= []).push({ label: "prompt", kind: "prompt", title: "Prompt loaded in editor" });
     }
+    assetCollections.forEach((collection) => {
+      collection.members.forEach((member) => {
+        (badges[member.assetId] ||= []).push({
+          label: collection.name,
+          kind: "collection",
+          title: `In collection: ${collection.name}`
+        });
+      });
+    });
     if (toolSourceAssetId && (workspaceMode === "erase" || workspaceMode === "outpaint" || workspaceMode === "deblur")) {
       (badges[toolSourceAssetId] ||= []).push({
         label: workspaceModeLabels[workspaceMode],
@@ -480,7 +513,8 @@ export function useDashboardState() {
     workspaceMode,
     vtoSourceAssetId,
     glyphSourceAssetId,
-    vtoGarmentSlots
+    vtoGarmentSlots,
+    assetCollections
   ]);
 
   useEffect(() => {
@@ -1151,6 +1185,10 @@ export function useDashboardState() {
     selectedAsset,
     setSelectedAsset,
     selectedAssetIds,
+    assetCollections,
+    collectionFilter,
+    openedCollection,
+    openedCollectionId,
     trainingCollection,
     setTrainingCollection,
     captionJob,
@@ -1229,6 +1267,15 @@ export function useDashboardState() {
     downloadAssetImage,
     clearAssets: clearDashboardAssets,
     toggleAssetSelection,
+    setCollectionFilter,
+    setOpenedCollectionId,
+    createAssetCollection,
+    addAssetsToCollection,
+    addSelectedAssetsToAssetCollection,
+    addFilesToCollection,
+    removeAssetFromCollection,
+    deleteAssetCollection,
+    exportAssetCollection,
     addSelectedAssetsToCollection,
     addCollectionFiles,
     syncCollectionReferences,

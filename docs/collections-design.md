@@ -1,7 +1,7 @@
 # Collections — design note
 
-Status: proposed. Captures the decisions from the design discussion so a build
-session can start from a settled model. Scope is intentionally phased.
+Status: MVP implemented for general gallery collections. Captures the decisions
+from the design discussion and the current build shape. Scope remains phased.
 
 ## Goal
 
@@ -49,12 +49,12 @@ agent share the same collections, and they survive a browser clear.
 ## Data model
 
 ```ts
-export type CollectionMemberKind = "reference" | "generation" | "asset";
+export type CollectionMemberKind = "input" | "generation" | "asset";
 
 export type CollectionMember = {
   assetId: string;
-  kind: CollectionMemberKind;       // input/reference vs output/generation
-  role?: ReferenceRole;             // when kind === "reference"
+  kind: CollectionMemberKind;       // input/reference vs output/generation vs local asset
+  role?: ReferenceRole;             // optional reference role when known
   name?: string;                    // snapshot for resilient on-disk lookup
   localImagePath?: string | null;   // snapshot so the file is findable if the record is lost
   addedAt: number;
@@ -78,14 +78,17 @@ export type Collection = {
 
 ## API surface (`/api/collections`)
 
+The MVP uses one route with query params instead of nested route files:
+
 - `GET    /api/collections`                  — list
-- `POST   /api/collections`                  — create `{ name }`
-- `GET    /api/collections/:id`              — read
-- `PATCH  /api/collections/:id`              — rename / favorite / reorder / cover
-- `POST   /api/collections/:id/members`      — add `{ assetIds, kind }`
-- `DELETE /api/collections/:id/members/:assetId`
-- `DELETE /api/collections/:id`              — soft-delete (archive to recovery file)
-- `POST   /api/collections/:id/export`       — materialize to a folder/zip on demand
+- `GET    /api/collections?id=<id>`           — read one collection
+- `POST   /api/collections`                  — create `{ name, members? }`
+- `PATCH  /api/collections?id=<id>`           — rename / favorite / cover / add members with `addMembers`
+- `DELETE /api/collections?id=<id>&assetId=<assetId>` — remove one member
+- `DELETE /api/collections?id=<id>`           — delete the collection
+
+Browser export downloads a ZIP from currently resolvable gallery assets. A
+server-side materialize/export route is still a later addition.
 
 ## MCP tools (Phase 2)
 
@@ -110,14 +113,14 @@ This wires the moodboard → permutation workflow end-to-end for an agent.
 - **Management:** the Collections tab lists all collections — rename, delete,
   favorite, set cover, reorder, export.
 - **Use as references:** "Use collection as references" loads members
-  (`kind === "reference"`, or all) into the reference working set and/or feeds
+  (`kind === "input"` / `asset`, or all) into the reference working set and/or feeds
   permutations.
 
 ## Phasing
 
-1. **Phase 1 (build first):** data model + `/api/collections` CRUD + localStorage
+1. **Phase 1 (MVP shipped):** data model + `/api/collections` CRUD + localStorage
    mirror + gallery filter (All/Images/Collections) + folder cards + create / add
-   / remove / open + membership badge.
+   / remove / open + membership badge + browser ZIP export.
 2. **Phase 2:** use-collection-as-references + permutations + MCP tools.
 3. **Phase 3:** export-to-folder/zip, manual cover selection, reorder, favorites
    surfacing; optional *Promote → Training Collection* bridge.
@@ -136,8 +139,10 @@ This wires the moodboard → permutation workflow end-to-end for an agent.
 - Types: `ui/lib/types.ts` (add `Collection`, `CollectionMember`; existing
   `TrainingCollection` stays).
 - Existing collection hook to mirror/learn from: `ui/lib/dashboard/use-training-collections.ts`.
-- Gallery: `ui/components/asset-library.tsx` (cards, filter, badges,
-  `selectedAssetIds`, `assetBadges`).
+- Gallery shell: `ui/components/asset-library.tsx` (filters, controls, normal
+  asset cards, `selectedAssetIds`, `assetBadges`).
+- Gallery collection variation: `ui/components/asset-collection-gallery.tsx`
+  (folder cards and opened collection lanes).
 - Server outputs + storage conventions: `ui/lib/server-output-store.ts`,
   `ui/lib/asset-storage.ts`, `ui/lib/bfl-server.ts` (`saveOutputFiles`,
   workspace paths).

@@ -22,7 +22,7 @@ type DashboardTabsProps = {
 export function DashboardTabs(props: DashboardTabsProps) {
   const tabs: TabButtonItem<DashboardTab>[] = [
     { id: "assets", label: "Assets", count: props.assetCount, icon: Image },
-    { id: "collections", label: "Collections", count: props.collectionCount, icon: PackageOpen },
+    { id: "collections", label: "Training", count: props.collectionCount, icon: PackageOpen },
     { id: "runs", label: "Run Log", count: props.runCount, icon: Activity },
     { id: "apis", label: "APIs", count: null, icon: Route },
     { id: "mcp", label: "MCP", count: null, icon: PlugZap },

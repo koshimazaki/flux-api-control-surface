@@ -1,74 +1,42 @@
 import {
-  BookmarkPlus,
   Check,
-  Clipboard,
+  ChevronDown,
   Download,
-  Eraser,
-  Expand,
-  Fingerprint,
-  Focus,
-  Heart,
-  ImagePlus,
-  Info,
+  FolderOpen,
   LayoutGrid,
-  Maximize2,
   PackagePlus,
+  Plus,
   RectangleHorizontal,
   RectangleVertical,
   RotateCcw,
   Search,
-  Send,
-  Shirt,
-  Sparkles,
   Square,
-  Trash2,
-  Upload,
-  UserRound
+  Upload
 } from "lucide-react";
-import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type DragEvent } from "react";
+import { AssetCard } from "@/components/asset-card";
+import { AssetCollectionGallery, visibleAssetCollections } from "@/components/asset-collection-gallery";
 import { PanelHeader } from "@/components/ui/panel-header";
-import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-badge";
-import { copyText } from "@/lib/clipboard";
-import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
-import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
-import { referenceDropTargets, referencePreviewSrc } from "@/lib/reference-roles";
-import type { AssetBadge, AssetRecord, AspectRatio, ReferenceImage, ReferenceRole, WorkspaceMode } from "@/lib/types";
+import type {
+  AssetBadge,
+  AssetCollection,
+  AssetCollectionFilter,
+  AssetCollectionMemberKind,
+  AssetRecord,
+  AspectRatio,
+  ReferenceRole,
+  WorkspaceMode
+} from "@/lib/types";
 
 type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
 
-// References that carry an image we can preview (live data/URL) or an assetId we
-// can resolve through the local outputs endpoint. Empty slots are dropped.
-function displayableReferences(references: ReferenceImage[] | undefined) {
-  return (references ?? []).filter((reference) => Boolean(reference.value?.trim() || reference.assetId));
-}
+const collectionFilterLabels: Record<AssetCollectionFilter, string> = {
+  all: "All",
+  images: "Images",
+  collections: "Collections"
+};
 
-function referenceLabel(reference: ReferenceImage, index: number) {
-  const name = reference.name?.trim();
-  const clean = name && name !== "[stored reference omitted]" ? name : `reference ${index + 1}`;
-  return reference.role ? `${reference.role}: ${clean}` : clean;
-}
-
-function referenceInitials(reference: ReferenceImage, index: number) {
-  const name = reference.name?.trim();
-  if (!name || name === "[stored reference omitted]") return `R${index + 1}`;
-  return name.slice(0, 2).toUpperCase();
-}
-
-function ReferenceThumb({ reference, index }: { reference: ReferenceImage; index: number }) {
-  const [failed, setFailed] = useState(false);
-  const src = referencePreviewSrc(reference);
-  const label = referenceLabel(reference, index);
-  return (
-    <span className="assetPromptRef" title={label}>
-      {src && !failed ? (
-        <img src={src} alt={label} loading="lazy" onError={() => setFailed(true)} />
-      ) : (
-        <span className="assetPromptRefFallback">{referenceInitials(reference, index)}</span>
-      )}
-      {reference.role ? <span className="assetPromptRefRole">{reference.role[0].toUpperCase()}</span> : null}
-    </span>
-  );
-}
+const collectionFilterOptions: AssetCollectionFilter[] = ["all", "images", "collections"];
 
 type AssetLibraryProps = {
   assets: AssetRecord[];
@@ -79,9 +47,21 @@ type AssetLibraryProps = {
   metadataAssetId: string | null;
   selectedAssetIds: string[];
   assetBadges: Record<string, AssetBadge[]>;
+  collections: AssetCollection[];
+  collectionFilter: AssetCollectionFilter;
+  openedCollection: AssetCollection | null;
   onSearchChange: (value: string) => void;
   onGridSizeChange: (value: number) => void;
   onAspectRatioChange: (value: AspectRatio) => void;
+  onCollectionFilterChange: (value: AssetCollectionFilter) => void;
+  onCreateCollection: (name: string, assetIds?: string[]) => void;
+  onAddAssetsToCollection: (collectionId: string, assetIds: string[], kind?: AssetCollectionMemberKind) => void;
+  onAddSelectedToCollection: (collectionId: string) => void;
+  onAddFilesToCollection: (collectionId: string, files: File[], kind?: AssetCollectionMemberKind) => void;
+  onOpenCollection: (id: string | null) => void;
+  onRemoveFromCollection: (collectionId: string, assetId: string) => void;
+  onExportCollection: (collectionId: string) => void;
+  onDeleteCollection: (collectionId: string) => void;
   onExport: () => void;
   onClear: () => void;
   onRecover: () => void;
@@ -99,10 +79,6 @@ type AssetLibraryProps = {
   onDelete: (id: string) => void;
 };
 
-function getAspectStyle(ratio: AspectRatio) {
-  return ratio === "free" ? undefined : { aspectRatio: ratio.replace(":", "/") };
-}
-
 function groupAssetsByDate(assets: AssetRecord[]) {
   const groups = new Map<string, AssetRecord[]>();
   assets.forEach((asset) => {
@@ -116,59 +92,42 @@ function groupAssetsByDate(assets: AssetRecord[]) {
   return Array.from(groups.entries());
 }
 
-function isFluxAsset(asset: AssetRecord) {
-  return /bfl|flux/i.test(`${asset.provider || ""} ${asset.model || ""}`);
-}
-
-function assetOrigin(asset: AssetRecord) {
-  if (isFluxAsset(asset)) {
-    return { label: "F", className: "flux", title: "FLUX output", icon: Sparkles };
-  }
-  if (asset.assetKind === "input") {
-    return { label: "Input", className: "input", title: "Imported input image", icon: Upload };
-  }
-  if (asset.assetKind === "reference") {
-    return { label: "Ref", className: "reference", title: "Reference image", icon: ImagePlus };
-  }
-  if (asset.assetKind === "asset") {
-    return { label: "Asset", className: "asset", title: "Local asset", icon: PackagePlus };
-  }
-  return { label: "Output", className: "output", title: "Generated output", icon: Download };
-}
-
 function imageFilesFromTransfer(event: DragEvent) {
   return Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
 }
 
 export function AssetLibrary(props: AssetLibraryProps) {
-  const [copiedPromptAssetId, setCopiedPromptAssetId] = useState<string | null>(null);
-  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [newCollectionName, setNewCollectionName] = useState("");
+  const [targetCollectionId, setTargetCollectionId] = useState("");
+  const [collectionFilterOpen, setCollectionFilterOpen] = useState(false);
+  const [collectionToolsOpen, setCollectionToolsOpen] = useState(false);
   const assetGridStyle = {
     gridTemplateColumns: `repeat(${props.gridSize}, minmax(0, 1fr))`
   };
-  const groupedAssets = groupAssetsByDate(props.filteredAssets);
-  const addImageTarget = referenceDropTargets.find((target) => target.id === "add-image") || referenceDropTargets[0];
-
-  useEffect(() => {
-    return () => {
-      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
-    };
-  }, []);
-
-  async function copyAssetPrompt(asset: AssetRecord) {
-    if (!asset.prompt.trim()) return;
-    const didCopy = await copyText(asset.prompt);
-    if (!didCopy) return;
-    setCopiedPromptAssetId(asset.id);
-    if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
-    copyResetTimer.current = setTimeout(() => {
-      setCopiedPromptAssetId((current) => (current === asset.id ? null : current));
-    }, 1000);
-  }
-
+  const showAssets = props.collectionFilter !== "collections";
+  const showCollections = props.collectionFilter !== "images";
+  const visibleCollectionCount = visibleAssetCollections(props.collections, props.searchQuery, showCollections).length;
+  const groupedAssets = showAssets ? groupAssetsByDate(props.filteredAssets) : [];
   function onImageImport(event: ChangeEvent<HTMLInputElement>) {
     props.onImportImages(Array.from(event.target.files || []));
     event.target.value = "";
+  }
+
+  useEffect(() => {
+    if (targetCollectionId && props.collections.some((collection) => collection.id === targetCollectionId)) return;
+    setTargetCollectionId(props.collections[0]?.id || "");
+  }, [props.collections, targetCollectionId]);
+
+  function createCollection(assetIds: string[] = []) {
+    props.onCreateCollection(newCollectionName, assetIds);
+    setNewCollectionName("");
+    setCollectionToolsOpen(false);
+  }
+
+  function addSelectedToTargetCollection() {
+    if (!targetCollectionId) return;
+    props.onAddSelectedToCollection(targetCollectionId);
+    setCollectionToolsOpen(false);
   }
 
   return (
@@ -189,9 +148,120 @@ export function AssetLibrary(props: AssetLibraryProps) {
     >
       <PanelHeader
         title="Assets Library"
-        subtitle={<>{props.filteredAssets.length} of {props.assets.length} saved assets</>}
+        subtitle={<>{props.filteredAssets.length} of {props.assets.length} saved assets · {props.collections.length} collection{props.collections.length === 1 ? "" : "s"}</>}
       >
         <div className="assetActions">
+          <div className="collectionControlCluster">
+            <div className="collectionActionMenu">
+              <button
+                type="button"
+                className={["collectionModeButton", collectionFilterOpen ? "open" : ""].filter(Boolean).join(" ")}
+                title="Asset library filter"
+                aria-expanded={collectionFilterOpen}
+                onClick={() => {
+                  setCollectionFilterOpen((open) => !open);
+                  setCollectionToolsOpen(false);
+                }}
+              >
+                <FolderOpen size={15} />
+                <span>{collectionFilterLabels[props.collectionFilter]}</span>
+                <ChevronDown size={14} />
+              </button>
+              {collectionFilterOpen && (
+                <div className="collectionMenu">
+                  {collectionFilterOptions.map((filter) => (
+                    <button
+                      type="button"
+                      key={filter}
+                      className={props.collectionFilter === filter ? "active" : ""}
+                      onClick={() => {
+                        props.onCollectionFilterChange(filter);
+                        setCollectionFilterOpen(false);
+                      }}
+                    >
+                      <span>{collectionFilterLabels[filter]}</span>
+                      {props.collectionFilter === filter && <Check size={14} />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="collectionActionMenu">
+              <button
+                type="button"
+                className={["collectionToolsButton", collectionToolsOpen ? "open" : ""].filter(Boolean).join(" ")}
+                title="Collection tools"
+                aria-expanded={collectionToolsOpen}
+                onClick={() => {
+                  setCollectionToolsOpen((open) => !open);
+                  setCollectionFilterOpen(false);
+                }}
+              >
+                <PackagePlus size={15} />
+                <span>{props.selectedAssetIds.length || props.collections.length}</span>
+              </button>
+              {collectionToolsOpen && (
+                <div className="collectionSettingsPopover">
+                  <div className="collectionSettingsCard">
+                    <div className="collectionSettingsCardHeader">
+                      <span>Create</span>
+                    </div>
+                    <label>
+                      <span>Name</span>
+                      <input
+                        value={newCollectionName}
+                        onChange={(event) => setNewCollectionName(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") createCollection();
+                        }}
+                        placeholder="New collection"
+                      />
+                    </label>
+                    <div className="collectionPopoverActions">
+                      <button type="button" onClick={() => createCollection()}>
+                        <Plus size={14} />
+                        Create
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => createCollection(props.selectedAssetIds)}
+                        disabled={!props.selectedAssetIds.length}
+                      >
+                        <FolderOpen size={14} />
+                        From selection
+                      </button>
+                    </div>
+                  </div>
+                  <div className="collectionSettingsCard">
+                    <label>
+                      <span>Target</span>
+                      <select
+                        value={targetCollectionId}
+                        onChange={(event) => setTargetCollectionId(event.target.value)}
+                        disabled={!props.collections.length}
+                      >
+                        {props.collections.map((collection) => (
+                          <option value={collection.id} key={collection.id}>
+                            {collection.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="collectionPopoverActions">
+                      <button
+                        type="button"
+                        onClick={addSelectedToTargetCollection}
+                        disabled={!targetCollectionId || !props.selectedAssetIds.length}
+                      >
+                        <PackagePlus size={14} />
+                        Add selected {props.selectedAssetIds.length || ""}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="searchBox">
             <Search size={15} />
             <input
@@ -234,6 +304,25 @@ export function AssetLibrary(props: AssetLibraryProps) {
       </PanelHeader>
 
       <div className="assetLibraryGroups">
+        <AssetCollectionGallery
+          collections={props.collections}
+          searchQuery={props.searchQuery}
+          showCollections={showCollections}
+          openedCollection={props.openedCollection}
+          assets={props.assets}
+          gridSize={props.gridSize}
+          aspectRatio={props.aspectRatio}
+          selectedAssetCount={props.selectedAssetIds.length}
+          onOpenAsset={props.onOpen}
+          onOpenCollection={props.onOpenCollection}
+          onAddAssetsToCollection={props.onAddAssetsToCollection}
+          onAddSelectedToCollection={props.onAddSelectedToCollection}
+          onAddFilesToCollection={props.onAddFilesToCollection}
+          onRemoveFromCollection={props.onRemoveFromCollection}
+          onExportCollection={props.onExportCollection}
+          onDeleteCollection={props.onDeleteCollection}
+        />
+
         {groupedAssets.map(([date, dateAssets]) => (
           <section className="assetDateGroup" key={date}>
             <div className="assetDateHeader">
@@ -241,200 +330,33 @@ export function AssetLibrary(props: AssetLibraryProps) {
               <span>{dateAssets.length} asset{dateAssets.length === 1 ? "" : "s"}</span>
             </div>
             <div className="assetGrid" style={assetGridStyle}>
-              {dateAssets.map((asset) => {
-                const isSelected = props.selectedAssetIds.includes(asset.id);
-                const imageSource = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
-                const badges = props.assetBadges[asset.id] || [];
-                const origin = assetOrigin(asset);
-                const OriginIcon = origin.icon;
-                const isPromptCopied = copiedPromptAssetId === asset.id;
-                const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
-                const imageButtonClass = ["assetImageButton", glyphPreviewBackground ? "glyphAssetPreview" : "", glyphPreviewClassName(glyphPreviewBackground)]
-                  .filter(Boolean)
-                  .join(" ");
-                const cardClass = [
-                  "assetCard",
-                  isSelected ? "selectedAsset" : "",
-                  badges.length ? "referencedAsset" : "",
-                  assetRoleClassName(badges)
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-                return (
-                  <article className={cardClass} key={asset.id}>
-                    <button
-                      className="assetSelectButton"
-                      onClick={() => props.onToggleSelected(asset.id)}
-                      title={isSelected ? "Remove from collection selection" : "Select for collection"}
-                    >
-                      <PackagePlus size={15} />
-                    </button>
-                    {badges.length > 0 && (
-                      <div className="assetBadges">
-                        {badges.map((badge) => (
-                          <AssetRoleBadge badge={badge} key={`${badge.kind}-${badge.label}`} />
-                        ))}
-                      </div>
-                    )}
-                    <button
-                      className={imageButtonClass}
-                      onClick={() => props.onOpen(asset)}
-                      style={getAspectStyle(props.aspectRatio)}
-                      draggable
-                      onDragStart={(event) => {
-                        event.dataTransfer.setData(BFL_IMAGE_OPTION_MIME, `asset:${asset.id}`);
-                        event.dataTransfer.setData("text/plain", `asset:${asset.id}`);
-                        event.dataTransfer.effectAllowed = "copy";
-                      }}
-                      title="Drag onto a workspace canvas, the prompt editor, an audio timing row, or the reference dropzone"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={imageSource} alt={asset.title || asset.id} />
-                      <span className={`assetOriginBadge assetOrigin-${origin.className}`} title={origin.title}>
-                        <OriginIcon size={11} />
-                        {origin.label}
-                      </span>
-                    </button>
-                    <div className="assetMeta">
-                      <strong>{asset.title || asset.id}</strong>
-                      <span>{asset.model}</span>
-                    </div>
-                    <p className="assetDate">
-                      {new Date(asset.timestamp).toLocaleTimeString()}
-                      {typeof asset.costCredits === "number" ? ` · ${asset.costCredits.toFixed(2)} cr` : ""}
-                    </p>
-                    {props.metadataAssetId === asset.id && (
-                      <pre>{JSON.stringify({
-                        seed: asset.seed,
-                        width: asset.width,
-                        height: asset.height,
-                        costCredits: asset.costCredits,
-                        creditsBefore: asset.creditsBefore,
-                        creditsAfter: asset.creditsAfter,
-                        creditDelta: asset.creditDelta,
-                        localImagePath: asset.localImagePath,
-                        localPromptPath: asset.localPromptPath,
-                        localMetadataPath: asset.localMetadataPath,
-                        localSvgPath: asset.localSvgPath,
-                        remoteImageKey: asset.remoteImageKey,
-                        remotePromptKey: asset.remotePromptKey,
-                        remoteMetadataKey: asset.remoteMetadataKey,
-                        r2RootPrefix: asset.r2RootPrefix,
-                        references: asset.references,
-                        sourceAssetId: asset.sourceAssetId,
-                        operation: asset.operation,
-                        assetKind: asset.assetKind,
-                        inputMp: asset.inputMp,
-                        outputMp: asset.outputMp,
-                        runSettings: asset.runSettings,
-                        request: asset.payload
-                      }, null, 2)}</pre>
-                    )}
-                    <div className="assetPrompt">
-                      <button
-                        type="button"
-                        className={isPromptCopied ? "assetPromptCopy copied" : "assetPromptCopy"}
-                        onClick={() => void copyAssetPrompt(asset)}
-                        title={isPromptCopied ? "Prompt copied" : "Copy full prompt"}
-                        disabled={!asset.prompt.trim()}
-                      >
-                        {isPromptCopied ? <Check size={13} /> : <Clipboard size={13} />}
-                      </button>
-                      <pre>{asset.prompt}</pre>
-                      {displayableReferences(asset.references).length > 0 && (
-                        <div className="assetPromptRefs">
-                          <span className="assetPromptRefsLabel">refs</span>
-                          {displayableReferences(asset.references).map((reference, index) => (
-                            <ReferenceThumb
-                              key={reference.id || `${asset.id}-ref-${index}`}
-                              reference={reference}
-                              index={index}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="assetButtons">
-                      <div className="assetButtonGroup">
-                        <button onClick={() => props.onSendToPrompt(asset)} title="Send prompt to Generate">
-                          <Send size={15} />
-                        </button>
-                        <div className="assetReferenceAction">
-                          <button
-                            onClick={() => props.onSendToReference(asset, addImageTarget.role, addImageTarget.id)}
-                            title="Add image reference"
-                          >
-                            <ImagePlus size={15} />
-                          </button>
-                          <div className="assetReferenceMenu" aria-label="Use as reference">
-                            {referenceDropTargets.map((target) => (
-                              <button
-                                type="button"
-                                key={target.id}
-                                onClick={() => props.onSendToReference(asset, target.role, target.id)}
-                                title={`Use as ${target.label} reference`}
-                              >
-                                {target.shortLabel}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="assetButtonGroup">
-                        <button onClick={() => props.onSendToWorkspace(asset, "erase")} title="Send to Erase">
-                          <Eraser size={15} />
-                        </button>
-                        <button onClick={() => props.onSendToWorkspace(asset, "vto")} title="Use as VTO person">
-                          <UserRound size={15} />
-                        </button>
-                        <button onClick={() => props.onSendToVtoGarment(asset)} title="Add as next VTO garment">
-                          <Shirt size={15} />
-                        </button>
-                        <button onClick={() => props.onSendToWorkspace(asset, "outpaint")} title="Send to Outpaint">
-                          <Maximize2 size={15} />
-                        </button>
-                        <button onClick={() => props.onSendToWorkspace(asset, "deblur")} title="Send to Deblur">
-                          <Focus size={15} />
-                        </button>
-                        <button onClick={() => props.onSendToWorkspace(asset, "glyphs")} title="Send to Glyphs">
-                          <Fingerprint size={15} />
-                        </button>
-                      </div>
-                      <div className="assetButtonGroup">
-                        <button
-                          onClick={() => props.onToggleSelected(asset.id)}
-                          className={isSelected ? "selected" : ""}
-                          title={isSelected ? "Remove from collection selection" : "Select for collection"}
-                        >
-                          <PackagePlus size={15} />
-                        </button>
-                        <button onClick={() => props.onToggleFavorite(asset.id)} className={asset.is_favorite ? "hearted" : ""} title="Favorite">
-                          <Heart size={15} fill={asset.is_favorite ? "currentColor" : "none"} />
-                        </button>
-                        <button onClick={() => props.onSavePromptToLibrary(asset)} title="Save prompt to library">
-                          <BookmarkPlus size={15} />
-                        </button>
-                        <button onClick={() => props.onToggleMetadata(asset.id)} title="Show metadata">
-                          <Info size={15} />
-                        </button>
-                        <button onClick={() => props.onOpen(asset)} title="Open">
-                          <Expand size={15} />
-                        </button>
-                        <button onClick={() => props.onDownload(asset)} title="Download">
-                          <Download size={15} />
-                        </button>
-                        <button onClick={() => props.onDelete(asset.id)} title="Delete from browser library">
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
+              {dateAssets.map((asset) => (
+                <AssetCard
+                  asset={asset}
+                  aspectRatio={props.aspectRatio}
+                  badges={props.assetBadges[asset.id] || []}
+                  isSelected={props.selectedAssetIds.includes(asset.id)}
+                  metadataOpen={props.metadataAssetId === asset.id}
+                  key={asset.id}
+                  onToggleSelected={props.onToggleSelected}
+                  onToggleMetadata={props.onToggleMetadata}
+                  onOpen={props.onOpen}
+                  onDownload={props.onDownload}
+                  onDelete={props.onDelete}
+                  onToggleFavorite={props.onToggleFavorite}
+                  onSendToPrompt={props.onSendToPrompt}
+                  onSendToWorkspace={props.onSendToWorkspace}
+                  onSendToVtoGarment={props.onSendToVtoGarment}
+                  onSendToReference={props.onSendToReference}
+                  onSavePromptToLibrary={props.onSavePromptToLibrary}
+                />
+              ))}
             </div>
           </section>
         ))}
-        {!props.filteredAssets.length && <div className="emptyState">Drop images here or generate outputs to build the library.</div>}
+        {!groupedAssets.length && !visibleCollectionCount && (
+          <div className="emptyState">Drop images here or generate outputs to build the library.</div>
+        )}
       </div>
     </section>
   );

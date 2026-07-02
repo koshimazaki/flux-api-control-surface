@@ -1,5 +1,5 @@
 export type AgentRoute = {
-  method: "GET" | "POST" | "DELETE";
+  method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
   purpose: string;
   sideEffects: boolean | string;
@@ -48,6 +48,7 @@ export const agentRouteMap = {
   credits: "/api/bfl/credits",
   apiKey: "/api/bfl/key",
   outputs: "/api/outputs",
+  collections: "/api/collections",
   referenceArchive: "/api/reference-archive",
   audioGuide: "/api/audio/guide",
   audioSlice: "/api/audio/slice",
@@ -225,6 +226,34 @@ export const dashboardAgentRoutes: AgentRoute[] = [
   },
   {
     method: "GET",
+    path: agentRouteMap.collections,
+    purpose: "List gallery moodboard/project collections shared by the browser UI and local agents.",
+    sideEffects: false,
+    category: "assets"
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.collections,
+    purpose: "Create a gallery collection with optional asset members.",
+    sideEffects: true,
+    category: "assets"
+  },
+  {
+    method: "PATCH",
+    path: agentRouteMap.collections,
+    purpose: "Rename or update a gallery collection, including adding asset members.",
+    sideEffects: true,
+    category: "assets"
+  },
+  {
+    method: "DELETE",
+    path: agentRouteMap.collections,
+    purpose: "Delete a gallery collection, or remove one asset from it when assetId is supplied.",
+    sideEffects: true,
+    category: "assets"
+  },
+  {
+    method: "GET",
     path: agentRouteMap.referenceArchive,
     purpose: "List or browse the synced training reference archive from R2/D1.",
     sideEffects: false,
@@ -337,6 +366,8 @@ export const localAgentCoverage = {
     "Generation accepts multiple reference image URLs/data URLs. The UI can add references from files, hosted URLs, generated outputs, and asset-library drag/drop.",
   assetLibrary:
     "Server-side agents can read saved filesystem/R2 outputs through /api/outputs. Browser-imported local files live in browser storage until generated or exported.",
+  collections:
+    "Gallery collections are server-backed moodboard/project folders under /api/collections. The UI can curate them now; dedicated stdio MCP collection tools are a Phase 2 wrapper.",
   audio:
     "Audio slicing and guide rendering are exposed as routes. Browser-side waveform analysis remains a UI workflow; agents can call /api/audio/guide when they already have an analysis payload.",
   finetuning:
@@ -375,7 +406,7 @@ export const localMcpParityNotes = {
   wrapper:
     "The stdio MCP wrapper covers the local JSON dashboard routes for discovery, assets, prompts, planning, generation, image tools, references, glyphs, credits, caption job prep, and finetune dataset/registry workflows.",
   httpOnly:
-    "Audio guide rendering and audio slicing remain HTTP/UI workflows because those routes return binary media. Browser waveform analysis, drag/drop import, mask painting, and live React control remain UI or browser-automation workflows."
+    "Audio guide rendering and audio slicing remain HTTP/UI workflows because those routes return binary media. Gallery collection CRUD is currently HTTP/UI while dedicated MCP collection tools are deferred. Browser waveform analysis, drag/drop import, mask painting, and live React control remain UI or browser-automation workflows."
 };
 
 export const mcpStatusRoutes = Array.from(

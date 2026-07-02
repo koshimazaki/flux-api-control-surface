@@ -2,6 +2,7 @@ import {
   Eraser,
   Fingerprint,
   Focus,
+  FolderOpen,
   ImagePlus,
   Maximize2,
   Music,
@@ -14,6 +15,7 @@ const badgeIcons = {
   audio: Music,
   reference: ImagePlus,
   prompt: Send,
+  collection: FolderOpen,
   erase: Eraser,
   vto: Shirt,
   outpaint: Maximize2,
@@ -27,6 +29,7 @@ const rolePriority: AssetBadge["kind"][] = [
   "deblur",
   "erase",
   "glyphs",
+  "collection",
   "reference",
   "prompt",
   "audio"

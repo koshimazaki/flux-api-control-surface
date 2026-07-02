@@ -56,9 +56,21 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           metadataAssetId={state.metadataAssetId}
           selectedAssetIds={state.selectedAssetIds}
           assetBadges={state.assetBadges}
+          collections={state.assetCollections}
+          collectionFilter={state.collectionFilter}
+          openedCollection={state.openedCollection}
           onSearchChange={state.setSearchQuery}
           onGridSizeChange={state.setGridSize}
           onAspectRatioChange={state.setAspectRatio}
+          onCollectionFilterChange={state.setCollectionFilter}
+          onCreateCollection={state.createAssetCollection}
+          onAddAssetsToCollection={state.addAssetsToCollection}
+          onAddSelectedToCollection={state.addSelectedAssetsToAssetCollection}
+          onAddFilesToCollection={state.addFilesToCollection}
+          onOpenCollection={state.setOpenedCollectionId}
+          onRemoveFromCollection={state.removeAssetFromCollection}
+          onExportCollection={state.exportAssetCollection}
+          onDeleteCollection={state.deleteAssetCollection}
           onExport={() =>
             downloadText("bfl-flower-assets.json", JSON.stringify(state.assets.map(stripAssetForStorage), null, 2))
           }

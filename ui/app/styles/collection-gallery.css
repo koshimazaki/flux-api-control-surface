@@ -1,0 +1,463 @@
+.collectionControlCluster {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.collectionActionMenu {
+  display: inline-flex;
+}
+
+.collectionModeButton,
+.collectionToolsButton {
+  min-height: 36px;
+  border-color: rgba(156, 198, 204, 0.28);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(27, 38, 38, 0.86), rgba(10, 14, 14, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.48),
+    0 1px 1px rgba(0, 0, 0, 0.38);
+  color: var(--cream);
+}
+
+.collectionModeButton {
+  width: 136px;
+  max-width: 136px;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.collectionToolsButton {
+  width: 58px;
+  padding: 0;
+}
+
+.collectionModeButton.open,
+.collectionToolsButton.open {
+  border-color: rgba(156, 198, 204, 0.72);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.58),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.collectionModeButton span,
+.collectionToolsButton span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectionMenu,
+.collectionSettingsPopover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1000;
+  border: 1px solid rgba(156, 198, 204, 0.24);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 62%),
+    rgba(10, 14, 14, 0.78);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 20px rgba(0, 0, 0, 0.48),
+    0 22px 56px rgba(0, 0, 0, 0.42);
+}
+
+.collectionMenu {
+  width: 170px;
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+}
+
+.collectionMenu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--soft);
+  font-size: 12px;
+  text-align: left;
+}
+
+.collectionMenu button.active,
+.collectionMenu button:hover {
+  border-color: rgba(156, 198, 204, 0.34);
+  background: rgba(156, 198, 204, 0.13);
+  color: var(--cream);
+}
+
+.collectionMenu button.active {
+  color: rgba(196, 225, 228, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(156, 198, 204, 0.18);
+}
+
+.collectionMenu button svg {
+  color: rgba(156, 198, 204, 0.95);
+}
+
+.collectionSettingsPopover {
+  width: min(400px, calc(100vw - 36px));
+  max-width: calc(100vw - 36px);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.collectionSettingsCard {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(156, 198, 204, 0.23);
+  border-radius: 7px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(24, 35, 35, 0.88), rgba(9, 13, 13, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.48),
+    0 1px 1px rgba(0, 0, 0, 0.28);
+  padding: 10px;
+}
+
+.collectionSettingsCard label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.collectionSettingsCard span,
+.collectionSettingsCardHeader span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.collectionSettingsCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.collectionSettingsPopover input,
+.collectionSettingsPopover select {
+  border-color: rgba(156, 198, 204, 0.22);
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.58),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.collectionPopoverActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.collectionPopoverActions button {
+  min-height: 30px;
+  border-color: rgba(156, 198, 204, 0.24);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(24, 35, 35, 0.86), rgba(10, 14, 14, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.48),
+    0 1px 1px rgba(0, 0, 0, 0.32);
+}
+
+.collectionShelf {
+  display: grid;
+  gap: 12px;
+}
+
+.collectionCard {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(156, 198, 204, 0.34);
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(90deg, rgba(156, 198, 204, 0.08), transparent 18%, transparent 82%, rgba(156, 198, 204, 0.07)),
+    rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(156, 198, 204, 0.08);
+}
+
+.collectionCard.open {
+  border-color: rgba(156, 198, 204, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(156, 198, 204, 0.28);
+}
+
+.collectionFolderPreview {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 4 / 3;
+  padding: 14px;
+  border-color: rgba(156, 198, 204, 0.26);
+  background: rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.collectionBracket {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 10px;
+  border-color: rgba(156, 198, 204, 0.7);
+  pointer-events: none;
+}
+
+.collectionBracket.top {
+  top: 8px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+  border-right: 1px solid;
+}
+
+.collectionBracket.bottom {
+  bottom: 8px;
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+  border-right: 1px solid;
+}
+
+.collectionCoverGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  width: 100%;
+  height: 100%;
+}
+
+.collectionCoverCell {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(237, 237, 237, 0.1);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.42);
+  color: rgba(237, 237, 237, 0.48);
+}
+
+.collectionCoverCell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.collectionCardMeta {
+  display: grid;
+  gap: 3px;
+}
+
+.collectionCardMeta strong,
+.collectionCardMeta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectionCardMeta span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.collectionCardActions {
+  display: flex;
+  gap: 6px;
+}
+
+.collectionCardActions button {
+  width: 34px;
+  min-height: 32px;
+  padding: 0;
+}
+
+.collectionWindow {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(156, 198, 204, 0.42);
+  border-radius: 8px;
+  padding: 9px 10px 10px;
+  background:
+    linear-gradient(90deg, rgba(156, 198, 204, 0.07), transparent 7%, transparent 93%, rgba(156, 198, 204, 0.06)),
+    rgba(0, 0, 0, 0.58);
+  box-shadow:
+    inset 0 0 0 1px rgba(156, 198, 204, 0.1),
+    inset 8px 0 0 rgba(156, 198, 204, 0.025),
+    inset -8px 0 0 rgba(156, 198, 204, 0.025);
+}
+
+.collectionWindow::before,
+.collectionWindow::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  pointer-events: none;
+  background: rgba(156, 198, 204, 0.42);
+}
+
+.collectionWindow::before {
+  left: 7px;
+}
+
+.collectionWindow::after {
+  right: 7px;
+}
+
+.collectionWindowHeader {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.collectionWindowTitle {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.collectionWindowTitle span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.collectionWindowTitle strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.collectionWindowActions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.collectionWindowActions button,
+.collectionWindowActions .fileButton {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 9px;
+  border-color: rgba(156, 198, 204, 0.2);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.collectionWindowActions button[title="Close collection"] {
+  width: 32px;
+  padding: 0;
+}
+
+.collectionGridDropzone {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  border: 1px solid rgba(237, 237, 237, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 7px;
+}
+
+.collectionMemberGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+  overflow: visible;
+}
+
+.collectionAssetTile,
+.collectionMissingTile,
+.collectionLaneEmpty {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.collectionAssetTile {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  padding: 0;
+}
+
+.collectionAssetTile .assetImageButton {
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 0;
+}
+
+.collectionAssetTile .assetOriginBadge {
+  left: 6px;
+  bottom: 6px;
+  padding: 3px 6px;
+  font-size: 9px;
+}
+
+.collectionAssetRemove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 26px;
+  min-height: 26px;
+  padding: 0;
+  border-color: rgba(237, 237, 237, 0.16);
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(12px);
+}
+
+.collectionMissingTile,
+.collectionLaneEmpty {
+  aspect-ratio: 1 / 1;
+  min-height: 92px;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  color: var(--muted);
+  text-align: center;
+  border-style: dashed;
+  padding: 8px;
+}
+
+.collectionLaneEmpty {
+  grid-column: 1 / -1;
+  aspect-ratio: auto;
+}

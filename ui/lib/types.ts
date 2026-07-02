@@ -36,6 +36,31 @@ export type DashboardTab = "script" | "audio" | "assets" | "runs" | "collections
 
 export type AssetKind = "output" | "input" | "reference" | "asset";
 
+export type AssetCollectionMemberKind = "input" | "generation" | "asset";
+
+export type AssetCollectionMember = {
+  assetId: string;
+  kind: AssetCollectionMemberKind;
+  role?: ReferenceRole;
+  name?: string;
+  localImagePath?: string | null;
+  addedAt: number;
+};
+
+export type AssetCollection = {
+  id: string;
+  name: string;
+  description?: string;
+  favorite?: boolean;
+  cover?: string[];
+  members: AssetCollectionMember[];
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+};
+
+export type AssetCollectionFilter = "all" | "images" | "collections";
+
 export type AssetRecord = {
   id: string;
   title?: string;
@@ -79,7 +104,7 @@ export type AssetRecord = {
 
 export type AssetBadge = {
   label: string;
-  kind: "audio" | "reference" | "prompt" | WorkspaceMode;
+  kind: "audio" | "reference" | "prompt" | "collection" | WorkspaceMode;
   title?: string;
 };
 
