@@ -3,6 +3,7 @@ import {
   collectionCoverAssetIds,
   collectionMemberCounts,
   collectionMemberFromAsset,
+  collectionMembersFromAssets,
   createAssetCollection,
   inferCollectionMemberKind,
   mergeCollectionMembers,
@@ -50,6 +51,35 @@ describe("asset collections", () => {
       localImagePath: "outputs/blue.png",
       addedAt: 10
     });
+  });
+
+  it("builds member snapshots from freshly imported assets", () => {
+    const members = collectionMembersFromAssets(
+      [
+        asset({ id: "fresh-a", title: "Fresh A", localImagePath: "outputs/fresh-a.png" }),
+        asset({ id: "fresh-a", title: "Fresh A duplicate" }),
+        asset({ id: "fresh-b", title: "Fresh B", assetKind: "asset" })
+      ],
+      "input",
+      10
+    );
+
+    expect(members).toEqual([
+      {
+        assetId: "fresh-a",
+        kind: "input",
+        name: "Fresh A",
+        localImagePath: "outputs/fresh-a.png",
+        addedAt: 10
+      },
+      {
+        assetId: "fresh-b",
+        kind: "input",
+        name: "Fresh B",
+        localImagePath: null,
+        addedAt: 11
+      }
+    ]);
   });
 
   it("dedupes members by asset id while preserving original order", () => {

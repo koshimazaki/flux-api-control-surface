@@ -35,10 +35,12 @@ async function walk(dir: string): Promise<string[]> {
   try {
     const entries = await readdir(dir, { withFileTypes: true });
     const children = await Promise.all(
-      entries.map((entry) => {
-        const fullPath = path.join(dir, entry.name);
-        return entry.isDirectory() ? walk(fullPath) : Promise.resolve([fullPath]);
-      })
+      entries
+        .filter((entry) => !(entry.isDirectory() && entry.name.startsWith(".")))
+        .map((entry) => {
+          const fullPath = path.join(dir, entry.name);
+          return entry.isDirectory() ? walk(fullPath) : Promise.resolve([fullPath]);
+        })
     );
     return children.flat();
   } catch {

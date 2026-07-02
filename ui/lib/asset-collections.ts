@@ -50,6 +50,24 @@ export function collectionMemberFromAsset(
   };
 }
 
+export function collectionMembersFromAssets(
+  assets: AssetRecord[],
+  kind?: AssetCollectionMemberKind,
+  now = Date.now()
+): AssetCollectionMember[] {
+  const seen = new Set<string>();
+  let order = 0;
+  return assets
+    .map((asset) => {
+      if (!asset.id || seen.has(asset.id)) return null;
+      seen.add(asset.id);
+      const member = collectionMemberFromAsset(asset, kind, now + order);
+      order += 1;
+      return member;
+    })
+    .filter((member): member is AssetCollectionMember => Boolean(member));
+}
+
 export function normalizeCollectionMember(value: unknown): AssetCollectionMember | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;

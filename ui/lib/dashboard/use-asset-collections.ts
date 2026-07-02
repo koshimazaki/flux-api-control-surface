@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ASSET_COLLECTIONS_CACHE_KEY,
-  collectionMemberFromAsset,
+  collectionMembersFromAssets,
   normalizeAssetCollections,
   upsertAssetCollection
 } from "@/lib/asset-collections";
@@ -90,12 +90,10 @@ export function useAssetCollections(deps: UseAssetCollectionsDeps) {
 
   function membersForAssetIds(assetIds: string[], kind?: AssetCollectionMemberKind): AssetCollectionMember[] {
     const byId = new Map(assets.map((asset) => [asset.id, asset]));
-    return Array.from(new Set(assetIds))
-      .map((assetId) => {
-        const asset = byId.get(assetId);
-        return asset ? collectionMemberFromAsset(asset, kind) : null;
-      })
-      .filter((member): member is AssetCollectionMember => Boolean(member));
+    const resolvedAssets = Array.from(new Set(assetIds))
+      .map((assetId) => byId.get(assetId))
+      .filter((asset): asset is AssetRecord => Boolean(asset));
+    return collectionMembersFromAssets(resolvedAssets, kind);
   }
 
   function applyCollections(nextCollections: AssetCollection[], collection?: AssetCollection) {
@@ -141,8 +139,7 @@ export function useAssetCollections(deps: UseAssetCollectionsDeps) {
     return data.collection;
   }
 
-  async function addAssetsToCollection(collectionId: string, assetIds: string[], kind?: AssetCollectionMemberKind) {
-    const addMembers = membersForAssetIds(assetIds, kind);
+  async function addMembersToCollection(collectionId: string, addMembers: AssetCollectionMember[]) {
     if (!addMembers.length) {
       setError("Select at least one resolvable asset for this collection.");
       return null;
@@ -158,6 +155,10 @@ export function useAssetCollections(deps: UseAssetCollectionsDeps) {
     }
   }
 
+  async function addAssetsToCollection(collectionId: string, assetIds: string[], kind?: AssetCollectionMemberKind) {
+    return addMembersToCollection(collectionId, membersForAssetIds(assetIds, kind));
+  }
+
   async function addSelectedAssetsToAssetCollection(collectionId: string) {
     const collection = await addAssetsToCollection(collectionId, selectedAssetIds);
     if (collection) setSelectedAssetIds([]);
@@ -170,15 +171,11 @@ export function useAssetCollections(deps: UseAssetCollectionsDeps) {
     kind: AssetCollectionMemberKind = "input"
   ) {
     const imported = await importImageAssetFiles(files, {
-      assetKind: kind === "generation" ? "output" : "input",
+      assetKind: kind === "generation" ? "output" : kind === "asset" ? "asset" : "input",
       focusAssetsTab: false
     });
     if (!imported.length) return null;
-    return addAssetsToCollection(
-      collectionId,
-      imported.map((asset) => asset.id),
-      kind
-    );
+    return addMembersToCollection(collectionId, collectionMembersFromAssets(imported, kind));
   }
 
   async function removeAssetFromCollection(collectionId: string, assetId: string) {
