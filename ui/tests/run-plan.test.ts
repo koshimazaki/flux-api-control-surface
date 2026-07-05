@@ -35,8 +35,20 @@ describe("buildRunPlan", () => {
       "data:image/png;base64,abc"
     ]);
     expect(plan.requests[0].body.referenceWeight).toBe(92);
+    expect(plan.requests[0].body.normalizeReferences).toBe(true);
     expect(plan.requests[0].body.prompt).toContain("Reference roles: Use @character");
     expect(plan.nativeFluxMcpHandoff.groups[0].prompts[0].references).toEqual(plan.requests[0].body.references);
+  });
+
+  it("can disable reference normalization in generated request bodies", () => {
+    const plan = buildRunPlan(prompts, {
+      promptId: "sample_01",
+      references: ["https://example.com/character.png"],
+      normalizeReferences: false
+    });
+
+    expect(plan.requests[0].body.normalizeReferences).toBe(false);
+    expect(plan.nativeFluxMcpHandoff.groups[0].prompts[0].normalizeReferences).toBe(false);
   });
 
   it("puts the reference slider influence text into the prompt sent to FLUX", () => {

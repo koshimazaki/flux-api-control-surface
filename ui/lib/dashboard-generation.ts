@@ -121,6 +121,7 @@ export function buildRunPlanPayload(options: {
   height: number;
   seed: string;
   promptUpsampling: boolean;
+  normalizeReferences: boolean;
   referenceCue: string;
   referenceWeight: number;
   references: ReferenceImage[];
@@ -142,6 +143,7 @@ export function buildRunPlanPayload(options: {
     promptIds: options.batchMode === "permutations" ? options.selectedPromptIds : undefined,
     batchMode: options.batchMode,
     promptUpsampling: options.promptUpsampling,
+    normalizeReferences: options.normalizeReferences,
     referenceCue: options.referenceCue,
     referenceWeight: clampReferenceWeight(options.referenceWeight),
     hasReferences,
@@ -161,6 +163,35 @@ export async function fetchRunPlan(payload: Record<string, unknown>) {
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "Could not build run plan");
   return data.requests as PlanRequestItem[];
+}
+
+function formatReferenceDiagnostics(details: unknown) {
+  if (!details || typeof details !== "object") return "";
+  const references = (details as { references?: unknown }).references;
+  if (!Array.isArray(references) || !references.length) return "";
+  const summary = references
+    .map((reference) => {
+      if (!reference || typeof reference !== "object") return "";
+      const item = reference as {
+        bytes?: number;
+        format?: string;
+        height?: number;
+        normalized?: boolean;
+        slot?: string;
+        width?: number;
+      };
+      const size = item.width && item.height ? `${item.width}x${item.height}` : "unknown size";
+      const bytes = typeof item.bytes === "number" ? `, ${Math.round(item.bytes / 1024)}KB` : "";
+      const mode = item.normalized ? "normalized" : "passthrough";
+      return `${item.slot || "reference"} ${mode} ${item.format || "image"} ${size}${bytes}`;
+    })
+    .filter(Boolean)
+    .join("; ");
+  return summary ? ` References: ${summary}.` : "";
+}
+
+function generationErrorMessage(data: any) {
+  return `${data?.error || "Generation failed"}${formatReferenceDiagnostics(data?.details)}`;
 }
 
 export async function executePlannedGeneration(item: PlanRequestItem, apiKey: string, references: ReferenceImage[]) {
@@ -183,7 +214,7 @@ export async function executePlannedGeneration(item: PlanRequestItem, apiKey: st
     })
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Generation failed");
+  if (!response.ok) throw new Error(generationErrorMessage(data));
   return data;
 }
 

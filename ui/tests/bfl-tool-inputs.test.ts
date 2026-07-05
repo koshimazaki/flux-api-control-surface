@@ -15,6 +15,20 @@ function dataUrl(buffer: Buffer, mime = "image/png") {
   return `data:${mime};base64,${buffer.toString("base64")}`;
 }
 
+const referenceAspectRatios = [
+  [1, 1],
+  [5, 4],
+  [4, 5],
+  [4, 3],
+  [3, 4],
+  [16, 9],
+  [9, 16],
+  [2, 1],
+  [1, 2],
+  [3, 1],
+  [1, 3]
+] as const;
+
 // Stub https.request with a fake response so the pinned-fetch path is testable
 // without real network I/O. Returns the spy plus the fake request/response.
 function mockHttps(init: { statusCode: number; headers?: Record<string, string> }) {
@@ -57,6 +71,128 @@ describe("BFL tool input preparation", () => {
 
     expect(prepared).toMatchObject({ width: 8, height: 4 });
     expect(metadata).toMatchObject({ format: "png", width: 8, height: 4 });
+  });
+
+  it("normalizes near-square screenshots to a square 1280px reference", async () => {
+    const source = await sharp({
+      create: {
+        width: 3108,
+        height: 3106,
+        channels: 3,
+        background: "#d8b05a"
+      }
+    })
+      .png()
+      .toBuffer();
+
+    const prepared = await prepareToolImageInput(dataUrl(source), "reference image", {
+      dimensionMultiple: 8,
+      flattenBackground: "#ffffff",
+      maxDimension: 1280,
+      maxMegapixels: 4,
+      targetAspectRatios: referenceAspectRatios
+    });
+    const metadata = await sharp(Buffer.from(prepared.base64, "base64")).metadata();
+
+    expect(prepared).toMatchObject({ width: 1280, height: 1280 });
+    expect(metadata).toMatchObject({ format: "png", width: 1280, height: 1280, channels: 3 });
+    expect((metadata.width || 0) % 8).toBe(0);
+    expect((metadata.height || 0) % 8).toBe(0);
+    expect(metadata.exif).toBeUndefined();
+    expect(metadata.xmp).toBeUndefined();
+  });
+
+  it("keeps clearly rectangular references rectangular while fitting them to 1280px", async () => {
+    const source = await sharp({
+      create: {
+        width: 1600,
+        height: 900,
+        channels: 3,
+        background: "#456a9f"
+      }
+    })
+      .png()
+      .toBuffer();
+
+    const prepared = await prepareToolImageInput(dataUrl(source), "reference image", {
+      dimensionMultiple: 8,
+      maxDimension: 1280,
+      targetAspectRatios: referenceAspectRatios
+    });
+
+    expect(prepared).toMatchObject({ width: 1280, height: 720 });
+  });
+
+  it("snaps EXIF-oriented portrait references after applying orientation", async () => {
+    const source = await sharp({
+      create: {
+        width: 2000,
+        height: 1000,
+        channels: 3,
+        background: "#819f45"
+      }
+    })
+      .jpeg()
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+
+    const prepared = await prepareToolImageInput(dataUrl(source, "image/jpeg"), "reference image", {
+      dimensionMultiple: 8,
+      maxDimension: 1280,
+      targetAspectRatios: referenceAspectRatios
+    });
+
+    expect(prepared).toMatchObject({ width: 640, height: 1280 });
+  });
+
+  it("can encode normalized references as a metadata-free baseline JPEG", async () => {
+    const source = await sharp({
+      create: {
+        width: 1025,
+        height: 1023,
+        channels: 4,
+        background: { r: 40, g: 80, b: 120, alpha: 0.65 }
+      }
+    })
+      .png()
+      .toBuffer();
+
+    const prepared = await prepareToolImageInput(dataUrl(source), "reference image", {
+      dimensionMultiple: 8,
+      flattenBackground: "#ffffff",
+      imageFormat: "jpeg",
+      jpegQuality: 95,
+      maxDimension: 1280,
+      targetAspectRatios: referenceAspectRatios
+    });
+    const metadata = await sharp(Buffer.from(prepared.base64, "base64")).metadata();
+
+    expect(prepared).toMatchObject({ width: 1016, height: 1016 });
+    expect(metadata).toMatchObject({ format: "jpeg", width: 1016, height: 1016, channels: 3 });
+    expect(metadata.isProgressive).toBe(false);
+    expect(metadata.exif).toBeUndefined();
+    expect(metadata.xmp).toBeUndefined();
+  });
+
+  it("snaps broad references to the closest wide aspect bucket", async () => {
+    const source = await sharp({
+      create: {
+        width: 2400,
+        height: 1000,
+        channels: 3,
+        background: "#101820"
+      }
+    })
+      .png()
+      .toBuffer();
+
+    const prepared = await prepareToolImageInput(dataUrl(source), "reference image", {
+      dimensionMultiple: 8,
+      maxDimension: 1280,
+      targetAspectRatios: referenceAspectRatios
+    });
+
+    expect(prepared).toMatchObject({ width: 1280, height: 640 });
   });
 
   it("resizes and thresholds masks to match the source image dimensions", async () => {

@@ -687,6 +687,13 @@
   color: var(--grey-1);
 }
 
+.referenceSnapToggle {
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.24);
+  border-radius: 8px;
+  padding: 8px 9px;
+}
+
 @media (max-width: 760px) {
   .referenceDock {
     top: 8px;

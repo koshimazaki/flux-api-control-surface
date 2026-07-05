@@ -78,6 +78,8 @@ type ApiKeyRouteResponse = Partial<ApiKeyStatus> & {
   saved?: boolean;
 };
 
+const NORMALIZE_REFERENCES_STORAGE_KEY = "bfl-normalize-references";
+
 async function readApiKeyRouteResponse(response: Response) {
   const text = await response.text();
   if (!text) return {} as ApiKeyRouteResponse;
@@ -112,6 +114,7 @@ export function useDashboardState() {
   const [seed, setSeedValue] = useState("");
   const [seedLocked, setSeedLocked] = useState(false);
   const [promptUpsampling, setPromptUpsampling] = useState(true);
+  const [normalizeReferences, setNormalizeReferences] = useState(true);
   const [batchCount, setBatchCount] = useState(1);
   const [batchMode, setBatchMode] = useState<BatchMode>("current");
   const [batchProgress] = useState<BatchProgress | null>(null);
@@ -147,6 +150,23 @@ export function useDashboardState() {
   useEffect(() => {
     setSeedValue((current) => current.trim() || randomSeedString());
   }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(NORMALIZE_REFERENCES_STORAGE_KEY);
+      if (saved !== null) setNormalizeReferences(saved !== "false");
+    } catch {
+      // Non-critical preference.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(NORMALIZE_REFERENCES_STORAGE_KEY, String(normalizeReferences));
+    } catch {
+      // Non-critical preference.
+    }
+  }, [normalizeReferences]);
 
   function setSeed(value: string) {
     setSeedValue(value);
@@ -395,13 +415,14 @@ export function useDashboardState() {
         height,
         seed,
         promptUpsampling,
+        normalizeReferences,
         referenceCue: effectiveReferenceCue,
         referenceWeight,
         references,
         comboMode: comboSettings.mode,
         comboSettings
       }),
-    [activeId, batchCount, batchMode, comboSettings, effectiveReferenceCue, height, model, promptText, promptUpsampling, referenceWeight, references, seed, selectedComboIds, width]
+    [activeId, batchCount, batchMode, comboSettings, effectiveReferenceCue, height, model, normalizeReferences, promptText, promptUpsampling, referenceWeight, references, seed, selectedComboIds, width]
   );
   const promptForRun = useMemo(
     () => composePrompt(promptText, references, effectiveReferenceCue),
@@ -785,6 +806,7 @@ export function useDashboardState() {
       height,
       seed,
       promptUpsampling,
+      normalizeReferences,
       referenceCue: effectiveReferenceCue,
       referenceWeight,
       references,
@@ -1130,6 +1152,8 @@ export function useDashboardState() {
     randomizeSeed,
     promptUpsampling,
     setPromptUpsampling,
+    normalizeReferences,
+    setNormalizeReferences,
     batchCount,
     setBatchCount,
     batchMode,

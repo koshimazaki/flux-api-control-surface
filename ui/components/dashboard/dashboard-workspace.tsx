@@ -159,6 +159,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           seed={state.seed}
           seedLocked={state.seedLocked}
           promptUpsampling={state.promptUpsampling}
+          normalizeReferences={state.normalizeReferences}
           batchCount={state.batchCount}
           batchMode={state.batchMode}
           selectedPromptCount={state.selectedComboIds.length}
@@ -187,6 +188,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onSeedLockedChange={state.setSeedLocked}
           onRandomSeed={state.randomizeSeed}
           onPromptUpsamplingChange={state.setPromptUpsampling}
+          onNormalizeReferencesChange={state.setNormalizeReferences}
           onBatchCountChange={(value) => state.setBatchCount(clampBatchCount(value))}
           onBatchModeChange={state.setBatchMode}
           onReferencesChange={state.setReferences}

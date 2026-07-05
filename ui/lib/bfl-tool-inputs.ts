@@ -13,6 +13,19 @@ type PreparedImage = {
   height: number;
 };
 
+type AspectRatioCandidate = readonly [number, number];
+
+type PrepareImageOptions = {
+  dimensionMultiple?: number;
+  flattenBackground?: string;
+  imageFormat?: "png" | "jpeg";
+  jpegQuality?: number;
+  maxDimension?: number;
+  maxMegapixels?: number;
+  squareTolerance?: number;
+  targetAspectRatios?: readonly AspectRatioCandidate[];
+};
+
 type PreparedGarment = PreparedImage & {
   count: number;
   composite: boolean;
@@ -54,13 +67,100 @@ function imageInputError(label: string, error: unknown) {
   return new Error(`Invalid or unsupported ${label}.${detail}`);
 }
 
-export async function prepareToolImageInput(value: string | undefined, label = "source") {
+function preparedDimension(value: number, multiple: number) {
+  if (multiple <= 1) return Math.max(1, Math.round(value));
+  return Math.max(multiple, Math.floor(value / multiple) * multiple);
+}
+
+function aspectRatioValue(candidate: AspectRatioCandidate) {
+  const [width, height] = candidate;
+  return width > 0 && height > 0 ? width / height : null;
+}
+
+function closestAspectRatio(sourceRatio: number, candidates: readonly AspectRatioCandidate[] | undefined) {
+  const ratios = (candidates || []).map(aspectRatioValue).filter((ratio): ratio is number => Boolean(ratio));
+  if (!ratios.length) return null;
+  return ratios.reduce((closest, ratio) => {
+    const closestDistance = Math.abs(Math.log(sourceRatio / closest));
+    const distance = Math.abs(Math.log(sourceRatio / ratio));
+    return distance < closestDistance ? ratio : closest;
+  });
+}
+
+function orientedImageSize(metadata: { width?: number; height?: number; orientation?: number }) {
+  if (!metadata.width || !metadata.height) throw new Error("Could not read dimensions.");
+  const orientation = metadata.orientation || 1;
+  const swapsAxes = orientation >= 5 && orientation <= 8;
+  return {
+    width: swapsAxes ? metadata.height : metadata.width,
+    height: swapsAxes ? metadata.width : metadata.height
+  };
+}
+
+function preparedImageSize(width: number, height: number, options: PrepareImageOptions = {}) {
+  const multiple = Math.max(1, Math.floor(options.dimensionMultiple || 1));
+  const squareTolerance =
+    typeof options.squareTolerance === "number" && Number.isFinite(options.squareTolerance)
+      ? Math.max(0, options.squareTolerance)
+      : 0;
+  const targetRatio = closestAspectRatio(width / height, options.targetAspectRatios);
+  const useSquare =
+    !targetRatio && squareTolerance > 0 && Math.abs(width - height) / Math.max(width, height) <= squareTolerance;
+  let sourceWidth = useSquare ? Math.min(width, height) : width;
+  let sourceHeight = useSquare ? Math.min(width, height) : height;
+  if (targetRatio) {
+    if (width / height > targetRatio) {
+      sourceWidth = height * targetRatio;
+      sourceHeight = height;
+    } else {
+      sourceWidth = width;
+      sourceHeight = width / targetRatio;
+    }
+  }
+  const maxDimension =
+    typeof options.maxDimension === "number" && Number.isFinite(options.maxDimension) && options.maxDimension > 0
+      ? options.maxDimension
+      : null;
+  const maxPixels =
+    typeof options.maxMegapixels === "number" && Number.isFinite(options.maxMegapixels) && options.maxMegapixels > 0
+      ? options.maxMegapixels * 1_000_000
+      : null;
+  const dimensionScale = maxDimension ? Math.min(1, maxDimension / Math.max(sourceWidth, sourceHeight)) : 1;
+  const megapixelScale =
+    maxPixels && sourceWidth * sourceHeight > maxPixels ? Math.sqrt(maxPixels / (sourceWidth * sourceHeight)) : 1;
+  const scale = Math.min(dimensionScale, megapixelScale);
+  return {
+    width: preparedDimension(sourceWidth * scale, multiple),
+    height: preparedDimension(sourceHeight * scale, multiple)
+  };
+}
+
+export async function prepareToolImageInput(
+  value: string | undefined,
+  label = "source",
+  options: PrepareImageOptions = {}
+) {
   try {
     const buffer = await inputToBuffer(value, label);
-    const { data, info } = await sharp(buffer, { failOn: "none", limitInputPixels: MAX_IMAGE_INPUT_PIXELS })
-      .rotate()
-      .png()
-      .toBuffer({ resolveWithObject: true });
+    const metadata = await sharp(buffer, { failOn: "none", limitInputPixels: MAX_IMAGE_INPUT_PIXELS }).metadata();
+    const source = orientedImageSize(metadata);
+    const target = preparedImageSize(source.width, source.height, options);
+    const pipeline = sharp(buffer, { failOn: "none", limitInputPixels: MAX_IMAGE_INPUT_PIXELS }).rotate();
+    if (options.flattenBackground) {
+      pipeline.flatten({ background: options.flattenBackground });
+    }
+    if (target.width !== source.width || target.height !== source.height) {
+      pipeline.resize(target.width, target.height, { fit: "cover", position: "centre" });
+    }
+    const output =
+      options.imageFormat === "jpeg"
+        ? pipeline.jpeg({
+            quality: Math.max(1, Math.min(100, Math.round(options.jpegQuality ?? 95))),
+            mozjpeg: false,
+            progressive: false
+          })
+        : pipeline.png();
+    const { data, info } = await output.toBuffer({ resolveWithObject: true });
     if (!info.width || !info.height) throw new Error("Could not read dimensions.");
     return {
       base64: data.toString("base64"),

@@ -31,6 +31,7 @@ export type RunPlanBody = {
   referenceWeight?: number;
   references?: string[];
   hasReferences?: boolean;
+  normalizeReferences?: boolean;
   outputFormat?: "jpeg" | "png" | "webp";
   comboMode?: ComboMode;
   comboSettings?: Partial<ComboSettings>;
@@ -137,6 +138,7 @@ export function buildRunPlan(prompts: PromptRecord[], body: RunPlanBody) {
         outputFormat,
         promptUpsampling,
         referenceWeight: clampReferenceWeight(body.referenceWeight),
+        normalizeReferences: body.normalizeReferences !== false,
         references
       },
       batchIndex: index + 1,

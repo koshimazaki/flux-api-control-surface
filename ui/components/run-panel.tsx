@@ -41,6 +41,7 @@ type RunPanelProps = {
   seed: string;
   seedLocked: boolean;
   promptUpsampling: boolean;
+  normalizeReferences: boolean;
   batchCount: number;
   batchMode: BatchMode;
   selectedPromptCount: number;
@@ -69,6 +70,7 @@ type RunPanelProps = {
   onSeedLockedChange: (value: boolean) => void;
   onRandomSeed: () => void;
   onPromptUpsamplingChange: (value: boolean) => void;
+  onNormalizeReferencesChange: (value: boolean) => void;
   onBatchCountChange: (value: number) => void;
   onBatchModeChange: (value: BatchMode) => void;
   onReferencesChange: (value: ReferenceImage[]) => void;
@@ -479,6 +481,18 @@ export function RunPanel(props: RunPanelProps) {
         value={props.referenceCue}
         onChange={(event) => props.onReferenceCueChange(event.target.value)}
       />
+
+      <label
+        className="toggle referenceSnapToggle"
+        title="Crop to the nearest standard aspect, resize to 1280px, strip metadata, write a clean RGB reference image, and submit it to BFL."
+      >
+        <input
+          type="checkbox"
+          checked={props.normalizeReferences}
+          onChange={(event) => props.onNormalizeReferencesChange(event.target.checked)}
+        />
+        <span>Snap refs to 1280</span>
+      </label>
 
       <SeedControl
         value={props.seed}

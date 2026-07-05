@@ -12,9 +12,15 @@ import {
   resolveImageInput,
   saveOutputFiles
 } from "@/lib/bfl-server";
+import { prepareToolImageInput } from "@/lib/bfl-tool-inputs";
 import { embedPngMetadata } from "@/lib/png-metadata";
 import { resolveFinetuneGeneration } from "@/lib/finetune-registry";
-import { bflFinetunedKleinModel, getBflModel, validateBflGenerationRequest } from "@/lib/provider-registry";
+import {
+  BFL_MAX_MEGAPIXELS,
+  bflFinetunedKleinModel,
+  getBflModel,
+  validateBflGenerationRequest
+} from "@/lib/provider-registry";
 import { toStoredReferenceMeta } from "@/lib/reference-roles";
 import { syncOutputToRemote } from "@/lib/remote-archive";
 import type { ReferenceImage } from "@/lib/types";
@@ -38,10 +44,96 @@ type GenerateBody = {
   title?: string;
   finetuneId?: string;
   finetuneStrength?: number | null;
+  normalizeReferences?: boolean;
 };
+
+type PreparedReference = {
+  image: string;
+  diagnostic: {
+    slot: string;
+    normalized: boolean;
+    format: "jpeg" | "passthrough";
+    width?: number;
+    height?: number;
+    bytes?: number;
+  };
+};
+
+const GENERATION_REFERENCE_ASPECT_RATIOS = [
+  [1, 1],
+  [5, 4],
+  [4, 5],
+  [4, 3],
+  [3, 4],
+  [16, 9],
+  [9, 16],
+  [2, 1],
+  [1, 2],
+  [3, 1],
+  [1, 3]
+] as const;
 
 function jsonError(message: string, status = 400, details?: unknown) {
   return NextResponse.json({ error: message, details }, { status });
+}
+
+async function readGenerateBody(request: NextRequest): Promise<GenerateBody> {
+  const raw = await request.text();
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+  const isJsonRequest = request.headers.get("content-type")?.toLowerCase().includes("application/json");
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as GenerateBody;
+    }
+    return { prompt: typeof parsed === "string" ? parsed : raw };
+  } catch {
+    if (isJsonRequest) {
+      throw new Error("Request body must be valid JSON.");
+    }
+    return { prompt: raw };
+  }
+}
+
+async function prepareGenerationReferences(references: unknown, origin: string, normalizeReferences: boolean) {
+  if (!Array.isArray(references)) return [];
+  const inputs = references.filter(
+    (reference): reference is string => typeof reference === "string" && Boolean(reference.trim())
+  );
+  return Promise.all(
+    inputs.map(async (reference, index) => {
+      const resolved = await resolveImageInput(reference, origin);
+      const slot = index === 0 ? "input_image" : `input_image_${index + 1}`;
+      if (!normalizeReferences) {
+        return {
+          image: resolved || "",
+          diagnostic: { slot, normalized: false, format: "passthrough" }
+        } satisfies PreparedReference;
+      }
+      const prepared = await prepareToolImageInput(resolved, `reference image ${index + 1}`, {
+        dimensionMultiple: 8,
+        flattenBackground: "#ffffff",
+        imageFormat: "jpeg",
+        jpegQuality: 95,
+        maxDimension: 1280,
+        maxMegapixels: BFL_MAX_MEGAPIXELS,
+        targetAspectRatios: GENERATION_REFERENCE_ASPECT_RATIOS
+      });
+      return {
+        image: prepared.base64,
+        diagnostic: {
+          slot,
+          normalized: true,
+          format: "jpeg",
+          width: prepared.width,
+          height: prepared.height,
+          bytes: Math.floor((prepared.base64.length * 3) / 4)
+        }
+      } satisfies PreparedReference;
+    })
+  ).then((prepared) => prepared.filter((reference) => Boolean(reference.image)));
 }
 
 function buildRunSettings(options: {
@@ -82,9 +174,9 @@ function buildRunSettings(options: {
 export async function POST(request: NextRequest) {
   let body: GenerateBody;
   try {
-    body = await request.json();
-  } catch {
-    return jsonError("Request body must be JSON");
+    body = await readGenerateBody(request);
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Could not read request body");
   }
 
   const apiKey = await resolveApiKey(body.apiKey);
@@ -101,10 +193,14 @@ export async function POST(request: NextRequest) {
   const model = modelConfig.value;
 
   const origin = new URL(request.url).origin;
-  const references = Array.isArray(body.references) ? body.references.filter(Boolean) : [];
-  const normalizedReferences = (
-    await Promise.all(references.map((reference) => resolveImageInput(reference, origin)))
-  ).filter(Boolean) as string[];
+  let preparedReferences: PreparedReference[];
+  try {
+    preparedReferences = await prepareGenerationReferences(body.references, origin, body.normalizeReferences !== false);
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Invalid reference image");
+  }
+  const normalizedReferences = preparedReferences.map((reference) => reference.image);
+  const referenceDiagnostics = preparedReferences.map((reference) => reference.diagnostic);
   const width = typeof body.width === "number" ? body.width : 1024;
   const height = typeof body.height === "number" ? body.height : 1024;
   const validation = validateBflGenerationRequest({
@@ -132,8 +228,8 @@ export async function POST(request: NextRequest) {
     payload.finetune_id = finetune.payload.finetune_id;
     payload.finetune_strength = finetune.payload.finetune_strength;
   }
-  normalizedReferences.forEach((reference, index) => {
-    payload[index === 0 ? "input_image" : `input_image_${index + 1}`] = reference;
+  preparedReferences.forEach((reference) => {
+    payload[reference.diagnostic.slot] = reference.image;
   });
 
   try {
@@ -230,6 +326,8 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "Generation failed", 500);
+    return jsonError(error instanceof Error ? error.message : "Generation failed", 500, {
+      references: referenceDiagnostics
+    });
   }
 }

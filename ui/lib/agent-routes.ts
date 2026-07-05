@@ -156,6 +156,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       model: "pro-preview",
       prompt: "A clean cybernetic botanical specimen, macro product-style image.",
       references: ["https://example.com/character.png", "data:image/png;base64,..."],
+      normalizeReferences: true,
       referenceWeight: 80,
       width: 1024,
       height: 1024,
