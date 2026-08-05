@@ -3,6 +3,50 @@ export type PromptComboMeta = {
   sources: string[];
 };
 
+/** Which workflow a prompt record belongs to. Absent means a legacy image prompt. */
+export type PromptMediaType = "image" | "video" | "shared" | "audio";
+
+/** Video prompt shape, matching the PRD's Prompt Library menu. */
+export type VideoPromptCategory = "simple" | "detailed" | "sequence" | "dialogue_sound";
+
+export type VideoPromptBeat = {
+  start?: number;
+  end?: number;
+  text: string;
+};
+
+/**
+ * Optional structured sections behind a compiled video prompt. The compiled
+ * `prompt` string stays authoritative for generation; these sections exist so a
+ * prompt can be re-edited section by section.
+ */
+export type VideoPromptStructure = {
+  setup?: string;
+  beats?: VideoPromptBeat[];
+  camera?: string;
+  dialogue?: string;
+  sound?: string;
+  ambience?: string;
+};
+
+/** Where a saved prompt came from: a starter template, or a rated generation. */
+export type PromptProvenance = {
+  /** Provider request / saved generation id this prompt demonstrably produced. */
+  generationId?: string;
+  evaluationId?: string;
+  templateId?: string;
+  model?: string;
+  endpoint?: string;
+  operation?: string;
+  rating?: number;
+  verdict?: string;
+  /** Sanitized generation settings; never API keys or base64 media. */
+  settings?: Record<string, unknown>;
+  outputPath?: string;
+  sourceAssetIds?: string[];
+  capturedAt?: string;
+};
+
 export type PromptRecord = {
   id: string;
   domain?: string;
@@ -15,6 +59,13 @@ export type PromptRecord = {
   prompt_format?: string;
   updated_at?: string;
   combo?: PromptComboMeta;
+  // Additive video-library metadata. Records saved before this shipped have none
+  // of these fields and stay valid exactly as they are.
+  mediaType?: PromptMediaType;
+  videoCategory?: VideoPromptCategory;
+  tags?: string[];
+  videoStructure?: VideoPromptStructure;
+  provenance?: PromptProvenance;
 };
 
 export type ReferenceImage = {

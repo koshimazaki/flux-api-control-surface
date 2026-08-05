@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
+import { normalizePromptMediaFields, withoutPromptMediaFields } from "@/lib/prompt-media";
 import { compactPrompt } from "@/lib/prompt-utils";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +24,17 @@ export async function POST(request: NextRequest) {
   const raw = await readFile(promptsPath, "utf8");
   const records = JSON.parse(raw);
   const index = records.findIndex((record: any) => record.id === incoming.id);
-  const saved = {
+  const merged = {
     ...(index >= 0 ? records[index] : {}),
-    ...incoming,
+    ...incoming
+  };
+  // Additive media metadata (mediaType, videoCategory, tags, videoStructure,
+  // provenance) is normalized in one pass: unknown values are dropped instead of
+  // persisted, and a record that carries none of these fields keeps exactly the
+  // keys it arrived with.
+  const saved = {
+    ...withoutPromptMediaFields(merged),
+    ...normalizePromptMediaFields(merged),
     prompt: compactPrompt(incoming.prompt),
     prompt_format: incoming.prompt_format || (index >= 0 ? records[index].prompt_format : "json"),
     updated_at: new Date().toISOString()

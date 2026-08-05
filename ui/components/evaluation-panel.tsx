@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, RefreshCw, Save } from "lucide-react";
+import { Download, RefreshCw, Save, Sparkles } from "lucide-react";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { savePromptLibraryRecord } from "@/lib/dashboard-prompts";
+import { canPromoteGeneration, videoPromptRecordFromEvaluation } from "@/lib/prompt-media";
 import { downloadText } from "@/lib/prompt-utils";
 import type { EvaluationVerdict, GenerationEvaluationRecord } from "@/lib/generation-evaluation";
 
@@ -27,6 +29,8 @@ export function EvaluationPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [promotingId, setPromotingId] = useState<string | null>(null);
+  const [promoted, setPromoted] = useState<Record<string, string>>({});
   const [mediaType, setMediaType] = useState("all");
   const [model, setModel] = useState("all");
   const [verdict, setVerdict] = useState("all");
@@ -90,6 +94,24 @@ export function EvaluationPanel() {
       setError(caught instanceof Error ? caught.message : "Could not save evaluation.");
     } finally {
       setSavingId(null);
+    }
+  }
+
+  /**
+   * Promotes a kept generation's prompt into the Video library, carrying its
+   * provenance (source generation id, sanitized settings, rating) so the library
+   * records prompts that demonstrably worked.
+   */
+  async function promote(record: GenerationEvaluationRecord) {
+    setPromotingId(record.id);
+    setError("");
+    try {
+      const saved = await savePromptLibraryRecord(videoPromptRecordFromEvaluation(record));
+      setPromoted((current) => ({ ...current, [record.id]: saved.id }));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not promote this prompt.");
+    } finally {
+      setPromotingId(null);
     }
   }
 
@@ -200,10 +222,27 @@ export function EvaluationPanel() {
                   />
                 </label>
               </div>
-              <button className="evaluationSave" onClick={() => void save(record)} disabled={savingId === record.id}>
-                <Save size={15} />
-                {savingId === record.id ? "Saving…" : "Save evaluation"}
-              </button>
+              <div className="evaluationActions">
+                <button className="evaluationSave" onClick={() => void save(record)} disabled={savingId === record.id}>
+                  <Save size={15} />
+                  {savingId === record.id ? "Saving…" : "Save evaluation"}
+                </button>
+                {canPromoteGeneration(record) && (
+                  <button
+                    className="evaluationPromote"
+                    onClick={() => void promote(record)}
+                    disabled={promotingId === record.id || Boolean(promoted[record.id])}
+                    title="Save this prompt into the Video library with its generation provenance"
+                  >
+                    <Sparkles size={15} />
+                    {promoted[record.id]
+                      ? `Promoted as ${promoted[record.id]}`
+                      : promotingId === record.id
+                      ? "Promoting…"
+                      : "Promote prompt to Video library"}
+                  </button>
+                )}
+              </div>
             </div>
           </article>
         ))}

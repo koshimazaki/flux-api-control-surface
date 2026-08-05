@@ -396,16 +396,30 @@ export const dashboardAgentRoutes: AgentRoute[] = [
   {
     method: "GET",
     path: agentRouteMap.prompts,
-    purpose: "Return the bundled public example prompt library.",
+    purpose:
+      "Return the bundled public example prompt library. Records may carry optional media metadata (mediaType, videoCategory, tags, videoStructure, provenance); records saved without it are image prompts.",
     sideEffects: false,
     category: "prompts"
   },
   {
     method: "POST",
     path: agentRouteMap.prompts,
-    purpose: "Save or update a local prompt record in the example prompt library.",
+    purpose:
+      "Save or update a local prompt record in the example prompt library. Additive optional fields are accepted and normalized: mediaType (image|video|shared|audio), videoCategory (simple|detailed|sequence|dialogue_sound), tags, videoStructure (setup/beats/camera/dialogue/sound/ambience), and provenance (source generation id, settings, rating).",
     sideEffects: true,
-    category: "prompts"
+    category: "prompts",
+    body: {
+      record: {
+        id: "string",
+        prompt: "string",
+        domain: "string (optional; video_prompts for the Video library)",
+        mediaType: "image | video | shared | audio (optional)",
+        videoCategory: "simple | detailed | sequence | dialogue_sound (optional)",
+        tags: "string[] (optional)",
+        videoStructure: "optional { setup, beats[], camera, dialogue, sound, ambience }",
+        provenance: "optional { generationId, evaluationId, templateId, model, rating, verdict, settings }"
+      }
+    }
   },
   {
     method: "DELETE",

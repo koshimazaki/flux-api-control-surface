@@ -83,6 +83,11 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
         onCollapsedChange={setLibraryCollapsed}
         onBuildCombo={state.createComboPrompt}
         onExport={() => downloadText("bfl-flower-prompts.json", JSON.stringify(state.prompts, null, 2))}
+        onUseTemplatePrompt={(compiled) => {
+          state.setPromptText(compiled.text);
+          state.setRecoveryMessage(`Loaded the ${compiled.templateName} template into the prompt editor.`);
+        }}
+        onSaveTemplatePrompt={(compiled) => void state.saveVideoPromptToLibrary(compiled)}
       />
       <div className="workspaceMain">
         {imageToolMode ? (

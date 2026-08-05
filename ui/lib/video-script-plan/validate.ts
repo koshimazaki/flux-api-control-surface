@@ -1,4 +1,5 @@
 import { FLUX3_ASPECT_RATIOS, flux3MaxDuration, type Flux3VideoMode } from "@/lib/flux3-video";
+import { promptPlaceholderIssue } from "@/lib/prompt-placeholders";
 import type { VideoScriptRowError, VideoScriptSettings, VideoScriptTimingMode } from "./types";
 
 /** Confirmed FLUX.3 constraints. Kept here so a schema change lands in one place. */
@@ -83,6 +84,12 @@ export function validateVideoScriptRow(input: RowValidationInput): VideoScriptRo
 
   if (!input.compiledPrompt.trim()) {
     errors.push({ code: "prompt_missing", message: "Assign a prompt before this row can be enqueued." });
+  } else {
+    // A template blank that was never filled would otherwise be sent to the
+    // provider verbatim, so an uncompiled `{placeholder}` blocks the row here —
+    // the last shared boundary before any paid submit.
+    const placeholderIssue = promptPlaceholderIssue(input.compiledPrompt);
+    if (placeholderIssue) errors.push({ code: "prompt_placeholders", message: placeholderIssue });
   }
 
   const maxDuration = flux3MaxDuration(input.mode);

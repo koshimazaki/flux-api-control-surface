@@ -37,7 +37,8 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
             assets: state.assets,
             collections: state.assetCollections,
             prompts: state.prompts,
-            onRefreshCollections: () => void state.refreshAssetCollections()
+            onRefreshCollections: () => void state.refreshAssetCollections(),
+            onSavePrompt: (compiled) => state.saveVideoPromptToLibrary(compiled)
           }}
         />
       }

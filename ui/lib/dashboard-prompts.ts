@@ -1,3 +1,4 @@
+import type { PromptMediaFields } from "./prompt-media";
 import { compactPrompt } from "./prompt-utils";
 import type { PromptRecord } from "./types";
 
@@ -54,6 +55,8 @@ export async function saveStandalonePromptRecord(options: {
   seed?: number;
   prompt: string;
   promptFormat?: string;
+  /** Additive media metadata; omitted keys are simply never written. */
+  media?: PromptMediaFields;
 }) {
   const record = {
     id: `${promptSlug(options.idPrefix) || "prompt"}_${Date.now()}`,
@@ -61,8 +64,14 @@ export async function saveStandalonePromptRecord(options: {
     species: options.species || "custom",
     seed: options.seed,
     prompt_format: options.promptFormat || "text",
-    prompt: options.prompt
+    prompt: options.prompt,
+    ...(options.media || {})
   };
+  return savePromptLibraryRecord(record);
+}
+
+/** Saves a fully-formed record (promotions, template compilations, restores). */
+export async function savePromptLibraryRecord(record: PromptRecord) {
   const response = await fetch("/api/prompts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

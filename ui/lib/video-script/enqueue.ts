@@ -1,4 +1,5 @@
 import type { Flux3TimedKeyframe } from "@/lib/flux3-video";
+import { promptPlaceholderIssue } from "@/lib/prompt-placeholders";
 import type { VideoScriptPlan, VideoScriptPlanRow } from "@/lib/video-script-plan";
 
 /**
@@ -84,6 +85,15 @@ export function buildVideoScriptQueueJobs(
   context: VideoScriptEnqueueContext
 ): VideoScriptQueueJob[] {
   const rows = plan.rows.filter((row) => !row.errors.length);
+  // Second lock on the same door as the planner's `prompt_placeholders` error:
+  // an unfilled template blank must never be submitted to a paid endpoint, so
+  // the enqueue boundary refuses the batch outright instead of skipping a row.
+  const blocked = rows.find((row) => promptPlaceholderIssue(row.compiledPrompt));
+  if (blocked) {
+    throw new Error(
+      `Row ${blocked.id} still has an unfilled prompt blank. ${promptPlaceholderIssue(blocked.compiledPrompt)}`
+    );
+  }
   return rows.map((row, index) => ({
     kind: "video" as const,
     operation: row.mode,

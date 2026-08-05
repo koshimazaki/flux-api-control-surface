@@ -1,4 +1,5 @@
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
+import type { VideoPromptCategory } from "@/lib/types";
 import {
   DEFAULT_VIDEO_SCRIPT_HARD_CAP,
   DEFAULT_VIDEO_SCRIPT_SETTINGS,
@@ -90,6 +91,14 @@ export type VideoScriptEditorState = {
   rows: VideoScriptEditorRow[];
   promptIds: string[];
   promptMode: VideoScriptPromptMode;
+  /**
+   * The composer field: the primary prompt surface of the Video Script. While it
+   * holds text it is the batch prompt (single-prompt mode over every row), and
+   * the library selection below it is the secondary path.
+   */
+  promptText: string;
+  /** Prompt type whose starter template the composer loaded. */
+  promptCategory: VideoPromptCategory;
   settings: VideoScriptSettings;
   timingMode: VideoScriptTimingMode;
   /** Batch-level timing template applied to every row without an override. */
@@ -124,6 +133,8 @@ export function defaultVideoScriptEditorState(): VideoScriptEditorState {
     rows: [],
     promptIds: [],
     promptMode: "single",
+    promptText: "",
+    promptCategory: "simple",
     settings: { ...DEFAULT_VIDEO_SCRIPT_SETTINGS },
     timingMode: "even",
     timingTemplate: evenTimingTemplate(DEFAULT_VIDEO_SCRIPT_SLOTS, DEFAULT_VIDEO_SCRIPT_SETTINGS.duration),

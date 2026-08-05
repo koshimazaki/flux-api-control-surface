@@ -447,7 +447,8 @@ server.registerTool(
   "save_prompt",
   {
     title: "Save Prompt",
-    description: "Save or update a prompt-library record through the local dashboard.",
+    description:
+      "Save or update a prompt-library record through the local dashboard. Optional additive fields: mediaType (image|video|shared|audio), videoCategory (simple|detailed|sequence|dialogue_sound), tags, videoStructure, provenance.",
     inputSchema: {
       record: z.record(z.string(), z.unknown())
     },

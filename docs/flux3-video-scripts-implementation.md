@@ -519,10 +519,22 @@ copy of an output.
 
 ### Phase 4 — Video Prompt Library
 
-- [ ] Extend prompt types and route normalization.
-- [ ] Add grouped Image, Video, Shared, and Audio library views.
-- [ ] Add video categories and structured prompt sections.
-- [ ] Save FLUX.3 asset prompts into the Video library.
+- [x] Extend prompt types and route normalization (`mediaType`, `videoCategory`,
+  `tags`, `videoStructure`, `provenance`; unknown values dropped, records
+  without the fields untouched).
+- [x] Add grouped Image, Video, Shared, and Audio library views alongside the
+  existing per-domain collections.
+- [x] Add video categories and structured prompt sections.
+- [x] Ship starter template packs per category with `{placeholder}` fill-in
+  blanks, style quick-buttons, and the positional "image 1 / image 2" keyframe
+  convention.
+- [x] Add the type-first Video Script prompt composer: prompt-type selector,
+  one large editable field as the batch source of truth, style quick-buttons,
+  and the grouped library browser as the secondary path.
+- [x] Block uncompiled `{placeholder}` prompts at the planner
+  (`prompt_placeholders`) and enqueue boundaries.
+- [x] Save FLUX.3 asset prompts into the Video library, and promote a
+  keep-rated generation's prompt with its provenance.
 
 ### Phase 5 — Video Script Planner And UI
 

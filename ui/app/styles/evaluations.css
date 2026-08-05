@@ -124,3 +124,16 @@
     min-height: 220px;
   }
 }
+
+.evaluationActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.evaluationPromote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

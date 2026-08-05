@@ -4,12 +4,23 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { VideoScriptMatrix } from "@/components/video-script/matrix";
 import { VideoScriptPlanPreview } from "@/components/video-script/plan-preview";
-import { VideoScriptPromptPicker } from "@/components/video-script/prompt-picker";
+import { VideoScriptPromptComposer } from "@/components/video-script/prompt-composer";
 import { VideoScriptSettings } from "@/components/video-script/settings";
 import { VideoScriptSources } from "@/components/video-script/sources";
 import { videoScriptPoolAssetIds } from "@/lib/video-script/sources";
 import { VideoScriptTimingTemplate } from "@/components/video-script/timing-template";
-import type { AssetCollection, AssetRecord, PromptRecord } from "@/lib/types";
+import { extractPlaceholders } from "@/lib/prompt-placeholders";
+import {
+  starterTemplateBody,
+  videoScriptPromptSource,
+  type VideoScriptPromptSourceResult
+} from "@/lib/video-script/prompt-source";
+import {
+  applyStylePreset,
+  videoPromptTemplates,
+  type CompiledVideoPrompt
+} from "@/lib/video-prompt-templates";
+import type { AssetCollection, AssetRecord, PromptRecord, VideoPromptCategory } from "@/lib/types";
 import type { VideoScriptSettings as VideoScriptSettingsValue, VideoScriptTimingMode } from "@/lib/video-script-plan";
 import {
   audioMarkerTimingTemplate,
@@ -18,7 +29,7 @@ import {
   type AudioMarkerSource
 } from "@/lib/video-script/audio-markers";
 import { enqueueVideoScriptPlan } from "@/lib/video-script/enqueue";
-import { planVideoScriptBatch, planVideoScriptGenerator, videoScriptPrompts } from "@/lib/video-script/plan-input";
+import { planVideoScriptBatch, planVideoScriptGenerator } from "@/lib/video-script/plan-input";
 import * as rows from "@/lib/video-script/rows";
 import {
   defaultVideoScriptEditorState,
@@ -37,6 +48,8 @@ export type VideoScriptPanelProps = {
   collections: AssetCollection[];
   prompts: PromptRecord[];
   onRefreshCollections?: () => void | Promise<unknown>;
+  /** Saves the composer prompt into the Video library. */
+  onSavePrompt?: (compiled: CompiledVideoPrompt) => void | Promise<unknown>;
 };
 
 function batchId() {
@@ -51,6 +64,9 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
   const [importNote, setImportNote] = useState("");
   const [isEnqueueing, setIsEnqueueing] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [templateId, setTemplateId] = useState("");
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -62,9 +78,27 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
   }, []);
 
   const assetsById = useMemo(() => new Map(props.assets.map((asset) => [asset.id, asset])), [props.assets]);
-  const prompts = useMemo(() => videoScriptPrompts(props.prompts, state.promptIds), [props.prompts, state.promptIds]);
+  // The composer field outranks the library selection while it holds text, and
+  // then runs as one prompt over every row.
+  const promptSource: VideoScriptPromptSourceResult = useMemo(
+    () =>
+      videoScriptPromptSource({
+        records: props.prompts,
+        promptIds: state.promptIds,
+        composerText: state.promptText,
+        mode: state.promptMode
+      }),
+    [props.prompts, state.promptIds, state.promptMode, state.promptText]
+  );
+  const planState = useMemo(
+    () => ({ ...state, promptMode: promptSource.mode }),
+    [promptSource.mode, state]
+  );
   const generatorPlan = useMemo(() => planVideoScriptGenerator(state), [state]);
-  const batchPlan = useMemo(() => planVideoScriptBatch(state, prompts), [state, prompts]);
+  const batchPlan = useMemo(
+    () => planVideoScriptBatch(planState, promptSource.prompts),
+    [planState, promptSource.prompts]
+  );
   const overrideRow = state.rows.find((row) => row.id === overrideRowId) || null;
   const sourceCollectionIds = useMemo(
     () => state.pools.map((pool) => pool.collectionId).filter((id): id is string => Boolean(id)),
@@ -175,8 +209,58 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
     if (result.seconds.length) setState((current) => ({ ...current, timingTemplate: result.seconds }));
   }
 
+  /** Loads a prompt type's starter template into the composer field. */
+  function loadTemplate(category: VideoPromptCategory, id?: string) {
+    const templates = videoPromptTemplates(category);
+    const template = (id && templates.find((entry) => entry.id === id)) || templates[0];
+    setTemplateId(template?.id || "");
+    setState((current) => ({
+      ...current,
+      promptCategory: category,
+      promptText: starterTemplateBody(category, template?.id)
+    }));
+  }
+
+  /** The composer field as a compiled prompt, for saving into the library. */
+  function composedPrompt(): CompiledVideoPrompt {
+    const text = state.promptText.trim();
+    const template = videoPromptTemplates(state.promptCategory).find((entry) => entry.id === templateId);
+    return {
+      templateId: template?.id || `${state.promptCategory}_custom`,
+      templateName: template?.name || "Video Script composer",
+      category: state.promptCategory,
+      text,
+      tags: ["video-script"],
+      values: {},
+      pending: extractPlaceholders(text)
+    };
+  }
+
+  async function savePrompt() {
+    if (!props.onSavePrompt) return;
+    const compiled = composedPrompt();
+    if (compiled.pending.length) {
+      setError(`Fill in ${compiled.pending.map((name) => `{${name}}`).join(", ")} before saving this prompt.`);
+      return;
+    }
+    setIsSavingPrompt(true);
+    setError("");
+    try {
+      await props.onSavePrompt(compiled);
+      setNotice("Saved the composer prompt to the Video library.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Could not save this prompt.");
+    } finally {
+      setIsSavingPrompt(false);
+    }
+  }
+
   async function enqueue() {
     if (!batchPlan.preview.validRowCount) return;
+    if (promptSource.blockers.length) {
+      setError(promptSource.blockers[0]);
+      return;
+    }
     setIsEnqueueing(true);
     setError("");
     try {
@@ -217,22 +301,6 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
             isLoading={isRefreshing}
             onRefresh={refreshCollections}
           />
-          <VideoScriptPromptPicker
-            prompts={props.prompts}
-            selectedIds={state.promptIds}
-            mode={state.promptMode}
-            equation={batchPlan.preview.equation}
-            onToggle={(id) =>
-              setState((current) => ({
-                ...current,
-                promptIds: current.promptIds.includes(id)
-                  ? current.promptIds.filter((entry) => entry !== id)
-                  : [...current.promptIds, id]
-              }))
-            }
-            onClear={() => setState((current) => ({ ...current, promptIds: [] }))}
-            onModeChange={(promptMode) => setState((current) => ({ ...current, promptMode }))}
-          />
         </div>
 
         <div className="videoScriptCenter">
@@ -256,6 +324,39 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
             onRegenerate={regenerate}
             onDiscardEdited={() => setState((current) => rows.clearEditedRows(current))}
             onSetSlotCount={(slotCount) => setState((current) => rows.setSlotCount(current, slotCount))}
+          />
+
+          <VideoScriptPromptComposer
+            text={state.promptText}
+            category={state.promptCategory}
+            templateId={templateId}
+            source={promptSource.source}
+            blockers={promptSource.blockers}
+            equation={batchPlan.preview.equation}
+            prompts={props.prompts}
+            selectedIds={state.promptIds}
+            mode={state.promptMode}
+            showLibrary={showLibrary}
+            isSaving={isSavingPrompt}
+            onTextChange={(promptText) => setState((current) => ({ ...current, promptText }))}
+            onCategoryChange={(category) => loadTemplate(category)}
+            onTemplateChange={(id) => loadTemplate(state.promptCategory, id)}
+            onApplyStyle={(style) =>
+              setState((current) => ({ ...current, promptText: applyStylePreset(current.promptText, style) }))
+            }
+            onToggleLibrary={() => setShowLibrary((current) => !current)}
+            onToggle={(id) =>
+              setState((current) => ({
+                ...current,
+                promptIds: current.promptIds.includes(id)
+                  ? current.promptIds.filter((entry) => entry !== id)
+                  : [...current.promptIds, id]
+              }))
+            }
+            onClear={() => setState((current) => ({ ...current, promptIds: [] }))}
+            onModeChange={(promptMode) => setState((current) => ({ ...current, promptMode }))}
+            onUseLibraryPrompt={(record) => setState((current) => ({ ...current, promptText: record.prompt }))}
+            onSave={props.onSavePrompt ? () => void savePrompt() : undefined}
           />
 
           <div className="videoScriptControls">

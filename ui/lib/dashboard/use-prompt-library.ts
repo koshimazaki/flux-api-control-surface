@@ -6,6 +6,8 @@ import {
   saveStandalonePromptRecord,
   upsertPromptRecord
 } from "@/lib/dashboard-prompts";
+import { inferVideoCategory, VIDEO_PROMPT_DOMAIN } from "@/lib/prompt-media";
+import type { CompiledVideoPrompt } from "@/lib/video-prompt-templates";
 import {
   buildComboPrompt as buildComboPromptText,
   comboIdFromPrompts,
@@ -23,8 +25,9 @@ import {
   ALL_PROMPT_LIBRARY_ID,
   buildPromptLibraryOptions,
   promptLibraryComboPreset,
-  promptLibraryId,
-  promptLibraryLabel
+  promptLibraryIdForRecord,
+  promptLibraryLabel,
+  promptMatchesLibrary
 } from "@/lib/prompt-library-groups";
 import { formatPrompt } from "@/lib/prompt-utils";
 import type { AssetRecord, BatchMode, PromptRecord } from "@/lib/types";
@@ -65,10 +68,7 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
   const activePrompt = useMemo(() => prompts.find((prompt) => prompt.id === activeId), [activeId, prompts]);
   const promptLibraryOptions = useMemo(() => buildPromptLibraryOptions(prompts), [prompts]);
   const visiblePrompts = useMemo(
-    () =>
-      activePromptLibraryId === ALL_PROMPT_LIBRARY_ID
-        ? prompts
-        : prompts.filter((prompt) => promptLibraryId(prompt) === activePromptLibraryId),
+    () => prompts.filter((prompt) => promptMatchesLibrary(prompt, activePromptLibraryId)),
     [activePromptLibraryId, prompts]
   );
   const permutationPairCount = useMemo(
@@ -96,9 +96,7 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
   }
   function selectPromptLibrary(id: string) {
     setActivePromptLibraryId(id);
-    const nextPrompts = id === ALL_PROMPT_LIBRARY_ID
-      ? prompts
-      : prompts.filter((prompt) => promptLibraryId(prompt) === id);
+    const nextPrompts = prompts.filter((prompt) => promptMatchesLibrary(prompt, id));
     if (nextPrompts.length && !nextPrompts.some((prompt) => prompt.id === activeId)) {
       selectPromptRecord(nextPrompts[0]);
     }
@@ -171,7 +169,7 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     try {
       const saved = await savePromptRecord(activePrompt, activePromptText, seed, { saveAsNew });
       setPrompts((current) => upsertPromptRecord(current, saved));
-      setActivePromptLibraryId(promptLibraryId(saved));
+      setActivePromptLibraryId(promptLibraryIdForRecord(saved));
       selectPromptRecord(saved);
       setRecoveryMessage(
         saveAsNew
@@ -189,9 +187,7 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     try {
       const { record } = await deletePromptRecord(id);
       const nextPrompts = prompts.filter((prompt) => prompt.id !== id);
-      const nextVisible = activePromptLibraryId === ALL_PROMPT_LIBRARY_ID
-        ? nextPrompts
-        : nextPrompts.filter((prompt) => promptLibraryId(prompt) === activePromptLibraryId);
+      const nextVisible = nextPrompts.filter((prompt) => promptMatchesLibrary(prompt, activePromptLibraryId));
       const replacement = nextVisible[0] || nextPrompts[0];
       setPrompts(nextPrompts);
       setSelectedComboIds((current) => current.filter((item) => item !== id));
@@ -214,7 +210,7 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     try {
       const restored = await restorePromptRecord(lastDeletedPrompt);
       setPrompts((current) => upsertPromptRecord(current, restored));
-      setActivePromptLibraryId(promptLibraryId(restored));
+      setActivePromptLibraryId(promptLibraryIdForRecord(restored));
       selectPromptRecord(restored);
       setLastDeletedPrompt(null);
       setRecoveryMessage(`Restored ${restored.id}.`);
@@ -259,24 +255,73 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
       setError(err instanceof Error ? err.message : "Could not save the sequence prompt.");
     }
   }
+  /**
+   * Gallery save. A FLUX.3 video asset defaults to the Video library with its
+   * category inferred from the prompt (timed beats, dialogue, detail), so video
+   * prompts never land in the image groups. Image assets keep the old behavior.
+   */
   async function saveAssetPromptToLibrary(asset: AssetRecord) {
     if (!asset.prompt?.trim()) {
       setError("This asset has no prompt to save.");
       return;
     }
+    const isVideo = asset.mediaType === "video" || String(asset.model || "").includes("flux-3-video");
     try {
       const saved = await saveStandalonePromptRecord({
-        idPrefix: `gallery_${asset.title || asset.id}`,
-        domain: "gallery_prompts",
+        idPrefix: isVideo ? `video_${asset.title || asset.id}` : `gallery_${asset.title || asset.id}`,
+        domain: isVideo ? VIDEO_PROMPT_DOMAIN : "gallery_prompts",
         species: asset.model,
         seed: asset.seed,
-        prompt: asset.prompt
+        prompt: asset.prompt,
+        media: isVideo
+          ? { mediaType: "video", videoCategory: inferVideoCategory(asset.prompt), tags: ["from-asset"] }
+          : undefined
       });
       setPrompts((current) => upsertPromptRecord(current, saved));
-      setRecoveryMessage(`Saved ${saved.id} to the prompt library (Gallery Prompts).`);
+      setActivePromptLibraryId(promptLibraryIdForRecord(saved));
+      setRecoveryMessage(
+        isVideo
+          ? `Saved ${saved.id} to the Video prompt library (${promptLibraryLabel(promptLibraryIdForRecord(saved))}).`
+          : `Saved ${saved.id} to the prompt library (Gallery Prompts).`
+      );
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save the asset prompt.");
+    }
+  }
+
+  /**
+   * Saves a compiled template (or any hand-built video prompt) into the Video
+   * library. Refuses a prompt that still has `{placeholder}` blanks: the same
+   * guard the planner enforces, applied before anything is persisted.
+   */
+  async function saveVideoPromptToLibrary(compiled: CompiledVideoPrompt) {
+    if (compiled.pending.length) {
+      setError(`Fill in ${compiled.pending.map((name) => `{${name}}`).join(", ")} before saving this prompt.`);
+      return null;
+    }
+    try {
+      const saved = await saveStandalonePromptRecord({
+        idPrefix: `video_${compiled.templateId}`,
+        domain: VIDEO_PROMPT_DOMAIN,
+        species: "video_prompt",
+        prompt: compiled.text,
+        media: {
+          mediaType: "video",
+          videoCategory: compiled.category,
+          tags: compiled.tags,
+          videoStructure: compiled.structure,
+          provenance: { templateId: compiled.templateId, capturedAt: new Date().toISOString() }
+        }
+      });
+      setPrompts((current) => upsertPromptRecord(current, saved));
+      setActivePromptLibraryId(promptLibraryIdForRecord(saved));
+      setRecoveryMessage(`Saved ${saved.id} to ${promptLibraryLabel(promptLibraryIdForRecord(saved))}.`);
+      setError("");
+      return saved;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the video prompt.");
+      return null;
     }
   }
   function selectAllPromptSources() {
@@ -331,6 +376,7 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     importPromptJson,
     saveSequencePrompt,
     saveAssetPromptToLibrary,
+    saveVideoPromptToLibrary,
     selectAllPromptSources,
     clearPromptSources
   };

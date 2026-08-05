@@ -744,3 +744,125 @@ pre::-webkit-scrollbar {
 .editorActions {
   margin-top: 10px;
 }
+
+/* Video prompt template packs inside the Prompt Library */
+
+.templatePanel {
+  gap: 10px;
+}
+
+.templatePacks {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.templateCategoryRow,
+.templateStyleButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.templateCategoryRow button,
+.templateStyleButtons button {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 11px;
+}
+
+.templateCategoryRow button.active,
+.templateStyleButtons button.active {
+  border-color: rgba(167, 166, 179, 0.74);
+  background: rgba(167, 166, 179, 0.14);
+  color: var(--cream);
+}
+
+.templateCategoryBlurb,
+.templateFillSummary {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.templateList {
+  display: grid;
+  gap: 6px;
+}
+
+.templateChip {
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  text-align: left;
+}
+
+.templateChip.active {
+  border-color: rgba(167, 166, 179, 0.74);
+  background: rgba(167, 166, 179, 0.14);
+}
+
+.templateChip strong {
+  font-size: 12px;
+}
+
+.templateChip small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.templateFill {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.templateFillFields {
+  display: grid;
+  gap: 6px;
+}
+
+.templateFillField {
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.templateFillField input {
+  width: 100%;
+}
+
+.templateFillPreview {
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.34);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.templateFillBlocked {
+  margin: 0;
+  font-size: 11px;
+  color: #f0b47a;
+}
+
+.templateFillActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

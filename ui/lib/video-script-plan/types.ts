@@ -179,6 +179,7 @@ export type VideoScriptWarning = {
 export type VideoScriptErrorCode =
   | "keyframe_count"
   | "prompt_missing"
+  | "prompt_placeholders"
   | "duration_required"
   | "duration_range"
   | "safety_tolerance"

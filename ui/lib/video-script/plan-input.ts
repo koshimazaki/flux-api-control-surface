@@ -1,3 +1,4 @@
+import { promptRecordPlaceholderIssue } from "@/lib/prompt-placeholders";
 import type { PromptRecord } from "@/lib/types";
 import {
   planVideoScript,
@@ -22,6 +23,17 @@ export function videoScriptPrompts(records: PromptRecord[], promptIds: string[])
     .map((id) => byId.get(id))
     .filter((record): record is PromptRecord => Boolean(record))
     .map(videoScriptPromptFromRecord);
+}
+
+/**
+ * Picker-boundary guard: selected prompts that still carry `{placeholder}`
+ * blanks. The planner also refuses these rows, but naming the offending prompt
+ * here is what lets the picker say which template is unfinished.
+ */
+export function videoScriptPromptBlockers(prompts: VideoScriptPrompt[]): string[] {
+  return prompts
+    .map((prompt) => promptRecordPlaceholderIssue(prompt.id, prompt.text))
+    .filter((issue): issue is string => Boolean(issue));
 }
 
 /** The generator configuration the two workflow tabs describe. */

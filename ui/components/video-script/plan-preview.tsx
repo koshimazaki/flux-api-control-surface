@@ -78,8 +78,15 @@ export function VideoScriptPlanPreview(props: VideoScriptPlanPreviewProps) {
           {invalidRows.every((row) => row.errors.every((error) => error.code === "prompt_missing")) ? (
             <p className="videoScriptPromptCta">
               <AlertTriangle size={12} />
-              No prompts are selected. Pick at least one in the Prompts panel above — that
-              unblocks all {invalidRows.length} row{invalidRows.length === 1 ? "" : "s"} at once.
+              No prompt yet. Pick a prompt type or load one from the library in the prompt field
+              below the matrix — that unblocks all {invalidRows.length} row
+              {invalidRows.length === 1 ? "" : "s"} at once.
+            </p>
+          ) : invalidRows.every((row) => row.errors.every((error) => error.code === "prompt_placeholders")) ? (
+            <p className="videoScriptPromptCta">
+              <AlertTriangle size={12} />
+              The prompt still has unfilled {"{blanks}"}. Complete them in the prompt field before
+              this batch can run — an unfilled blank would be sent to the provider verbatim.
             </p>
           ) : (
           <ul>

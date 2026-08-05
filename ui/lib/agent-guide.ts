@@ -162,7 +162,8 @@ export const agentWorkflowGuide = {
     "Export this collection as a FLUX.2 [klein] LoRA dataset, register the hosted finetune_id, then generate with strength 1.2.",
     "Given audio markers, render an audio-reactive guide MP4 and attach it to the next video-model prompt record.",
     "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery.",
-    "Generate a FLUX.3 video from request.json with the CLI, then list and rate its captured evaluation record."
+    "Generate a FLUX.3 video from request.json with the CLI, then list and rate its captured evaluation record.",
+    "Save a video prompt with save_prompt using mediaType video, a videoCategory, and structured beats, then read it back grouped in the Video prompt library."
   ],
   coverage: localAgentCoverage,
   sources: [
