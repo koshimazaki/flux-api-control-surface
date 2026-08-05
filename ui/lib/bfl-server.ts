@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { toWorkspaceRelativePath } from "./local-paths";
+import { toWorkspaceRelativePath, workspaceRoot } from "./local-paths";
 import { isBflPollFailureStatus } from "./provider-registry";
 import { fetchRemoteImage } from "./remote-archive";
 import { resolveApiKeyWithSource } from "./server-api-key";
@@ -193,4 +193,23 @@ export async function saveOutputFiles(options: {
     outputDir: toWorkspaceRelativePath(outputDir),
     fileBaseName: baseName
   };
+}
+
+/**
+ * Merges late-arriving fields into an already-written metadata sidecar. The
+ * sidecar is serialized during the save itself, so anything measured *after*
+ * the artifact lands (final timing, savedAt, a real finalizeMs) only reaches
+ * disk through this patch. Best-effort: a failure here must not fail a
+ * generation whose artifact is already saved.
+ */
+export async function patchOutputMetadataFile(metadataPath: string, patch: Record<string, unknown>) {
+  if (!metadataPath) return false;
+  const absolute = path.isAbsolute(metadataPath) ? metadataPath : path.resolve(workspaceRoot(), metadataPath);
+  try {
+    const existing = JSON.parse(await readFile(absolute, "utf8"));
+    await writeFile(absolute, JSON.stringify({ ...existing, ...patch }, null, 2), "utf8");
+    return true;
+  } catch {
+    return false;
+  }
 }

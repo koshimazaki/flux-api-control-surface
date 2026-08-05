@@ -67,15 +67,20 @@ function videoAsset(result: Flux3VideoResult): AssetRecord {
 
 export async function GET(request: NextRequest) {
   const { limit, offset, includeData } = outputPageFromUrl(request.url);
+  // Every source must supply the whole span up to this page, not just one page's
+  // worth. Fetching `limit` from each and re-slicing from zero made page 2 repeat
+  // the newest videos and push images out of the results entirely.
+  const span = offset + limit;
   const [remoteAssets, localAssets, videoResults] = await Promise.all([
-    fetchRemoteOutputAssets(limit, { includeImageData: includeData }).catch(() => []),
-    readLocalOutputAssets({ limit, offset, includeImageData: includeData }),
-    listFlux3VideoOutputs(limit).catch(() => [])
+    fetchRemoteOutputAssets(span, { includeImageData: includeData }).catch(() => []),
+    // The local reader paginates itself, so ask it for the span from the start.
+    readLocalOutputAssets({ limit: span, offset: 0, includeImageData: includeData }),
+    listFlux3VideoOutputs(span).catch(() => [])
   ]);
 
   return NextResponse.json(
     uniqueById([...videoResults.map(videoAsset), ...localAssets, ...remoteAssets])
       .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, limit)
+      .slice(offset, span)
   );
 }

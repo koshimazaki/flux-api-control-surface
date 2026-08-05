@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { resolveImageInput } from "@/lib/bfl-server";
+import { patchOutputMetadataFile, resolveImageInput } from "@/lib/bfl-server";
 import {
   buildFlux3VideoPayload,
   flux3TimedKeyframes,
@@ -183,7 +183,12 @@ async function finalize(input: OperationFinalizeInput) {
     metadata
   });
   marks.savedAt = Date.now();
+  // Rewrite the sidecar the save serialized before savedAt existed.
   metadata.timing = buildGenerationTiming(marks);
+  await patchOutputMetadataFile(
+    (saved.outputFiles as Record<string, any>)?.metadataPath,
+    { timing: metadata.timing }
+  );
 
   return {
     response: {

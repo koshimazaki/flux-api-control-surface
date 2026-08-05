@@ -3,6 +3,7 @@ import {
   imageToDataUrl,
   normalizeImageInput,
   outputExtension,
+  patchOutputMetadataFile,
   redactImagePayload,
   resolveImageInput,
   saveOutputFiles
@@ -112,6 +113,7 @@ function buildToolPayload(tool: ToolName, body: ToolBody, outputFormat: string) 
     payload.safety_tolerance = clampInt(body.safetyTolerance ?? 2, 0, toolSafetyToleranceMax(tool));
   }
   if (body.prompt?.trim()) payload.prompt = body.prompt.trim();
+  if (typeof body.seed === "number") payload.seed = body.seed;
   if (typeof body.offsetX === "number") payload.reference_offset_x = Math.round(body.offsetX);
   if (typeof body.offsetY === "number") payload.reference_offset_y = Math.round(body.offsetY);
   return payload;
@@ -317,7 +319,9 @@ async function finalize(input: OperationFinalizeInput) {
     prompt: prepared.prompt
   });
   marks.savedAt = Date.now();
+  // Rewrite the sidecar the save serialized before savedAt existed.
   metadata.timing = buildGenerationTiming(marks);
+  await patchOutputMetadataFile(localOutputFiles.metadataPath, { timing: metadata.timing });
 
   let remoteOutput = null;
   try {

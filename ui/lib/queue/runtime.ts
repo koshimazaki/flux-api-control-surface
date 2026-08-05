@@ -19,6 +19,8 @@ export type QueueJobRuntime = {
   creditsBefore?: number | null;
   response?: Record<string, any>;
   failure?: { message: string; status: number; details?: unknown };
+  /** Set once the job settled and its body/key were wiped; rebuild from the descriptor. */
+  released?: boolean;
 };
 
 type RuntimeStore = Map<string, QueueJobRuntime>;
@@ -60,15 +62,23 @@ export function runtimeCount() {
 }
 
 /**
- * Frees the heavy parts of a settled job's runtime: prepared media buffers and
- * the full response body (which carries a base64 data URL). Without this a long
- * session pins hundreds of megabytes of finished work. The response is kept for
- * a short grace period so an in-flight wrapper request can still read it.
+ * Frees everything heavy or sensitive once a job settles: prepared media
+ * buffers, the raw request body (megabytes of base64), the resolved API key,
+ * and the response body. Nothing legitimate reads these afterwards — a retry
+ * re-prepares from the persisted descriptor and re-resolves the key from env or
+ * Keychain — so holding them on globalThis would only pin memory and keep a
+ * live secret in the process for as long as the queue record exists.
  */
 export function releaseRuntimeArtifacts(jobId: string, options: { keepResponseMs?: number } = {}) {
   const runtime = store().get(jobId);
   if (!runtime) return;
   runtime.prepared = undefined;
+  runtime.body = {};
+  runtime.apiKey = undefined;
+  runtime.creditsBefore = undefined;
+  // Marks this runtime as a husk: anything that needs the request again must
+  // rebuild it from the descriptor rather than trust the emptied body.
+  runtime.released = true;
   if (!runtime.response) return;
   const keep = options.keepResponseMs ?? 0;
   if (keep <= 0) {

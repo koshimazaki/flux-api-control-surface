@@ -107,27 +107,63 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
     };
   }, []);
 
-  // While a render is still on the server queue, watch the saved-video list and
-  // adopt the result as soon as the runner downloads it.
+  // While a render is still on the server queue, follow that specific job. A
+  // plain "is there a new video?" scan would adopt an unrelated concurrent
+  // render and would never release the UI if this job failed or was cancelled.
   useEffect(() => {
     if (!pendingQueueJobId) return;
     let cancelled = false;
+
+    async function adoptSavedVideo(resultAssetId?: string) {
+      const response = await fetch("/api/bfl/flux3-video", { cache: "no-store" });
+      if (!response.ok || cancelled) return;
+      const items = ((await response.json()).results || []) as Flux3VideoResult[];
+      if (cancelled || !items.length) return;
+      setResults((current) => {
+        const known = new Set(current.map((item) => item.id));
+        const match = resultAssetId ? items.find((item) => item.id === resultAssetId) : undefined;
+        // Prefer this job's own output; fall back to the newest unseen render.
+        const adopted = match || items.find((item) => !known.has(item.id));
+        if (!adopted) return current;
+        setSelectedId(adopted.id);
+        return [adopted, ...current.filter((item) => item.id !== adopted.id)];
+      });
+      props.onGenerated();
+    }
+
     const timer = window.setInterval(async () => {
       try {
-        const response = await fetch("/api/bfl/flux3-video", { cache: "no-store" });
-        if (!response.ok || cancelled) return;
-        const items = ((await response.json()).results || []) as Flux3VideoResult[];
-        if (cancelled || !items.length) return;
-        setResults((current) => {
-          const known = new Set(current.map((item) => item.id));
-          const fresh = items.filter((item) => !known.has(item.id));
-          if (!fresh.length) return current;
-          setSelectedId(fresh[0].id);
+        const response = await fetch(`/api/dashboard/queue?id=${encodeURIComponent(pendingQueueJobId)}`, {
+          cache: "no-store"
+        });
+        if (cancelled) return;
+        if (response.status === 404) {
+          // The job record was cleared; fall back to the newest saved render.
           setPendingQueueJobId(null);
           setWarning("");
-          props.onGenerated();
-          return [...fresh, ...current];
-        });
+          await adoptSavedVideo();
+          return;
+        }
+        if (!response.ok) return;
+        const job = (await response.json()).job as
+          | { status?: string; error?: string; resultAssetId?: string }
+          | undefined;
+        if (cancelled || !job?.status) return;
+
+        if (job.status === "complete") {
+          setPendingQueueJobId(null);
+          setWarning("");
+          await adoptSavedVideo(job.resultAssetId);
+          return;
+        }
+        if (job.status === "failed" || job.status === "cancelled") {
+          setPendingQueueJobId(null);
+          setWarning("");
+          setError(
+            job.error ||
+              (job.status === "cancelled" ? "The render was cancelled." : "The queued FLUX.3 render failed.")
+          );
+        }
       } catch {
         // Transient read failure; the next tick retries.
       }

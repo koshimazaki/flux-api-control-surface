@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/bfl-server", () => ({
   BFL_API_BASE: "https://api.bfl.ai/v1",
   bflJson: mocks.bflJson,
+  patchOutputMetadataFile: vi.fn().mockResolvedValue(true),
   getCredits: mocks.getCredits,
   resolveApiKey: mocks.resolveApiKey
 }));
@@ -32,7 +33,7 @@ vi.mock("@/lib/operations", () => ({
 }));
 
 const { enqueueAndWait, enqueueGenerationJob } = await import("@/lib/queue/enqueue");
-const { runnerState, stopQueueRunner, tickQueueRunner } = await import("@/lib/queue/runner");
+const { awaitQueueJob, runnerState, stopQueueRunner, tickQueueRunner } = await import("@/lib/queue/runner");
 
 beforeEach(async () => {
   stopQueueRunner();
@@ -125,6 +126,85 @@ describe("server-owned queue runner", () => {
     expect(stored?.providerRequestId).toBe("bfl-once");
     expect(stored?.retryCount).toBe(1);
   }, 30_000);
+
+  it("Retry on a timed-out job resumes polling and never re-submits", async () => {
+    let posts = 0;
+    mocks.bflJson.mockImplementation(async (method: string) => {
+      if (method === "POST") {
+        posts += 1;
+        return { id: "bfl-timeout", polling_url: "https://poll.example/timeout", cost: 4 };
+      }
+      return { status: "Ready", result: { sample: "https://delivery.example/timeout.png" } };
+    });
+
+    // A job the scheduler gave up on after its poll budget: paid for, accepted,
+    // and sitting in "failed" with its identifiers intact.
+    const job = await enqueueGenerationJob({ kind: "image", operation: "generate", body: { prompt: "resume me" } });
+    await mutateQueueState((store) => {
+      const target = store.jobs.find((entry) => entry.id === job.id)!;
+      target.status = "failed";
+      target.failureClass = "terminal";
+      target.error = "Timed out waiting for BFL result";
+      target.providerRequestId = "bfl-timeout";
+      target.pollingUrl = "https://poll.example/timeout";
+      target.submittedCost = 4;
+    });
+
+    const { retryQueueJob } = await import("@/lib/queue/service");
+    await retryQueueJob(job.id);
+    const settled = await awaitQueueJob(job.id, 15_000);
+
+    expect(settled.job?.status).toBe("complete");
+    // The whole point of the fix: Retry recovered the paid job for free.
+    expect(posts).toBe(0);
+    expect(settled.job?.providerRequestId).toBe("bfl-timeout");
+    expect(mocks.finalize).toHaveBeenCalledTimes(1);
+  }, 25_000);
+
+  it("a cancel during an in-flight poll stops the job instead of finalizing it", async () => {
+    let cancelDuringPoll: (() => Promise<unknown>) | null = null;
+    mocks.bflJson.mockImplementation(async (method: string) => {
+      if (method === "POST") return { id: "bfl-cancel", polling_url: "https://poll.example/cancel" };
+      // Cancel lands while this poll is still awaiting.
+      if (cancelDuringPoll) {
+        const run = cancelDuringPoll;
+        cancelDuringPoll = null;
+        await run();
+      }
+      return { status: "Ready", result: { sample: "https://delivery.example/cancel.png" } };
+    });
+
+    const job = await enqueueGenerationJob({ kind: "image", operation: "generate", body: { prompt: "cancel me" } });
+    const { cancelQueueJob } = await import("@/lib/queue/service");
+    cancelDuringPoll = () => cancelQueueJob(job.id);
+
+    const settled = await awaitQueueJob(job.id, 15_000);
+    // Let any (incorrect) continuation run before asserting.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(settled.job?.status).toBe("cancelled");
+    const stored = findQueueJob(await readQueueState(), job.id);
+    expect(stored?.status).toBe("cancelled");
+    // Identifiers survive so the paid request stays recoverable by hand...
+    expect(stored?.providerRequestId).toBe("bfl-cancel");
+    expect(stored?.pollingUrl).toBe("https://poll.example/cancel");
+    // ...but nothing was downloaded or saved.
+    expect(mocks.finalize).not.toHaveBeenCalled();
+  }, 25_000);
+
+  it("wipes the request body and API key from memory once a job settles", async () => {
+    const outcome = await enqueueAndWait(
+      { kind: "image", operation: "generate", body: { prompt: "secret please", apiKey: "sk-live-secret" }, apiKey: "sk-live-secret" },
+      15_000
+    );
+    expect(outcome.settled?.status).toBe("complete");
+
+    const { getJobRuntime } = await import("@/lib/queue/runtime");
+    const runtime = getJobRuntime(outcome.job.id);
+    expect(runtime?.apiKey).toBeUndefined();
+    expect(runtime?.body).toEqual({});
+    expect(JSON.stringify(runtime ?? {})).not.toContain("sk-live-secret");
+  }, 25_000);
 
   it("does not submit anything while another process holds the runner lease", async () => {
     await acquireRunnerLease(createRunnerOwnerToken(), Date.now());

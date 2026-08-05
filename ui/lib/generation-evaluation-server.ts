@@ -131,6 +131,29 @@ function outputPathFor(candidate: MetadataCandidate, mediaType: "image" | "video
   return undefined;
 }
 
+/**
+ * The FLUX.3 adapter records a keyframe timeline as parallel `keyframeAssetIds`
+ * and `keyframeSeconds` arrays, while older records used a single `keyframes`
+ * array of objects. Read both so video evaluations keep their timeline.
+ */
+export function readKeyframes(metadata: Record<string, any>) {
+  const legacy = Array.isArray(metadata.keyframes) ? metadata.keyframes : [];
+  if (legacy.length) {
+    return legacy.slice(0, 10).map((item: unknown) => {
+      if (!item || typeof item !== "object") return {};
+      const value = item as Record<string, unknown>;
+      return { assetId: stringValue(value.assetId), seconds: numberValue(value.seconds) };
+    });
+  }
+  const assetIds = Array.isArray(metadata.keyframeAssetIds) ? metadata.keyframeAssetIds : [];
+  const seconds = Array.isArray(metadata.keyframeSeconds) ? metadata.keyframeSeconds : [];
+  const count = Math.min(10, Math.max(assetIds.length, seconds.length));
+  return Array.from({ length: count }, (_, index) => ({
+    assetId: stringValue(assetIds[index]),
+    seconds: numberValue(seconds[index])
+  }));
+}
+
 function timingFor(value: unknown): GenerationTiming | undefined {
   if (!value || typeof value !== "object") return undefined;
   const timing = value as GenerationTiming;
@@ -158,12 +181,7 @@ async function toEvaluationRecord(
   );
   const collectionIds = stringList(metadata.collectionIds, metadata.sourceCollectionIds);
   const promptSourceIds = stringList(metadata.promptIds, metadata.promptId);
-  const rawKeyframes = Array.isArray(metadata.keyframes) ? metadata.keyframes : [];
-  const keyframes = rawKeyframes.slice(0, 10).map((item: unknown) => {
-    if (!item || typeof item !== "object") return {};
-    const value = item as Record<string, unknown>;
-    return { assetId: stringValue(value.assetId), seconds: numberValue(value.seconds) };
-  });
+  const keyframes = readKeyframes(metadata);
   const localPath = outputPathFor(candidate, mediaType);
   return {
     schemaVersion: "bfl-evaluation/v1",
@@ -192,7 +210,8 @@ async function toEvaluationRecord(
     provenance: {
       batchId: stringValue(metadata.batchId),
       rowId: stringValue(metadata.rowId),
-      rowIndex: numberValue(metadata.rowIndex)
+      // Video rows record their position as batchIndex; older records used rowIndex.
+      rowIndex: numberValue(metadata.rowIndex) ?? numberValue(metadata.batchIndex)
     },
     output: {
       previewUrl: mediaType === "video"

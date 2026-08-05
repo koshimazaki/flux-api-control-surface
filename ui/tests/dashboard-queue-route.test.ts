@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/bfl-server", () => ({
   BFL_API_BASE: "https://api.bfl.ai/v1",
   bflJson: mocks.bflJson,
+  patchOutputMetadataFile: vi.fn().mockResolvedValue(true),
   getCredits: mocks.getCredits,
   resolveApiKey: mocks.resolveApiKey
 }));
@@ -156,15 +157,13 @@ describe("dashboard queue route", () => {
     expect((await readQueueState()).jobs).toHaveLength(0);
   });
 
-  it("retries a settled job and clears its previous provider state", async () => {
+  it("retries a job that never reached the provider by re-queueing it", async () => {
     const { job } = await enqueueOne();
     await mutateQueueState((store) => {
       const target = store.jobs.find((entry) => entry.id === job.id)!;
       target.status = "failed";
       target.error = "BFL API 500";
       target.failureClass = "retryable";
-      target.providerRequestId = "bfl-old";
-      target.pollingUrl = "https://poll.example/old";
     });
 
     const response = await PATCH(jsonRequest("/api/dashboard/queue", "PATCH", { action: "retry", id: job.id }));
@@ -172,6 +171,42 @@ describe("dashboard queue route", () => {
     expect(data.job.status).toBe("queued");
     expect(data.job.providerRequestId).toBeUndefined();
     expect(data.job.error).toBeUndefined();
+  });
+
+  it("retries an accepted job by resuming polling, never by paying again", async () => {
+    const { job } = await enqueueOne();
+    await mutateQueueState((store) => {
+      const target = store.jobs.find((entry) => entry.id === job.id)!;
+      target.status = "failed";
+      target.failureClass = "terminal";
+      target.error = "Timed out waiting for BFL result";
+      target.providerRequestId = "bfl-old";
+      target.pollingUrl = "https://poll.example/old";
+    });
+
+    const response = await PATCH(jsonRequest("/api/dashboard/queue", "PATCH", { action: "retry", id: job.id }));
+    const data = await response.json();
+
+    // Re-queueing here would submit — and pay for — an already-accepted request.
+    expect(data.job.status).toBe("running");
+    expect(data.job.providerRequestId).toBe("bfl-old");
+    expect(data.job.pollingUrl).toBe("https://poll.example/old");
+    expect(data.job.nextPollAt).toBeGreaterThan(0);
+    expect(data.job.error).toBeUndefined();
+  });
+
+  it("refuses to retry an accepted job that stored no polling URL", async () => {
+    const { job } = await enqueueOne();
+    await mutateQueueState((store) => {
+      const target = store.jobs.find((entry) => entry.id === job.id)!;
+      target.status = "failed";
+      target.providerRequestId = "bfl-orphan";
+    });
+
+    const response = await PATCH(jsonRequest("/api/dashboard/queue", "PATCH", { action: "retry", id: job.id }));
+
+    expect(response.status).toBe(409);
+    expect((await response.json()).error).toMatch(/bfl-orphan/);
   });
 
   it("refuses to retry a job whose media inputs were never persisted", async () => {

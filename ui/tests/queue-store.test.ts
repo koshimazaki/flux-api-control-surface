@@ -119,6 +119,47 @@ describe("queue descriptors", () => {
     expect(outcome.recoverable).toBe(false);
   });
 
+  it("drops secret keys entirely rather than storing a replayable placeholder", () => {
+    const outcome = sanitizeQueueRequestBody({ apiKey: "sk-live", prompt: "fox", nested: { authToken: "t" } });
+
+    // A placeholder would be replayed as the literal API key on restart, failing
+    // auth and pausing the queue instead of falling back to env/Keychain.
+    expect("apiKey" in outcome.body).toBe(false);
+    expect(outcome.body.nested).toEqual({});
+    expect(JSON.stringify(outcome.body)).not.toMatch(/secret omitted/i);
+    // Dropping a secret does not make the job unreplayable.
+    expect(outcome.recoverable).toBe(true);
+    expect(outcome.redactedKeys).toContain("apiKey");
+  });
+
+  it("keeps a very long prompt replayable while still redacting raw media", () => {
+    const longPrompt = "a cybernetic flower, ".repeat(400);
+    expect(longPrompt.length).toBeGreaterThan(2048);
+    const outcome = sanitizeQueueRequestBody({
+      prompt: longPrompt,
+      title: "x".repeat(3000),
+      image: "B".repeat(5000)
+    });
+
+    expect(outcome.body.prompt).toBe(longPrompt);
+    expect(outcome.body.title).toHaveLength(3000);
+    // Oversized values under media-shaped keys are still redacted.
+    expect(outcome.body.image).toMatch(/omitted/i);
+    expect(outcome.recoverable).toBe(false);
+  });
+
+  it("keeps a long-prompt job replayable after a restart", () => {
+    const descriptor = buildQueueJobDescriptor({
+      jobId: "job-long",
+      kind: "image",
+      operation: "generate",
+      body: { prompt: "detail, ".repeat(500), apiKey: "sk-live", width: 1024 }
+    });
+
+    expect(descriptor.recoverable).toBe(true);
+    expect(descriptor.body).not.toHaveProperty("apiKey");
+  });
+
   it("keeps prompt-only and asset-id bodies replayable after a restart", () => {
     const descriptor = buildQueueJobDescriptor({
       jobId: "job-1",

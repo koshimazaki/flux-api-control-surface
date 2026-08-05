@@ -4,6 +4,7 @@ import { isBflPollFailureStatus } from "@/lib/provider-registry";
 import { isOperationFailure, operationAdapter } from "@/lib/operations";
 import { applyJobFailure } from "./job-failure";
 import { findQueueJob, mutateQueueState, readQueueState } from "./store";
+import { claimJobForSubmit, ensurePreparedRuntime, jobIsStillLive, requireRuntime } from "./lifecycle-runtime";
 import { clearJobRuntime, getJobRuntime, releaseRuntimeArtifacts, setJobRuntime } from "./runtime";
 import type { QueueJobRuntime } from "./runtime";
 import type { ServerQueueJob } from "./types";
@@ -27,94 +28,6 @@ export type LifecycleOutcome = {
 function pollDelay(job: ServerQueueJob, now: number) {
   const since = now - (job.submittedAt || now);
   return since < QUEUE_POLL_FAST_WINDOW_MS ? QUEUE_POLL_INTERVAL_MS : QUEUE_POLL_SLOW_INTERVAL_MS;
-}
-
-/**
- * Rebuilds the in-process runtime for a job whose raw body was lost (server
- * restart, HMR). Only a fully recoverable descriptor can be replayed, because a
- * sanitized body no longer carries the media the provider needs.
- */
-async function restoreRuntime(jobId: string) {
-  const state = await readQueueState();
-  const job = findQueueJob(state, jobId);
-  const descriptor = state.descriptors[jobId];
-  if (!job || !descriptor) return undefined;
-  if (!descriptor.recoverable) return undefined;
-  return setJobRuntime({
-    jobId,
-    kind: descriptor.kind,
-    operation: descriptor.operation,
-    origin: descriptor.origin,
-    body: { ...descriptor.body },
-    marks: { requestStartedAt: Date.now(), queuedAt: job.queuedAt }
-  });
-}
-
-async function requireRuntime(jobId: string) {
-  return getJobRuntime(jobId) || (await restoreRuntime(jobId));
-}
-
-type PreparedRuntimeOutcome =
-  | { ok: true; runtime: QueueJobRuntime }
-  | { ok: false; message: string; status?: number };
-
-/**
- * Guarantees a runtime that can finalize. After a server restart a resumed job
- * has no in-memory prepared request, so we rebuild it from the persisted
- * descriptor. `prepare` only resolves local media and assembles the request
- * body — it never contacts the provider, so this cannot charge for anything.
- */
-async function ensurePreparedRuntime(jobId: string, job: ServerQueueJob): Promise<PreparedRuntimeOutcome> {
-  const runtime = await requireRuntime(jobId);
-  if (!runtime) {
-    return {
-      ok: false,
-      message: `BFL request ${job.providerRequestId || "(unknown)"} finished, but its media inputs were never persisted (the queue store never holds base64 media), so the result cannot be saved automatically. Download it from the stored polling URL before it expires.`
-    };
-  }
-  if (runtime.prepared) return { ok: true, runtime };
-
-  const prepared = await operationAdapter(runtime.kind).prepare(runtime.body, runtime.origin);
-  if (isOperationFailure(prepared)) return { ok: false, message: prepared.error, status: prepared.status };
-  runtime.prepared = {
-    ...prepared,
-    context: {
-      ...prepared.context,
-      // Rebuilt from persisted state so cost reconciliation still works after a restart.
-      submitted: { id: job.providerRequestId, cost: job.submittedCost ?? null }
-    }
-  };
-  if (runtime.creditsBefore === undefined) runtime.creditsBefore = job.creditsBefore ?? null;
-  return { ok: true, runtime };
-}
-
-/**
- * Compare-and-set claim of the submit transition. Checking and writing inside a
- * single locked mutation is what stops two callers (runner tick plus a manual
- * /api/bfl/jobs POST) from both submitting, and refuses any job that already
- * reached the provider.
- */
-function claimJobForSubmit(jobId: string) {
-  return mutateQueueState((state) => {
-    const job = findQueueJob(state, jobId);
-    if (!job) return { ok: false as const, status: "failed" as const, message: `Queue job ${jobId} was not found` };
-    if (job.providerRequestId || job.pollingUrl) {
-      return {
-        ok: false as const,
-        status: job.status,
-        message: `Job ${jobId} already reached BFL as request ${job.providerRequestId || "(polling URL stored)"}; it can only be polled or finalized.`
-      };
-    }
-    if (job.status !== "queued" && job.status !== "waiting" && job.status !== "failed") {
-      return { ok: false as const, status: job.status, message: `Job ${jobId} is ${job.status} and cannot be submitted.` };
-    }
-    job.status = "submitting";
-    job.startedAt = Date.now();
-    job.queueWaitMs = Math.max(0, Date.now() - job.queuedAt);
-    job.error = undefined;
-    job.failureClass = undefined;
-    return { ok: true as const, status: "submitting" as const, message: undefined };
-  });
 }
 
 /**
@@ -179,21 +92,31 @@ export async function submitQueueJob(jobId: string): Promise<LifecycleOutcome> {
     }
 
     runtime.prepared = { ...prepared, context: { ...prepared.context, submitted } };
-    await mutateQueueState((state) => {
+    const advanced = await mutateQueueState((state) => {
       const job = findQueueJob(state, jobId);
-      if (!job) return;
-      job.status = "running";
+      if (!job) return false;
+      // Always persist the identifiers, even for a job cancelled mid-submit:
+      // the request was accepted and paid for, so it must stay recoverable.
       job.providerRequestId = typeof submitted.id === "string" ? submitted.id : job.providerRequestId;
       job.pollingUrl = pollingUrl;
       job.submittedAt = Date.now();
-      job.nextPollAt = Date.now() + QUEUE_POLL_INTERVAL_MS;
-      job.pollCount = 0;
       if (typeof submitted.cost === "number") {
         job.submittedCost = submitted.cost;
         job.estimatedCredits = job.estimatedCredits ?? submitted.cost;
       }
       if (typeof runtime.creditsBefore === "number") job.creditsBefore = runtime.creditsBefore;
+      // Compare-and-set: a cancel that landed during the submit await wins, so
+      // the job stops here with its identifiers stored for manual recovery.
+      if (job.status === "cancelled" || job.status === "complete") return false;
+      job.status = "running";
+      job.nextPollAt = Date.now() + QUEUE_POLL_INTERVAL_MS;
+      job.pollCount = 0;
+      return true;
     });
+    if (!advanced) {
+      releaseRuntimeArtifacts(jobId);
+      return { ok: false, status: "cancelled", jobId, message: `Job ${jobId} was cancelled while it was being submitted.` };
+    }
     return { ok: true, status: "running", jobId };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Generation failed";
@@ -269,13 +192,22 @@ export async function pollQueueJobStep(
         ...ensured.runtime.prepared!,
         context: { ...ensured.runtime.prepared!.context, result }
       };
-      await mutateQueueState((current) => {
+      const advanced = await mutateQueueState((current) => {
         const target = findQueueJob(current, jobId);
-        if (!target) return;
+        if (!target) return false;
+        // Compare-and-set: a cancel that landed during the poll await wins, and
+        // an already-completed job is never reopened. Manual recovery of a
+        // failed job is still allowed to advance.
+        if (target.status === "cancelled" || target.status === "complete") return false;
         target.status = "downloading";
         target.nextPollAt = undefined;
         target.pollCount = (target.pollCount || 0) + 1;
+        return true;
       });
+      if (!advanced) {
+        releaseRuntimeArtifacts(jobId);
+        return { ok: false, status: "cancelled", jobId, ready: false, message: `Job ${jobId} was cancelled while it was running.` };
+      }
       return { ok: true, status: "downloading", jobId, ready: true };
     }
     if (isBflPollFailureStatus(result.status)) {
@@ -380,6 +312,13 @@ export async function finalizeQueueJob(jobId: string, options: PollStepOptions =
     return { ok: false, status: "failed", jobId, message, failureClass: "terminal" };
   }
 
+  // Cancelling must stop the spend of work, not just the queue entry: never
+  // download and save an artifact for a job the user already cancelled.
+  if (!(await jobIsStillLive(jobId))) {
+    releaseRuntimeArtifacts(jobId);
+    return { ok: false, status: "cancelled", jobId, message: `Job ${jobId} was cancelled before it could be saved.` };
+  }
+
   try {
     const apiKey = runtime.apiKey || (await resolveApiKey());
     // Sequenced before the download so downloadMs measures the artifact transfer
@@ -411,6 +350,13 @@ export async function finalizeQueueJob(jobId: string, options: PollStepOptions =
     await mutateQueueState((current) => {
       const target = findQueueJob(current, jobId);
       if (!target) return;
+      // The artifact is already saved, so record the outcome even if a cancel
+      // landed during the download — but do not resurrect a cancelled job.
+      if (target.status === "cancelled") {
+        target.result = outcome.result;
+        target.resultAssetId = outcome.result.assetId;
+        return;
+      }
       target.status = "complete";
       target.finishedAt = now;
       target.error = undefined;

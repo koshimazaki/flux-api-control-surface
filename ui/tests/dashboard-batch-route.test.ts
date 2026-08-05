@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/bfl-server", () => ({
   BFL_API_BASE: "https://api.bfl.ai/v1",
   bflJson: mocks.bflJson,
+  patchOutputMetadataFile: vi.fn().mockResolvedValue(true),
   getCredits: mocks.getCredits,
   resolveApiKey: mocks.resolveApiKey
 }));

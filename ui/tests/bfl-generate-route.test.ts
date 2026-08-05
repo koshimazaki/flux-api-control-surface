@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/bfl-server", () => ({
   BFL_API_BASE: "https://api.bfl.ai/v1",
   bflJson: mocks.bflJson,
+  patchOutputMetadataFile: vi.fn().mockResolvedValue(true),
   contentTypeForExtension: vi.fn((extension: string, fallback: string) =>
     extension === "png" ? "image/png" : fallback
   ),

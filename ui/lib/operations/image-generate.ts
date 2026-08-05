@@ -2,6 +2,7 @@ import {
   contentTypeForExtension,
   imageToDataUrl,
   outputExtension,
+  patchOutputMetadataFile,
   redactImagePayload,
   resolveImageInput,
   saveOutputFiles
@@ -280,8 +281,10 @@ async function finalize(input: OperationFinalizeInput) {
   });
   marks.savedAt = Date.now();
   // Re-stamp the timing now that the artifact is actually on disk, so finalizeMs
-  // measures the save instead of being ~0 by construction.
+  // measures the save instead of being ~0 by construction, then rewrite the
+  // sidecar the save already serialized with the pre-save timing.
   metadata.timing = buildGenerationTiming(marks);
+  await patchOutputMetadataFile(localOutputFiles.metadataPath, { timing: metadata.timing });
 
   let remoteOutput = null;
   try {

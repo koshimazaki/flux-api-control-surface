@@ -101,6 +101,34 @@ export async function retryQueueJob(jobId: string): Promise<QueueJobOutcome> {
     const job = findQueueJob(store, jobId);
     if (!job) return { error: `Queue job ${jobId} was not found`, status: 404 };
     if (!SETTLED.has(job.status)) return { error: `Job ${jobId} is still ${job.status}.`, status: 409 };
+
+    // A job that already reached the provider has been paid for. Retry must
+    // resume polling/finalizing it, never re-submit — a poll-budget timeout
+    // leaves exactly this state, and the visible Retry button would double-charge.
+    if (job.pollingUrl) {
+      job.status = "running";
+      job.nextPollAt = Date.now();
+      job.nextRetryAt = undefined;
+      job.finishedAt = undefined;
+      job.error = undefined;
+      job.failureClass = undefined;
+      job.retryCount = 0;
+      job.recovery = [
+        ...(job.recovery || []),
+        {
+          at: Date.now(),
+          event: "manual-poll" as const,
+          detail: `Retry resumed polling ${job.providerRequestId || "the stored request"} instead of resubmitting.`
+        }
+      ].slice(-10);
+      return { job, state: store };
+    }
+    if (job.providerRequestId) {
+      return {
+        error: `Job ${jobId} was accepted by BFL as request ${job.providerRequestId} but stored no polling URL, so it cannot be resumed or safely re-run. Check the BFL dashboard for the result before re-queueing this work.`,
+        status: 409
+      };
+    }
     if (!store.descriptors[jobId]?.recoverable) {
       return {
         error: `Job ${jobId} cannot be retried on the server because its media inputs were never persisted. Re-run it from the workspace that created it.`,

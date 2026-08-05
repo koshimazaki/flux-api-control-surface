@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AssetCollection, AssetRecord, PromptRecord } from "@/lib/types";
 import { planVideoScript } from "@/lib/video-script-plan";
-import { videoScriptPoolAssetIds } from "@/lib/video-script/sources";
+import { videoScriptPoolAssetIds, videoScriptSourceIssue } from "@/lib/video-script/sources";
 import {
   planVideoScriptBatch,
   planVideoScriptGenerator,
@@ -327,5 +327,35 @@ describe("source browser filtering", () => {
   it("keeps only resolvable image members, deduplicated", () => {
     const assets = [asset("img_1"), asset("vid_1", { mediaType: "video", imageUrl: "", videoUrl: "/v.mp4" })];
     expect(videoScriptPoolAssetIds(collection, assets)).toEqual(["img_1"]);
+  });
+
+  it("excludes browser-only imports the server cannot read", () => {
+    // Enqueued rows ship /api/outputs/<id>/image, which does not exist for an
+    // asset that only lives as a data URL in this tab — a guaranteed paid failure.
+    const browserOnly = asset("img_1", {
+      imageUrl: "",
+      imageDataUrl: "data:image/png;base64,AAAA",
+      assetKind: "reference"
+    });
+    expect(videoScriptPoolAssetIds(collection, [browserOnly])).toEqual([]);
+    expect(videoScriptSourceIssue(browserOnly)).toMatch(/browser only/i);
+  });
+
+  it("accepts assets with a durable server or remote source", () => {
+    expect(videoScriptSourceIssue(asset("img_1"))).toBeNull();
+    expect(
+      videoScriptSourceIssue(
+        asset("img_2", { imageUrl: "", imageDataUrl: "data:image/png;base64,AAAA", localImagePath: "outputs/a.png" })
+      )
+    ).toBeNull();
+    expect(
+      videoScriptSourceIssue(
+        asset("img_3", { imageUrl: "", imageDataUrl: "data:image/png;base64,AAAA", assetKind: "output" })
+      )
+    ).toBeNull();
+  });
+
+  it("explains why a video asset cannot be a keyframe", () => {
+    expect(videoScriptSourceIssue(asset("vid_1", { mediaType: "video" }))).toMatch(/video assets/i);
   });
 });
