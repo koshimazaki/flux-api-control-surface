@@ -1,8 +1,9 @@
 # FLUX API Control Surface
 
-Local workbench for exploring FLUX API workflows with prompt libraries,
-reference images, FLUX image tools, output provenance, local asset recovery, and
-agent-friendly routes.
+Local workbench for FLUX.2 image and FLUX.3 video workflows: prompt libraries,
+reference images, FLUX image tools, video scripting with keyframe permutations,
+a server-owned generation queue, model evaluation records, output provenance,
+local asset recovery, and agent-friendly routes.
 
 This repo is local-first. It is safe to run as a developer tool, it is not a
 hosted public image generator. Keep paid FLUX execution on your machine through
@@ -31,6 +32,18 @@ npm run build
 ## What It Does
 
 - Generate FLUX.2 images through local Next.js API routes.
+- Generate FLUX.3 video: text-to-video, one to ten ordered or explicitly timed
+  keyframes, video continuation, synchronized audio, and deterministic
+  draft-to-1080p enhancement.
+- Plan Video Script batches: collection-driven keyframe permutations, prompt
+  assignment modes, batch timing templates imported from audio markers, and a
+  live job-count/cost preview before any paid run.
+- Run every paid job through one server-owned generation queue with image, tool,
+  and video lanes, pause/retry/cancel, restart recovery from saved provider
+  request IDs, and estimated-versus-actual cost reconciliation.
+- Capture each run as a normalized evaluation record with prompts, settings,
+  timings, and cost; rate, tag, and export JSON/JSONL from the Evaluate tab,
+  the CLI, or MCP.
 - Run FLUX Erase, Virtual Try-On, Outpaint, and Deblur from saved gallery assets.
 - Manage prompts, prompt combos, reference roles, costs, credits, and run logs.
 - Save outputs as image, prompt text, JSON metadata, and PNG metadata.
@@ -60,9 +73,9 @@ There are two complementary surfaces:
 
 - **Official FLUX MCP** at `https://mcp.bfl.ai` for BFL-hosted OAuth, direct
   generation, edits, history, and account operations.
-- **Local dashboard routes/MCP wrapper** for prompts, run plans, output recovery,
-  glyph vectorization, reference archives, and artifacts that should appear in
-  this repo's gallery.
+- **Local dashboard routes/MCP wrapper** for prompts, run plans, generation
+  queue control, evaluation records, output recovery, glyph vectorization,
+  reference archives, and artifacts that should appear in this repo's gallery.
 
 Hosted FLUX MCP setup:
 
@@ -97,10 +110,13 @@ Without those env vars, the UI stays filesystem/localStorage/IndexedDB only.
   features, local routes, security posture, and release notes.
 - [MCP And Agent Guide](./docs/mcp-agent-guide.md): official FLUX MCP plus local
   dashboard API usage.
+- [FLUX.3 Video Scripts PRD](./docs/flux3-video-scripts-prd.md): product
+  requirements for video prompts, keyframe permutations, and the universal
+  generation queue, with API constraints verified against the live BFL docs.
+- [FLUX.3 Implementation Plan](./docs/flux3-video-scripts-implementation.md):
+  queue architecture, provider lifecycle split, failure taxonomy, and phasing.
 - [Asset Workbench Readiness](./docs/asset-workbench-readiness.md): BFL asset
   workflow direction.
-- [Krea 2 Style LoRA Pilot](./experiments/krea2-style-lora-pilot.md):
-  public-safe mixed-asset LoRA evaluation plan.
 - [Public Release Checklist](./docs/public-release-checklist.md): what to verify
   before tagging or publishing.
 - [UI README](./ui/README.md): detailed Next.js app notes.
@@ -113,5 +129,5 @@ Without those env vars, the UI stays filesystem/localStorage/IndexedDB only.
 - `configs/`: public-safe sample prompt plans kept as tutorials and smoke-test
   fixtures, not a private prompt library.
 - `docs/`: public-facing implementation and release notes.
-- `experiments/` and `notes/`: retained analysis/reference material; review
-  before linking from public release pages.
+- `experiments/` and `notes/`: local-only working material, intentionally not
+  tracked in the public repo.

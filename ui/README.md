@@ -1,7 +1,9 @@
 # FLUX API Control Surface
 
-Local Next.js control surface for testing FLUX.2 prompts, batch permutations,
-reference images, image tools, assets, costs, and logs.
+Local Next.js control surface for FLUX.2 images and FLUX.3 video: prompts,
+batch permutations, Video Script keyframe batches, reference images, image
+tools, a server-owned generation queue, model evaluation, assets, costs, and
+logs.
 
 This is a local-first developer tool. It is suitable as a public demo/workflow
 repo when it is presented as a local FLUX API workbench, not as a hosted public
@@ -161,6 +163,76 @@ The Assets menu can filter the shared library to **Images**, **Videos**, or
 **Collections**. Video cards open in the same lightbox with native playback
 controls.
 
+## Generation Queue
+
+Every paid entry point — image generation, image tools, FLUX.3 video, and
+batches — enqueues onto one server-owned queue instead of running inside a
+blocking request:
+
+- File-backed store under `outputs/flux-api-control-surface/.generation-queue/`
+  with atomic writes, a cross-process lock, and a single-runner lease, so two
+  tabs or processes never double-submit a job.
+- Provider lifecycle is split into submit, poll-step, and finalize; the BFL
+  request ID and polling URL are persisted before the first poll, so a refresh,
+  timeout, or server restart resumes the job instead of losing a paid render.
+- Failure taxonomy: transient errors back off and resume polling (never
+  re-submit an accepted request), moderation and invalid input never
+  auto-retry, insufficient credits pause the whole queue, and a repeatedly
+  failing source image is quarantined so one bad input cannot burn a batch.
+- Image, tool, and video lanes run in parallel under global and per-lane
+  limits; pause, resume, retry, cancel, reorder, and clear-settled are exposed
+  in the UI, over `/api/dashboard/queue`, and as MCP tools.
+- Estimated cost is recorded per job and reconciled against the actual `cost`
+  BFL returns.
+
+`/api/bfl/jobs` offers submit/poll/finalize recovery primitives for individual
+provider jobs; it is diagnostic, not a second scheduler.
+
+## Video Script
+
+The Script tab has Image and Video sub-tabs. The Video sub-tab builds FLUX.3
+image-to-video batches from Collections:
+
+- A keyframe matrix with four slots by default, expanding to the API maximum of
+  ten. Dropping a Collection on a slot column binds a pool to that position;
+  dropping an image on a single cell overrides just that row.
+- Two generator workflows: fill all slots from one pool (combinations,
+  arrangements, rotations) or bind pools per slot and combine them by
+  Cartesian product, zip, or seeded sample. Generated rows stay editable, and
+  regenerating never overwrites rows you edited by hand.
+- Prompt assignment: one prompt for all rows, zip, rotate, combine, or an
+  explicit rows-by-prompts Cartesian expansion (never implied).
+- Timing: evenly spaced keyframes, or a batch-level timing template of
+  `[seconds, image]` pairs — importable from Audio Script beat, shot, and
+  locked markers — with per-row overrides.
+- A live preview shows raw expansion, unique rows after dedupe, the applied
+  hard cap, and estimated cost before anything paid is enqueued.
+
+The planner itself is a pure library (`lib/video-script-plan/`) with a visible
+seed for repeatable row selection. FLUX.3 exposes no generation seed; to
+reproduce a render, enhance its saved draft.
+
+## Model Evaluation + CLI
+
+Every successful image, tool, and video run is captured automatically as a
+normalized `bfl-evaluation/v1` record: prompt, sanitized settings, lifecycle
+timings, cost and credit deltas, provenance, and output paths. Failed and
+retried queue attempts extend the same records. The Evaluate view filters by
+media/model/verdict, previews outputs, stores 1-5 ratings, keep/maybe/reject
+verdicts, tags, and notes as an atomic sidecar, and exports JSON or JSONL.
+
+The same surface is scriptable:
+
+```bash
+npm run --silent cli -- evaluations --media video --format jsonl
+npm run --silent cli -- generate-video --json request.json
+npm run --silent cli -- evaluate GENERATION_ID --rating 5 --verdict keep --tags favorite,motion
+```
+
+The CLI is a thin client over the local HTTP routes — no separate provider
+logic, so queue behavior and persistence are identical from the browser, MCP,
+and shell.
+
 ## Prompt Library + Asset References
 
 - The audio panel's `Save to library` stores the generated sequence prompt under
@@ -188,6 +260,10 @@ The UI is also an agent/MCP-facing local API:
   image-to-video, video continuation, and draft-enhancement jobs.
 - `GET /api/bfl/flux3-video/:id` serves a saved video or draft cache for local
   playback and download.
+- `GET/POST/PATCH/DELETE /api/dashboard/queue` lists, enqueues, controls
+  (pause/resume/retry/reorder), and cancels server-queue jobs.
+- `GET/PATCH /api/evaluations` returns normalized `bfl-evaluation/v1` records
+  (JSON or JSONL) and stores rating/verdict/tag/note annotations.
 - `GET /api/mcp/manifest` describes the complete local route surface plus native
   FLUX MCP handoff options.
 - `GET /api/outputs` hydrates saved filesystem outputs and, when configured,
@@ -206,6 +282,9 @@ BFL MCP is useful inside MCP clients such as Codex or Claude because it owns the
 OAuth flow and native BFL tool calls. This browser UI uses BFL's HTTP API for
 saved local outputs. The local stdio MCP wrapper exposes the JSON dashboard
 routes for prompts, plans, generation, tools, references, glyphs, credits, and
-caption job prep, plus FLUX.3 video listing/generation, finetune dataset export,
-registry, and finetuned generation; binary audio export and browser-only
-interactions still use HTTP/UI or browser automation.
+caption job prep, plus FLUX.3 video listing/generation, generation-queue
+control (`list_generation_queue`, `enqueue_generation_jobs`,
+`update_generation_job`, `cancel_generation_job`), evaluation records
+(`list_evaluations`, `update_evaluation`), finetune dataset export, registry,
+and finetuned generation; binary audio export and browser-only interactions
+still use HTTP/UI or browser automation.
