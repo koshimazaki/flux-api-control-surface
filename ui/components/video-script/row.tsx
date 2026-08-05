@@ -87,8 +87,9 @@ export function VideoScriptRow(props: VideoScriptRowProps) {
               <RotateCcw size={12} />
             </button>
           )}
-          <button type="button" onClick={props.onDuplicate} title="Duplicate row">
+          <button type="button" onClick={props.onDuplicate} title="Copy this row, then edit the copy freely">
             <Copy size={12} />
+            duplicate
           </button>
           <button type="button" onClick={props.onDelete} title="Delete row">
             <Trash2 size={12} />

@@ -311,10 +311,16 @@
 
 .videoScriptRow header {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
   align-items: center;
   font-size: 11px;
   color: var(--muted);
+}
+
+.videoScriptRowActions button {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .videoScriptRowGrip {
