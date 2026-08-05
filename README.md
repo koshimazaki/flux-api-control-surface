@@ -99,6 +99,8 @@ Without those env vars, the UI stays filesystem/localStorage/IndexedDB only.
   dashboard API usage.
 - [Asset Workbench Readiness](./docs/asset-workbench-readiness.md): BFL asset
   workflow direction.
+- [Krea 2 Style LoRA Pilot](./experiments/krea2-style-lora-pilot.md):
+  public-safe mixed-asset LoRA evaluation plan.
 - [Public Release Checklist](./docs/public-release-checklist.md): what to verify
   before tagging or publishing.
 - [UI README](./ui/README.md): detailed Next.js app notes.

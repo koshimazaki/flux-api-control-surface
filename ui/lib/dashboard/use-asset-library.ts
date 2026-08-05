@@ -149,9 +149,9 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
     setSelectedAssetIds([]);
   }
   async function downloadAssetImage(asset: AssetRecord) {
-    const source = asset.imageDataUrl || asset.sampleUrl || asset.remoteImageUrl || asset.imageUrl || asset.image_url;
+    const source = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.remoteImageUrl || asset.imageUrl || asset.image_url;
     if (!source) {
-      setError("This image does not have a downloadable URL.");
+      setError("This asset does not have a downloadable URL.");
       return;
     }
     let downloadUrl = source;
@@ -159,7 +159,7 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
     try {
       if (!source.startsWith("data:") && !source.startsWith("blob:")) {
         const response = await fetch(source, { cache: "no-store" });
-        if (!response.ok) throw new Error(`Could not fetch image: ${response.status}`);
+        if (!response.ok) throw new Error(`Could not fetch asset: ${response.status}`);
         downloadUrl = URL.createObjectURL(await response.blob());
         shouldRevoke = true;
       }
@@ -175,7 +175,7 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
       setError("");
     } catch (err) {
       if (shouldRevoke) URL.revokeObjectURL(downloadUrl);
-      setError(err instanceof Error ? err.message : "Could not download image.");
+      setError(err instanceof Error ? err.message : "Could not download asset.");
     }
   }
 

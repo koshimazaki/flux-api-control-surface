@@ -26,7 +26,17 @@ const allRoutes = readdirSync(apiDir, { recursive: true })
 // Routes intentionally NOT wrapped as MCP tools, classified so a brand-new
 // uncovered route can't slip through unnoticed.
 const DISCOVERY_ONLY = ["/api/mcp/guide", "/api/mcp/status", "/api/bfl_dashboard/v1/manifest"];
-const INTERNAL_ONLY = ["/api/outputs/[id]/image", "/api/bfl/tools/vto-composite"];
+const INTERNAL_ONLY = [
+  "/api/outputs/[id]/image",
+  // Opens the local file manager on the machine running the dashboard; only
+  // meaningful for the human at that machine, never for agents.
+  "/api/outputs/reveal",
+  "/api/bfl/tools/vto-composite",
+  "/api/bfl/flux3-video/[id]",
+  // Submit/poll-step/finalize recovery primitives for the server queue. Agents
+  // drive work through the queue tools; these exist for diagnostics and repair.
+  "/api/bfl/jobs"
+];
 const KNOWN_AUDIO_GAP = ["/api/audio/guide", "/api/audio/slice"];
 const KNOWN_COLLECTIONS_GAP = ["/api/collections"];
 
@@ -49,6 +59,7 @@ describe("MCP covers every core control-surface function", () => {
   it("wraps generation, image tools, planning, prompts, glyphs, credits, references, and assets", () => {
     const mustBeReachable = [
       "/api/bfl/generate",
+      "/api/bfl/flux3-video",
       "/api/bfl/tools",
       "/api/dashboard/batch",
       "/api/dashboard/run-plan",
@@ -67,6 +78,12 @@ describe("MCP covers every core control-surface function", () => {
     }
   });
 
+  it("wraps FLUX.3 video generation and saved-video listing", () => {
+    expect(registeredTools).toContain("generate_flux3_video");
+    expect(registeredTools).toContain("list_flux3_videos");
+    expect(mcpCalledRoutes).toContain("/api/bfl/flux3-video");
+  });
+
   it("wraps the FLUX.2 [klein] finetune loop (dataset export, registry, finetuned generation)", () => {
     // The four finetune tools are registered (and therefore in localDashboardMcpTools).
     for (const tool of ["build_finetune_dataset", "register_finetune", "list_finetunes", "generate_with_finetune"]) {
@@ -77,8 +94,10 @@ describe("MCP covers every core control-surface function", () => {
     expect(mcpCalledRoutes).toContain("/api/finetunes");
     // Finetuned generation reuses the standard generate route with a finetune_id.
     expect(serverSrc).toMatch(/finetuneId/);
-    const generateRouteSrc = readFileSync(resolve(uiRoot, "app/api/bfl/generate/route.ts"), "utf8");
-    expect(generateRouteSrc).toMatch(/finetune_id/);
+    // The generate route is a queue wrapper; the finetune payload is built by the
+    // shared image-generation operation the queue runner executes.
+    const generateOperationSrc = readFileSync(resolve(uiRoot, "lib/operations/image-generate.ts"), "utf8");
+    expect(generateOperationSrc).toMatch(/finetune_id/);
   });
 
   it("drives Virtual Try-On end-to-end through the local MCP (no BFL-hosted MCP needed)", () => {
@@ -89,10 +108,13 @@ describe("MCP covers every core control-surface function", () => {
     // 2. VTO is a registered FLUX tool with the documented endpoint.
     const vto = bflImageTools.find((tool) => tool.value === "vto");
     expect(vto?.endpoint).toBe("flux-tools/vto-v1");
-    // 3. The route actually branches on vto and forwards a garment payload.
+    // 3. The tool operation adapter (shared by the route and the queue runner)
+    // branches on vto and forwards a garment payload.
     const toolsRouteSrc = readFileSync(resolve(uiRoot, "app/api/bfl/tools/route.ts"), "utf8");
-    expect(toolsRouteSrc).toMatch(/tool === "vto"/);
-    expect(toolsRouteSrc).toMatch(/garment/);
+    const toolOperationSrc = readFileSync(resolve(uiRoot, "lib/operations/image-tool.ts"), "utf8");
+    expect(toolsRouteSrc).toMatch(/getBflImageTool/);
+    expect(toolOperationSrc).toMatch(/tool === "vto"/);
+    expect(toolOperationSrc).toMatch(/garment/);
   });
 });
 

@@ -1,6 +1,7 @@
 import {
   Download,
   Expand,
+  Film,
   FolderOpen,
   ImagePlus,
   PackagePlus,
@@ -63,8 +64,8 @@ function imageFilesFromTransfer(event: DragEvent) {
   return Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
 }
 
-function imageSourceForAsset(asset: AssetRecord | undefined) {
-  return asset?.imageDataUrl || asset?.sampleUrl || asset?.remoteImageUrl || asset?.imageUrl || asset?.image_url || "";
+function mediaSourceForAsset(asset: AssetRecord | undefined) {
+  return asset?.videoUrl || asset?.imageDataUrl || asset?.sampleUrl || asset?.remoteImageUrl || asset?.imageUrl || asset?.image_url || "";
 }
 
 function assetIdsFromTransfer(event: DragEvent) {
@@ -139,11 +140,15 @@ function CollectionCard({
         <span className="collectionCoverGrid">
           {Array.from({ length: 4 }).map((_, index) => {
             const asset = coverAssets[index];
-            const src = imageSourceForAsset(asset);
+            const src = mediaSourceForAsset(asset);
             return (
               <span className="collectionCoverCell" key={`${collection.id}-cover-${index}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {src ? <img src={src} alt={asset?.title || asset?.id || collection.name} loading="lazy" /> : <FolderOpen size={18} />}
+                {src && asset?.mediaType === "video" ? (
+                  <video src={src} muted playsInline preload="metadata" aria-label={asset.title || asset.id} />
+                ) : src ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={src} alt={asset?.title || asset?.id || collection.name} loading="lazy" />
+                ) : <FolderOpen size={18} />}
               </span>
             );
           })}
@@ -184,7 +189,8 @@ function CollectionAssetTile({
 }) {
   const origin = assetOrigin(asset);
   const OriginIcon = origin.icon;
-  const source = imageSourceForAsset(asset);
+  const source = mediaSourceForAsset(asset);
+  const isVideo = asset.mediaType === "video";
   return (
     <article
       className="collectionAssetTile"
@@ -196,10 +202,14 @@ function CollectionAssetTile({
       }}
     >
       <button className="assetImageButton" onClick={onOpen}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={source} alt={asset.title || member.name || asset.id} loading="lazy" />
+        {isVideo ? (
+          <video src={source} muted playsInline preload="metadata" aria-label={asset.title || member.name || asset.id} />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={source} alt={asset.title || member.name || asset.id} loading="lazy" />
+        )}
         <span className={`assetOriginBadge assetOrigin-${origin.className}`} title={origin.title}>
-          <OriginIcon size={11} />
+          {isVideo ? <Film size={11} /> : <OriginIcon size={11} />}
           {origin.label}
         </span>
       </button>

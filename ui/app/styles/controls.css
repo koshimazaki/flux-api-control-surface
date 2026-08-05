@@ -146,9 +146,50 @@
 }
 
 .queueMeter {
+  /* Slot count follows the server queue's configured global concurrency. */
   display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 4px;
+}
+
+.queueControls {
+  display: flex;
+  gap: 6px;
+}
+
+.queueControls button,
+.queueJobActions button {
+  border: 1px solid rgba(243, 241, 230, 0.14);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 3px 8px;
+  color: var(--soft);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.queueControls button:hover:not(:disabled),
+.queueJobActions button:hover {
+  border-color: rgba(136, 225, 188, 0.4);
+  color: var(--text);
+}
+
+.queueControls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.queueNotice {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.queueJobActions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 6px;
 }
 
 .queueMeter span {

@@ -78,12 +78,13 @@ function inferAssetKind(item: any): AssetKind {
 }
 
 export function stripAssetForStorage(asset: AssetRecord) {
-  const fallbackUrl = asset.sampleUrl || asset.imageUrl || asset.image_url;
+  const fallbackUrl = asset.videoUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
   return {
     ...asset,
     imageDataUrl: undefined,
-    imageUrl: fallbackUrl,
-    image_url: fallbackUrl,
+    imageUrl: asset.mediaType === "video" ? "" : fallbackUrl,
+    image_url: asset.mediaType === "video" ? "" : fallbackUrl,
+    videoUrl: asset.mediaType === "video" ? fallbackUrl : asset.videoUrl,
     payload: sanitizePayload(asset.payload),
     references: asset.references.map((reference) => ({
       ...reference,
@@ -93,13 +94,16 @@ export function stripAssetForStorage(asset: AssetRecord) {
 }
 
 export function normalizeLibraryRecord(item: any): AssetRecord | null {
-  const imageUrl = item.imageDataUrl || item.imageUrl || item.image_url || item.sampleUrl || "";
+  const mediaType = item.mediaType === "video" || item.model === "flux-3-video" ? "video" : "image";
+  const assetUrl = item.videoUrl || item.imageDataUrl || item.imageUrl || item.image_url || item.sampleUrl || "";
+  const imageUrl = mediaType === "image" ? assetUrl : "";
+  const videoUrl = mediaType === "video" ? assetUrl : undefined;
   const canHydrateStoredBlob =
     Boolean(item.id) &&
     (Boolean(item.localImagePath || item.localMetadataPath) ||
       String(item.provider || "").startsWith("local") ||
       item.operation === "vto-garment-composite");
-  if (!imageUrl && !canHydrateStoredBlob) return null;
+  if (!assetUrl && !canHydrateStoredBlob) return null;
   return {
     id: item.id || `asset-${Date.now()}`,
     title: item.title,
@@ -108,7 +112,9 @@ export function normalizeLibraryRecord(item: any): AssetRecord | null {
     imageDataUrl: imageUrl,
     imageUrl,
     image_url: imageUrl,
-    sampleUrl: item.sampleUrl || imageUrl,
+    sampleUrl: item.sampleUrl || assetUrl,
+    mediaType,
+    videoUrl,
     model: item.model || item.generator || "bfl",
     prompt: item.prompt || "",
     status: "complete",
@@ -131,6 +137,7 @@ export function normalizeLibraryRecord(item: any): AssetRecord | null {
     localPromptPath: item.localPromptPath,
     localMetadataPath: item.localMetadataPath,
     localSvgPath: item.localSvgPath,
+    localVideoPath: item.localVideoPath,
     remoteImageKey: item.remoteImageKey,
     remotePromptKey: item.remotePromptKey,
     remoteMetadataKey: item.remoteMetadataKey,
@@ -178,8 +185,10 @@ export function toAimediaRecord(asset: AssetRecord) {
     id: asset.id,
     title: asset.title,
     prompt: asset.prompt,
-    imageUrl: asset.sampleUrl || asset.imageUrl,
-    image_url: asset.sampleUrl || asset.image_url,
+    imageUrl: asset.mediaType === "video" ? "" : asset.sampleUrl || asset.imageUrl,
+    image_url: asset.mediaType === "video" ? "" : asset.sampleUrl || asset.image_url,
+    videoUrl: asset.videoUrl,
+    mediaType: asset.mediaType,
     status: asset.status,
     timestamp: asset.timestamp,
     is_favorite: asset.is_favorite,
@@ -199,6 +208,7 @@ export function toAimediaRecord(asset: AssetRecord) {
     localPromptPath: asset.localPromptPath,
     localMetadataPath: asset.localMetadataPath,
     localSvgPath: asset.localSvgPath,
+    localVideoPath: asset.localVideoPath,
     remoteImageKey: asset.remoteImageKey,
     remotePromptKey: asset.remotePromptKey,
     remoteMetadataKey: asset.remoteMetadataKey,

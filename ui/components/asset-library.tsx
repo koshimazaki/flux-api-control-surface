@@ -1,6 +1,4 @@
 import {
-  Check,
-  ChevronDown,
   Download,
   FolderOpen,
   LayoutGrid,
@@ -24,19 +22,20 @@ import type {
   AssetCollectionMemberKind,
   AssetRecord,
   AspectRatio,
+  ImageWorkspaceMode,
   ReferenceRole,
-  WorkspaceMode
 } from "@/lib/types";
 
-type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
+type ImageToolMode = ImageWorkspaceMode;
 
 const collectionFilterLabels: Record<AssetCollectionFilter, string> = {
   all: "All",
   images: "Images",
+  videos: "Videos",
   collections: "Collections"
 };
 
-const collectionFilterOptions: AssetCollectionFilter[] = ["all", "images", "collections"];
+const collectionFilterChipOptions: AssetCollectionFilter[] = ["images", "videos", "collections"];
 
 type AssetLibraryProps = {
   assets: AssetRecord[];
@@ -48,12 +47,12 @@ type AssetLibraryProps = {
   selectedAssetIds: string[];
   assetBadges: Record<string, AssetBadge[]>;
   collections: AssetCollection[];
-  collectionFilter: AssetCollectionFilter;
+  collectionFilter: AssetCollectionFilter[];
   openedCollection: AssetCollection | null;
   onSearchChange: (value: string) => void;
   onGridSizeChange: (value: number) => void;
   onAspectRatioChange: (value: AspectRatio) => void;
-  onCollectionFilterChange: (value: AssetCollectionFilter) => void;
+  onCollectionFilterChange: (value: AssetCollectionFilter[]) => void;
   onCreateCollection: (name: string, assetIds?: string[]) => void;
   onAddAssetsToCollection: (collectionId: string, assetIds: string[], kind?: AssetCollectionMemberKind) => void;
   onAddSelectedToCollection: (collectionId: string) => void;
@@ -70,6 +69,8 @@ type AssetLibraryProps = {
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToVtoGarment: (asset: AssetRecord) => void;
+  onSendToFlux3Keyframe?: (asset: AssetRecord) => void;
+  onRevealAsset?: (asset: AssetRecord) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSavePromptToLibrary: (asset: AssetRecord) => void;
   onToggleSelected: (id: string) => void;
@@ -99,15 +100,28 @@ function imageFilesFromTransfer(event: DragEvent) {
 export function AssetLibrary(props: AssetLibraryProps) {
   const [newCollectionName, setNewCollectionName] = useState("");
   const [targetCollectionId, setTargetCollectionId] = useState("");
-  const [collectionFilterOpen, setCollectionFilterOpen] = useState(false);
   const [collectionToolsOpen, setCollectionToolsOpen] = useState(false);
   const assetGridStyle = {
     gridTemplateColumns: `repeat(${props.gridSize}, minmax(0, 1fr))`
   };
-  const showAssets = props.collectionFilter !== "collections";
-  const showCollections = props.collectionFilter !== "images";
+  const filterAll = props.collectionFilter.length === 0;
+  const filterHas = (value: AssetCollectionFilter) => props.collectionFilter.includes(value);
+  const showAssets = filterAll || filterHas("images") || filterHas("videos");
+  const showCollections = filterAll || filterHas("collections");
   const visibleCollectionCount = visibleAssetCollections(props.collections, props.searchQuery, showCollections).length;
-  const groupedAssets = showAssets ? groupAssetsByDate(props.filteredAssets) : [];
+  const mediaAssets = props.filteredAssets.filter((asset) => {
+    if (filterAll || (filterHas("images") && filterHas("videos"))) return true;
+    if (filterHas("videos")) return asset.mediaType === "video";
+    if (filterHas("images")) return asset.mediaType !== "video";
+    return true;
+  });
+  function toggleFilterChip(option: AssetCollectionFilter) {
+    const next = filterHas(option)
+      ? props.collectionFilter.filter((item) => item !== option)
+      : [...props.collectionFilter, option];
+    props.onCollectionFilterChange(next.length === collectionFilterChipOptions.length ? [] : next);
+  }
+  const groupedAssets = showAssets ? groupAssetsByDate(mediaAssets) : [];
   function onImageImport(event: ChangeEvent<HTMLInputElement>) {
     props.onImportImages(Array.from(event.target.files || []));
     event.target.value = "";
@@ -151,51 +165,33 @@ export function AssetLibrary(props: AssetLibraryProps) {
         subtitle={<>{props.filteredAssets.length} of {props.assets.length} saved assets · {props.collections.length} collection{props.collections.length === 1 ? "" : "s"}</>}
       >
         <div className="assetActions">
-          <div className="collectionControlCluster">
-            <div className="collectionActionMenu">
+          <div className="assetFilterChips" role="group" aria-label="Show asset types">
+            <button
+              type="button"
+              className={filterAll ? "active" : ""}
+              onClick={() => props.onCollectionFilterChange([])}
+            >
+              All
+            </button>
+            {collectionFilterChipOptions.map((option) => (
               <button
                 type="button"
-                className={["collectionModeButton", collectionFilterOpen ? "open" : ""].filter(Boolean).join(" ")}
-                title="Asset library filter"
-                aria-expanded={collectionFilterOpen}
-                onClick={() => {
-                  setCollectionFilterOpen((open) => !open);
-                  setCollectionToolsOpen(false);
-                }}
+                key={option}
+                className={filterHas(option) ? "active" : ""}
+                onClick={() => toggleFilterChip(option)}
               >
-                <FolderOpen size={15} />
-                <span>{collectionFilterLabels[props.collectionFilter]}</span>
-                <ChevronDown size={14} />
+                {collectionFilterLabels[option]}
               </button>
-              {collectionFilterOpen && (
-                <div className="collectionMenu">
-                  {collectionFilterOptions.map((filter) => (
-                    <button
-                      type="button"
-                      key={filter}
-                      className={props.collectionFilter === filter ? "active" : ""}
-                      onClick={() => {
-                        props.onCollectionFilterChange(filter);
-                        setCollectionFilterOpen(false);
-                      }}
-                    >
-                      <span>{collectionFilterLabels[filter]}</span>
-                      {props.collectionFilter === filter && <Check size={14} />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            ))}
+          </div>
+          <div className="collectionControlCluster">
             <div className="collectionActionMenu">
               <button
                 type="button"
                 className={["collectionToolsButton", collectionToolsOpen ? "open" : ""].filter(Boolean).join(" ")}
                 title="Collection tools"
                 aria-expanded={collectionToolsOpen}
-                onClick={() => {
-                  setCollectionToolsOpen((open) => !open);
-                  setCollectionFilterOpen(false);
-                }}
+                onClick={() => setCollectionToolsOpen((open) => !open)}
               >
                 <PackagePlus size={15} />
                 <span>{props.selectedAssetIds.length || props.collections.length}</span>
@@ -347,6 +343,8 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   onSendToPrompt={props.onSendToPrompt}
                   onSendToWorkspace={props.onSendToWorkspace}
                   onSendToVtoGarment={props.onSendToVtoGarment}
+                  onSendToFlux3Keyframe={props.onSendToFlux3Keyframe}
+                  onRevealAsset={props.onRevealAsset}
                   onSendToReference={props.onSendToReference}
                   onSavePromptToLibrary={props.onSavePromptToLibrary}
                 />
@@ -355,7 +353,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
           </section>
         ))}
         {!groupedAssets.length && !visibleCollectionCount && (
-          <div className="emptyState">Drop images here or generate outputs to build the library.</div>
+          <div className="emptyState">Drop images here or generate image and video outputs to build the library.</div>
         )}
       </div>
     </section>

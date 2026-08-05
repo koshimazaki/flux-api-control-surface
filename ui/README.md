@@ -147,11 +147,19 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
   pixel offsets (empty = centered), high/fast mode, optional experimental prompt.
 - **Deblur** (`flux-tools/deblur-v1`): sharpen the whole source image while
   preserving the scene. No prompt or mask.
+- **FLUX.3 Video** (`flux-3-video`): generate from text or one to ten ordered
+  keyframes, continue an MP4, and optionally render a draft before enhancing it
+  deterministically to 1080p. Generated videos are downloaded immediately and
+  kept in the same local asset library as images.
 - **Glyphs**: local SVG/PNG vectorization. The browser workspace can select a
   region visually, and agents can call `/api/glyphs/vectorize` for saved outputs.
 
 Tool results land in the gallery with `sourceAssetId`/`operation` provenance and
 the same local + R2 archive treatment as generations.
+
+The Assets menu can filter the shared library to **Images**, **Videos**, or
+**Collections**. Video cards open in the same lightbox with native playback
+controls.
 
 ## Prompt Library + Asset References
 
@@ -176,6 +184,10 @@ The UI is also an agent/MCP-facing local API:
   calls the local BFL route and saves image/prompt/metadata files.
 - `POST /api/bfl/tools` runs erase/vto/outpaint/deblur on an existing image with the
   same output persistence and provenance as generations.
+- `GET/POST /api/bfl/flux3-video` lists saved FLUX.3 videos or submits text-to-video,
+  image-to-video, video continuation, and draft-enhancement jobs.
+- `GET /api/bfl/flux3-video/:id` serves a saved video or draft cache for local
+  playback and download.
 - `GET /api/mcp/manifest` describes the complete local route surface plus native
   FLUX MCP handoff options.
 - `GET /api/outputs` hydrates saved filesystem outputs and, when configured,
@@ -194,6 +206,6 @@ BFL MCP is useful inside MCP clients such as Codex or Claude because it owns the
 OAuth flow and native BFL tool calls. This browser UI uses BFL's HTTP API for
 saved local outputs. The local stdio MCP wrapper exposes the JSON dashboard
 routes for prompts, plans, generation, tools, references, glyphs, credits, and
-caption job prep, plus finetune dataset export, registry, and finetuned
-generation; binary audio export and browser-only interactions still use HTTP/UI
-or browser automation.
+caption job prep, plus FLUX.3 video listing/generation, finetune dataset export,
+registry, and finetuned generation; binary audio export and browser-only
+interactions still use HTTP/UI or browser automation.

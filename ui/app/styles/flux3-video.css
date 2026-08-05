@@ -1,0 +1,505 @@
+.workspace.flux3Mode {
+  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-rows: auto minmax(620px, auto);
+  grid-template-areas:
+    "modes balance"
+    "main  main";
+  height: auto;
+  min-height: clamp(720px, calc(100vh - 132px), 980px);
+}
+
+.workspace.flux3Mode > .flux3VideoWorkspace {
+  grid-area: main;
+}
+
+.flux3VideoWorkspace {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 14px;
+}
+
+.flux3PreviewPanel,
+.flux3Controls {
+  min-width: 0;
+}
+
+.flux3PreviewPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+.flux3EndpointBadge {
+  border: 1px solid rgba(159, 176, 157, 0.4);
+  border-radius: 999px;
+  background: rgba(85, 102, 89, 0.18);
+  padding: 5px 8px;
+  color: var(--green-light);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.flux3Viewer {
+  position: relative;
+  min-height: 420px;
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(85, 102, 89, 0.22), transparent 46%),
+    #020504;
+}
+
+.flux3Viewer > video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 660px;
+  object-fit: contain;
+  background: #020504;
+}
+
+.flux3ViewerEmpty {
+  width: min(460px, 78%);
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.flux3ViewerEmpty strong {
+  color: var(--cream);
+  font-size: 17px;
+}
+
+.flux3ViewerEmpty span,
+.flux3RenderOverlay span {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.flux3RenderOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 28px;
+  background: rgba(2, 5, 4, 0.82);
+  color: var(--cream);
+  text-align: center;
+  backdrop-filter: blur(12px);
+}
+
+.flux3RenderOverlay span {
+  max-width: 460px;
+  color: var(--muted);
+}
+
+.flux3ResultBar,
+.flux3SectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.flux3ResultBar {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.34);
+  padding: 10px;
+}
+
+.flux3ResultBar > div:first-child,
+.flux3SectionHeader > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.flux3ResultBar strong,
+.flux3ResultBar span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flux3ResultBar span,
+.flux3SectionHeader span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.flux3ResultBar > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.flux3ResultBar a,
+.flux3ResultBar button,
+.flux3SectionHeader button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.46);
+  color: var(--text);
+  padding: 0 10px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.flux3Controls {
+  align-self: stretch;
+  padding: 12px;
+}
+
+.flux3Controls textarea {
+  min-height: 146px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.flux3ModePicker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.flux3ModePicker > button {
+  min-width: 0;
+  min-height: 64px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  padding: 7px 4px;
+}
+
+.flux3ModePicker > button.active {
+  border-color: rgba(159, 176, 157, 0.72);
+  background: rgba(85, 102, 89, 0.28);
+  color: var(--cream);
+}
+
+.flux3ModePicker span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.flux3ModePicker strong,
+.flux3ModePicker small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flux3ModePicker small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.flux3SettingsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.flux3Toggle {
+  display: grid !important;
+  grid-template-columns: 18px 18px 1fr;
+}
+
+.flux3CostBox {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+}
+
+.flux3CostBox div {
+  display: grid;
+  gap: 3px;
+}
+
+.flux3CostBox span,
+.flux3CostBox small,
+.flux3Blocker {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.flux3CostBox small {
+  grid-column: 1 / -1;
+  line-height: 1.45;
+}
+
+.flux3Warning {
+  border: 1px solid rgba(207, 182, 123, 0.42);
+  border-radius: 7px;
+  background: rgba(207, 182, 123, 0.08);
+  padding: 9px;
+  color: var(--gold);
+  font-size: 11px;
+}
+
+.flux3Blocker {
+  text-align: center;
+}
+
+.flux3MediaSection,
+.flux3Recent {
+  display: grid;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  padding: 10px;
+}
+
+.flux3MediaDrop {
+  min-height: 136px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.flux3MediaDrop.compact {
+  min-height: 104px;
+}
+
+.flux3MediaDrop strong {
+  color: var(--cream);
+}
+
+.flux3MediaDrop span {
+  max-width: 520px;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.flux3KeyframeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.flux3KeyframeGrid article {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #020504;
+  cursor: grab;
+}
+
+.flux3KeyframeGrid img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.flux3KeyframeGrid article > span {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.74);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.flux3KeyframeGrid article > div {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  gap: 3px;
+}
+
+.flux3KeyframeGrid button {
+  width: 25px;
+  min-height: 25px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.flux3KeyframeGrid .flux3KeyframeAdd {
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: 1px dashed var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--cream);
+  opacity: 0.78;
+}
+
+.flux3KeyframeGrid .flux3KeyframeAdd:hover,
+.flux3KeyframeGrid .flux3KeyframeAdd:focus-visible {
+  opacity: 1;
+  border-style: solid;
+}
+
+.flux3KeyframeGrid .flux3KeyframeAdd span {
+  font-size: 11px;
+}
+
+.flux3KeyframeGrid .flux3KeyframeAdd small {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.flux3VideoInput {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 9px;
+}
+
+.flux3VideoInput video {
+  width: 100%;
+  max-height: 280px;
+  background: #020504;
+}
+
+.flux3VideoInput > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 9px;
+}
+
+.flux3VideoInput span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.flux3VideoInput button {
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+}
+
+.flux3Recent > div:last-child {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.flux3Recent > div:last-child button {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+}
+
+.flux3Recent button.active {
+  border-color: rgba(159, 176, 157, 0.72);
+  background: rgba(85, 102, 89, 0.25);
+}
+
+.flux3Recent button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.flux3Recent button small {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1160px) {
+  .workspace.flux3Mode {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "modes balance"
+      "main main";
+  }
+
+  .flux3VideoWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .flux3Controls {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 900px) {
+  .workspace.flux3Mode {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "modes"
+      "balance"
+      "main";
+  }
+
+  .flux3Viewer {
+    min-height: 300px;
+  }
+
+  .flux3ResultBar,
+  .flux3VideoInput {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .flux3ResultBar > div:last-child {
+    flex-wrap: wrap;
+  }
+
+  .flux3KeyframeGrid,
+  .flux3Recent > div:last-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

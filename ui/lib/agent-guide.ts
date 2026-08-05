@@ -33,22 +33,39 @@ export const agentWorkflowGuide = {
       batch: agentRouteMap.batch,
       generate: agentRouteMap.generate,
       tools: agentRouteMap.tools,
+      providerJobs: agentRouteMap.providerJobs,
       glyphVectorize: agentRouteMap.glyphVectorize,
       outputs: agentRouteMap.outputs,
+      evaluations: agentRouteMap.evaluations,
       prompts: agentRouteMap.prompts,
       audioGuide: agentRouteMap.audioGuide,
       audioSlice: agentRouteMap.audioSlice,
       captionAgent: agentRouteMap.captionAgent,
       finetuneDataset: agentRouteMap.finetuneDataset,
       finetunes: agentRouteMap.finetunes
+    },
+    cli: {
+      command: "npm run --silent cli -- <command>",
+      baseUrlEnvironment: "BFL_DASHBOARD_URL",
+      role: "Thin JSON/JSONL client over the same local HTTP routes used by the dashboard and MCP."
     }
   },
   useTogether: [
     "Ask the hosted FLUX MCP for quick creative exploration, variations, or BFL account history.",
     "Use this local workbench API when the result should become a durable dashboard asset, prompt-library entry, reference set, audio/video guide, captioning job, or finetune registry entry.",
-    "When an agent uses /api/bfl/generate, /api/bfl/tools, or /api/dashboard/batch, the output is saved locally and can be recovered through /api/outputs."
+    "When an agent uses /api/bfl/generate, /api/bfl/tools, or /api/dashboard/batch, the output is saved locally and can be recovered through /api/outputs.",
+    "Read and score saved outputs through /api/evaluations, the local MCP tools, or npm run --silent cli -- evaluations without scraping the browser."
   ],
   workflows: [
+    {
+      name: "Capture and evaluate model outputs",
+      steps: [
+        `Generate through ${agentRouteMap.generate}, ${agentRouteMap.tools}, or ${agentRouteMap.flux3Video}`,
+        `GET ${agentRouteMap.evaluations} or call list_evaluations`,
+        `PATCH ${agentRouteMap.evaluations}?id=<generationId> or call update_evaluation`,
+        "Export JSON/JSONL from the Runs tab or npm run --silent cli -- evaluations --format jsonl"
+      ]
+    },
     {
       name: "Prompt combo or script",
       steps: [
@@ -144,7 +161,8 @@ export const agentWorkflowGuide = {
     "Deblur this imported source image, then use the sharpened result as a gallery reference.",
     "Export this collection as a FLUX.2 [klein] LoRA dataset, register the hosted finetune_id, then generate with strength 1.2.",
     "Given audio markers, render an audio-reactive guide MP4 and attach it to the next video-model prompt record.",
-    "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery."
+    "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery.",
+    "Generate a FLUX.3 video from request.json with the CLI, then list and rate its captured evaluation record."
   ],
   coverage: localAgentCoverage,
   sources: [

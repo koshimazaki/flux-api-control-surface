@@ -30,11 +30,13 @@ export type ReferenceRole = "character" | "style" | "environment" | "pose" | "lo
 
 export type BatchMode = "current" | "library" | "permutations";
 
-export type WorkspaceMode = "prompt" | "erase" | "vto" | "outpaint" | "deblur" | "glyphs";
+export type WorkspaceMode = "prompt" | "erase" | "vto" | "outpaint" | "deblur" | "flux3" | "glyphs";
+export type ImageWorkspaceMode = Exclude<WorkspaceMode, "prompt" | "flux3">;
 
 export type DashboardTab = "script" | "audio" | "assets" | "runs" | "collections" | "apis" | "mcp" | "system";
 
 export type AssetKind = "output" | "input" | "reference" | "asset";
+export type AssetMediaType = "image" | "video";
 
 export type AssetCollectionMemberKind = "input" | "generation" | "asset";
 
@@ -59,7 +61,7 @@ export type AssetCollection = {
   deletedAt?: number;
 };
 
-export type AssetCollectionFilter = "all" | "images" | "collections";
+export type AssetCollectionFilter = "all" | "images" | "videos" | "collections";
 
 export type AssetRecord = {
   id: string;
@@ -100,6 +102,9 @@ export type AssetRecord = {
   sourceAssetId?: string | null;
   operation?: string | null;
   assetKind?: AssetKind;
+  mediaType?: AssetMediaType;
+  videoUrl?: string;
+  localVideoPath?: string | null;
 };
 
 export type AssetBadge = {

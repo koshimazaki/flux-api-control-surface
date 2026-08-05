@@ -31,6 +31,15 @@
   border-radius: 8px;
 }
 
+.lightboxInner > video {
+  width: 100%;
+  max-height: calc(100vh - 64px);
+  align-self: center;
+  object-fit: contain;
+  background: #020504;
+  border-radius: 8px;
+}
+
 .lightboxInner.glyphAssetLightbox img {
   box-sizing: border-box;
   padding: clamp(18px, 5vw, 54px);

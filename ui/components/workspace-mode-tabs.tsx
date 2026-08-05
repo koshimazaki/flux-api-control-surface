@@ -1,4 +1,4 @@
-import { Eraser, Fingerprint, Focus, Maximize2, Shirt, Sparkles } from "lucide-react";
+import { Eraser, Fingerprint, Film, Focus, Maximize2, Shirt, Sparkles } from "lucide-react";
 import { TabButtonBar, type TabButtonItem } from "@/components/ui/tab-button-bar";
 import type { WorkspaceMode } from "@/lib/types";
 
@@ -8,6 +8,7 @@ const modes: TabButtonItem<WorkspaceMode>[] = [
   { id: "outpaint", label: "Outpaint", icon: Maximize2 },
   { id: "deblur", label: "Deblur", icon: Focus },
   { id: "vto", label: "VTO", icon: Shirt },
+  { id: "flux3", label: "FLUX.3", icon: Film },
   { id: "glyphs", label: "Glyphs", icon: Fingerprint }
 ];
 

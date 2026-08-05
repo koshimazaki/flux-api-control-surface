@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -H 127.0.0.1",
     "mcp": "node mcp/server.mjs",
+    "cli": "node cli/bfl-dashboard.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -45,6 +45,8 @@ export function mergeAssetRecords(current: AssetRecord[], incoming: AssetRecord[
       existing.provider !== asset.provider ||
       existing.operation !== asset.operation ||
       existing.assetKind !== asset.assetKind ||
+      existing.mediaType !== asset.mediaType ||
+      existing.videoUrl !== asset.videoUrl ||
       existing.imageUrl !== asset.imageUrl ||
       existing.localImagePath !== asset.localImagePath ||
       existing.localMetadataPath !== asset.localMetadataPath ||
@@ -55,7 +57,7 @@ export function mergeAssetRecords(current: AssetRecord[], incoming: AssetRecord[
     return {
       ...existing,
       ...asset,
-      imageDataUrl: asset.imageDataUrl || existing.imageDataUrl,
+      imageDataUrl: asset.mediaType === "video" ? "" : asset.imageDataUrl || existing.imageDataUrl,
       // Server outputs don't persist the reference list, so they come back empty.
       // Keep the references we already have rather than letting the poll wipe them.
       references: asset.references?.length ? asset.references : existing.references,
@@ -76,7 +78,9 @@ export async function hydrateAssets(records: AssetRecord[]) {
   return Promise.all(
     unique.map(async (asset) => ({
       ...asset,
-      imageDataUrl: asset.imageDataUrl?.startsWith("data:")
+      imageDataUrl: asset.mediaType === "video"
+        ? ""
+        : asset.imageDataUrl?.startsWith("data:")
         ? asset.imageDataUrl
         : (await loadAssetImage(asset.id)) || asset.imageDataUrl
     }))
@@ -122,6 +126,11 @@ export function removeAssetImages(assets: AssetRecord[]) {
 }
 
 export function extensionForAsset(asset: AssetRecord) {
+  if (asset.mediaType === "video") {
+    if (asset.localVideoPath?.toLowerCase().endsWith(".webm")) return "webm";
+    if (asset.localVideoPath?.toLowerCase().endsWith(".mov")) return "mov";
+    return "mp4";
+  }
   if (asset.localImagePath?.toLowerCase().endsWith(".png")) return "png";
   if (asset.remoteImageKey?.toLowerCase().endsWith(".png")) return "png";
   if (asset.imageDataUrl?.startsWith("data:image/png")) return "png";

@@ -45,4 +45,8 @@ describe("normalizeToolWorkspaceCache", () => {
     expect(cache.vtoGarmentAssetIds).toEqual([null, null, null, null]);
     expect(cache.outpaintMode).toBe("high");
   });
+
+  it("restores the FLUX.3 workspace tab", () => {
+    expect(normalizeToolWorkspaceCache({ workspaceMode: "flux3" }).workspaceMode).toBe("flux3");
+  });
 });

@@ -22,7 +22,7 @@ export default function Home() {
           onForgetApiKey={state.forgetSecureApiKey}
           onRefreshApiKey={() => void state.refreshApiKeyStatus()}
         />
-        <ReferenceDock
+        {state.workspaceMode !== "flux3" && <ReferenceDock
           mode={state.workspaceMode}
           references={state.references}
           maxReferences={state.activeModelConfig.maxReferences}
@@ -37,7 +37,7 @@ export default function Home() {
           onVtoGarmentDropPayload={(slotIndex, payload) => void state.loadVtoGarmentFromDropPayload(slotIndex, payload)}
           onVtoGarmentFiles={(slotIndex, files) => void state.importVtoGarmentFiles(slotIndex, files)}
           onClearVtoGarment={state.clearVtoGarment}
-        />
+        />}
         <DashboardWorkspace state={state} />
         {state.recoveryMessage && (
           <p className="statusLine">

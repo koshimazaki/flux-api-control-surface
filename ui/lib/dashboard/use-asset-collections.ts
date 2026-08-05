@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ASSET_COLLECTIONS_CACHE_KEY,
   collectionMembersFromAssets,
@@ -52,13 +52,27 @@ async function readCollectionResponse(response: Response): Promise<CollectionRou
 export function useAssetCollections(deps: UseAssetCollectionsDeps) {
   const { assets, selectedAssetIds, setSelectedAssetIds, setError, setRecoveryMessage, importImageAssetFiles } = deps;
   const [collections, setCollections] = useState<AssetCollection[]>([]);
-  const [collectionFilter, setCollectionFilter] = useState<AssetCollectionFilter>("all");
+  const [collectionFilter, setCollectionFilter] = useState<AssetCollectionFilter[]>([]);
   const [openedCollectionId, setOpenedCollectionId] = useState<string | null>(null);
 
   const openedCollection = useMemo(
     () => collections.find((collection) => collection.id === openedCollectionId) || null,
     [collections, openedCollectionId]
   );
+
+  const refreshCollections = useCallback(async () => {
+    try {
+      const response = await fetch("/api/collections", { cache: "no-store" });
+      if (!response.ok) throw new Error(`Collection load failed with ${response.status}`);
+      const serverCollections = normalizeAssetCollections(await response.json());
+      setCollections(serverCollections);
+      safeCache(serverCollections);
+      return serverCollections;
+    } catch {
+      // A transient read failure keeps the last known collections in place.
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -67,17 +81,8 @@ export function useAssetCollections(deps: UseAssetCollectionsDeps) {
     } catch {
       localStorage.removeItem(ASSET_COLLECTIONS_CACHE_KEY);
     }
-    fetch("/api/collections", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Collection load failed with ${response.status}`);
-        return normalizeAssetCollections(await response.json());
-      })
-      .then((serverCollections) => {
-        setCollections(serverCollections);
-        safeCache(serverCollections);
-      })
-      .catch(() => undefined);
-  }, []);
+    void refreshCollections();
+  }, [refreshCollections]);
 
   useEffect(() => {
     safeCache(collections);
@@ -233,6 +238,7 @@ export function useAssetCollections(deps: UseAssetCollectionsDeps) {
 
   return {
     assetCollections: collections,
+    refreshAssetCollections: refreshCollections,
     collectionFilter,
     setCollectionFilter,
     openedCollection,

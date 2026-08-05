@@ -1,17 +1,14 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  buildAssetRecord,
-  buildCompleteRunLog,
-  buildFailedRunLog,
   buildRunPlanPayload,
   clampBatchCount,
   composePrompt,
-  executePlannedGeneration,
   fetchRunPlan,
   missingPromptImageTokens,
   missingPromptReferenceRoleTokens,
   parseSeed,
+  queueJobRunLogEntry,
   type BatchProgress,
   type PlanRequestItem
 } from "@/lib/dashboard-generation";
@@ -31,11 +28,8 @@ import {
 import { formatPrompt, stripReferenceCue } from "@/lib/prompt-utils";
 import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions } from "@/lib/pricing";
 import { advanceSeed, randomSeedString } from "@/lib/seed";
-import {
-  GENERATION_QUEUE_CONCURRENCY,
-  summarizeGenerationQueue,
-  type GenerationQueueJob
-} from "@/lib/generation-queue";
+import type { GenerationQueueJob } from "@/lib/generation-queue";
+import { flux3MediaFromAsset, type Flux3InputMedia } from "@/lib/flux3-video";
 import { getBflModel } from "@/lib/provider-registry";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import { referenceDropTargets, referenceRoleConfig, referenceRoleToken } from "@/lib/reference-roles";
@@ -46,6 +40,7 @@ import { useBalance } from "@/lib/dashboard/use-balance";
 import { useGlyphLabCache } from "@/lib/dashboard/use-glyph-lab-cache";
 import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
 import { useReferences } from "@/lib/dashboard/use-references";
+import { useServerQueue } from "@/lib/dashboard/use-server-queue";
 import { useToolSource, workspaceModeLabels } from "@/lib/dashboard/use-tool-source";
 import { useTrainingCollections } from "@/lib/dashboard/use-training-collections";
 import {
@@ -58,19 +53,12 @@ import type {
   AssetRecord,
   BatchMode,
   DashboardTab,
+  ImageWorkspaceMode,
   ReferenceImage,
   ReferenceRole,
   WorkspaceMode,
   ApiKeyStatus
 } from "@/lib/types";
-
-type QueuedGenerationRun = {
-  id: string;
-  item: PlanRequestItem;
-  apiKey: string;
-  model: string;
-  references: ReferenceImage[];
-};
 
 type ApiKeyRouteResponse = Partial<ApiKeyStatus> & {
   deleted?: boolean;
@@ -126,6 +114,7 @@ export function useDashboardState() {
   const [vtoGarmentAssetIds, setVtoGarmentAssetIds] = useState<(string | null)[]>(
     defaultToolWorkspaceCache.vtoGarmentAssetIds
   );
+  const [flux3Keyframes, setFlux3Keyframes] = useState<Flux3InputMedia[]>([]);
   const [toolMask, setToolMask] = useState("");
   const [toolBrushSize, setToolBrushSize] = useState(48);
   const [toolDilatePixels, setToolDilatePixels] = useState(10);
@@ -139,10 +128,6 @@ export function useDashboardState() {
   const [outpaintAutoCrop, setOutpaintAutoCrop] = useState(defaultToolWorkspaceCache.outpaintAutoCrop);
   const [audioAssignments, setAudioAssignments] = useState<Record<string, string>>({});
   const [isToolGenerating, setIsToolGenerating] = useState(false);
-  const [generationQueue, setGenerationQueue] = useState<GenerationQueueJob[]>([]);
-  const pendingGenerationRunsRef = useRef<QueuedGenerationRun[]>([]);
-  const activeGenerationRunCountRef = useRef(0);
-  const generationQueueSerialRef = useRef(0);
   const [error, setError] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const activeModelConfig = useMemo(() => getBflModel(model) || getBflModel("pro-preview")!, [model]);
@@ -232,7 +217,7 @@ export function useDashboardState() {
     return null;
   }
 
-  function setSourceAssetIdForMode(mode: Exclude<WorkspaceMode, "prompt">, id: string | null) {
+  function setSourceAssetIdForMode(mode: ImageWorkspaceMode, id: string | null) {
     if (mode === "vto") {
       setVtoSourceAssetId(id);
       return;
@@ -299,7 +284,8 @@ export function useDashboardState() {
     addFilesToCollection,
     removeAssetFromCollection,
     deleteAssetCollection,
-    exportAssetCollection
+    exportAssetCollection,
+    refreshAssetCollections
   } = useAssetCollections({
     assets,
     selectedAssetIds,
@@ -399,8 +385,51 @@ export function useDashboardState() {
   });
 
   const { balance, setBalance, isCheckingBalance, checkBalance } = useBalance(apiKey);
-  const generationQueueSummary = useMemo(() => summarizeGenerationQueue(generationQueue), [generationQueue]);
-  const isGenerating = isToolGenerating || generationQueueSummary.active > 0;
+  const serverQueue = useServerQueue({ onError: setError });
+  const generationQueue = serverQueue.queue as GenerationQueueJob[];
+  const generationQueueSummary = serverQueue.summary;
+  const generationQueueControls = useMemo(
+    () => ({
+      paused: serverQueue.paused,
+      pauseReason: serverQueue.pauseReason,
+      onPause: () => void serverQueue.pause(),
+      onResume: () => void serverQueue.resume(),
+      onRetry: (id: string) => void serverQueue.retry(id),
+      onCancel: (id: string) => void serverQueue.cancel(id),
+      onPrioritize: (id: string, priority: number) => void serverQueue.prioritize(id, priority),
+      onClearSettled: () => void serverQueue.clearSettled()
+    }),
+    [serverQueue]
+  );
+  // inFlight, not active: a paused or dependency-blocked queue still counts as
+  // "active", which would pin the run button at "generating" indefinitely.
+  const isGenerating = isToolGenerating || generationQueueSummary.inFlight > 0;
+  const loggedQueueJobsRef = useRef<Set<string>>(new Set());
+  const queueLogFloorRef = useRef(Date.now());
+
+  // The run log follows the server queue: jobs that settle while this tab is
+  // open are logged once, and jobs that settled before it opened are skipped so
+  // a refresh does not replay history.
+  useEffect(() => {
+    const fresh = generationQueue.filter(
+      (job) =>
+        (job.status === "complete" || job.status === "failed") &&
+        !loggedQueueJobsRef.current.has(job.id) &&
+        (job.finishedAt || 0) >= queueLogFloorRef.current
+    );
+    generationQueue.forEach((job) => {
+      if (job.status === "complete" || job.status === "failed") loggedQueueJobsRef.current.add(job.id);
+    });
+    if (!fresh.length) return;
+    setRunLog((current) => [...fresh.map(queueJobRunLogEntry).reverse(), ...current]);
+    const latestCredits = fresh
+      .map((job) => (job as { creditsAfter?: number }).creditsAfter)
+      .filter((value): value is number => typeof value === "number")
+      .pop();
+    if (typeof latestCredits === "number") setBalance({ credits: latestCredits, checkedAt: Date.now() });
+    const failed = fresh.filter((job) => job.status === "failed");
+    if (failed.length) setError(`${failed[0].title}: ${failed[0].error || "Generation failed"}`);
+  }, [generationQueue, setBalance, setRunLog]);
 
   const runPlanPayload = useMemo(
     () =>
@@ -525,6 +554,14 @@ export function useDashboardState() {
         title: `Virtual Try-On garment ${index + 1}`
       });
     });
+    flux3Keyframes.forEach((media, index) => {
+      if (!media.assetId) return;
+      (badges[media.assetId] ||= []).push({
+        label: `V${index + 1}`,
+        kind: "flux3",
+        title: `FLUX.3 video keyframe ${index + 1}`
+      });
+    });
     return badges;
   }, [
     references,
@@ -535,6 +572,7 @@ export function useDashboardState() {
     vtoSourceAssetId,
     glyphSourceAssetId,
     vtoGarmentSlots,
+    flux3Keyframes,
     assetCollections
   ]);
 
@@ -668,78 +706,48 @@ export function useDashboardState() {
     return importPromptJsonWithText(promptText);
   }
 
-  function updateGenerationQueueJob(id: string, patch: Partial<GenerationQueueJob>) {
-    setGenerationQueue((current) => current.map((job) => (job.id === id ? { ...job, ...patch } : job)));
-  }
-
-  function startQueuedGenerationRuns() {
-    while (
-      activeGenerationRunCountRef.current < GENERATION_QUEUE_CONCURRENCY &&
-      pendingGenerationRunsRef.current.length
-    ) {
-      const next = pendingGenerationRunsRef.current.shift();
-      if (!next) return;
-      activeGenerationRunCountRef.current += 1;
-      void runQueuedGenerationRun(next);
-    }
-  }
-
-  async function runQueuedGenerationRun(run: QueuedGenerationRun) {
-    const started = Date.now();
-    updateGenerationQueueJob(run.id, { status: "running", startedAt: started });
+  // Execution belongs to the server runner. The browser only enqueues typed jobs
+  // and observes the persisted queue, so refreshing this tab (or closing it)
+  // cannot stall or orphan paid work.
+  async function enqueueGenerationItems(items: PlanRequestItem[]) {
+    const activeReferences = references.filter((reference) => Boolean(reference.value));
+    const batchId = `ui-${Date.now().toString(36)}`;
     try {
-      const data = await executePlannedGeneration(run.item, run.apiKey, run.references);
-      const asset = buildAssetRecord(data, run.item, run.references);
-      await persistAssetImage(asset.id, data.imageDataUrl);
-      setAssets((current) => [asset, ...current]);
-      setBalance((current) => ({ credits: data.submit?.creditsAfter ?? current.credits, checkedAt: Date.now() }));
-      setRunLog((current) => [buildCompleteRunLog(asset, started, run.item), ...current]);
-      updateGenerationQueueJob(run.id, { status: "complete", finishedAt: Date.now() });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Generation failed";
-      setRunLog((current) => [buildFailedRunLog(run.item, started, run.model, message), ...current]);
-      updateGenerationQueueJob(run.id, { status: "failed", error: message, finishedAt: Date.now() });
-      setError(`${run.item.title}: ${message}`);
-    } finally {
-      activeGenerationRunCountRef.current = Math.max(0, activeGenerationRunCountRef.current - 1);
-      startQueuedGenerationRuns();
-    }
-  }
-
-  function enqueueGenerationItems(items: PlanRequestItem[]) {
-    const now = Date.now();
-    const referencesSnapshot = references.map((reference) => ({ ...reference }));
-    const apiKeySnapshot = apiKey;
-    const modelSnapshot = model;
-    const runs = items.map((item) => {
-      generationQueueSerialRef.current += 1;
-      const id = `generation-${now}-${generationQueueSerialRef.current}`;
-      return {
-        run: {
-          id,
-          item,
-          apiKey: apiKeySnapshot,
-          model: modelSnapshot,
-          references: referencesSnapshot
-        } satisfies QueuedGenerationRun,
-        job: {
-          id,
+      await serverQueue.enqueue(
+        items.map((item) => ({
+          kind: "image" as const,
+          operation: "generate",
           title: item.title,
-          status: "queued" as const,
-          createdAt: now,
+          payload: {
+            ...item.body,
+            apiKey: apiKey.trim() || undefined,
+            references: activeReferences.map((reference) => reference.value),
+            // Lightweight descriptors so the saved output can rebuild reference
+            // thumbnails after a reload (the image values themselves are not persisted).
+            referenceMeta: activeReferences.map((reference) => ({
+              assetId: reference.assetId,
+              role: reference.role,
+              name: reference.name,
+              targetId: reference.targetId
+            }))
+          },
+          batchId,
           batchIndex: item.batchIndex,
           batchTotal: item.batchTotal,
+          estimatedCredits: item.estimatedCredits,
+          estimatedUsd: item.estimatedUsd,
           promptTokens: item.promptTokens,
-          estimatedCredits: item.estimatedCredits
-        }
-      };
-    });
-    pendingGenerationRunsRef.current.push(...runs.map(({ run }) => run));
-    setGenerationQueue((current) => [...current, ...runs.map(({ job }) => job)]);
-    setRecoveryMessage(
-      `Queued ${runs.length} generation${runs.length === 1 ? "" : "s"}; up to ${GENERATION_QUEUE_CONCURRENCY} can run in parallel.`
-    );
-    startQueuedGenerationRuns();
+          sourceAssetIds: activeReferences
+            .map((reference) => reference.assetId)
+            .filter((value): value is string => Boolean(value))
+        }))
+      );
+      setRecoveryMessage(
+        `Queued ${items.length} generation${items.length === 1 ? "" : "s"} on the server; up to ${serverQueue.settings.globalLimit} run in parallel and finished images appear in Assets.`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not enqueue the generation batch.");
+    }
   }
 
   async function generate(payload = runPlanPayload, mode = batchMode) {
@@ -907,6 +915,41 @@ export function useDashboardState() {
     setVtoGarmentAsset(slotIndex, asset);
     return slotIndex + 1;
   }
+  function sendAssetToNextFlux3Keyframe(asset: AssetRecord) {
+    if (asset.mediaType === "video") {
+      setRecoveryMessage("FLUX.3 keyframes take images. Drag videos into the continuation slot instead.");
+      return null;
+    }
+    const media = flux3MediaFromAsset(asset);
+    if (!media) {
+      setRecoveryMessage("That asset has no loadable image source for FLUX.3 keyframes.");
+      return null;
+    }
+    if (flux3Keyframes.length >= 10) {
+      setRecoveryMessage("All ten FLUX.3 keyframes are full. Remove one before adding another.");
+      return null;
+    }
+    setError("");
+    setFlux3Keyframes((current) => (current.length >= 10 ? current : [...current, media]));
+    return flux3Keyframes.length + 1;
+  }
+  async function revealAssetLocally(asset: AssetRecord) {
+    try {
+      const response = await fetch("/api/outputs/reveal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: asset.id })
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({} as { error?: string }));
+        setRecoveryMessage(
+          typeof data?.error === "string" && data.error ? data.error : "No local file exists for this asset."
+        );
+      }
+    } catch {
+      setError("Could not reach the local server to reveal the file.");
+    }
+  }
   async function assetFromVtoReferencePayload(payload: string) {
     const reference = parseReferenceDragPayload(payload);
     if (!reference) return null;
@@ -958,6 +1001,10 @@ export function useDashboardState() {
     }
     if (workspaceMode === "glyphs") {
       setError("Glyphs has no BFL endpoint yet. Use the local vectorizer from the glyph workspace.");
+      return;
+    }
+    if (workspaceMode === "flux3") {
+      setError("Use the FLUX.3 video controls in the video workspace.");
       return;
     }
     if (!toolSourceAsset) {
@@ -1199,6 +1246,10 @@ export function useDashboardState() {
     updateGlyphSettings,
     updateActiveGlyphDraft,
     assetBadges,
+    flux3Keyframes,
+    setFlux3Keyframes,
+    sendAssetToNextFlux3Keyframe,
+    revealAssetLocally,
     setAudioAssignments,
     searchQuery,
     setSearchQuery,
@@ -1210,6 +1261,7 @@ export function useDashboardState() {
     setSelectedAsset,
     selectedAssetIds,
     assetCollections,
+    refreshAssetCollections,
     collectionFilter,
     openedCollection,
     openedCollectionId,
@@ -1229,7 +1281,8 @@ export function useDashboardState() {
     isToolGenerating,
     generationQueue,
     generationQueueSummary,
-    generationQueueConcurrency: GENERATION_QUEUE_CONCURRENCY,
+    generationQueueConcurrency: serverQueue.settings.globalLimit,
+    generationQueueControls,
     error,
     recoveryMessage,
     setRecoveryMessage,

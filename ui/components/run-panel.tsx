@@ -4,7 +4,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
-import { JobQueue } from "@/components/ui/job-queue";
+import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { SeedControl } from "@/components/seed-control";
 import {
   type ReferenceDropTarget,
@@ -62,6 +62,7 @@ type RunPanelProps = {
   generationQueue: GenerationQueueJob[];
   generationQueueSummary: GenerationQueueSummary;
   generationQueueConcurrency: number;
+  generationQueueControls?: JobQueueControls;
   error: string;
   onModelChange: (value: string) => void;
   onWidthChange: (value: number) => void;
@@ -506,6 +507,7 @@ export function RunPanel(props: RunPanelProps) {
         queue={props.generationQueue}
         summary={props.generationQueueSummary}
         concurrency={props.generationQueueConcurrency}
+        controls={props.generationQueueControls}
       />
 
       <RunButton isRunning={props.isGenerating} onClick={() => props.onGenerate()} disableWhenRunning={false}>

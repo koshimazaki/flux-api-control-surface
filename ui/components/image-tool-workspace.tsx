@@ -13,11 +13,11 @@ import { assetImageSource } from "@/lib/dashboard-tools";
 import { useCanvasViewport } from "@/lib/use-canvas-viewport";
 import { useElementSize } from "@/lib/use-element-size";
 import { isPanGesture } from "@/lib/use-zoom-pan";
-import type { AssetRecord, WorkspaceMode } from "@/lib/types";
+import type { AssetRecord, ImageWorkspaceMode } from "@/lib/types";
 import type { GlyphLabDraft, GlyphLabSettings } from "@/lib/glyph-lab-state";
 import { BFL_IMAGE_OPTION_MIME, BFL_REFERENCE_MIME } from "@/lib/reference-drag";
 
-type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
+type ImageToolMode = ImageWorkspaceMode;
 const VTO_SLOT_COUNT = 4;
 
 const toolCopy: Record<ImageToolMode, { title: string; eyebrow: string; endpoint: string }> = {

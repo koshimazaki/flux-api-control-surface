@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BalanceCard } from "@/components/balance-card";
+import { Flux3VideoWorkspace } from "@/components/flux3-video-workspace";
 import { ImageToolWorkspace } from "@/components/image-tool-workspace";
 import { PromptEditor } from "@/components/prompt-editor";
 import { PromptLibrary } from "@/components/prompt-library";
@@ -9,10 +10,13 @@ import { WorkspaceModeTabs } from "@/components/workspace-mode-tabs";
 import { clampBatchCount, clampReferenceWeight } from "@/lib/dashboard-generation";
 import { downloadText, formatPrompt } from "@/lib/prompt-utils";
 import type { DashboardState } from "@/lib/use-dashboard-state";
+import type { ImageWorkspaceMode } from "@/lib/types";
 
 export function DashboardWorkspace({ state }: { state: DashboardState }) {
-  const imageToolMode = state.workspaceMode === "prompt" ? null : state.workspaceMode;
-  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode));
+  const isFlux3Mode = state.workspaceMode === "flux3";
+  const imageToolMode: ImageWorkspaceMode | null =
+    state.workspaceMode === "prompt" || state.workspaceMode === "flux3" ? null : state.workspaceMode;
+  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isFlux3Mode);
   const toolPromptText =
     imageToolMode === "vto" ? state.vtoPromptText : imageToolMode === "outpaint" ? state.outpaintPromptText : "";
   const setToolPromptText =
@@ -23,8 +27,34 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
       : () => undefined;
 
   useEffect(() => {
-    setLibraryCollapsed(Boolean(imageToolMode));
-  }, [imageToolMode]);
+    setLibraryCollapsed(Boolean(imageToolMode) || isFlux3Mode);
+  }, [imageToolMode, isFlux3Mode]);
+
+  if (isFlux3Mode) {
+    return (
+      <section className="workspace flux3Mode">
+        <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+        <BalanceCard
+          balanceCredits={state.balance.credits}
+          totalActualCredits={state.totalActualCredits}
+          isCheckingBalance={state.isCheckingBalance}
+          onCheckBalance={state.checkBalance}
+        />
+        <Flux3VideoWorkspace
+          apiKey={state.apiKey}
+          assets={state.assets}
+          keyframes={state.flux3Keyframes}
+          onKeyframesChange={state.setFlux3Keyframes}
+          onGenerated={() => void state.checkBalance()}
+          onOpenAssets={() => state.setActiveTab("assets")}
+          generationQueue={state.generationQueue}
+          generationQueueSummary={state.generationQueueSummary}
+          generationQueueConcurrency={state.generationQueueConcurrency}
+          generationQueueControls={state.generationQueueControls}
+        />
+      </section>
+    );
+  }
 
   return (
     <section className={["workspace", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
@@ -128,6 +158,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           generationQueue={state.generationQueue}
           generationQueueSummary={state.generationQueueSummary}
           generationQueueConcurrency={state.generationQueueConcurrency}
+          generationQueueControls={state.generationQueueControls}
           error={state.error || state.balance.error || ""}
           onWidthChange={state.setWidth}
           onHeightChange={state.setHeight}
@@ -180,6 +211,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           generationQueue={state.generationQueue}
           generationQueueSummary={state.generationQueueSummary}
           generationQueueConcurrency={state.generationQueueConcurrency}
+          generationQueueControls={state.generationQueueControls}
           error={state.error || state.balance.error || ""}
           onModelChange={state.setModel}
           onWidthChange={state.setWidth}

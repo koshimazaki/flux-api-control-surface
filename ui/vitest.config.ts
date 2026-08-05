@@ -9,6 +9,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/**/*.test.ts"]
+    include: ["tests/**/*.test.ts"],
+    // Points the file-backed generation queue at a scratch directory so the
+    // suite never mutates the real outputs workspace.
+    setupFiles: ["tests/setup/queue-store.ts"]
   }
 });

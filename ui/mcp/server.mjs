@@ -45,6 +45,9 @@ function compactAsset(asset) {
     assetKind: asset.assetKind,
     sourceAssetId: asset.sourceAssetId,
     imageUrl: asset.imageUrl || asset.sampleUrl || asset.image_url,
+    mediaType: asset.mediaType || "image",
+    videoUrl: asset.videoUrl,
+    localVideoPath: asset.localVideoPath,
     localImagePath: asset.localImagePath,
     localMetadataPath: asset.localMetadataPath,
     prompt: String(asset.prompt || "").slice(0, 240)
@@ -54,6 +57,13 @@ function compactAsset(asset) {
 function post(path, body) {
   return requestJson(path, {
     method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+function patch(path, body) {
+  return requestJson(path, {
+    method: "PATCH",
     body: JSON.stringify(body)
   });
 }
@@ -238,6 +248,105 @@ server.registerTool(
 );
 
 server.registerTool(
+  "list_generation_queue",
+  {
+    title: "List Generation Queue",
+    description:
+      "List the server-owned generation queue: jobs, lifecycle summary, lane limits, pause state, quarantined sources, and runner lease status. Work runs without an open dashboard tab.",
+    inputSchema: {
+      id: z.string().optional().describe("Return one queue job instead of the whole queue.")
+    }
+  },
+  async ({ id }) => result(await requestJson(withParams("/api/dashboard/queue", { id })))
+);
+
+server.registerTool(
+  "enqueue_generation_jobs",
+  {
+    title: "Enqueue Generation Jobs",
+    description:
+      "Enqueue one or more image, tool, or FLUX.3 video jobs onto the server-owned queue. Returns queue job ids immediately; the server keeps executing them with no browser open.",
+    inputSchema: {
+      jobs: z
+        .array(
+          z.object({
+            kind: z.enum(["image", "tool", "video"]),
+            operation: z.string().optional(),
+            title: z.string().optional(),
+            payload: z.record(z.string(), z.unknown()),
+            priority: z.number().optional(),
+            dependsOn: z.array(z.string()).max(20).optional(),
+            batchId: z.string().optional()
+          })
+        )
+        .min(1)
+        .max(100)
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async ({ jobs }) => result(await post("/api/dashboard/queue", { jobs }))
+);
+
+server.registerTool(
+  "update_generation_job",
+  {
+    title: "Update Generation Queue",
+    description:
+      "Pause, resume, retry, cancel, reorder by priority, change concurrency settings, or clear settled jobs on the server-owned queue.",
+    inputSchema: {
+      action: z.enum(["pause", "resume", "retry", "cancel", "priority", "settings", "clear-settled"]),
+      id: z.string().optional().describe("Queue job id for retry, cancel, and priority."),
+      priority: z.number().optional().describe("Higher runs sooner."),
+      reason: z.string().optional(),
+      globalLimit: z.number().int().min(1).max(24).optional(),
+      laneLimits: z
+        .object({
+          image: z.number().int().min(1).max(24).optional(),
+          tool: z.number().int().min(1).max(24).optional(),
+          video: z.number().int().min(1).max(24).optional()
+        })
+        .optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async (payload) => result(await patch("/api/dashboard/queue", payload))
+);
+
+server.registerTool(
+  "cancel_generation_job",
+  {
+    title: "Cancel Generation Job",
+    description:
+      "Cancel a queued or running generation job, remove a settled one, or clear every settled job from the queue.",
+    inputSchema: {
+      id: z.string().optional(),
+      remove: z.boolean().optional().describe("Remove the job record instead of leaving it cancelled."),
+      settled: z.boolean().optional().describe("Clear all complete, failed, and cancelled jobs.")
+    },
+    annotations: {
+      destructiveHint: true,
+      openWorldHint: false
+    }
+  },
+  async ({ id, remove, settled }) =>
+    result(
+      await del(
+        withParams("/api/dashboard/queue", {
+          id,
+          remove: remove ? "true" : undefined,
+          settled: settled ? "true" : undefined
+        })
+      )
+    )
+);
+
+server.registerTool(
   "generate_saved_image",
   {
     title: "Generate Saved Image",
@@ -251,6 +360,71 @@ server.registerTool(
     }
   },
   async ({ payload }) => result(await post("/api/bfl/generate", payload))
+);
+
+server.registerTool(
+  "list_flux3_videos",
+  {
+    title: "List FLUX.3 Videos",
+    description: "List locally saved FLUX.3 video renders and draft-cache availability.",
+    inputSchema: {}
+  },
+  async () => result(await requestJson("/api/bfl/flux3-video"))
+);
+
+server.registerTool(
+  "list_evaluations",
+  {
+    title: "List Generation Evaluations",
+    description:
+      "List normalized image and video generation records with prompts, settings, lifecycle timing, costs, outputs, provenance, and human evaluation annotations.",
+    inputSchema: {
+      id: z.string().optional(),
+      mediaType: z.enum(["image", "video"]).optional(),
+      model: z.string().optional(),
+      verdict: z.enum(["unreviewed", "keep", "maybe", "reject"]).optional(),
+      search: z.string().optional(),
+      limit: z.number().int().min(1).max(1000).optional()
+    }
+  },
+  async (filters) => result(await requestJson(withParams("/api/evaluations", filters)))
+);
+
+server.registerTool(
+  "update_evaluation",
+  {
+    title: "Update Generation Evaluation",
+    description: "Rate, classify, tag, or annotate one captured generation for model comparison.",
+    inputSchema: {
+      id: z.string().min(1),
+      rating: z.number().int().min(1).max(5).optional(),
+      verdict: z.enum(["unreviewed", "keep", "maybe", "reject"]).optional(),
+      tags: z.array(z.string()).max(20).optional(),
+      notes: z.string().max(4000).optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async ({ id, ...annotation }) => result(await patch(withParams("/api/evaluations", { id }), annotation))
+);
+
+server.registerTool(
+  "generate_flux3_video",
+  {
+    title: "Generate FLUX.3 Video",
+    description:
+      "Generate and locally save FLUX.3 text-to-video, image-to-video, video continuation, or deterministic draft enhancement output.",
+    inputSchema: {
+      payload: z.record(z.string(), z.unknown())
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async ({ payload }) => result(await post("/api/bfl/flux3-video", payload))
 );
 
 server.registerTool(

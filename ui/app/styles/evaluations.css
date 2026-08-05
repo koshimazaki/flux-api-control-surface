@@ -1,0 +1,126 @@
+.evaluationStack,
+.evaluationGrid,
+.evaluationBody,
+.evaluationControls {
+  display: grid;
+  gap: 12px;
+}
+
+.evaluationFilters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(130px, auto));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.evaluationFilters input,
+.evaluationFilters select,
+.evaluationControls input,
+.evaluationControls select,
+.evaluationControls textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.58);
+  color: var(--text);
+  padding: 9px 10px;
+}
+
+.evaluationGrid {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+}
+
+.evaluationCard {
+  display: grid;
+  grid-template-columns: minmax(130px, 34%) 1fr;
+  min-height: 250px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.evaluationMedia {
+  min-height: 230px;
+  background: #050505;
+}
+
+.evaluationMedia img,
+.evaluationMedia video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.evaluationBody {
+  align-content: start;
+  padding: 12px;
+}
+
+.evaluationTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.evaluationTitle small,
+.evaluationControls label {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.evaluationMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.evaluationMetrics span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 10px;
+  padding: 3px 7px;
+}
+
+.evaluationBody p {
+  max-height: 6.5em;
+  overflow: auto;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.evaluationControls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.evaluationControls label {
+  display: grid;
+  gap: 5px;
+}
+
+.evaluationWideField {
+  grid-column: 1 / -1;
+}
+
+.evaluationSave {
+  justify-self: end;
+}
+
+.evaluationLoadMore {
+  display: flex;
+  margin: 14px auto 0;
+}
+
+@media (max-width: 760px) {
+  .evaluationFilters,
+  .evaluationCard {
+    grid-template-columns: 1fr;
+  }
+
+  .evaluationMedia {
+    min-height: 220px;
+  }
+}

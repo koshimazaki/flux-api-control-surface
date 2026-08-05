@@ -45,13 +45,19 @@ vi.mock("@/lib/remote-archive", () => ({
 function mockSuccessfulGeneration() {
   mocks.resolveApiKey.mockResolvedValue("test-key");
   mocks.getCredits.mockResolvedValue(100);
-  mocks.bflJson.mockResolvedValue({
-    id: "job-1",
-    polling_url: "https://poll.example/job-1",
-    cost: 3,
-    input_mp: 1,
-    output_mp: 1
-  });
+  // The route now enqueues onto the server queue, which submits with POST and
+  // then takes one poll step at a time with GET instead of a blocking loop.
+  mocks.bflJson.mockImplementation(async (method: string) =>
+    method === "POST"
+      ? {
+          id: "job-1",
+          polling_url: "https://poll.example/job-1",
+          cost: 3,
+          input_mp: 1,
+          output_mp: 1
+        }
+      : { status: "Ready", result: { sample: "https://images.example/job-1.png" } }
+  );
   mocks.pollResult.mockResolvedValue({
     status: "Ready",
     result: { sample: "https://images.example/job-1.png" }
@@ -209,6 +215,32 @@ describe("BFL generate route", () => {
         input_image: "clean-reference-png-base64"
       })
     );
+  });
+
+  it("returns server reference diagnostics when a generation request fails", async () => {
+    mockSuccessfulGeneration();
+    mocks.resolveImageInput.mockResolvedValue("data:image/png;base64,raw-reference");
+    // 422 is terminal, so the queue fails it immediately instead of retrying.
+    mocks.bflJson.mockRejectedValue(new Error('BFL API 422: {"detail":"invalid image input"}'));
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/bfl/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          prompt: "cinematic explorer running from a tornado",
+          references: ["/api/outputs/ref-1/image"]
+        })
+      })
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toContain("BFL API 422");
+    // The diagnostics the browser needs to explain a rejected reference.
+    expect(data.details.references).toEqual([
+      { slot: "input_image", normalized: true, format: "jpeg", width: 320, height: 240, bytes: expect.any(Number) }
+    ]);
   });
 
   it("can skip reference normalization when requested", async () => {

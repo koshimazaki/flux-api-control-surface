@@ -1,5 +1,6 @@
 import {
   Eraser,
+  Film,
   Fingerprint,
   Focus,
   FolderOpen,
@@ -20,6 +21,7 @@ const badgeIcons = {
   vto: Shirt,
   outpaint: Maximize2,
   deblur: Focus,
+  flux3: Film,
   glyphs: Fingerprint
 };
 
@@ -28,6 +30,7 @@ const rolePriority: AssetBadge["kind"][] = [
   "outpaint",
   "deblur",
   "erase",
+  "flux3",
   "glyphs",
   "collection",
   "reference",
@@ -45,6 +48,7 @@ export function assetRoleClassName(badges: AssetBadge[]) {
 }
 
 export function workspaceRoleLabel(mode: Exclude<WorkspaceMode, "prompt">) {
+  if (mode === "flux3") return "FLUX.3";
   if (mode === "vto") return "VTO";
   if (mode === "outpaint") return "Outpaint";
   if (mode === "deblur") return "Deblur";

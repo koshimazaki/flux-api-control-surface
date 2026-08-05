@@ -14,15 +14,11 @@
 .collectionModeButton,
 .collectionToolsButton {
   min-height: 36px;
-  border-color: rgba(156, 198, 204, 0.28);
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg, rgba(27, 38, 38, 0.86), rgba(10, 14, 14, 0.94));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.48),
-    0 1px 1px rgba(0, 0, 0, 0.38);
-  color: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.46);
+  box-shadow: inset 0 -14px 28px rgba(255, 255, 255, 0.03);
+  color: var(--text);
 }
 
 .collectionModeButton {
@@ -259,7 +255,8 @@
   color: rgba(237, 237, 237, 0.48);
 }
 
-.collectionCoverCell img {
+.collectionCoverCell img,
+.collectionCoverCell video {
   display: block;
   width: 100%;
   height: 100%;

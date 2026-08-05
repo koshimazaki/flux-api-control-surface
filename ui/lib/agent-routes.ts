@@ -42,12 +42,16 @@ export const agentRouteMap = {
   dashboardContext: "/api/dashboard/context",
   runPlan: "/api/dashboard/run-plan",
   batch: "/api/dashboard/batch",
+  queue: "/api/dashboard/queue",
   generate: "/api/bfl/generate",
+  flux3Video: "/api/bfl/flux3-video",
   tools: "/api/bfl/tools",
+  providerJobs: "/api/bfl/jobs",
   glyphVectorize: "/api/glyphs/vectorize",
   credits: "/api/bfl/credits",
   apiKey: "/api/bfl/key",
   outputs: "/api/outputs",
+  evaluations: "/api/evaluations",
   collections: "/api/collections",
   referenceArchive: "/api/reference-archive",
   audioGuide: "/api/audio/guide",
@@ -145,6 +149,54 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     }
   },
   {
+    method: "GET",
+    path: agentRouteMap.queue,
+    purpose:
+      "List the server-owned generation queue: compact jobs, lifecycle summary, lane limits, pause state, quarantined sources, and runner lease status.",
+    sideEffects: false,
+    category: "generation"
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.queue,
+    purpose:
+      "Enqueue one or more image, tool, or video jobs onto the server-owned queue. Work runs without an open dashboard tab.",
+    sideEffects: "Only when the enqueued jobs execute",
+    category: "generation",
+    auth: "Uses apiKey in each job payload, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
+    body: {
+      jobs: "Array of { kind: image|tool|video, payload, operation?, priority?, dependsOn?, batchId? }"
+    },
+    example: {
+      jobs: [
+        { kind: "image", payload: { prompt: "a cybernetic flower", width: 1024, height: 1024 } },
+        { kind: "tool", payload: { tool: "deblur", image: "/api/outputs/abc/image" } }
+      ]
+    }
+  },
+  {
+    method: "PATCH",
+    path: agentRouteMap.queue,
+    purpose:
+      "Control the queue: pause, resume, retry, cancel, reorder by priority, change concurrency settings, or clear settled jobs.",
+    sideEffects: true,
+    category: "generation",
+    body: {
+      action: "pause | resume | retry | cancel | priority | settings | clear-settled",
+      id: "Queue job id for retry, cancel, and priority.",
+      priority: "Number, higher runs sooner.",
+      globalLimit: "Global concurrency for action=settings.",
+      laneLimits: "{ image, tool, video } for action=settings."
+    }
+  },
+  {
+    method: "DELETE",
+    path: agentRouteMap.queue,
+    purpose: "Cancel a running queue job, remove a settled one with remove=true, or clear all settled jobs with settled=true.",
+    sideEffects: true,
+    category: "generation"
+  },
+  {
     method: "POST",
     path: agentRouteMap.generate,
     purpose:
@@ -161,6 +213,58 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       width: 1024,
       height: 1024,
       outputFormat: "png"
+    }
+  },
+  {
+    method: "GET",
+    path: agentRouteMap.flux3Video,
+    purpose: "List locally saved FLUX.3 video outputs, including draft-cache availability and local playback URLs.",
+    sideEffects: false,
+    category: "assets"
+  },
+  {
+    method: "GET",
+    path: agentRouteMap.evaluations,
+    purpose:
+      "List normalized image/video generation records with prompts, settings, lifecycle timings, costs, local outputs, provenance, and evaluation annotations. Use format=jsonl for agent pipelines.",
+    sideEffects: false,
+    category: "agent"
+  },
+  {
+    method: "PATCH",
+    path: agentRouteMap.evaluations,
+    purpose: "Save a 1–5 rating, keep/maybe/reject verdict, tags, and notes for one captured generation.",
+    sideEffects: true,
+    category: "agent",
+    body: {
+      id: "Generation id (body or ?id=)",
+      rating: "optional integer 1..5",
+      verdict: "unreviewed | keep | maybe | reject",
+      tags: "optional string[]",
+      notes: "optional string"
+    }
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.flux3Video,
+    purpose:
+      "Generate FLUX.3 video from text, one to ten image keyframes, or an existing MP4; or enhance a saved draft deterministically. Polls, downloads, and saves the video locally.",
+    sideEffects: true,
+    category: "generation",
+    auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
+    body: {
+      t2v: "mode=t2v, prompt, duration, aspectRatio, resolution, generateAudio, draft",
+      i2v: "mode=i2v, prompt, keyframes[1..10], duration, aspectRatio, resolution, generateAudio, draft",
+      v2v: "mode=v2v, prompt, startVideo (MP4 URL/base64), duration 5..15, resolution, generateAudio, draft",
+      draftEnhance: "mode=draft_enhance, draftCacheId or draftCache, resolution"
+    },
+    example: {
+      mode: "t2v",
+      prompt: "A fox running through dawn mist, synchronized footfalls and forest ambience.",
+      duration: 8,
+      resolution: "hd",
+      generateAudio: true,
+      draft: true
     }
   },
   {
@@ -187,6 +291,35 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       mode: "high",
       prompt: "extend the botanical scene"
     }
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.providerJobs,
+    purpose:
+      "Submit one queued provider operation and persist its BFL request id and polling URL before responding. Recovery primitive for the server queue, not a second scheduler.",
+    sideEffects: true,
+    category: "generation",
+    auth: "Uses apiKey in the payload, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
+    body: {
+      id: "Existing queue job id to submit.",
+      kind: "image | tool | video when enqueueing a new job instead.",
+      payload: "The same request body the matching /api/bfl/* route accepts."
+    }
+  },
+  {
+    method: "GET",
+    path: agentRouteMap.providerJobs,
+    purpose:
+      "Run exactly one poll step for a queue job using its stored polling URL. Client-supplied polling URLs are never accepted.",
+    sideEffects: false,
+    category: "generation"
+  },
+  {
+    method: "PATCH",
+    path: agentRouteMap.providerJobs,
+    purpose: "Finalize a Ready provider result once: download the expiring delivery URL, save it locally, reconcile cost.",
+    sideEffects: true,
+    category: "generation"
   },
   {
     method: "POST",
@@ -359,7 +492,10 @@ export const dashboardAgentRoutes: AgentRoute[] = [
 ];
 
 export const localAgentCoverage = {
-  generation: "Wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate.",
+  generation:
+    "Image generation is wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate. FLUX.3 video generation, draft enhancement, and local video recovery are wired through /api/bfl/flux3-video. Every paid entry point enqueues onto the server-owned queue and waits, so execution, retry, and recovery are identical from the browser, MCP, and CLI.",
+  queue:
+    "One server-owned, file-backed generation queue runs image, tool, and video lanes with a renewable single-runner lease. Inspect and control it through /api/dashboard/queue; repair individual provider jobs through /api/bfl/jobs.",
   imageTools: "Erase, virtual try-on, outpaint, and deblur are wired through /api/bfl/tools and the image-tool workspace.",
   glyphs:
     "Server-side SVG/PNG glyph vectorization is wired through /api/glyphs/vectorize and saves recoverable local gallery outputs.",
@@ -375,6 +511,8 @@ export const localAgentCoverage = {
     "FLUX.2 [klein] LoRA dataset export, hosted-finetune registration, listing, and finetuned generation are wired through /api/finetune/dataset, /api/finetunes, and /api/bfl/generate.",
   uiSync:
     "Agent-created outputs are visible through /api/outputs and the browser gallery polls for new server outputs. A push event stream is still optional future polish.",
+  evaluation:
+    "Saved image, tool, and FLUX.3 metadata is normalized through /api/evaluations for UI, MCP, CLI, JSON, and JSONL model review without duplicating generation history.",
   localOnly:
     "Browser-imported files and browser-side waveform analysis still require UI handoff. Saved outputs can be used by server-side agents."
 };
@@ -388,7 +526,15 @@ export const localDashboardMcpTools = [
   "check_credits",
   "build_run_plan",
   "run_batch",
+  "list_generation_queue",
+  "enqueue_generation_jobs",
+  "update_generation_job",
+  "cancel_generation_job",
   "generate_saved_image",
+  "list_flux3_videos",
+  "list_evaluations",
+  "update_evaluation",
+  "generate_flux3_video",
   "run_image_tool",
   "save_prompt",
   "delete_prompt",
@@ -405,7 +551,7 @@ export const localDashboardMcpTools = [
 
 export const localMcpParityNotes = {
   wrapper:
-    "The stdio MCP wrapper covers the local JSON dashboard routes for discovery, assets, prompts, planning, generation, image tools, references, glyphs, credits, caption job prep, and finetune dataset/registry workflows.",
+    "The stdio MCP wrapper covers the local JSON dashboard routes for discovery, assets, prompts, planning, generation, the server-owned generation queue, evaluation, image tools, references, glyphs, credits, caption job prep, and finetune dataset/registry workflows.",
   httpOnly:
     "Audio guide rendering and audio slicing remain HTTP/UI workflows because those routes return binary media. Gallery collection CRUD is currently HTTP/UI while dedicated MCP collection tools are deferred. Browser waveform analysis, drag/drop import, mask painting, and live React control remain UI or browser-automation workflows."
 };

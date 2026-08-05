@@ -2,13 +2,14 @@ import { persistAssetImage } from "@/lib/dashboard-assets";
 import type { ImportImageAssetOptions } from "@/lib/dashboard/use-asset-library";
 import { assetFromImageSource } from "@/lib/image-asset-import";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
-import type { AssetRecord, WorkspaceMode } from "@/lib/types";
+import type { AssetRecord, ImageWorkspaceMode, WorkspaceMode } from "@/lib/types";
 
 export const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, string> = {
   erase: "Erase",
   vto: "VTO",
   outpaint: "Outpaint",
   deblur: "Deblur",
+  flux3: "FLUX.3",
   glyphs: "Glyphs"
 };
 
@@ -17,7 +18,7 @@ type UseToolSourceDeps = {
   workspaceMode: WorkspaceMode;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
   setAssets: (updater: (current: AssetRecord[]) => AssetRecord[]) => void;
-  setSourceAssetIdForMode: (mode: Exclude<WorkspaceMode, "prompt">, id: string | null) => void;
+  setSourceAssetIdForMode: (mode: ImageWorkspaceMode, id: string | null) => void;
   setSelectedAsset: (asset: AssetRecord | null) => void;
   setError: (value: string) => void;
   setRecoveryMessage: (value: string) => void;
@@ -42,14 +43,14 @@ export function useToolSource(deps: UseToolSourceDeps) {
   } = deps;
 
   function loadToolSourceAsset(asset: AssetRecord) {
-    if (workspaceMode === "prompt") return;
+    if (workspaceMode === "prompt" || workspaceMode === "flux3") return;
     setSourceAssetIdForMode(workspaceMode, asset.id);
     setSelectedAsset(null);
     setError("");
     setRecoveryMessage(`Loaded ${asset.title || asset.id} in ${toolWorkspaceLabel(workspaceMode)}.`);
   }
 
-  function sendAssetToWorkspace(asset: AssetRecord, mode: Exclude<WorkspaceMode, "prompt">) {
+  function sendAssetToWorkspace(asset: AssetRecord, mode: ImageWorkspaceMode) {
     setWorkspaceMode(mode);
     setSourceAssetIdForMode(mode, asset.id);
     setSelectedAsset(null);
@@ -103,7 +104,7 @@ export function useToolSource(deps: UseToolSourceDeps) {
   }
 
   function clearToolSourceAsset() {
-    if (workspaceMode !== "prompt") setSourceAssetIdForMode(workspaceMode, null);
+    if (workspaceMode !== "prompt" && workspaceMode !== "flux3") setSourceAssetIdForMode(workspaceMode, null);
   }
 
   return {

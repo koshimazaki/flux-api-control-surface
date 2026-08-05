@@ -9,7 +9,7 @@ import {
   referenceTargetToken,
   referenceToken
 } from "./reference-roles";
-import type { AssetRecord, BatchMode, ReferenceImage, ReferenceRole, RunLogEntry } from "./types";
+import type { BatchMode, ReferenceImage, ReferenceRole, RunLogEntry } from "./types";
 
 export type BatchProgress = { current: number; total: number };
 
@@ -165,146 +165,46 @@ export async function fetchRunPlan(payload: Record<string, unknown>) {
   return data.requests as PlanRequestItem[];
 }
 
-function formatReferenceDiagnostics(details: unknown) {
-  if (!details || typeof details !== "object") return "";
-  const references = (details as { references?: unknown }).references;
-  if (!Array.isArray(references) || !references.length) return "";
-  const summary = references
-    .map((reference) => {
-      if (!reference || typeof reference !== "object") return "";
-      const item = reference as {
-        bytes?: number;
-        format?: string;
-        height?: number;
-        normalized?: boolean;
-        slot?: string;
-        width?: number;
-      };
-      const size = item.width && item.height ? `${item.width}x${item.height}` : "unknown size";
-      const bytes = typeof item.bytes === "number" ? `, ${Math.round(item.bytes / 1024)}KB` : "";
-      const mode = item.normalized ? "normalized" : "passthrough";
-      return `${item.slot || "reference"} ${mode} ${item.format || "image"} ${size}${bytes}`;
-    })
-    .filter(Boolean)
-    .join("; ");
-  return summary ? ` References: ${summary}.` : "";
-}
+export type SettledQueueJob = {
+  id: string;
+  title: string;
+  model?: string;
+  status: string;
+  createdAt: number;
+  startedAt?: number;
+  finishedAt?: number;
+  promptTokens?: number;
+  estimatedCredits?: number;
+  actualCredits?: number;
+  creditsBefore?: number;
+  creditsAfter?: number;
+  error?: string;
+  batchIndex?: number;
+  batchTotal?: number;
+};
 
-function generationErrorMessage(data: any) {
-  return `${data?.error || "Generation failed"}${formatReferenceDiagnostics(data?.details)}`;
-}
-
-export async function executePlannedGeneration(item: PlanRequestItem, apiKey: string, references: ReferenceImage[]) {
-  const activeReferences = references.filter((reference) => Boolean(reference.value));
-  const response = await fetch(item.endpoint, {
-    method: item.method || "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...item.body,
-      apiKey: apiKey.trim() || undefined,
-      references: activeReferences.map((reference) => reference.value),
-      // Lightweight descriptors so the saved output can rebuild reference
-      // thumbnails after a reload (the image values themselves are not persisted).
-      referenceMeta: activeReferences.map((reference) => ({
-        assetId: reference.assetId,
-        role: reference.role,
-        name: reference.name,
-        targetId: reference.targetId
-      }))
-    })
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(generationErrorMessage(data));
-  return data;
-}
-
-export function buildAssetRecord(
-  data: any,
-  item: PlanRequestItem,
-  references: ReferenceImage[]
-): AssetRecord {
-  const assetId = data.id || `${Date.now()}-${item.batchIndex}`;
+/** Projects one settled server-queue job into the browser-session run log. */
+export function queueJobRunLogEntry(job: SettledQueueJob): RunLogEntry {
+  const creditDelta =
+    typeof job.creditsBefore === "number" && typeof job.creditsAfter === "number"
+      ? job.creditsBefore - job.creditsAfter
+      : null;
   return {
-    id: assetId,
-    title: item.title,
-    createdAt: new Date().toISOString(),
-    timestamp: Date.now(),
-    imageDataUrl: data.imageDataUrl,
-    imageUrl: data.sampleUrl,
-    image_url: data.sampleUrl,
-    sampleUrl: data.sampleUrl,
-    model: data.model,
-    prompt: item.body.prompt,
-    status: "complete",
-    width: item.body.width,
-    height: item.body.height,
-    seed: item.body.seed ?? undefined,
-    aspectRatio: `${item.body.width}:${item.body.height}`,
-    provider: "bfl-api",
-    payload: data.payload,
-    references,
-    runSettings: data.runSettings,
-    costCredits: data.submit?.cost ?? data.submit?.creditDelta ?? null,
-    inputMp: data.submit?.inputMp ?? null,
-    outputMp: data.submit?.outputMp ?? null,
-    creditsBefore: data.submit?.creditsBefore ?? null,
-    creditsAfter: data.submit?.creditsAfter ?? null,
-    creditDelta: data.submit?.creditDelta ?? null,
-    localImagePath: data.outputFiles?.imagePath ?? null,
-    localPromptPath: data.outputFiles?.promptPath ?? null,
-    localMetadataPath: data.outputFiles?.metadataPath ?? null,
-    remoteImageKey: data.outputFiles?.remote?.outputFiles?.r2ImageKey ?? null,
-    remotePromptKey: data.outputFiles?.remote?.outputFiles?.r2PromptKey ?? null,
-    remoteMetadataKey: data.outputFiles?.remote?.outputFiles?.r2MetadataKey ?? null,
-    remoteImageUrl: data.outputFiles?.remote?.outputFiles?.remoteImageUrl ?? null,
-    r2RootPrefix: data.outputFiles?.remote?.outputFiles?.r2RootPrefix ?? null,
-    assetKind: "output"
-  };
-}
-
-export function buildCompleteRunLog(asset: AssetRecord, started: number, item: PlanRequestItem): RunLogEntry {
-  return {
-    id: asset.id,
-    title: asset.title || asset.id,
-    timestamp: asset.timestamp,
-    model: asset.model,
-    status: "complete",
-    promptTokens: estimateTokens(asset.prompt),
-    estimatedCredits: item.estimatedCredits,
-    actualCredits: asset.costCredits,
-    creditsBefore: asset.creditsBefore,
-    creditsAfter: asset.creditsAfter,
-    creditDelta: asset.creditDelta,
-    durationMs: Date.now() - started,
-    prompt: asset.prompt,
-    width: asset.width,
-    height: asset.height,
-    batchIndex: item.batchIndex,
-    batchTotal: item.batchTotal
-  };
-}
-
-export function buildFailedRunLog(
-  item: PlanRequestItem,
-  started: number,
-  model: string,
-  message: string
-): RunLogEntry {
-  return {
-    id: `failed-${Date.now()}-${item.batchIndex}`,
-    title: item.title,
-    timestamp: Date.now(),
-    model,
-    status: "failed",
-    promptTokens: estimateTokens(item.body.prompt || ""),
-    estimatedCredits: item.estimatedCredits,
-    durationMs: Date.now() - started,
-    error: message,
-    prompt: item.body.prompt,
-    width: item.body.width,
-    height: item.body.height,
-    batchIndex: item.batchIndex,
-    batchTotal: item.batchTotal
+    id: job.id,
+    title: job.title || job.id,
+    timestamp: job.finishedAt || Date.now(),
+    model: job.model || "bfl-api",
+    status: job.status === "complete" ? "complete" : "failed",
+    promptTokens: job.promptTokens ?? 0,
+    estimatedCredits: job.estimatedCredits ?? 0,
+    actualCredits: job.actualCredits ?? null,
+    creditsBefore: job.creditsBefore ?? null,
+    creditsAfter: job.creditsAfter ?? null,
+    creditDelta,
+    durationMs: job.finishedAt && job.startedAt ? job.finishedAt - job.startedAt : undefined,
+    error: job.status === "complete" ? undefined : job.error,
+    batchIndex: job.batchIndex,
+    batchTotal: job.batchTotal
   };
 }
 

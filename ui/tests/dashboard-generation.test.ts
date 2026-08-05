@@ -5,7 +5,6 @@ import {
   clampReferenceWeight,
   composePrompt,
   countPairPermutations,
-  executePlannedGeneration,
   missingPromptImageTokens,
   missingPromptReferenceRoleTokens,
   promptImageTokenNumbers,
@@ -123,51 +122,5 @@ describe("buildReferenceCue", () => {
     expect(cue).toContain("Use this image for environment");
     expect(cue).toContain("Use the first image for the creature.");
     expect(cue).toContain("Reference influence: 100/100");
-  });
-});
-
-describe("executePlannedGeneration", () => {
-  it("includes server reference diagnostics when a generation request fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        json: async () => ({
-          error: "BFL API 422: invalid image input",
-          details: {
-            references: [
-              {
-                slot: "input_image",
-                normalized: true,
-                format: "jpeg",
-                width: 1280,
-                height: 1280,
-                bytes: 495919
-              }
-            ]
-          }
-        })
-      })
-    );
-
-    await expect(
-      executePlannedGeneration(
-        {
-          title: "failed-ref",
-          endpoint: "/api/bfl/generate",
-          method: "POST",
-          body: { prompt: "test prompt" },
-          batchIndex: 1,
-          batchTotal: 1,
-          promptTokens: 2,
-          estimatedCredits: 1,
-          estimatedUsd: 0.01
-        },
-        "",
-        [{ id: "ref", name: "ref", value: "data:image/png;base64,AAAA" }]
-      )
-    ).rejects.toThrow(
-      "BFL API 422: invalid image input References: input_image normalized jpeg 1280x1280, 484KB."
-    );
   });
 });

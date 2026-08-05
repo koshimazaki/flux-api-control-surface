@@ -1,9 +1,9 @@
 import { Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, Send, Shirt } from "lucide-react";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { referenceDropTargets } from "@/lib/reference-roles";
-import type { AssetRecord, ReferenceRole, WorkspaceMode } from "@/lib/types";
+import type { AssetRecord, ImageWorkspaceMode, ReferenceRole } from "@/lib/types";
 
-type ImageToolMode = Exclude<WorkspaceMode, "prompt">;
+type ImageToolMode = ImageWorkspaceMode;
 
 type LightboxProps = {
   asset: AssetRecord | null;
@@ -16,18 +16,23 @@ type LightboxProps = {
 
 export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onDownload }: LightboxProps) {
   if (!asset) return null;
-  const imageSource = asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
+  const isVideo = asset.mediaType === "video";
+  const mediaSource = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
   const addImageTarget = referenceDropTargets.find((target) => target.id === "add-image") || referenceDropTargets[0];
   const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
-  const innerClassName = ["lightboxInner", glyphPreviewBackground ? "glyphAssetLightbox" : "", glyphPreviewClassName(glyphPreviewBackground)]
+  const innerClassName = ["lightboxInner", isVideo ? "videoAssetLightbox" : "", glyphPreviewBackground ? "glyphAssetLightbox" : "", glyphPreviewClassName(glyphPreviewBackground)]
     .filter(Boolean)
     .join(" ");
 
   return (
     <div className="lightbox" onClick={onClose}>
       <div className={innerClassName} onClick={(event) => event.stopPropagation()}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageSource} alt={asset.title || asset.id} />
+        {isVideo ? (
+          <video src={mediaSource} controls autoPlay playsInline />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={mediaSource} alt={asset.title || asset.id} />
+        )}
         <div className="lightboxMeta">
           <strong>{asset.title || asset.id}</strong>
           <span>
@@ -40,7 +45,7 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, on
               <Send size={15} />
               Prompt
             </button>
-            <div className="assetReferenceAction lightboxReferenceAction">
+            {!isVideo && <div className="assetReferenceAction lightboxReferenceAction">
               <button
                 onClick={() => onSendToReference(asset, addImageTarget.role, addImageTarget.id)}
                 title="Add image reference"
@@ -60,8 +65,8 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, on
                   </button>
                 ))}
               </div>
-            </div>
-            <button onClick={() => onSendToWorkspace(asset, "erase")}>
+            </div>}
+            {!isVideo && <><button onClick={() => onSendToWorkspace(asset, "erase")}>
               <Eraser size={15} />
               Erase
             </button>
@@ -80,10 +85,10 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, on
             <button onClick={() => onSendToWorkspace(asset, "glyphs")}>
               <Fingerprint size={15} />
               Glyphs
-            </button>
+            </button></>}
             <button onClick={() => onDownload(asset)}>
               <Download size={15} />
-              Image
+              {isVideo ? "Video" : "Image"}
             </button>
             <button onClick={onClose}>Close</button>
           </div>
