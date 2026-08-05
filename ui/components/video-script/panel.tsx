@@ -107,6 +107,22 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
     setActivePoolId(`pool_${collection.id}`);
   }
 
+  function duplicatePool(poolId: string) {
+    setState((current) => {
+      const source = current.pools.find((pool) => pool.id === poolId);
+      if (!source) return current;
+      let suffix = 2;
+      while (current.pools.some((pool) => pool.id === `${poolId}_v${suffix}`)) suffix += 1;
+      const copy = {
+        ...source,
+        id: `${poolId}_v${suffix}`,
+        label: `${source.label} v${suffix}`,
+        assetIds: [...source.assetIds]
+      };
+      return { ...current, pools: [...current.pools, copy] };
+    });
+  }
+
   function removePool(poolId: string) {
     setState((current) => ({
       ...current,
@@ -196,6 +212,7 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
             activePoolId={activePoolId}
             onLoadCollection={loadCollection}
             onRemovePool={removePool}
+            onDuplicatePool={duplicatePool}
             onSelectPool={setActivePoolId}
             isLoading={isRefreshing}
             onRefresh={refreshCollections}

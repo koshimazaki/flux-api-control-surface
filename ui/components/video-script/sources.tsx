@@ -1,4 +1,4 @@
-import { FolderOpen, Images, RefreshCw, Trash2 } from "lucide-react";
+import { Copy, FolderOpen, Images, RefreshCw, Trash2 } from "lucide-react";
 import type { DragEvent } from "react";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import type { AssetCollection, AssetRecord } from "@/lib/types";
@@ -18,6 +18,7 @@ export type VideoScriptSourcesProps = {
   isLoading?: boolean;
   onLoadCollection: (collection: AssetCollection) => void;
   onRemovePool: (poolId: string) => void;
+  onDuplicatePool: (poolId: string) => void;
   onSelectPool: (poolId: string) => void;
   onRefresh: () => void | Promise<unknown>;
 };
@@ -87,6 +88,16 @@ export function VideoScriptSources(props: VideoScriptSourcesProps) {
             <Images size={14} />
             <strong>{pool.label}</strong>
             <small>{pool.assetIds.length}</small>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onDuplicatePool(pool.id);
+              }}
+              title="Duplicate this pool, then vary the copy"
+            >
+              <Copy size={12} />
+            </button>
             <button
               type="button"
               onClick={(event) => {
