@@ -134,6 +134,17 @@ keep in Model Evaluation can promote its prompt into the Video library in
 one action, carrying provenance (source video, settings, rating) so the
 library becomes a record of prompts that demonstrably worked.
 
+Inside the Video Script surface the fast path is type-first, not
+library-first: a compact prompt-type selector sits at the side (Simple,
+Detailed, Beat / Sequence, Dialogue & Sound) and selecting a type loads its
+template into one large editable prompt field where text can be freely
+edited or pasted in the template's format. Prompts reference keyframes
+positionally — "image 1 does this, image 2 does that" — so swapping or
+permuting images never invalidates the prompt text. The full library
+browser remains available but secondary. The timing template keeps its own
+compact settings cluster beside the audio-marker import rather than
+occupying the primary lower area, which belongs to the prompt editor.
+
 Video prompt assignment supports:
 
 - one prompt for every image row;
