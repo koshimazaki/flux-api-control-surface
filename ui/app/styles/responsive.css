@@ -112,8 +112,15 @@
   .imageToolMeta,
   .glyphLab,
   .scriptGrid,
-  .scriptStats {
+  .scriptStats,
+  .videoScriptGrid,
+  .videoScriptControls,
+  .videoScriptGuardrail {
     grid-template-columns: 1fr;
+  }
+
+  .videoScriptChain {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .workspaceMain {

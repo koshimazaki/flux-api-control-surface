@@ -1,0 +1,291 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { PanelHeader } from "@/components/ui/panel-header";
+import { VideoScriptMatrix } from "@/components/video-script/matrix";
+import { VideoScriptPlanPreview } from "@/components/video-script/plan-preview";
+import { VideoScriptPromptPicker } from "@/components/video-script/prompt-picker";
+import { VideoScriptSettings } from "@/components/video-script/settings";
+import { VideoScriptSources } from "@/components/video-script/sources";
+import { videoScriptPoolAssetIds } from "@/lib/video-script/sources";
+import { VideoScriptTimingTemplate } from "@/components/video-script/timing-template";
+import type { AssetCollection, AssetRecord, PromptRecord } from "@/lib/types";
+import type { VideoScriptSettings as VideoScriptSettingsValue, VideoScriptTimingMode } from "@/lib/video-script-plan";
+import {
+  audioMarkerTimingTemplate,
+  readAudioScriptMarkerSource,
+  type AudioMarkerImportKind,
+  type AudioMarkerSource
+} from "@/lib/video-script/audio-markers";
+import { enqueueVideoScriptPlan } from "@/lib/video-script/enqueue";
+import { planVideoScriptBatch, planVideoScriptGenerator, videoScriptPrompts } from "@/lib/video-script/plan-input";
+import * as rows from "@/lib/video-script/rows";
+import {
+  defaultVideoScriptEditorState,
+  evenTimingTemplate,
+  type VideoScriptEditorState
+} from "@/lib/video-script/types";
+
+/**
+ * Video Script surface: sources, keyframe matrix, prompts, settings, timing,
+ * and the live plan preview. All expansion, dedupe, validation, and cost come
+ * from `video-script-plan`; this component only holds editor state and hands
+ * confirmed rows to the server-owned queue.
+ */
+export type VideoScriptPanelProps = {
+  assets: AssetRecord[];
+  collections: AssetCollection[];
+  prompts: PromptRecord[];
+  onRefreshCollections?: () => void | Promise<unknown>;
+};
+
+function batchId() {
+  return `vsb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+export function VideoScriptPanel(props: VideoScriptPanelProps) {
+  const [state, setState] = useState<VideoScriptEditorState>(defaultVideoScriptEditorState);
+  const [activePoolId, setActivePoolId] = useState("");
+  const [overrideRowId, setOverrideRowId] = useState<string | null>(null);
+  const [audioSource, setAudioSource] = useState<AudioMarkerSource | null>(null);
+  const [importNote, setImportNote] = useState("");
+  const [isEnqueueing, setIsEnqueueing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+
+  // The Audio Script panel caches its markers, shots, and locks in browser
+  // storage, so the import bridge reads that rather than reaching into its
+  // React state. No markers cached means the Audio tab has not been used here.
+  useEffect(() => {
+    setAudioSource(readAudioScriptMarkerSource());
+  }, []);
+
+  const assetsById = useMemo(() => new Map(props.assets.map((asset) => [asset.id, asset])), [props.assets]);
+  const prompts = useMemo(() => videoScriptPrompts(props.prompts, state.promptIds), [props.prompts, state.promptIds]);
+  const generatorPlan = useMemo(() => planVideoScriptGenerator(state), [state]);
+  const batchPlan = useMemo(() => planVideoScriptBatch(state, prompts), [state, prompts]);
+  const overrideRow = state.rows.find((row) => row.id === overrideRowId) || null;
+  const sourceCollectionIds = useMemo(
+    () => state.pools.map((pool) => pool.collectionId).filter((id): id is string => Boolean(id)),
+    [state.pools]
+  );
+
+  const resolveAssetSource = useCallback(
+    (assetId: string) => {
+      const asset = assetsById.get(assetId);
+      const url = asset?.imageUrl || asset?.sampleUrl || asset?.image_url || "";
+      // Prefer a server-resolvable reference; never ship base64 into the queue.
+      return url && !url.startsWith("data:") ? url : undefined;
+    },
+    [assetsById]
+  );
+
+  async function refreshCollections() {
+    if (!props.onRefreshCollections) return;
+    setIsRefreshing(true);
+    try {
+      await props.onRefreshCollections();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  function loadCollection(collection: AssetCollection) {
+    const assetIds = videoScriptPoolAssetIds(collection, props.assets);
+    if (!assetIds.length) {
+      setError(`${collection.name} has no resolvable image inputs.`);
+      return;
+    }
+    setError("");
+    setState((current) => {
+      const poolId = `pool_${collection.id}`;
+      const pools = current.pools.filter((pool) => pool.id !== poolId);
+      pools.push({ id: poolId, label: collection.name, collectionId: collection.id, assetIds });
+      return { ...current, pools, sequencePoolId: current.sequencePoolId || poolId };
+    });
+    setActivePoolId(`pool_${collection.id}`);
+  }
+
+  function removePool(poolId: string) {
+    setState((current) => ({
+      ...current,
+      pools: current.pools.filter((pool) => pool.id !== poolId),
+      sequencePoolId: current.sequencePoolId === poolId ? "" : current.sequencePoolId,
+      columns: current.columns.map((binding) =>
+        binding.kind === "pool" && binding.poolId === poolId ? { kind: "manual" } : binding
+      )
+    }));
+  }
+
+  function regenerate() {
+    const expanded = generatorPlan.rows.map((row) => row.assetIds);
+    if (!expanded.length) {
+      setError("This generator configuration produced no rows. Bind a pool to a slot first.");
+      return;
+    }
+    setError("");
+    setState((current) => {
+      const outcome = rows.regenerateRows(current.rows, expanded, current.slotCount);
+      setNotice(
+        `Regenerated ${outcome.generated} ${outcome.generated === 1 ? "row" : "rows"}; kept ${outcome.preserved} edited.`
+      );
+      return { ...current, rows: outcome.rows };
+    });
+  }
+
+  function setTimingMode(mode: VideoScriptTimingMode) {
+    setState((current) => ({
+      ...current,
+      timingMode: mode,
+      timingTemplate:
+        mode === "timed" && current.timingTemplate.length !== current.slotCount
+          ? evenTimingTemplate(current.slotCount, current.settings.duration)
+          : current.timingTemplate
+    }));
+  }
+
+  function importMarkers(kind: AudioMarkerImportKind) {
+    if (!audioSource) {
+      setImportNote("No Audio Script markers are cached in this browser yet.");
+      return;
+    }
+    const result = audioMarkerTimingTemplate(audioSource, {
+      kind,
+      keyframeCount: state.slotCount,
+      duration: state.settings.duration
+    });
+    setImportNote(result.note);
+    if (result.seconds.length) setState((current) => ({ ...current, timingTemplate: result.seconds }));
+  }
+
+  async function enqueue() {
+    if (!batchPlan.preview.validRowCount) return;
+    setIsEnqueueing(true);
+    setError("");
+    try {
+      const outcome = await enqueueVideoScriptPlan(batchPlan, {
+        batchId: batchId(),
+        sourceCollectionIds,
+        resolveAssetSource,
+        batchLabel: "Video Script"
+      });
+      setNotice(
+        `Queued ${outcome.jobs.length} video ${outcome.jobs.length === 1 ? "job" : "jobs"} on the server queue; they keep running with no tab open.`
+      );
+    } catch (enqueueError) {
+      setError(enqueueError instanceof Error ? enqueueError.message : "Could not queue this batch.");
+    } finally {
+      setIsEnqueueing(false);
+    }
+  }
+
+  return (
+    <>
+      <PanelHeader
+        title="Video script"
+        subtitle="Build repeatable FLUX.3 keyframe batches from Collections, prompts, and audio timing."
+      />
+
+      <div className="videoScriptGrid">
+        <div className="videoScriptLeft">
+          <VideoScriptSources
+            collections={props.collections}
+            assets={props.assets}
+            pools={state.pools}
+            activePoolId={activePoolId}
+            onLoadCollection={loadCollection}
+            onRemovePool={removePool}
+            onSelectPool={setActivePoolId}
+            isLoading={isRefreshing}
+            onRefresh={refreshCollections}
+          />
+          <VideoScriptPromptPicker
+            prompts={props.prompts}
+            selectedIds={state.promptIds}
+            mode={state.promptMode}
+            equation={batchPlan.preview.equation}
+            onToggle={(id) =>
+              setState((current) => ({
+                ...current,
+                promptIds: current.promptIds.includes(id)
+                  ? current.promptIds.filter((entry) => entry !== id)
+                  : [...current.promptIds, id]
+              }))
+            }
+            onClear={() => setState((current) => ({ ...current, promptIds: [] }))}
+            onModeChange={(promptMode) => setState((current) => ({ ...current, promptMode }))}
+          />
+        </div>
+
+        <div className="videoScriptCenter">
+          <VideoScriptMatrix
+            state={state}
+            assets={assetsById}
+            generatorPlan={generatorPlan}
+            batchPlan={batchPlan}
+            onChange={setState}
+            onBindColumn={(slotIndex, binding) => setState((current) => rows.bindColumn(current, slotIndex, binding))}
+            onSetSlot={(rowId, slotIndex, assetId) =>
+              setState((current) => rows.setRowSlot(current, rowId, slotIndex, assetId))
+            }
+            onMoveSlot={(rowId, from, to) => setState((current) => rows.moveRowSlot(current, rowId, from, to))}
+            onDuplicateRow={(rowId) => setState((current) => rows.duplicateRow(current, rowId))}
+            onDeleteRow={(rowId) => setState((current) => rows.deleteRow(current, rowId))}
+            onResetRowEdits={(rowId) => setState((current) => rows.resetRowEdits(current, rowId))}
+            onReorderRow={(from, to) => setState((current) => rows.moveRow(current, from, to))}
+            onEditRowTiming={(rowId) => setOverrideRowId((current) => (current === rowId ? null : rowId))}
+            onAddRow={() => setState((current) => rows.addRow(current))}
+            onRegenerate={regenerate}
+            onDiscardEdited={() => setState((current) => rows.clearEditedRows(current))}
+            onSetSlotCount={(slotCount) => setState((current) => rows.setSlotCount(current, slotCount))}
+          />
+
+          <div className="videoScriptControls">
+            <VideoScriptSettings
+              settings={state.settings}
+              onChange={(settings: VideoScriptSettingsValue) => setState((current) => ({ ...current, settings }))}
+              overrideRow={overrideRow}
+              onOverrideChange={(override) =>
+                overrideRow && setState((current) => rows.setRowSettings(current, overrideRow.id, override))
+              }
+            />
+            <VideoScriptTimingTemplate
+              mode={state.timingMode}
+              template={state.timingTemplate}
+              slotCount={state.slotCount}
+              duration={state.settings.duration}
+              overrideRow={overrideRow}
+              audioAvailable={Boolean(audioSource)}
+              importNote={importNote}
+              onModeChange={setTimingMode}
+              onTemplateChange={(timingTemplate) => setState((current) => ({ ...current, timingTemplate }))}
+              onOverrideChange={(timing) =>
+                overrideRow && setState((current) => rows.setRowTiming(current, overrideRow.id, timing))
+              }
+              onImportMarkers={importMarkers}
+              onResetTemplate={() =>
+                setState((current) => ({
+                  ...current,
+                  timingTemplate: evenTimingTemplate(current.slotCount, current.settings.duration)
+                }))
+              }
+            />
+          </div>
+        </div>
+
+        <VideoScriptPlanPreview
+          plan={batchPlan}
+          hardCap={state.hardCap}
+          seed={state.seed}
+          isEnqueueing={isEnqueueing}
+          notice={notice}
+          error={error}
+          onHardCapChange={(hardCap) => setState((current) => ({ ...current, hardCap }))}
+          onSeedChange={(seed) => setState((current) => ({ ...current, seed }))}
+          onEnqueue={() => void enqueue()}
+        />
+      </div>
+    </>
+  );
+}

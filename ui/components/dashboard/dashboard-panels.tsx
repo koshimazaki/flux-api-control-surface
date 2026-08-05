@@ -2,6 +2,7 @@ import { ApisPanel } from "@/components/apis-panel";
 import { AssetLibrary } from "@/components/asset-library";
 import { AudioScriptPanel } from "@/components/audio-script-panel";
 import { DashboardTabs } from "@/components/dashboard-tabs";
+import { EvaluationPanel } from "@/components/evaluation-panel";
 import { GenerationLog } from "@/components/generation-log";
 import { McpPanel } from "@/components/mcp-panel";
 import { ScriptPanel } from "@/components/script-panel";
@@ -21,15 +22,23 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
       onTabChange={state.setActiveTab}
       script={
         <ScriptPanel
-          prompts={state.prompts}
-          selectedIds={state.selectedComboIds}
-          pairCount={state.permutationPairCount}
-          estimatedCredits={state.costEstimate.credits * state.permutationPairCount}
-          isGenerating={state.isToolGenerating}
-          onToggleSelected={state.toggleComboPrompt}
-          onSelectAll={state.selectAllPromptSources}
-          onClearSelection={state.clearPromptSources}
-          onRunScript={state.runPermutationScript}
+          image={{
+            prompts: state.prompts,
+            selectedIds: state.selectedComboIds,
+            pairCount: state.permutationPairCount,
+            estimatedCredits: state.costEstimate.credits * state.permutationPairCount,
+            isGenerating: state.isToolGenerating,
+            onToggleSelected: state.toggleComboPrompt,
+            onSelectAll: state.selectAllPromptSources,
+            onClearSelection: state.clearPromptSources,
+            onRunScript: state.runPermutationScript
+          }}
+          video={{
+            assets: state.assets,
+            collections: state.assetCollections,
+            prompts: state.prompts,
+            onRefreshCollections: () => void state.refreshAssetCollections()
+          }}
         />
       }
       audio={
@@ -81,6 +90,8 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onSendToPrompt={state.sendAssetToPrompt}
           onSendToWorkspace={state.sendAssetToWorkspace}
           onSendToVtoGarment={state.sendAssetToNextVtoGarment}
+          onSendToFlux3Keyframe={state.sendAssetToNextFlux3Keyframe}
+          onRevealAsset={(asset) => void state.revealAssetLocally(asset)}
           onSendToReference={state.sendAssetToReference}
           onSavePromptToLibrary={(asset) => void state.saveAssetPromptToLibrary(asset)}
           onToggleSelected={state.toggleAssetSelection}
@@ -91,11 +102,14 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
         />
       }
       runs={
-        <GenerationLog
-          entries={state.runLog}
-          onExport={() => downloadText("bfl-run-log.json", JSON.stringify(state.runLog, null, 2))}
-          onClear={() => state.setRunLog([])}
-        />
+        <div className="evaluationStack">
+          <EvaluationPanel />
+          <GenerationLog
+            entries={state.runLog}
+            onExport={() => downloadText("bfl-run-log.json", JSON.stringify(state.runLog, null, 2))}
+            onClear={() => state.setRunLog([])}
+          />
+        </div>
       }
       collections={
         <TrainingCollectionsPanel
