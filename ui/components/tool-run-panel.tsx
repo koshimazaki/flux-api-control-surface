@@ -1,5 +1,6 @@
 import { ChevronDown, Clipboard, Eraser, Fingerprint, Focus, Maximize2, Shirt } from "lucide-react";
 import { MetaBox } from "@/components/ui/meta-box";
+import { NumberField } from "@/components/ui/number-field";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
@@ -163,11 +164,11 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
           <div className="sizeGrid">
             <label>
               Canvas W
-              <input type="number" min={64} step={16} value={props.width} onChange={(event) => props.onWidthChange(Number(event.target.value))} />
+              <NumberField min={64} step={16} value={props.width} onCommit={props.onWidthChange} />
             </label>
             <label>
               Canvas H
-              <input type="number" min={64} step={16} value={props.height} onChange={(event) => props.onHeightChange(Number(event.target.value))} />
+              <NumberField min={64} step={16} value={props.height} onCommit={props.onHeightChange} />
             </label>
           </div>
           <div className="sizeGrid">

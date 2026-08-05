@@ -1,4 +1,5 @@
 import { Minus, Plus, RefreshCw, Rows3, Shuffle, Trash2 } from "lucide-react";
+import { NumberField } from "@/components/ui/number-field";
 import { VideoScriptAssetSlot } from "@/components/video-script/asset-slot";
 import { VideoScriptRow } from "@/components/video-script/row";
 import { assetPreviewSrc } from "@/lib/video-script/sources";
@@ -134,12 +135,11 @@ export function VideoScriptMatrix(props: VideoScriptMatrixProps) {
             {state.strategy === "sample" && (
               <label>
                 <span>Sample rows</span>
-                <input
-                  type="number"
+                <NumberField
                   min={1}
                   max={state.hardCap}
                   value={state.sampleSize}
-                  onChange={(event) => props.onChange({ ...state, sampleSize: Number(event.target.value) || 1 })}
+                  onCommit={(value) => props.onChange({ ...state, sampleSize: value })}
                 />
               </label>
             )}

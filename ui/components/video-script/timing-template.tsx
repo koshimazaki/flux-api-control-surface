@@ -1,4 +1,5 @@
 import { Clock, Music, RotateCcw } from "lucide-react";
+import { NumberField } from "@/components/ui/number-field";
 import type { VideoScriptTimingMode } from "@/lib/video-script-plan";
 import type { AudioMarkerImportKind } from "@/lib/video-script/audio-markers";
 import type { VideoScriptEditorRow } from "@/lib/video-script/types";
@@ -40,14 +41,13 @@ function TimelineEditor(props: { values: number[]; slotCount: number; onChange: 
       {Array.from({ length: props.slotCount }, (_, index) => (
         <label key={index}>
           <span>{index + 1}</span>
-          <input
-            type="number"
+          <NumberField
             min={0}
             step={0.1}
             value={Number.isFinite(props.values[index]) ? props.values[index] : ""}
-            onChange={(event) => {
+            onCommit={(value) => {
               const next = Array.from({ length: props.slotCount }, (_, slot) => props.values[slot] ?? 0);
-              next[index] = Number(event.target.value);
+              next[index] = value;
               props.onChange(next);
             }}
           />

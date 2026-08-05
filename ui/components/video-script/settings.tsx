@@ -1,4 +1,5 @@
 import { Volume2, VolumeX } from "lucide-react";
+import { NumberField } from "@/components/ui/number-field";
 import { FLUX3_ASPECT_RATIOS, flux3MaxDuration, type Flux3VideoAspectRatio } from "@/lib/flux3-video";
 import type { VideoScriptSettings as VideoScriptSettingsValue } from "@/lib/video-script-plan";
 import { VIDEO_SCRIPT_DURATION_PRESETS, type VideoScriptEditorRow } from "@/lib/video-script/types";
@@ -51,12 +52,11 @@ export function VideoScriptSettings(props: VideoScriptSettingsProps) {
       <div className="videoScriptSettingsGrid">
         <label>
           <span>Duration</span>
-          <input
-            type="number"
+          <NumberField
             min={5}
             max={MAX_DURATION}
             value={typeof settings.duration === "number" ? settings.duration : ""}
-            onChange={(event) => update({ duration: Number(event.target.value) || 5 })}
+            onCommit={(value) => update({ duration: value })}
           />
         </label>
         <label>
@@ -84,12 +84,11 @@ export function VideoScriptSettings(props: VideoScriptSettingsProps) {
         </label>
         <label>
           <span>Safety</span>
-          <input
-            type="number"
+          <NumberField
             min={0}
             max={2}
             value={settings.safetyTolerance}
-            onChange={(event) => update({ safetyTolerance: Number(event.target.value) })}
+            onCommit={(value) => update({ safetyTolerance: value })}
           />
         </label>
       </div>
@@ -124,14 +123,11 @@ export function VideoScriptSettings(props: VideoScriptSettingsProps) {
           <div className="videoScriptSettingsGrid">
             <label>
               <span>Duration</span>
-              <input
-                type="number"
+              <NumberField
                 min={5}
                 max={MAX_DURATION}
                 value={typeof effective.duration === "number" ? effective.duration : ""}
-                onChange={(event) =>
-                  props.onOverrideChange?.({ ...override, duration: Number(event.target.value) || 5 })
-                }
+                onCommit={(value) => props.onOverrideChange?.({ ...override, duration: value })}
               />
             </label>
             <label>

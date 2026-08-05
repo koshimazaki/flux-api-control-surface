@@ -1,5 +1,6 @@
 import { AlertTriangle, Info, Play, Shield } from "lucide-react";
 import { MetaBox } from "@/components/ui/meta-box";
+import { NumberField } from "@/components/ui/number-field";
 import type { VideoScriptPlan } from "@/lib/video-script-plan";
 
 /**
@@ -47,20 +48,11 @@ export function VideoScriptPlanPreview(props: VideoScriptPlanPreviewProps) {
           <span>
             <Shield size={12} /> Hard cap
           </span>
-          <input
-            type="number"
-            min={1}
-            value={props.hardCap}
-            onChange={(event) => props.onHardCapChange(Math.max(1, Number(event.target.value) || 1))}
-          />
+          <NumberField min={1} value={props.hardCap} onCommit={props.onHardCapChange} />
         </label>
         <label>
           <span>Planner seed</span>
-          <input
-            type="number"
-            value={props.seed}
-            onChange={(event) => props.onSeedChange(Number(event.target.value) || 0)}
-          />
+          <NumberField value={props.seed} onCommit={props.onSeedChange} />
         </label>
       </div>
       <small className="videoScriptSeedNote">

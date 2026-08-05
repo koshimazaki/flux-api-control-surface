@@ -120,6 +120,20 @@ sections for setup, temporal beats, camera, dialogue, sound, and ambience.
 Saving the prompt from a FLUX.3 asset defaults to the Video library. Shared
 prompts may be selected in both image and video workflows.
 
+Video prompt authoring ships with starter template packs per category:
+short "animate this in {style}" one-liners with style quick-buttons
+(studio, cinematic, film, anime, and similar), detailed shot templates,
+and time-sheet templates whose beat lists mirror real production runs.
+Templates carry {placeholder} variables the UI presents as fill-in blanks,
+so a prompt is completed rather than typed from scratch. Shipped templates
+are curated, public-safe generalizations; raw private batch prompts are
+never bundled.
+
+The library grows from results as well as authoring: a generation rated
+keep in Model Evaluation can promote its prompt into the Video library in
+one action, carrying provenance (source video, settings, rating) so the
+library becomes a record of prompts that demonstrably worked.
+
 Video prompt assignment supports:
 
 - one prompt for every image row;
