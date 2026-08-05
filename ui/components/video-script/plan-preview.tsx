@@ -75,6 +75,13 @@ export function VideoScriptPlanPreview(props: VideoScriptPlanPreviewProps) {
             <span>Rows to fix</span>
             <small>{invalidRows.length} blocked</small>
           </div>
+          {invalidRows.every((row) => row.errors.every((error) => error.code === "prompt_missing")) ? (
+            <p className="videoScriptPromptCta">
+              <AlertTriangle size={12} />
+              No prompts are selected. Pick at least one in the Prompts panel above — that
+              unblocks all {invalidRows.length} row{invalidRows.length === 1 ? "" : "s"} at once.
+            </p>
+          ) : (
           <ul>
             {invalidRows.slice(0, 8).map((row) => (
               <li key={row.id}>
@@ -84,6 +91,7 @@ export function VideoScriptPlanPreview(props: VideoScriptPlanPreviewProps) {
               </li>
             ))}
           </ul>
+          )}
           {invalidRows.length > 8 && <small>+{invalidRows.length - 8} more</small>}
         </div>
       )}

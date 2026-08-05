@@ -72,6 +72,12 @@ export function VideoScriptRow(props: VideoScriptRowProps) {
         {typeof props.planRow?.estimatedUsd === "number" && (
           <small>${props.planRow.estimatedUsd.toFixed(2)}</small>
         )}
+        <small
+          className="videoScriptRowCount"
+          title="Empty slots are skipped — the model receives only the filled keyframes, in order"
+        >
+          {row.slots.slice(0, slotCount).filter(Boolean).length}/{slotCount} keyframes
+        </small>
         <div className="videoScriptRowActions">
           <button type="button" onClick={props.onEditTiming} title="Per-row timeline override">
             timing
@@ -102,7 +108,13 @@ export function VideoScriptRow(props: VideoScriptRowProps) {
               assetId={assetId}
               previewSrc={assetId ? assetPreviewSrc(asset, assetId) : undefined}
               label={slotIndex + 1}
-              hint={typeof seconds === "number" && Number.isFinite(seconds) ? `${seconds}s` : undefined}
+              hint={
+                assetId
+                  ? typeof seconds === "number" && Number.isFinite(seconds)
+                    ? `${seconds}s`
+                    : undefined
+                  : "skipped"
+              }
               title={assetId ? asset?.title || assetId : "Drop an image to set this keyframe"}
               onDropAsset={(dropped) => props.onSetSlot(slotIndex, dropped)}
               onClear={assetId ? () => props.onSetSlot(slotIndex, null) : undefined}
