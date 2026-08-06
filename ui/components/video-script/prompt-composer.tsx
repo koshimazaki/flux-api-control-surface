@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { Library, MessageSquareText, Save } from "lucide-react";
+import { Library, MessageSquareText, Save, X } from "lucide-react";
+import { extractPlaceholders, placeholderLabel } from "@/lib/prompt-placeholders";
+import { isStylePresetActive } from "@/lib/video-prompt-templates";
 import { VideoScriptPromptPicker } from "@/components/video-script/prompt-picker";
 import {
   POSITIONAL_IMAGE_CONVENTION,
@@ -38,6 +40,7 @@ export type VideoScriptPromptComposerProps = {
   onCategoryChange: (category: VideoPromptCategory) => void;
   onTemplateChange: (templateId: string) => void;
   onApplyStyle: (style: string) => void;
+  onRemoveBlank: (name: string) => void;
   onToggleLibrary: () => void;
   onToggle: (id: string) => void;
   onClear: () => void;
@@ -107,8 +110,31 @@ export function VideoScriptPromptComposer(props: VideoScriptPromptComposerProps)
             <div className="videoScriptStyleRow">
               <span>Style</span>
               {VIDEO_STYLE_PRESETS.map((preset) => (
-                <button key={preset.id} type="button" title={preset.value} onClick={() => props.onApplyStyle(preset.value)}>
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={isStylePresetActive(props.text, preset.value) ? "active" : ""}
+                  title={`${preset.value} — click again to remove, or pick another style to swap`}
+                  onClick={() => props.onApplyStyle(preset.value)}
+                >
                   {preset.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {extractPlaceholders(props.text).length > 0 && (
+            <div className="videoScriptBlankChips" aria-label="Unfilled blanks">
+              <span>Blanks</span>
+              {extractPlaceholders(props.text).map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  title={`Remove {${name}} from the prompt — the sentence tidies itself`}
+                  onClick={() => props.onRemoveBlank(name)}
+                >
+                  {placeholderLabel(name)}
+                  <X size={11} />
                 </button>
               ))}
             </div>

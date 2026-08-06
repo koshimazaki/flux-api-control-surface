@@ -89,6 +89,30 @@ export function setRowSlot(
   };
 }
 
+/**
+ * Removes a keyframe and closes the gap — later images slide left, and the
+ * freed slot reappears empty at the end of the row. Position has no meaning
+ * beyond order, so compacting keeps what the user sees aligned with what the
+ * provider receives.
+ */
+export function removeRowSlot(
+  state: VideoScriptEditorState,
+  rowId: string,
+  slotIndex: number
+): VideoScriptEditorState {
+  return {
+    ...state,
+    rows: state.rows.map((row) => {
+      if (row.id !== rowId) return row;
+      const slots = fitSlots(row.slots, state.slotCount);
+      if (slotIndex < 0 || slotIndex >= slots.length) return row;
+      slots.splice(slotIndex, 1);
+      slots.push(null);
+      return { ...row, slots, edited: true };
+    })
+  };
+}
+
 /** Moves a keyframe inside one row; also a hand edit. */
 export function moveRowSlot(
   state: VideoScriptEditorState,

@@ -20,6 +20,7 @@ export type VideoScriptRowProps = {
   planRow?: VideoScriptPlanRow;
   timing?: number[];
   onSetSlot: (slotIndex: number, assetId: string | null) => void;
+  onRemoveSlot: (slotIndex: number) => void;
   onMoveSlot: (from: number, to: number) => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -118,7 +119,7 @@ export function VideoScriptRow(props: VideoScriptRowProps) {
               }
               title={assetId ? asset?.title || assetId : "Drop an image to set this keyframe"}
               onDropAsset={(dropped) => props.onSetSlot(slotIndex, dropped)}
-              onClear={assetId ? () => props.onSetSlot(slotIndex, null) : undefined}
+              onClear={assetId ? () => props.onRemoveSlot(slotIndex) : undefined}
               onMove={(direction) => props.onMoveSlot(slotIndex, slotIndex + direction)}
               canMoveEarlier={slotIndex > 0}
               canMoveLater={slotIndex < slotCount - 1}

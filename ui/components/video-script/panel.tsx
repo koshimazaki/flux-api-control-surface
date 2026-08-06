@@ -9,14 +9,14 @@ import { VideoScriptSettings } from "@/components/video-script/settings";
 import { VideoScriptSources } from "@/components/video-script/sources";
 import { videoScriptPoolAssetIds } from "@/lib/video-script/sources";
 import { VideoScriptTimingTemplate } from "@/components/video-script/timing-template";
-import { extractPlaceholders } from "@/lib/prompt-placeholders";
+import { extractPlaceholders, removePlaceholder } from "@/lib/prompt-placeholders";
 import {
   starterTemplateBody,
   videoScriptPromptSource,
   type VideoScriptPromptSourceResult
 } from "@/lib/video-script/prompt-source";
 import {
-  applyStylePreset,
+  toggleStylePreset,
   videoPromptTemplates,
   type CompiledVideoPrompt
 } from "@/lib/video-prompt-templates";
@@ -314,6 +314,7 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
             onSetSlot={(rowId, slotIndex, assetId) =>
               setState((current) => rows.setRowSlot(current, rowId, slotIndex, assetId))
             }
+            onRemoveSlot={(rowId, slotIndex) => setState((current) => rows.removeRowSlot(current, rowId, slotIndex))}
             onMoveSlot={(rowId, from, to) => setState((current) => rows.moveRowSlot(current, rowId, from, to))}
             onDuplicateRow={(rowId) => setState((current) => rows.duplicateRow(current, rowId))}
             onDeleteRow={(rowId) => setState((current) => rows.deleteRow(current, rowId))}
@@ -342,7 +343,10 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
             onCategoryChange={(category) => loadTemplate(category)}
             onTemplateChange={(id) => loadTemplate(state.promptCategory, id)}
             onApplyStyle={(style) =>
-              setState((current) => ({ ...current, promptText: applyStylePreset(current.promptText, style) }))
+              setState((current) => ({ ...current, promptText: toggleStylePreset(current.promptText, style) }))
+            }
+            onRemoveBlank={(name) =>
+              setState((current) => ({ ...current, promptText: removePlaceholder(current.promptText, name) }))
             }
             onToggleLibrary={() => setShowLibrary((current) => !current)}
             onToggle={(id) =>

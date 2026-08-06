@@ -1,6 +1,7 @@
 import { compilePromptText, extractPlaceholders } from "@/lib/prompt-placeholders";
 import type { VideoPromptBeat, VideoPromptCategory, VideoPromptStructure } from "@/lib/types";
 import { VIDEO_PROMPT_TEMPLATES } from "./packs";
+import { VIDEO_STYLE_PRESETS } from "./types";
 import type { VideoPromptTemplate, VideoPromptTemplateStructure } from "./types";
 
 /**
@@ -34,6 +35,46 @@ export function applyStylePreset(text: string, style: string): string {
   if (!trimmed) return `${phrase}.`;
   if (trimmed.includes(phrase)) return text;
   return /[.!?]$/.test(trimmed) ? `${trimmed} ${phrase}.` : `${trimmed}, ${phrase}.`;
+}
+
+/** True when the composer text already carries this preset's phrase. */
+export function isStylePresetActive(text: string, style: string): boolean {
+  const phrase = style.trim();
+  return Boolean(phrase) && (text || "").includes(phrase);
+}
+
+function stripStylePhrase(text: string, phrase: string): string {
+  let next = text.split(`, ${phrase}.`).join(".");
+  next = next.split(` ${phrase}.`).join(".");
+  next = next.split(`${phrase}.`).join("");
+  next = next.split(`, ${phrase}`).join("");
+  next = next.split(phrase).join("");
+  return next
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+\./g, ".")
+    .replace(/\.{2,}/g, ".")
+    .replace(/(^|\n)[ \t]*\.[ \t]*(?=\n|$)/g, "$1")
+    .trimEnd();
+}
+
+/**
+ * Style quick-buttons behave like a radio group with an off state: clicking
+ * the active preset removes its phrase, clicking a different one replaces
+ * whichever preset phrase is present, and the first click fills `{style}`
+ * when the template still carries that blank. Styles accumulate only if the
+ * user types them by hand.
+ */
+export function toggleStylePreset(text: string, style: string): string {
+  const phrase = style.trim();
+  if (!phrase) return text;
+  if (isStylePresetActive(text, phrase)) return stripStylePhrase(text || "", phrase);
+  let next = text || "";
+  for (const preset of VIDEO_STYLE_PRESETS) {
+    if (preset.value !== phrase && isStylePresetActive(next, preset.value)) {
+      next = stripStylePhrase(next, preset.value);
+    }
+  }
+  return applyStylePreset(next, phrase);
 }
 
 export function videoPromptTemplates(category?: VideoPromptCategory): VideoPromptTemplate[] {

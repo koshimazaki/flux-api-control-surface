@@ -69,3 +69,23 @@ export function promptRecordPlaceholderIssue(id: string, text: string): string |
   const issue = promptPlaceholderIssue(text);
   return issue ? `${id}: ${issue}` : null;
 }
+
+/**
+ * Deletes one `{name}` blank because the user decided they don't need that
+ * variable, then tidies the wound: doubled spaces, a comma left hanging
+ * against punctuation, an empty parenthesis, or a dangling dash at the end of
+ * a beat line all collapse so the sentence stays readable.
+ */
+export function removePlaceholder(text: string, name: string): string {
+  if (!text) return "";
+  let next = text.split(`{${name}}`).join("");
+  next = next
+    .replace(/\(\s*\)/g, "")
+    .replace(/[ \t]+([,.;:!?])/g, "$1")
+    .replace(/,\s*([,.;:!?])/g, "$1")
+    .replace(/(^|\n)[ \t]*[,;:][ \t]*/g, "$1")
+    .replace(/[ \t]*[—–-][ \t]*(?=\n|$)/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+\n/g, "\n");
+  return next;
+}

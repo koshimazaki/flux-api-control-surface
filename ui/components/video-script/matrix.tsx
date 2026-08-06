@@ -29,6 +29,7 @@ export type VideoScriptMatrixProps = {
   onChange: (next: VideoScriptEditorState) => void;
   onBindColumn: (slotIndex: number, binding: VideoScriptSlotBinding) => void;
   onSetSlot: (rowId: string, slotIndex: number, assetId: string | null) => void;
+  onRemoveSlot: (rowId: string, slotIndex: number) => void;
   onMoveSlot: (rowId: string, from: number, to: number) => void;
   onDuplicateRow: (rowId: string) => void;
   onDeleteRow: (rowId: string) => void;
@@ -226,6 +227,7 @@ export function VideoScriptMatrix(props: VideoScriptMatrixProps) {
             planRow={planRows.get(row.id)}
             timing={timing}
             onSetSlot={(slotIndex, assetId) => props.onSetSlot(row.id, slotIndex, assetId)}
+            onRemoveSlot={(slotIndex) => props.onRemoveSlot(row.id, slotIndex)}
             onMoveSlot={(from, to) => props.onMoveSlot(row.id, from, to)}
             onDuplicate={() => props.onDuplicateRow(row.id)}
             onDelete={() => props.onDeleteRow(row.id)}

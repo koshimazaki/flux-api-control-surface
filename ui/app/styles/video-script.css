@@ -360,6 +360,32 @@
   font-size: 10px;
 }
 
+.videoScriptBlankChips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.videoScriptBlankChips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 1px solid rgba(167, 139, 250, 0.55);
+  border-radius: 5px;
+  background: rgba(167, 139, 250, 0.08);
+  color: var(--violet);
+  font-size: 11px;
+}
+
+.videoScriptBlankChips button:hover {
+  background: rgba(167, 139, 250, 0.16);
+}
+
 .videoScriptPromptCta {
   display: flex;
   align-items: center;
