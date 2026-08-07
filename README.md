@@ -13,10 +13,8 @@ token-protected archive for generated outputs.
 
 <p align="center">
   <a href="https://github.com/user-attachments/assets/618dcd79-6222-4c1b-ad92-6078c425ea17">
-    <img src="docs/media/readme-demo-poster.jpg" width="640" alt="FLUX API Control Surface — FLUX.3 video generation, Video Script permutations, server queue, and evaluation">
+    <img src="docs/media/readme-demo.gif" width="640" alt="FLUX API Control Surface — FLUX.3 video generation, Video Script permutations, server queue, and evaluation">
   </a>
-  <br>
-  <em>▶ 55-second demo — click to play</em>
 </p>
 
 ## Quick Start
