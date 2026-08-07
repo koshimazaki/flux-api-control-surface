@@ -1,3 +1,4 @@
+
 # FLUX API Control Surface
 
 Local workbench for FLUX.2 image and FLUX.3 video workflows: prompt libraries,
@@ -9,6 +10,8 @@ This repo is local-first. It is safe to run as a developer tool, it is not a
 hosted public image generator. Keep paid FLUX execution on your machine through
 env vars or macOS Keychain, and use the optional Cloudflare Worker only as a
 token-protected archive for generated outputs.
+
+https://github.com/user-attachments/assets/618dcd79-6222-4c1b-ad92-6078c425ea17
 
 ## Quick Start
 
