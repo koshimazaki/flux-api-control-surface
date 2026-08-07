@@ -1,7 +1,7 @@
 
 # FLUX API Control Surface
 
-Local workbench for FLUX.2 image and FLUX.3 video workflows: prompt libraries,
+Local workbench for FLUX.2 image and FLUX 3 Video workflows: prompt libraries,
 reference images, FLUX image tools, video scripting with keyframe permutations,
 a server-owned generation queue, model evaluation records, output provenance,
 local asset recovery, and agent-friendly routes.
@@ -13,7 +13,7 @@ token-protected archive for generated outputs.
 
 <div align="center">
   <video src="https://github.com/user-attachments/assets/618dcd79-6222-4c1b-ad92-6078c425ea17" width="640" autoplay loop muted></video>
-  <em>FLUX.3 Video Scripts — plan, queue, evaluate from one local control surface</em>
+  <em>FLUX 3 Video Scripts — plan, queue, evaluate from one local control surface</em>
 </div>
 
 ## Quick Start
@@ -38,7 +38,7 @@ npm run build
 ## What It Does
 
 - Generate FLUX.2 images through local Next.js API routes.
-- Generate FLUX.3 video: text-to-video, one to ten ordered or explicitly timed
+- Generate FLUX 3 Video: text-to-video, one to ten ordered or explicitly timed
   keyframes, video continuation, synchronized audio, and deterministic
   draft-to-1080p enhancement.
 - Plan Video Script batches: collection-driven keyframe permutations, prompt
@@ -116,10 +116,10 @@ Without those env vars, the UI stays filesystem/localStorage/IndexedDB only.
   features, local routes, security posture, and release notes.
 - [MCP And Agent Guide](./docs/mcp-agent-guide.md): official FLUX MCP plus local
   dashboard API usage.
-- [FLUX.3 Video Scripts PRD](./docs/flux3-video-scripts-prd.md): product
+- [FLUX 3 Video Scripts PRD](./docs/flux3-video-scripts-prd.md): product
   requirements for video prompts, keyframe permutations, and the universal
   generation queue, with API constraints verified against the live BFL docs.
-- [FLUX.3 Implementation Plan](./docs/flux3-video-scripts-implementation.md):
+- [FLUX 3 Implementation Plan](./docs/flux3-video-scripts-implementation.md):
   queue architecture, provider lifecycle split, failure taxonomy, and phasing.
 - [Asset Workbench Readiness](./docs/asset-workbench-readiness.md): BFL asset
   workflow direction.
