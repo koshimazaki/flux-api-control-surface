@@ -11,11 +11,10 @@ hosted public image generator. Keep paid FLUX execution on your machine through
 env vars or macOS Keychain, and use the optional Cloudflare Worker only as a
 token-protected archive for generated outputs.
 
-<p align="center">
-  <a href="https://github.com/user-attachments/assets/618dcd79-6222-4c1b-ad92-6078c425ea17">
-    <img src="docs/media/readme-demo.gif" width="640" alt="FLUX API Control Surface — FLUX.3 video generation, Video Script permutations, server queue, and evaluation">
-  </a>
-</p>
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/618dcd79-6222-4c1b-ad92-6078c425ea17" width="640" autoplay loop muted></video>
+  <em>FLUX.3 Video Scripts — plan, queue, evaluate from one local control surface</em>
+</div>
 
 ## Quick Start
 
