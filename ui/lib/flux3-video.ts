@@ -23,7 +23,10 @@ export function flux3MediaFromAsset(asset: {
   const source = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url || "";
   if (!source) return null;
   return {
-    id: `asset-${asset.id}`,
+    // Per-instance id: the same asset can appear as several keyframes (an
+    // A-B-A loop is legitimate), so the entry id must not collide while
+    // `assetId` keeps the stable link for badges and provenance.
+    id: `asset-${asset.id}-${Math.random().toString(36).slice(2, 8)}`,
     name: asset.title || asset.id,
     kind: asset.mediaType === "video" ? "video" : "image",
     source,

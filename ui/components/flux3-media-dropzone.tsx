@@ -29,7 +29,8 @@ function readFileAsDataUrl(file: File) {
 
 function mediaFromFile(file: File, source: string): Flux3InputMedia {
   return {
-    id: `file-${file.name}-${file.size}-${file.lastModified}`,
+    // Same rule as asset entries: dropping one file twice is two keyframes.
+    id: `file-${file.name}-${Math.random().toString(36).slice(2, 8)}`,
     name: file.name,
     kind: file.type.startsWith("video/") ? "video" : "image",
     source
