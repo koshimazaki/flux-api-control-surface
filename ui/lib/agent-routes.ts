@@ -41,6 +41,7 @@ export const agentRouteMap = {
   prompts: "/api/prompts",
   dashboardContext: "/api/dashboard/context",
   runPlan: "/api/dashboard/run-plan",
+  videoScriptPlan: "/api/dashboard/video-script-plan",
   batch: "/api/dashboard/batch",
   queue: "/api/dashboard/queue",
   generate: "/api/bfl/generate",
@@ -107,6 +108,21 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     purpose: "Report whether a FLUX API key is configured through server env or macOS Keychain. Never returns the raw key.",
     sideEffects: false,
     category: "discovery"
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.videoScriptPlan,
+    purpose:
+      "Plan a deterministic FLUX.3 Video Script batch: pools (asset ids or a Collection), pin/vary generator workflows, prompt assignment, timing templates, dedupe, hard caps, and per-second cost — returns queue-ready jobs for /api/dashboard/queue without spending anything.",
+    sideEffects: false,
+    category: "generation",
+    example: {
+      pools: [{ collectionId: "col_example" }],
+      generator: { workflow: "sequence", poolId: "col_example", slotCount: 4, mode: "combination" },
+      prompts: [{ text: "Image 1 morphs into image 2, studio lighting." }],
+      settings: { duration: 8 },
+      hardCap: 12
+    }
   },
   {
     method: "POST",
@@ -539,6 +555,7 @@ export const localDashboardMcpTools = [
   "get_api_key_status",
   "check_credits",
   "build_run_plan",
+  "plan_video_script",
   "run_batch",
   "list_generation_queue",
   "enqueue_generation_jobs",

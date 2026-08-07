@@ -248,6 +248,23 @@ server.registerTool(
 );
 
 server.registerTool(
+  "plan_video_script",
+  {
+    title: "Plan Video Script Batch",
+    description:
+      "Deterministically plan a FLUX.3 Video Script batch without spending anything: pools from asset ids or a saved Collection, sequence/per-slot generator workflows (combination, arrangement, rotation, cartesian, zip, seeded sample), prompt assignment from inline texts or promptIds, even or timed keyframes, dedupe, hard cap, and per-second cost. Returns the preview chain, per-row validation, and queue-ready jobs — submit them with enqueue_generation_jobs when the cost is accepted.",
+    inputSchema: {
+      payload: z.record(z.string(), z.unknown())
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async ({ payload }) => result(await post("/api/dashboard/video-script-plan", payload))
+);
+
+server.registerTool(
   "list_generation_queue",
   {
     title: "List Generation Queue",

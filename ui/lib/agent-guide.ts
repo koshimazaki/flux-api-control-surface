@@ -81,6 +81,7 @@ export const agentWorkflowGuide = {
         `GET ${agentRouteMap.outputs}`,
         "Use imageUrl or imageDataUrl from the selected asset in references[]",
         `POST ${agentRouteMap.runPlan} for dry-run/cost planning`,
+        `POST ${agentRouteMap.videoScriptPlan} to plan FLUX.3 Video Script permutation batches (free) and get queue-ready jobs`,
         `POST ${agentRouteMap.generate} or ${agentRouteMap.batch}`
       ]
     },
