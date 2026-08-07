@@ -104,7 +104,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
       }
       runs={
         <div className="evaluationStack">
-          <EvaluationPanel />
+          <EvaluationPanel onPromoted={state.mergeExternalPromptRecord} />
           <GenerationLog
             entries={state.runLog}
             onExport={() => downloadText("bfl-run-log.json", JSON.stringify(state.runLog, null, 2))}

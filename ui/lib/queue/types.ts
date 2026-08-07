@@ -59,6 +59,8 @@ export type ServerQueueJob = GenerationQueueJob & {
   /** Submit-time provider cost, persisted so cost reconciliation survives a restart. */
   submittedCost?: number;
   submittedAt?: number;
+  /** Resets the provider poll budget when a Retry resumes an accepted job. */
+  pollBudgetStartedAt?: number;
   nextPollAt?: number;
   pollCount?: number;
   failureClass?: GenerationFailureClass;

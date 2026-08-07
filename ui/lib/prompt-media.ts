@@ -204,9 +204,16 @@ export type PromotableGeneration = {
   annotation: { rating?: number; verdict: string; tags?: string[] };
 };
 
-/** Only a kept generation with prompt text can become a library record. */
+/**
+ * Only a kept VIDEO generation with prompt text can become a Video library
+ * record — promoting an image evaluation would mislabel its prompt as video.
+ */
 export function canPromoteGeneration(record: PromotableGeneration): boolean {
-  return record.annotation.verdict === "keep" && Boolean(record.prompt.text?.trim());
+  return (
+    record.mediaType === "video" &&
+    record.annotation.verdict === "keep" &&
+    Boolean(record.prompt.text?.trim())
+  );
 }
 
 /**

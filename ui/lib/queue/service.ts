@@ -108,6 +108,7 @@ export async function retryQueueJob(jobId: string): Promise<QueueJobOutcome> {
     if (job.pollingUrl) {
       job.status = "running";
       job.nextPollAt = Date.now();
+      job.pollBudgetStartedAt = Date.now();
       job.nextRetryAt = undefined;
       job.finishedAt = undefined;
       job.error = undefined;

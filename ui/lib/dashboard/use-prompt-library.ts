@@ -295,6 +295,14 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
    * library. Refuses a prompt that still has `{placeholder}` blanks: the same
    * guard the planner enforces, applied before anything is persisted.
    */
+  /**
+   * Merges an externally saved record (e.g. an Evaluate-tab promotion) into
+   * the in-session library so it is selectable without a page reload.
+   */
+  function mergeExternalPromptRecord(record: PromptRecord) {
+    setPrompts((current) => upsertPromptRecord(current, record));
+  }
+
   async function saveVideoPromptToLibrary(compiled: CompiledVideoPrompt) {
     if (compiled.pending.length) {
       setError(`Fill in ${compiled.pending.map((name) => `{${name}}`).join(", ")} before saving this prompt.`);
@@ -377,6 +385,7 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     saveSequencePrompt,
     saveAssetPromptToLibrary,
     saveVideoPromptToLibrary,
+    mergeExternalPromptRecord,
     selectAllPromptSources,
     clearPromptSources
   };

@@ -139,9 +139,11 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
         if (cancelled) return;
         if (response.status === 404) {
           // The job record was cleared; fall back to the newest saved render.
+          // Adopt first — clearing the pending id unmounts this effect and
+          // would cancel the adoption fetch mid-flight.
+          await adoptSavedVideo();
           setPendingQueueJobId(null);
           setWarning("");
-          await adoptSavedVideo();
           return;
         }
         if (!response.ok) return;
@@ -151,9 +153,9 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
         if (cancelled || !job?.status) return;
 
         if (job.status === "complete") {
+          await adoptSavedVideo(job.resultAssetId);
           setPendingQueueJobId(null);
           setWarning("");
-          await adoptSavedVideo(job.resultAssetId);
           return;
         }
         if (job.status === "failed" || job.status === "cancelled") {

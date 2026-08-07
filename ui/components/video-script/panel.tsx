@@ -246,8 +246,9 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
     setIsSavingPrompt(true);
     setError("");
     try {
-      await props.onSavePrompt(compiled);
-      setNotice("Saved the composer prompt to the Video library.");
+      const saved = await props.onSavePrompt(compiled);
+      if (saved) setNotice("Saved the composer prompt to the Video library.");
+      else setError("Could not save this prompt to the library — the prompts API rejected it.");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not save this prompt.");
     } finally {

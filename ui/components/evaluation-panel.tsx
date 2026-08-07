@@ -7,6 +7,7 @@ import { savePromptLibraryRecord } from "@/lib/dashboard-prompts";
 import { canPromoteGeneration, videoPromptRecordFromEvaluation } from "@/lib/prompt-media";
 import { downloadText } from "@/lib/prompt-utils";
 import type { EvaluationVerdict, GenerationEvaluationRecord } from "@/lib/generation-evaluation";
+import type { PromptRecord } from "@/lib/types";
 
 type EvaluationResponse = {
   records?: GenerationEvaluationRecord[];
@@ -24,7 +25,7 @@ function formatCredits(record: GenerationEvaluationRecord) {
   return typeof value === "number" ? `${value.toFixed(2)} cr` : "—";
 }
 
-export function EvaluationPanel() {
+export function EvaluationPanel(props: { onPromoted?: (record: PromptRecord) => void } = {}) {
   const [records, setRecords] = useState<GenerationEvaluationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -108,6 +109,7 @@ export function EvaluationPanel() {
     try {
       const saved = await savePromptLibraryRecord(videoPromptRecordFromEvaluation(record));
       setPromoted((current) => ({ ...current, [record.id]: saved.id }));
+      props.onPromoted?.(saved);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not promote this prompt.");
     } finally {

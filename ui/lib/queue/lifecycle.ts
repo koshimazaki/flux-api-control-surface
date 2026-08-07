@@ -159,7 +159,11 @@ export async function pollQueueJobStep(
   const budget = QUEUE_PROVIDER_BUDGET_MS[job.kind] ?? QUEUE_PROVIDER_BUDGET_MS.image;
   // The manual recovery route exists precisely for jobs the scheduler gave up
   // on, so it must reach the provider instead of re-failing on the same budget.
-  if (!options.manual && job.submittedAt && Date.now() - job.submittedAt > budget) {
+  // A Retry that resumes an accepted job restarts the window via
+  // pollBudgetStartedAt — otherwise the retried job would re-fail this check
+  // before ever polling BFL again.
+  const budgetStartedAt = job.pollBudgetStartedAt ?? job.submittedAt;
+  if (!options.manual && budgetStartedAt && Date.now() - budgetStartedAt > budget) {
     // Terminal, not retryable: the provider already charged for this request, so
     // resubmitting would double-spend. The polling URL stays on the job so
     // GET/PATCH /api/bfl/jobs can still recover the result.

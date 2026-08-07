@@ -34,19 +34,21 @@ describe("toggleStylePreset", () => {
     expect(extractPlaceholders(next)).toEqual([]);
   });
 
-  it("swaps one preset for another instead of stacking", () => {
-    const first = toggleStylePreset("A quiet scene.", cinematic);
-    const second = toggleStylePreset(first, anime);
-    expect(second).toContain(anime);
-    expect(second).not.toContain(cinematic);
+  it("swaps one preset for another in place, never stacking or appending", () => {
+    const filled = toggleStylePreset("Animate image 1 in {style}.", cinematic);
+    const swapped = toggleStylePreset(filled, anime);
+    expect(swapped).toBe(`Animate image 1 in ${anime}.`);
+    expect(swapped).not.toContain(cinematic);
   });
 
-  it("clicking the active preset removes it", () => {
+  it("clicking the active preset restores the {style} blank where it sat", () => {
     const applied = toggleStylePreset("A quiet scene.", cinematic);
     expect(isStylePresetActive(applied, cinematic)).toBe(true);
     const removed = toggleStylePreset(applied, cinematic);
     expect(isStylePresetActive(removed, cinematic)).toBe(false);
-    expect(removed).toContain("A quiet scene.");
+    expect(removed).toContain("{style}");
+    expect(extractPlaceholders(removed)).toEqual(["style"]);
+    expect(removed).toContain("A quiet scene");
   });
 });
 

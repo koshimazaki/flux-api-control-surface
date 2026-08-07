@@ -43,38 +43,25 @@ export function isStylePresetActive(text: string, style: string): boolean {
   return Boolean(phrase) && (text || "").includes(phrase);
 }
 
-function stripStylePhrase(text: string, phrase: string): string {
-  let next = text.split(`, ${phrase}.`).join(".");
-  next = next.split(` ${phrase}.`).join(".");
-  next = next.split(`${phrase}.`).join("");
-  next = next.split(`, ${phrase}`).join("");
-  next = next.split(phrase).join("");
-  return next
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/[ \t]+\./g, ".")
-    .replace(/\.{2,}/g, ".")
-    .replace(/(^|\n)[ \t]*\.[ \t]*(?=\n|$)/g, "$1")
-    .trimEnd();
-}
-
 /**
- * Style quick-buttons behave like a radio group with an off state: clicking
- * the active preset removes its phrase, clicking a different one replaces
- * whichever preset phrase is present, and the first click fills `{style}`
- * when the template still carries that blank. Styles accumulate only if the
+ * Style quick-buttons behave like a radio group with an off state, and every
+ * transition happens IN PLACE so the sentence keeps its shape: picking a
+ * different preset swaps the phrase where it sits, and clicking the active
+ * preset turns its position back into a `{style}` blank — the chip row and
+ * the placeholder guard take over from there. Styles accumulate only if the
  * user types them by hand.
  */
 export function toggleStylePreset(text: string, style: string): string {
   const phrase = style.trim();
   if (!phrase) return text;
-  if (isStylePresetActive(text, phrase)) return stripStylePhrase(text || "", phrase);
-  let next = text || "";
+  const source = text || "";
+  if (source.includes(phrase)) return source.split(phrase).join("{style}");
   for (const preset of VIDEO_STYLE_PRESETS) {
-    if (preset.value !== phrase && isStylePresetActive(next, preset.value)) {
-      next = stripStylePhrase(next, preset.value);
+    if (preset.value !== phrase && source.includes(preset.value)) {
+      return source.split(preset.value).join(phrase);
     }
   }
-  return applyStylePreset(next, phrase);
+  return applyStylePreset(source, phrase);
 }
 
 export function videoPromptTemplates(category?: VideoPromptCategory): VideoPromptTemplate[] {
