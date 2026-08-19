@@ -12,7 +12,7 @@ export default function Home() {
   return (
     <>
       <BackgroundShader />
-      <main className="shell">
+      <main className="shell dsgn-root" data-theme="cyberpunk-v2">
         <TopBar
           apiKey={state.apiKey}
           onApiKeyChange={state.setApiKey}

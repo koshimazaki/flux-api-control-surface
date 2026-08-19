@@ -1,0 +1,215 @@
+/*
+ * Holodeck operator-panel design layer.
+ *
+ * Source of truth:
+ *   HOLODECK/Holo @ bef5668 (codex/worlds-v2)
+ *   src/styles/dsgndept-tokens.css
+ *   src/styles/dsgndept-materials.css
+ *
+ * This is the exact Cyberpunk V2 token/material subset used by Holodeck's
+ * Audio Intel, Camera and World Capture panels. It remains scoped to
+ * `.dsgn-root` so the transplant is explicit and reversible.
+ */
+
+.dsgn-root {
+  --surface-void: #101316;
+  --surface-sunken: #171a1e;
+  --surface-base: #1e2227;
+  --surface-raised: #262b31;
+  --surface-overlay: #31373e;
+  --surface-inset: #13161a;
+
+  --text-primary: #e4e8ed;
+  --text-secondary: #a4abb4;
+  --text-muted: #6f7680;
+  --text-faint: #4a5058;
+  --text-disabled: #383d44;
+
+  --border-subtle: #262b31;
+  --border-default: #333a42;
+  --border-strong: #454d57;
+  --border-machined: #566069;
+
+  --metal-hi: #363d45;
+  --metal-mid: #262b31;
+  --metal-lo: #1b1f24;
+
+  --acc-green: #7e6aa6;
+  --acc-green-strong: #9a86c2;
+  --acc-green-dim: #3e3656;
+  --acc-green-ghost: rgba(126, 106, 166, 0.13);
+  --acc-intel: #62c4e6;
+  --acc-intel-strong: #88dbf4;
+  --acc-intel-dim: #2f5a6c;
+  --acc-intel-ghost: rgba(98, 196, 230, 0.14);
+  --acc-armament: #ea7250;
+  --acc-armament-strong: #e69d60;
+  --acc-armament-dim: #783b2e;
+  --acc-armament-ghost: rgba(234, 114, 80, 0.16);
+  --acc-readout: #b3e9f4;
+  --acc-readout-ghost: rgba(179, 233, 244, 0.16);
+  --accent: #ea7b7b;
+  --accent-strong: #e46983;
+  --accent-ghost: rgba(234, 123, 123, 0.16);
+  --on-accent: #101316;
+
+  --spec-heat-cold: #101316;
+  --spec-heat-low: #62c4e6;
+  --spec-heat-mid: #7e6aa6;
+  --spec-heat-high: #d88b68;
+  --spec-heat-hot: #ea7250;
+  --spec-heat-peak: #e46983;
+
+  --lumen: 255, 255, 255;
+  --shade: 0, 0, 0;
+
+  --space-0: 0;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-7: 20px;
+  --space-8: 24px;
+  --space-9: 32px;
+  --space-10: 40px;
+  --space-11: 48px;
+  --space-12: 64px;
+
+  --radius-none: 0;
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-pill: 999px;
+
+  --control-xs: 22px;
+  --control-sm: 28px;
+  --control-md: 34px;
+  --control-lg: 42px;
+
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", "Roboto Mono", monospace;
+  --font-tech: "Saira Semi Condensed", "Saira", var(--font-sans);
+  --font-stencil: "Saira Stencil One", "Saira", var(--font-tech);
+
+  --t-display: 30px;
+  --t-display-lh: 34px;
+  --t-display-ls: -0.01em;
+  --t-title: 22px;
+  --t-title-lh: 27px;
+  --t-title-ls: -0.005em;
+  --t-heading: 17px;
+  --t-heading-lh: 22px;
+  --t-subhead: 14px;
+  --t-subhead-lh: 19px;
+  --t-body: 13px;
+  --t-body-lh: 19px;
+  --t-sm: 12px;
+  --t-sm-lh: 16px;
+  --t-label: 11px;
+  --t-label-lh: 14px;
+  --t-label-ls: 0.06em;
+  --t-micro: 10px;
+  --t-micro-lh: 13px;
+  --t-micro-ls: 0.08em;
+
+  --motion-instant: 80ms;
+  --motion-fast: 140ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  --ease-mech: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --tr-control: background-color var(--motion-fast) var(--ease-mech),
+    box-shadow var(--motion-fast) var(--ease-mech),
+    border-color var(--motion-fast) var(--ease-mech),
+    color var(--motion-fast) var(--ease-mech),
+    transform var(--motion-fast) var(--ease-mech);
+
+  --elev-1: inset 0 1px 0 0 rgba(var(--lumen), 0.05),
+    inset 0 -1px 0 0 rgba(var(--shade), 0.45),
+    0 1px 1px rgba(var(--shade), 0.4);
+  --elev-2: inset 0 1px 0 0 rgba(var(--lumen), 0.07),
+    inset 0 -1px 0 0 rgba(var(--shade), 0.5),
+    0 1px 2px rgba(var(--shade), 0.45),
+    0 3px 6px rgba(var(--shade), 0.3);
+  --elev-3: inset 0 1px 0 0 rgba(var(--lumen), 0.06),
+    inset 0 -1px 0 0 rgba(var(--shade), 0.45),
+    0 2px 4px rgba(var(--shade), 0.4),
+    0 8px 20px rgba(var(--shade), 0.36);
+  --elev-4: inset 0 1px 0 0 rgba(var(--lumen), 0.08),
+    0 6px 14px rgba(var(--shade), 0.46),
+    0 18px 44px rgba(var(--shade), 0.42);
+  --inset-1: inset 0 1px 2px rgba(var(--shade), 0.55),
+    inset 0 -1px 0 0 rgba(var(--lumen), 0.04);
+  --inset-2: inset 0 2px 4px rgba(var(--shade), 0.62),
+    inset 0 -1px 0 0 rgba(var(--lumen), 0.05);
+  --rim-top: inset 0 1px 0 0 rgba(var(--lumen), 0.08);
+  --rim-bottom: inset 0 -1px 0 0 rgba(var(--shade), 0.5);
+  --focus-ring: 0 0 0 1px var(--surface-base), 0 0 0 3px var(--acc-intel);
+
+  --mat-gunmetal: repeating-linear-gradient(90deg, rgba(var(--lumen), 0.012) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--metal-hi) 0%, var(--metal-mid) 48%, var(--metal-lo) 100%);
+  --mat-steel: repeating-linear-gradient(0deg, rgba(var(--shade), 0.05) 0 1px, transparent 1px 2px),
+    linear-gradient(165deg, var(--metal-hi) 0%, var(--metal-mid) 60%, var(--metal-lo) 100%);
+  --mat-charcoal: linear-gradient(180deg, var(--surface-raised) 0%, var(--surface-base) 100%);
+  --mat-grid: linear-gradient(rgba(var(--lumen), 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--lumen), 0.035) 1px, transparent 1px);
+  --mat-grid-size: 22px;
+
+  color: var(--text-primary);
+  color-scheme: dark;
+  font-family: var(--font-sans);
+  font-size: var(--t-body);
+  line-height: var(--t-body-lh);
+  -webkit-font-smoothing: antialiased;
+
+  /* Compatibility aliases for the existing BFL component contract. */
+  --bg: var(--surface-void);
+  --bg-deep: var(--surface-inset);
+  --panel: var(--surface-base);
+  --panel-2: var(--surface-sunken);
+  --panel-3: var(--surface-raised);
+  --line: var(--border-default);
+  --line-strong: var(--border-machined);
+  --text: var(--text-primary);
+  --muted: var(--text-muted);
+  --soft: var(--text-secondary);
+  --green: var(--acc-intel-dim);
+  --green-light: var(--acc-intel);
+  --cream: var(--text-primary);
+  --grey-1: var(--text-primary);
+  --grey-2: var(--text-secondary);
+  --grey-3: var(--text-muted);
+  --gold: var(--acc-armament-strong);
+  --rose: var(--accent);
+  --cyan: var(--acc-intel);
+  --violet: var(--accent);
+  --danger: var(--spec-heat-peak);
+}
+
+.dsgn-root * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.dsgn-root :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.dsgn-root ::selection {
+  background: var(--accent-ghost);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dsgn-root *,
+  .dsgn-root *::before,
+  .dsgn-root *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
