@@ -94,10 +94,13 @@ export function BackgroundShader() {
           const cursorLight = cursorPull * 0.5;
           const value = (swirl * 0.32 + ribbon * 0.26 + pulse * 0.2 + vignette * 0.66 + cursorLight) * 0.5 + 0.27;
           const tone = shade(value);
+          const cyanField = Math.max(0, ribbon * 0.5 + 0.5) * (0.34 + vignette * 0.42);
+          const roseField = Math.max(0, swirl * 0.5 + 0.5) * (0.22 + cursorPull * 0.56);
+          const amberField = Math.max(0, pulse * 0.5 + 0.5) * Math.max(0, vignette - 0.22);
 
-          data[offset] = tone;
-          data[offset + 1] = tone;
-          data[offset + 2] = Math.round(tone * 0.96);
+          data[offset] = Math.min(255, Math.round(tone * 0.72 + roseField * 66 + amberField * 42));
+          data[offset + 1] = Math.min(255, Math.round(tone * 0.76 + cyanField * 54 + amberField * 26));
+          data[offset + 2] = Math.min(255, Math.round(tone * 0.82 + cyanField * 72 + roseField * 42));
           data[offset + 3] = 255;
           offset += 4;
         }

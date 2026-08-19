@@ -1,6 +1,8 @@
 # Design QA: Holodeck operator panels × FLUX API Control Surface
 
-Final result: passed
+First-pass result: passed
+
+Second-pass result: implemented; awaiting human visual verdict
 
 ## Comparison target
 
@@ -60,3 +62,84 @@ The top control comparison verifies the details too small in the full view: exac
 
 - P3: capture a larger desktop viewport and a portrait viewport when the selected browser exposes deterministic resizing.
 - P3: repeat the asset-library capture from the durable local repo with its output directory configured so all saved thumbnails can be assessed as content, not only as chrome.
+
+## Human-first second-pass review
+
+Radek reviewed the first-pass child in the complete BFL application before any
+second-pass scoring or repair suggestion. The transfer remained coherent and
+non-generic, and the added colour signals made sections easier to recognise,
+but the full-surface treatment was too heavy compared with the isolated
+Holodeck panels. Fifteen review screenshots are preserved at
+`/Users/radek/Documents/GIthub/Demos/BFL/tmp/design-audit/bfl-holodeck-second-pass-2026-08-19/human-review/`.
+
+### Survived
+
+- BFL product nouns, workflows, queue behaviour, assets and mode structure.
+- Holodeck textures, raised controls, recessed values and raspberry/cyan state
+  signals.
+- A clear, authored identity rather than a generic dashboard fallback.
+
+### Partial or lost
+
+- The ambient semi-transparent shader and resulting sense of place were lost
+  under the first-pass matte surface sweep.
+- BFL's pill navigation survived too literally and conflicted with the
+  Holodeck square geometry.
+- Reference roles were useful but detached from the prompt they condition.
+- The prompt library, API-key cluster and reference URL overused nested inset
+  fields.
+- The mobile surface was too tall and the full prompt library competed with
+  the main task.
+- FLUX.3 media and mode controls expanded more than their information density
+  justified.
+
+### Novel traits worth retaining
+
+- Coloured panel backing improved mode and section recognition.
+- The combined BFL structure and Holodeck material grammar remained legible
+  across a much denser product than the visual parent.
+
+Human verdict on the first pass: `repair`.
+
+## Bounded second-pass repair
+
+The user selected the continuous glossy direction by asking to code the
+feedback directly. One coherent surface-integration repair was made:
+
+- Restored a restrained cyan/raspberry/amber ambient shader behind more
+  translucent, glossy panels instead of copying the earlier shader literally.
+- Replaced oversized mode pills with blockier Holodeck controls and gave Erase
+  a cyan active state.
+- Moved Balance into the header and made the API-key controls an aligned,
+  collapsible utility, eliminating the empty standalone top-right region.
+- Moved Generate references into the prompt composer, removed the nested URL
+  field treatment and collapsed advanced shaping behind a disclosure.
+- Flattened prompt-library row internals, lightened the recessed prompt field,
+  restyled sliders/selects/checkboxes and gave active queue work a cyan state.
+- Made FLUX.3 mode selectors denser and collapsed the Prompt Library by default
+  below 900px.
+
+Frozen variables: BFL product nouns, state and API behaviour; Holodeck palette,
+font stack and material vocabulary; generation, queue, asset and mode
+workflows. The repair did not add themes, new FLUX.3 modes, video editing or a
+motion-library dependency.
+
+Rejected alternatives:
+
+- Exact restoration of the panel-scale source shader: too strong across a
+  complete application; a restrained coloured field better fits this target.
+- A second static visual-template round: the user clarified that this pass
+  should repair the code directly.
+- Theme switching, new video modes and broad animation work: separate product
+  features outside this one-repair stop rule.
+
+## Second-pass verification
+
+- `npm test`: 64 files, 494 tests passed.
+- `npm run build`: passed.
+- `npm run lint`: zero errors; the same four pre-existing warnings remain.
+- `git diff --check`: passed.
+- Automated browser reinspection could not be completed because the app
+  browser's URL security policy rejected the already-open localhost page. No
+  alternate browser route was used. The final desktop/mobile visual verdict
+  therefore remains a human gate on `http://127.0.0.1:3017/`.

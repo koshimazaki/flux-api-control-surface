@@ -5,11 +5,18 @@ type BalanceCardProps = {
   totalActualCredits: number;
   isCheckingBalance: boolean;
   onCheckBalance: () => void;
+  compact?: boolean;
 };
 
-export function BalanceCard({ balanceCredits, totalActualCredits, isCheckingBalance, onCheckBalance }: BalanceCardProps) {
+export function BalanceCard({
+  balanceCredits,
+  totalActualCredits,
+  isCheckingBalance,
+  onCheckBalance,
+  compact = false
+}: BalanceCardProps) {
   return (
-    <div className="statCard balanceStat statToneBalance">
+    <div className={["statCard", "balanceStat", "statToneBalance", compact ? "compactBalance" : ""].filter(Boolean).join(" ")}>
       <div>
         <span>Balance</span>
         <strong>{typeof balanceCredits === "number" ? `${balanceCredits.toFixed(2)} cr` : "unchecked"}</strong>

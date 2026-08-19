@@ -19,15 +19,15 @@ body::before {
 }
 
 .backgroundShader canvas {
-  opacity: 0.34;
-  filter: contrast(1.12) brightness(0.62) saturate(0.25) hue-rotate(132deg);
+  opacity: 0.52;
+  filter: contrast(1.08) brightness(0.76) saturate(0.82);
 }
 
 .backgroundShaderWash {
   background:
-    linear-gradient(90deg, rgba(16, 19, 22, 0.9), rgba(23, 26, 30, 0.68) 48%, rgba(16, 19, 22, 0.92)),
-    linear-gradient(180deg, rgba(98, 196, 230, 0.025), rgba(16, 19, 22, 0.92));
-  box-shadow: inset 0 0 180px rgba(0, 0, 0, 0.72);
+    linear-gradient(90deg, rgba(16, 19, 22, 0.72), rgba(23, 26, 30, 0.42) 48%, rgba(16, 19, 22, 0.76)),
+    linear-gradient(180deg, rgba(98, 196, 230, 0.035), rgba(16, 19, 22, 0.74));
+  box-shadow: inset 0 0 180px rgba(0, 0, 0, 0.56);
 }
 
 .dsgn-root.shell {
@@ -92,15 +92,17 @@ body::before {
 .dsgn-root .referenceDock {
   border-color: var(--border-machined);
   border-radius: var(--radius-md);
-  background: var(--mat-gunmetal);
+  background:
+    repeating-linear-gradient(90deg, rgba(var(--lumen), 0.012) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(54, 61, 69, 0.78), rgba(27, 31, 36, 0.74));
   box-shadow: var(--elev-2), var(--rim-top), var(--rim-bottom);
-  backdrop-filter: blur(18px) saturate(1.05);
+  backdrop-filter: blur(22px) saturate(1.14);
 }
 
 .dsgn-root .topbar {
   position: relative;
-  min-height: 96px;
-  padding: var(--space-5) var(--space-6);
+  min-height: 82px;
+  padding: var(--space-4) var(--space-6);
   overflow: hidden;
 }
 
@@ -197,7 +199,8 @@ body::before {
 }
 
 .dsgn-root .keyBox {
-  height: var(--control-lg);
+  min-height: var(--control-md);
+  height: auto;
 }
 
 .dsgn-root .keySourceBadge {
@@ -221,7 +224,7 @@ body::before {
 .dsgn-root .tabButton {
   min-height: 30px;
   padding: 0 var(--space-5);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -251,7 +254,7 @@ body::before {
 .dsgn-root .tabButton span {
   min-width: 20px;
   height: 20px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-xs);
   background: var(--surface-overlay);
   color: var(--acc-readout);
   font-family: var(--font-mono);
@@ -281,7 +284,9 @@ body::before {
 
 .dsgn-root .panel,
 .dsgn-root .assetsPanel {
-  background: var(--mat-charcoal);
+  background:
+    linear-gradient(180deg, rgba(49, 55, 62, 0.7), rgba(30, 34, 39, 0.68)),
+    repeating-linear-gradient(90deg, rgba(var(--lumen), 0.01) 0 1px, transparent 1px 3px);
 }
 
 .dsgn-root .panel {
@@ -291,14 +296,14 @@ body::before {
 .dsgn-root .editor,
 .dsgn-root .assetsPanel {
   background:
-    linear-gradient(180deg, var(--acc-intel-ghost), transparent 96px),
-    var(--mat-charcoal);
+    linear-gradient(180deg, rgba(98, 196, 230, 0.11), transparent 108px),
+    linear-gradient(180deg, rgba(49, 55, 62, 0.7), rgba(30, 34, 39, 0.68));
 }
 
 .dsgn-root .controls {
   background:
-    linear-gradient(180deg, var(--accent-ghost), transparent 112px),
-    var(--mat-charcoal);
+    linear-gradient(180deg, rgba(234, 123, 123, 0.11), transparent 112px),
+    linear-gradient(180deg, rgba(49, 55, 62, 0.7), rgba(30, 34, 39, 0.68));
 }
 
 .dsgn-root .panelHeader,
@@ -502,6 +507,249 @@ body::before {
   font-family: var(--font-mono);
 }
 
+/* Second-pass integration repair: keep the Holodeck material vocabulary while
+   fitting it to a full application surface rather than isolated panels. */
+.dsgn-root .topBarRight {
+  gap: var(--space-3);
+}
+
+.dsgn-root .topBarUtilityRow {
+  gap: var(--space-4);
+}
+
+.dsgn-root .compactBalance {
+  border-color: var(--acc-intel-dim);
+  border-radius: var(--radius-sm);
+  background: rgba(19, 22, 26, 0.72);
+  box-shadow: var(--inset-1), var(--rim-top);
+  backdrop-filter: blur(16px);
+}
+
+.dsgn-root .compactBalance strong {
+  color: var(--acc-readout);
+  font-size: var(--t-sm);
+}
+
+.dsgn-root .compactBalance button {
+  min-height: 30px;
+  font-size: var(--t-micro);
+}
+
+.dsgn-root .keyBox {
+  border-color: var(--border-default);
+  background: rgba(19, 22, 26, 0.74);
+}
+
+.dsgn-root .keyDisclosure {
+  color: var(--text-secondary);
+}
+
+.dsgn-root .keyDisclosure:hover {
+  border-color: transparent;
+  background: rgba(98, 196, 230, 0.06);
+}
+
+.dsgn-root .keyDisclosure .keySourceBadge {
+  min-width: 62px;
+  border-radius: var(--radius-xs);
+  padding: 3px 6px;
+}
+
+.dsgn-root .keyBox input,
+.dsgn-root .referenceUrlBar input,
+.dsgn-root .searchBox input {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dsgn-root .keyBoxFields {
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-3);
+  animation: holodeck-disclose 240ms var(--ease-out) both;
+}
+
+.dsgn-root .workspaceModeBar .tabButton {
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  background:
+    repeating-linear-gradient(90deg, rgba(var(--lumen), 0.012) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(54, 61, 69, 0.78), rgba(27, 31, 36, 0.82));
+}
+
+.dsgn-root .workspaceModeBar .tabButton.active {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgba(234, 123, 123, 0.24), rgba(34, 28, 33, 0.76));
+}
+
+.dsgn-root .workspaceModeBar .tabButton-erase.active {
+  border-color: var(--acc-intel);
+  background: linear-gradient(180deg, rgba(98, 196, 230, 0.24), rgba(24, 34, 39, 0.78));
+  color: var(--acc-intel-strong);
+  box-shadow: var(--rim-top), 0 0 10px -3px var(--acc-intel);
+}
+
+.dsgn-root .promptEditor {
+  border-color: var(--border-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 24%),
+    rgba(12, 15, 18, 0.84);
+  color: var(--text-primary);
+  box-shadow: var(--inset-2), inset 0 0 42px rgba(98, 196, 230, 0.025);
+}
+
+.dsgn-root .editor .presetRow {
+  width: min(520px, 58vw);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.dsgn-root .editor .presetGroup {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dsgn-root .editor .presetGroup button {
+  width: 100%;
+  max-width: none;
+  padding: 0 var(--space-3);
+}
+
+.dsgn-root .generateReferenceControls {
+  border-color: var(--border-strong);
+  background: rgba(14, 18, 22, 0.74);
+  box-shadow: var(--inset-1), var(--rim-top);
+  backdrop-filter: blur(16px) saturate(1.1);
+}
+
+.dsgn-root .generateReferenceRoleGrid .referenceRoleDrop {
+  border-radius: var(--radius-sm);
+  background: rgba(19, 22, 26, 0.74);
+}
+
+.dsgn-root .generateReferenceRoleGrid .referenceRoleDrop.active {
+  border-color: var(--acc-intel-dim);
+  background: var(--acc-intel-ghost);
+}
+
+.dsgn-root .referenceRoleMeta code,
+.dsgn-root .promptReferenceChip,
+.dsgn-root .referenceRoleThumb em {
+  border-radius: var(--radius-xs);
+}
+
+.dsgn-root .promptReferenceStrip {
+  border-color: var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(14, 17, 21, 0.76);
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root .promptItem {
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-3);
+}
+
+.dsgn-root .promptSelect,
+.dsgn-root .promptSelect:hover {
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-primary);
+  padding: var(--space-2) var(--space-3);
+  transform: none;
+}
+
+.dsgn-root select {
+  border-radius: 8px 3px 8px 3px;
+  background-color: rgba(17, 20, 24, 0.9);
+  box-shadow: var(--inset-1), inset 0 1px 0 rgba(var(--lumen), 0.025);
+}
+
+.dsgn-root input[type="checkbox"],
+.dsgn-root input[type="radio"] {
+  accent-color: var(--accent);
+  filter: drop-shadow(0 0 3px rgba(234, 123, 123, 0.24));
+}
+
+.dsgn-root input[type="range"] {
+  accent-color: var(--acc-intel);
+}
+
+.dsgn-root .toolControls input[type="range"],
+.dsgn-root .glyphField input[type="range"] {
+  --tool-slider-start: rgba(9, 13, 16, 0.98);
+  --tool-slider-dark: rgba(14, 25, 30, 0.98);
+  --tool-slider-mid: rgba(47, 90, 108, 0.92);
+  --tool-slider-light: rgba(98, 196, 230, 0.98);
+}
+
+.dsgn-root .toolControls input[type="range"]::-webkit-slider-thumb,
+.dsgn-root .glyphField input[type="range"]::-webkit-slider-thumb {
+  border-color: var(--acc-readout);
+  background: linear-gradient(180deg, var(--acc-intel-strong), var(--acc-intel));
+  box-shadow: 0 0 0 3px var(--acc-intel-ghost), 0 2px 8px rgba(0, 0, 0, 0.42);
+}
+
+.dsgn-root .toolControls input[type="range"]::-moz-range-thumb,
+.dsgn-root .glyphField input[type="range"]::-moz-range-thumb {
+  border-color: var(--acc-readout);
+  background: linear-gradient(180deg, var(--acc-intel-strong), var(--acc-intel));
+  box-shadow: 0 0 0 3px var(--acc-intel-ghost), 0 2px 8px rgba(0, 0, 0, 0.42);
+}
+
+.dsgn-root .toolControls.mode-erase {
+  background:
+    linear-gradient(180deg, rgba(98, 196, 230, 0.13), transparent 112px),
+    linear-gradient(180deg, rgba(49, 55, 62, 0.7), rgba(30, 34, 39, 0.68));
+}
+
+.dsgn-root .queueBox {
+  border-color: var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(14, 18, 22, 0.74);
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root .queueMeter span.running,
+.dsgn-root .queueJob.running,
+.dsgn-root .queueJob.submitting,
+.dsgn-root .queueJob.downloading {
+  border-color: var(--acc-intel-dim);
+  background: var(--acc-intel-ghost);
+  box-shadow: 0 0 10px -4px var(--acc-intel);
+}
+
+.dsgn-root .queueEmpty {
+  border-radius: var(--radius-sm);
+  background: rgba(10, 13, 16, 0.72);
+}
+
+.dsgn-root .flux3ModePicker > button {
+  border-radius: var(--radius-sm);
+}
+
+.dsgn-root .flux3ModePicker > button.active {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+}
+
+@keyframes holodeck-disclose {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 900px) {
   .dsgn-root.shell {
     padding: var(--space-5);
@@ -513,5 +761,28 @@ body::before {
 
   .dsgn-root .topbar::after {
     display: none;
+  }
+
+  .dsgn-root .workspaceModeBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dsgn-root .workspaceModeBar .tabButton {
+    min-height: 42px;
+    justify-content: flex-start;
+    padding: 0 var(--space-4);
+  }
+
+  .dsgn-root .promptEditor {
+    min-height: 220px;
+  }
+
+  .dsgn-root .editor > .panelHeader {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .dsgn-root .editor .presetRow {
+    width: 100%;
   }
 }

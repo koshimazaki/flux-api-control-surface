@@ -1,10 +1,9 @@
 @media (max-width: 1160px) {
   .workspace {
     grid-template-columns: 240px minmax(360px, 1fr);
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-areas:
       "library modes"
-      "library balance"
       "library main"
       "run     run";
     height: auto;
@@ -47,7 +46,9 @@
     font-size: 30px;
   }
 
-  .keyBox {
+  .keyBox,
+  .keyBox.open,
+  .compactBalance {
     width: 100%;
   }
 
@@ -56,12 +57,24 @@
     justify-items: stretch;
   }
 
+  .topBarUtilityRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .topBarStatus {
+    justify-content: flex-start;
+  }
+
+  .keyBoxFields {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .workspace {
     grid-template-columns: 1fr;
     grid-template-rows: none;
     grid-template-areas:
       "modes"
-      "balance"
       "library"
       "main"
       "run";

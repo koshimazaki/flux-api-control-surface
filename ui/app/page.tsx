@@ -21,6 +21,10 @@ export default function Home() {
           onSaveApiKey={state.saveApiKeyToSecureStore}
           onForgetApiKey={state.forgetSecureApiKey}
           onRefreshApiKey={() => void state.refreshApiKeyStatus()}
+          balanceCredits={state.balance.credits}
+          totalActualCredits={state.totalActualCredits}
+          isCheckingBalance={state.isCheckingBalance}
+          onCheckBalance={state.checkBalance}
         />
         {state.workspaceMode !== "flux3" && <ReferenceDock
           mode={state.workspaceMode}

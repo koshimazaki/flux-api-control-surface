@@ -41,5 +41,29 @@ product shell are not parents in this case.
 - Generate, Erase, Outpaint, FLUX.3 and Assets states were exercised with no
   final browser warnings or errors.
 
-The candidate remains `awaiting-review`. Human first-impression feedback is the
-next gate; only the human may keep, repair or kill the child.
+## Human review and repair
+
+The first-pass candidate received a human verdict of `repair`. The review found
+that the BFL structure and Holodeck textures/colour signals survived, while the
+ambient shader, square geometry and panel-scale liveliness did not survive the
+move to a complete application. Oversized pills, the standalone Balance row,
+nested API/reference fields, detached reference roles, mobile density and
+overscaled FLUX.3 controls were the bounded defects.
+
+The selected second-pass direction is one continuous glossy repair: restrained
+coloured shader behind translucent panels, blockier navigation, compact header
+utilities, references composed with the prompt, flatter library internals,
+cyan Erase/queue states and a collapsed mobile library. BFL nouns, behaviours,
+API routes, queue semantics and all generation modes remain frozen.
+
+Rejected alternatives were an exact full-strength source shader, a second
+static template round, theme-system work, new FLUX.3/video-edit modes and a new
+animation dependency. Those either fit isolated panels poorly or exceed the
+one-repair stop rule.
+
+Second-pass verification repeats the green baseline: 64 files and 494 tests,
+production build, zero lint errors with four pre-existing warnings, and clean
+diff whitespace. Automated browser reinspection was blocked by the browser URL
+security policy for the already-open localhost page, so the repaired candidate
+remains `awaiting-review` at the final human desktop/mobile gate. No paid
+generation, credential mutation, remote push or publication occurred.

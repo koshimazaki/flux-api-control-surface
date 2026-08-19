@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent as ReactDragEvent, type ReactNode } from "react";
 import { Clipboard, MapPin, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { PanelHeader } from "@/components/ui/panel-header";
@@ -32,6 +32,7 @@ type PromptEditorProps = {
   onEnvironmentSelect: (environment: string) => void;
   onReferenceDropPayload: (payload: string) => number | null | void;
   onReferenceFiles: (files: File[]) => Promise<number[]>;
+  referenceControls?: ReactNode;
 };
 
 export function PromptEditor({
@@ -51,7 +52,8 @@ export function PromptEditor({
   activeEnvironment,
   onEnvironmentSelect,
   onReferenceDropPayload,
-  onReferenceFiles
+  onReferenceFiles,
+  referenceControls
 }: PromptEditorProps) {
   const [activePresetId, setActivePresetId] = useState("");
   const [appliedEnvironmentId, setAppliedEnvironmentId] = useState("");
@@ -192,6 +194,8 @@ export function PromptEditor({
         spellCheck={false}
       />
 
+      {referenceControls}
+
       {(promptSourceAsset || activeReferences.length > 0) && (
         <div className="promptReferenceStrip">
           {promptSourceAsset && (
@@ -235,17 +239,20 @@ export function PromptEditor({
                   );
                 })}
               </div>
-              <p>{submittedReferenceCue}</p>
-              <div className="submittedPromptBox">
-                <div>
-                  <strong>Submitted prompt</strong>
-                  <button type="button" onClick={() => void copyText(submittedPrompt)}>
-                    <Clipboard size={14} />
-                    Copy
-                  </button>
+              <details className="submittedPromptDetails">
+                <summary>Submission preview</summary>
+                <p>{submittedReferenceCue}</p>
+                <div className="submittedPromptBox">
+                  <div>
+                    <strong>Submitted prompt</strong>
+                    <button type="button" onClick={() => void copyText(submittedPrompt)}>
+                      <Clipboard size={14} />
+                      Copy
+                    </button>
+                  </div>
+                  <textarea value={submittedPrompt} readOnly spellCheck={false} />
                 </div>
-                <textarea value={submittedPrompt} readOnly spellCheck={false} />
-              </div>
+              </details>
             </>
           )}
         </div>

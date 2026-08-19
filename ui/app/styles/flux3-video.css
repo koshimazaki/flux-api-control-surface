@@ -1,9 +1,9 @@
 .workspace.flux3Mode {
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(620px, auto);
   grid-template-areas:
-    "modes balance"
-    "main  main";
+    "modes"
+    "main";
   height: auto;
   min-height: clamp(720px, calc(100vh - 132px), 980px);
 }
@@ -182,12 +182,12 @@
 
 .flux3ModePicker > button {
   min-width: 0;
-  min-height: 64px;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 5px;
-  padding: 7px 4px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 6px 8px;
 }
 
 .flux3ModePicker > button.active {
@@ -302,7 +302,7 @@
 
 .flux3KeyframeGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -459,11 +459,11 @@
 
 @media (max-width: 1160px) {
   .workspace.flux3Mode {
-    grid-template-columns: minmax(0, 1fr) 300px;
-    grid-template-rows: auto auto auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
     grid-template-areas:
-      "modes balance"
-      "main main";
+      "modes"
+      "main";
   }
 
   .flux3VideoWorkspace {
@@ -480,7 +480,6 @@
     grid-template-columns: 1fr;
     grid-template-areas:
       "modes"
-      "balance"
       "main";
   }
 

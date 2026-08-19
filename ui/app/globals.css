@@ -6,6 +6,7 @@
 @import "./styles/panels.css";
 @import "./styles/controls.css";
 @import "./styles/references.css";
+@import "./styles/generate-composer.css";
 @import "./styles/generate-runlog.css";
 @import "./styles/evaluations.css";
 @import "./styles/workspace-tools.css";
