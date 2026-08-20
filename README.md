@@ -137,3 +137,19 @@ Without those env vars, the UI stays filesystem/localStorage/IndexedDB only.
 - `docs/`: public-facing implementation and release notes.
 - `experiments/` and `notes/`: local-only working material, intentionally not
   tracked in the public repo.
+
+## License
+
+[MIT](./LICENSE). Copyright (c) 2026 Koshi (koshimazaki).
+
+You may use, adapt, and redistribute this code, including commercially, as long
+as the copyright notice and permission notice travel with it.
+
+Two things the licence does not cover, because they are not mine to grant:
+
+- The FLUX models and the BFL API itself — those are governed by Black Forest
+  Labs' own terms, and you need your own API key.
+- The BFL brand mark and the webfonts referenced from `bfl.ai` in
+  `ui/app/styles/fonts.css` and `ui/components/top-bar.tsx`. They are hotlinked
+  third-party assets, not part of this work. Self-host your own before shipping
+  anything derived from this.
