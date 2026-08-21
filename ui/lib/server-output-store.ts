@@ -9,6 +9,15 @@ import type { AssetRecord } from "./types";
 export const OUTPUT_ROOT = path.resolve(process.cwd(), "..", "outputs", "flux-api-control-surface");
 const LEGACY_OUTPUT_ROOT = path.resolve(process.cwd(), "..", "outputs", "bfl-api-dashboard");
 const OUTPUT_ROOTS = [OUTPUT_ROOT, LEGACY_OUTPUT_ROOT];
+const OUTPUT_IMAGE_INDEX_TTL_MS = 5_000;
+
+type LocalOutputImage = {
+  imagePath: string;
+  contentType: string;
+};
+
+let outputImageIndex: Promise<Map<string, LocalOutputImage>> | null = null;
+let outputImageIndexExpiresAt = 0;
 
 export type OutputManifestItem = {
   id: string;
@@ -76,6 +85,45 @@ function outputIdFor(metadata: Record<string, unknown>, base: string) {
 
 function localOutputImageUrl(id: string) {
   return `/api/outputs/${encodeURIComponent(id)}/image`;
+}
+
+export function invalidateLocalOutputImageIndex() {
+  outputImageIndex = null;
+  outputImageIndexExpiresAt = 0;
+}
+
+async function buildLocalOutputImageIndex() {
+  const files = (await Promise.all(OUTPUT_ROOTS.map((root) => walk(root)))).flat();
+  const metadataFiles = files.filter((file) => file.endsWith(".json")).sort().reverse();
+  const entries = await Promise.all(
+    metadataFiles.map(async (metadataPath) => {
+      const base = metadataPath.replace(/\.json$/, "");
+      const imagePath = imageForBase(files, base);
+      if (!imagePath) return null;
+      const metadata = JSON.parse(await readFile(metadataPath, "utf8").catch(() => "{}"));
+      return {
+        ids: [outputIdFor(metadata, base), path.basename(base)],
+        image: { imagePath, contentType: imageMime(imagePath) }
+      };
+    })
+  );
+  const index = new Map<string, LocalOutputImage>();
+  entries.forEach((entry) => {
+    entry?.ids.forEach((id) => index.set(id, entry.image));
+  });
+  return index;
+}
+
+async function getLocalOutputImageIndex() {
+  const now = Date.now();
+  if (!outputImageIndex || now >= outputImageIndexExpiresAt) {
+    outputImageIndexExpiresAt = now + OUTPUT_IMAGE_INDEX_TTL_MS;
+    outputImageIndex = buildLocalOutputImageIndex().catch((error) => {
+      invalidateLocalOutputImageIndex();
+      throw error;
+    });
+  }
+  return outputImageIndex;
 }
 
 export async function readLocalOutputManifest(): Promise<OutputManifestItem[]> {
@@ -197,20 +245,5 @@ export async function readLocalOutputAssets(options: OutputAssetReadOptions = {}
 }
 
 export async function findLocalOutputImage(id: string) {
-  const files = (await Promise.all(OUTPUT_ROOTS.map((root) => walk(root)))).flat();
-  const metadataFiles = files.filter((file) => file.endsWith(".json")).sort().reverse();
-
-  for (const metadataPath of metadataFiles) {
-    const base = metadataPath.replace(/\.json$/, "");
-    const metadata = JSON.parse(await readFile(metadataPath, "utf8").catch(() => "{}"));
-    if (outputIdFor(metadata, base) !== id && path.basename(base) !== id) continue;
-    const imagePath = imageForBase(files, base);
-    if (!imagePath) return null;
-    return {
-      imagePath,
-      contentType: imageMime(imagePath)
-    };
-  }
-
-  return null;
+  return (await getLocalOutputImageIndex()).get(id) || null;
 }

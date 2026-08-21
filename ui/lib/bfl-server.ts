@@ -4,7 +4,7 @@ import { toWorkspaceRelativePath, workspaceRoot } from "./local-paths";
 import { isBflPollFailureStatus } from "./provider-registry";
 import { fetchRemoteImage } from "./remote-archive";
 import { resolveApiKeyWithSource } from "./server-api-key";
-import { findLocalOutputImage } from "./server-output-store";
+import { findLocalOutputImage, invalidateLocalOutputImageIndex } from "./server-output-store";
 
 export const BFL_API_BASE = "https://api.bfl.ai/v1";
 
@@ -203,6 +203,7 @@ export async function saveOutputFiles(options: {
     writeFile(promptPath, options.prompt, "utf8"),
     writeFile(metadataPath, JSON.stringify(metadataWithFiles, null, 2), "utf8")
   ]);
+  invalidateLocalOutputImageIndex();
 
   return {
     imagePath: toWorkspaceRelativePath(imagePath),

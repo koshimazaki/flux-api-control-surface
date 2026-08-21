@@ -238,3 +238,29 @@ production build passed; lint has zero errors and the same four inherited
 warnings; diff whitespace passed; `/` and `/api/dashboard/queue` returned HTTP
 200 after the preview was restarted on port 3017. Final visual promotion remains
 a human gate.
+
+## Human follow-up: FLUX.3 scale and gallery stability
+
+The next human review found that selecting FLUX.3 still appeared to zoom the
+workspace, gallery thumbnails could disappear or stall during scroll, and the
+reflective grain produced visible stripes across the gallery header/surface.
+Inspection confirmed three bounded causes: FLUX.3 bypassed the shared collapsed
+rail geometry, every missing legacy thumbnail rebuilt the full output-file
+index, and the several-screen gallery carried both a repeating grain and a
+full-height backdrop blur while the ambient shader continued rendering at 60fps.
+
+One stability/material repair was made. FLUX.3 now preserves the shared 58px
+rail and 340px control rhythm until the common mobile breakpoint. Output-image
+lookups share a five-second server index, successful responses receive a durable
+private cache policy, missing pointers receive a short negative cache, and
+cards remember failed media for the browser session while valid images load and
+decode lazily. The shader pauses during active scroll and renders its slow field
+at 30fps. Only the asset library receives a clear, non-striped surface without
+the full-height backdrop blur; other reflective panels are unchanged.
+
+Verification: 66 files / 515 tests passed; production build passed; lint has
+zero errors and the same four inherited warnings; diff whitespace passed. On
+the restarted local preview, `/` and `/api/outputs?limit=5` returned HTTP 200.
+An intentionally missing image returned the expected cached 404; after the
+initial index build, the repeated lookup fell from about 2.68s to 0.06s. The
+result remains local and the final scroll/material verdict remains a human gate.

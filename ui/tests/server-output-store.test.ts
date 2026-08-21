@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -39,5 +39,24 @@ describe("server output store", () => {
     const manifest = await readLocalOutputManifest();
 
     expect(manifest.map((item) => item.id)).toEqual(["real-output"]);
+  });
+
+  it("shares a local image index until it is explicitly invalidated", async () => {
+    const root = await createTempUiWorkspace();
+    const outputDir = path.join(root, "outputs", "flux-api-control-surface", "2026-08-21");
+    const base = path.join(outputDir, "2026-08-21_2026-08-21T00-00-00-000Z_cached-output");
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(`${base}.json`, JSON.stringify({ id: "cached-output" }));
+    await writeFile(`${base}.png`, "image");
+
+    const { findLocalOutputImage, invalidateLocalOutputImageIndex } = await import("@/lib/server-output-store");
+    const cachedImage = await findLocalOutputImage("cached-output");
+    expect(cachedImage?.imagePath).toMatch(/cached-output\.png$/);
+
+    await unlink(`${base}.png`);
+    expect(await findLocalOutputImage("cached-output")).toEqual(cachedImage);
+
+    invalidateLocalOutputImageIndex();
+    expect(await findLocalOutputImage("cached-output")).toBeNull();
   });
 });

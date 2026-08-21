@@ -11,6 +11,7 @@ import {
   FolderSearch,
   Focus,
   Heart,
+  ImageOff,
   ImagePlus,
   Info,
   Maximize2,
@@ -32,6 +33,10 @@ import { referenceDropTargets, referencePreviewSrc } from "@/lib/reference-roles
 import type { AssetBadge, AssetRecord, AspectRatio, ImageWorkspaceMode, ReferenceImage, ReferenceRole } from "@/lib/types";
 
 type ImageToolMode = ImageWorkspaceMode;
+
+// Broken legacy pointers should fail once per browser session, not every time
+// the Assets tab remounts or a card re-enters the viewport.
+const unavailableMediaSources = new Set<string>();
 
 type AssetCardProps = {
   asset: AssetRecord;
@@ -118,6 +123,9 @@ export function AssetCard(props: AssetCardProps) {
   const asset = props.asset;
   const isVideo = asset.mediaType === "video";
   const mediaSource = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
+  const [mediaFailed, setMediaFailed] = useState(
+    () => !mediaSource || unavailableMediaSources.has(mediaSource)
+  );
   const origin = assetOrigin(asset);
   const OriginIcon = origin.icon;
   const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
@@ -138,6 +146,15 @@ export function AssetCard(props: AssetCardProps) {
       if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    setMediaFailed(!mediaSource || unavailableMediaSources.has(mediaSource));
+  }, [mediaSource]);
+
+  function markMediaUnavailable() {
+    if (mediaSource) unavailableMediaSources.add(mediaSource);
+    setMediaFailed(true);
+  }
 
   async function copyAssetPrompt() {
     if (!asset.prompt.trim()) return;
@@ -176,14 +193,32 @@ export function AssetCard(props: AssetCardProps) {
         }}
         title={isVideo ? "Open video or drag it into FLUX.3 continuation" : "Drag onto a workspace canvas, the prompt editor, an audio timing row, or the reference dropzone"}
       >
-        {isVideo ? (
+        {mediaFailed ? (
+          <span className="assetMediaUnavailable" role="img" aria-label="Image unavailable">
+            <ImageOff size={22} />
+            <span>Image unavailable</span>
+          </span>
+        ) : isVideo ? (
           <>
-            <video src={mediaSource} muted playsInline preload="metadata" aria-label={asset.title || asset.id} />
+            <video
+              src={mediaSource}
+              muted
+              playsInline
+              preload="metadata"
+              aria-label={asset.title || asset.id}
+              onError={markMediaUnavailable}
+            />
             <span className="assetVideoPlay" aria-hidden="true"><Play size={18} fill="currentColor" /></span>
           </>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={mediaSource} alt={asset.title || asset.id} />
+          <img
+            src={mediaSource}
+            alt={asset.title || asset.id}
+            loading="lazy"
+            decoding="async"
+            onError={markMediaUnavailable}
+          />
         )}
         <span className={`assetOriginBadge assetOrigin-${origin.className}`} title={origin.title}>
           {isVideo ? <Film size={11} /> : <OriginIcon size={11} />}

@@ -125,3 +125,24 @@ Mechanical verification remains green at 66 test files / 514 tests, successful
 production build, zero lint errors with four inherited warnings, clean diff
 whitespace, and HTTP 200 for the preview and queue endpoint. The result remains
 local and `awaiting-review` until the final visual verdict.
+
+### Human-reviewed gallery stability normalization
+
+The following review retained the Reflective theme but identified a partial
+survival defect at application scale: FLUX.3's special grid read as a zoom,
+gallery grain became visible striping, and missing legacy media plus a continuous
+shader overloaded scroll. The repair preserves every BFL workflow, theme token,
+panel identity and mobile breakpoint while normalizing FLUX.3 to the shared rail
+and control width, clearing only the asset-library material, pausing the shader
+during scroll, and adding shared/negative output-image caching with a stable
+missing-media placeholder.
+
+Trait update: the reflective shade and other panel materials survive; the
+striped gallery grain is intentionally lost; full-height gallery backdrop blur
+is lost for scroll stability; a clear gallery ground, lazy media decoding and a
+session failure cache are novel. Rejected alternatives were globally flattening
+all panels, increasing cache size without addressing repeated filesystem scans,
+or restoring deleted image files from an unverified remote source. Verification
+is 66 test files / 515 tests, successful production build, zero lint errors with
+four inherited warnings, clean diff whitespace and local HTTP checks. Promotion
+remains `awaiting-review`; no paid inference, push or publication occurred.

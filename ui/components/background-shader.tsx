@@ -44,6 +44,9 @@ export function BackgroundShader({ theme }: BackgroundShaderProps) {
     let columns = 0;
     let rows = 0;
     let imageData: ImageData | null = null;
+    let lastRenderAt = -Infinity;
+    let isScrolling = false;
+    let scrollTimer = 0;
 
     function resize() {
       width = window.innerWidth;
@@ -67,8 +70,22 @@ export function BackgroundShader({ theme }: BackgroundShaderProps) {
       cursor.targetY = event.clientY / height;
     }
 
+    function handleScroll() {
+      isScrolling = true;
+      window.clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(() => {
+        isScrolling = false;
+      }, 120);
+    }
+
     function render(time: number) {
-      if (!imageData) return;
+      frameId = window.requestAnimationFrame(render);
+      if (!imageData || document.hidden || isScrolling) return;
+
+      // Thirty frames per second is visually continuous for this slow field and
+      // leaves the main thread/compositor room for gallery scroll and decoding.
+      if (time - lastRenderAt < 1000 / 30) return;
+      lastRenderAt = time;
 
       cursor.x += (cursor.targetX - cursor.x) * 0.085;
       cursor.y += (cursor.targetY - cursor.y) * 0.085;
@@ -114,18 +131,20 @@ export function BackgroundShader({ theme }: BackgroundShaderProps) {
       targetContext.imageSmoothingEnabled = true;
       bufferContext.putImageData(imageData, 0, 0);
       targetContext.drawImage(bufferCanvas, 0, 0, width, height);
-      frameId = window.requestAnimationFrame(render);
     }
 
     resize();
     frameId = window.requestAnimationFrame(render);
     window.addEventListener("resize", resize);
     window.addEventListener("pointermove", moveCursor, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       window.cancelAnimationFrame(frameId);
+      window.clearTimeout(scrollTimer);
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", moveCursor);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 

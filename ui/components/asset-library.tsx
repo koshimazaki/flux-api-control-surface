@@ -146,7 +146,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
 
   return (
     <section
-      className="assetsPanel"
+      className="assetsPanel assetLibraryPanel"
       onDragOver={(event) => {
         if (Array.from(event.dataTransfer.types).includes("Files")) {
           event.preventDefault();
