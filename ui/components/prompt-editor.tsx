@@ -10,6 +10,7 @@ import {
   referenceToken
 } from "@/lib/reference-roles";
 import { BFL_IMAGE_OPTION_MIME, setReferenceDragData } from "@/lib/reference-drag";
+import { insertPromptToken as insertToken } from "@/lib/prompt-utils";
 import type { AssetRecord, PromptRecord, ReferenceImage } from "@/lib/types";
 import { comboEnvironmentLabel, promptHeaderSummary, type ComboEnvironmentOption } from "@/lib/prompt-combo";
 import { applyEnvironmentToPrompt, applyPresetToPrompt, compactPrompt, presets } from "@/lib/prompt-utils";
@@ -101,16 +102,15 @@ export function PromptEditor({
   function insertPromptToken(tokens: string) {
     if (!tokens.trim()) return;
     const textarea = textareaRef.current;
-    const start = textarea?.selectionStart ?? promptText.length;
-    const end = textarea?.selectionEnd ?? start;
-    const before = promptText.slice(0, start);
-    const after = promptText.slice(end);
-    const prefix = before && !/\s$/.test(before) ? " " : "";
-    const suffix = after && !/^\s/.test(after) ? " " : "";
-    const nextValue = `${before}${prefix}${tokens.trim()}${suffix}${after}`;
-    editPrompt(nextValue);
+    // Only treat the caret as live when the textarea actually holds focus. A
+    // blurred textarea reports selectionStart 0, so reading it unconditionally
+    // pushed every role token to the FRONT of the prompt whenever the user had
+    // not clicked into the box first.
+    const isFocused = Boolean(textarea) && typeof document !== "undefined" && document.activeElement === textarea;
+    const selection = isFocused && textarea ? { start: textarea.selectionStart, end: textarea.selectionEnd } : null;
+    const { text, cursor } = insertToken(promptText, tokens, selection);
+    editPrompt(text);
     window.setTimeout(() => {
-      const cursor = start + prefix.length + tokens.trim().length;
       textarea?.focus();
       textarea?.setSelectionRange(cursor, cursor);
     }, 0);

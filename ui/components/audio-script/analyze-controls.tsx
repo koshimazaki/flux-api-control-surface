@@ -1,4 +1,10 @@
-import { clamp } from "@/lib/audio-script";
+import {
+  audioWindowFitLabel,
+  audioWindowMaxSeconds,
+  audioWindowStepSeconds,
+  audioWindowSteps,
+  clamp
+} from "@/lib/audio-script";
 
 type AnalyzeControlsProps = {
   startSeconds: number;
@@ -20,14 +26,28 @@ export function AnalyzeControls(props: AnalyzeControlsProps) {
       </label>
       <label>
         Analyze length
+        {/* A fader in the 5s increments shots are chopped at, so the window
+            lands on a real clip boundary instead of an arbitrary number. */}
         <input
-          type="number"
-          min={1}
-          max={15}
-          step={0.5}
-          value={durationSeconds}
-          onChange={(event) => onSetDurationSeconds(clamp(Number(event.target.value) || 15, 1, 15))}
+          className="audioWindowFader"
+          type="range"
+          min={audioWindowStepSeconds}
+          max={audioWindowMaxSeconds}
+          step={audioWindowStepSeconds}
+          list="audioWindowTicks"
+          value={clamp(durationSeconds, audioWindowStepSeconds, audioWindowMaxSeconds)}
+          aria-label="Analysis window length in seconds"
+          aria-valuetext={audioWindowFitLabel(durationSeconds)}
+          onChange={(event) =>
+            onSetDurationSeconds(clamp(Number(event.target.value) || audioWindowStepSeconds, audioWindowStepSeconds, audioWindowMaxSeconds))
+          }
         />
+        <datalist id="audioWindowTicks">
+          {audioWindowSteps.map((step) => (
+            <option key={step} value={step} label={`${step}`} />
+          ))}
+        </datalist>
+        <small className="audioWindowFit">{audioWindowFitLabel(durationSeconds)}</small>
       </label>
       <label>
         Bars
