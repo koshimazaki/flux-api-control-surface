@@ -300,6 +300,7 @@
 }
 
 .dsgn-root .topBarUtilityRow {
+  --header-utility-height: 30px;
   gap: var(--space-3);
   flex-wrap: nowrap;
 }
@@ -309,7 +310,10 @@
 }
 
 .dsgn-root .compactBalance {
-  min-height: 30px;
+  height: var(--header-utility-height);
+  min-height: var(--header-utility-height);
+  max-height: var(--header-utility-height);
+  box-sizing: border-box;
   grid-template-columns: auto auto 26px;
   gap: var(--space-2);
   align-items: center;
@@ -339,8 +343,8 @@
 }
 
 .dsgn-root .compactBalance button {
-  width: 26px;
-  min-height: 26px;
+  width: 24px;
+  min-height: 24px;
   grid-column: 3;
   padding: 0;
 }
@@ -349,7 +353,10 @@
   position: relative;
   width: auto;
   min-width: 108px;
-  min-height: 30px;
+  height: var(--header-utility-height);
+  min-height: var(--header-utility-height);
+  max-height: var(--header-utility-height);
+  box-sizing: border-box;
   display: block;
   padding: 2px;
 }
@@ -359,7 +366,8 @@
 }
 
 .dsgn-root .keyDisclosure {
-  min-height: 26px;
+  height: 24px;
+  min-height: 24px;
   gap: 5px;
   padding: 0 5px;
 }
@@ -395,10 +403,14 @@
 
 .themePicker {
   position: relative;
+  height: var(--header-utility-height);
 }
 
 .dsgn-root .themePickerTrigger {
-  min-height: 30px;
+  height: var(--header-utility-height);
+  min-height: var(--header-utility-height);
+  max-height: var(--header-utility-height);
+  box-sizing: border-box;
   gap: 6px;
   padding: 0 8px;
   white-space: nowrap;
@@ -607,6 +619,44 @@
   font-size: 8px;
 }
 
+/* Keep the saved-prompt rail from setting the height of the entire workspace
+   once the shell switches to its narrow grids. The list remains directly
+   scrollable, but the scrollbar stays visually quiet. */
+@media (max-width: 1160px) {
+  .dsgn-root .workspace > .library:not(.collapsedLibrary) {
+    align-self: start;
+    width: 100%;
+    max-height: min(68dvh, 640px);
+    overflow: hidden;
+  }
+
+  .dsgn-root .workspace > .library:not(.collapsedLibrary) .promptList {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .dsgn-root .workspace > .library:not(.collapsedLibrary) .promptList::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1160px) {
+  .dsgn-root .workspaceMain {
+    min-height: clamp(420px, 54dvh, 540px);
+  }
+
+  .dsgn-root .comboControlCluster {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+}
+
 @media (max-width: 900px) {
   .dsgn-root .topBarUtilityRow {
     display: grid;
@@ -637,6 +687,44 @@
   .dsgn-root .keyBoxFields,
   .themePickerMenu {
     right: 0;
+  }
+
+  .dsgn-root .library > .panelHeader .iconButton,
+  .dsgn-root .libraryActions .iconButton {
+    width: 30px;
+    min-height: 30px;
+    flex-basis: 30px;
+    padding: 0;
+  }
+
+  .dsgn-root .library > .panelHeader .iconButton svg,
+  .dsgn-root .libraryActions .iconButton svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .dsgn-root .libraryActions .comboModeButton {
+    min-height: 30px;
+    padding: 0 var(--space-3);
+  }
+
+  .dsgn-root .libraryActions,
+  .dsgn-root .comboControlCluster,
+  .dsgn-root .libraryHeaderActions,
+  .dsgn-root .comboControlPrimary,
+  .dsgn-root .comboControlActions {
+    gap: var(--space-2);
+  }
+
+  .dsgn-root .workspaceMain {
+    min-height: 0;
+  }
+
+  .dsgn-root .promptEditor {
+    height: clamp(220px, 38dvh, 320px);
+    min-height: 220px;
+    max-height: 320px;
+    flex: 0 1 auto;
   }
 }
 

@@ -191,3 +191,23 @@ content, and removal of horizontal page overflow. No paid inference, key
 mutation, remote push or publication occurred. The exact FLUX 3 Video Upscale
 result quality remains a black-box boundary until the operator elects to spend
 on a real job; visual promotion remains a human gate.
+
+### Narrow Prompt Library survival repair
+
+The next human gate retained the full visual child and isolated a scale defect
+in the Prompt Library. Survived: palette/theme grounds, panel material, prompt
+records, combo actions, editor/reference structure and every BFL workflow.
+Partial: the desktop library rail becomes a bounded viewport at ≤1160px and its
+actions reflow from one row to two only while the rail is 240px. Lost: visible
+prompt-list scrollbar, unbounded list-driven workspace height and distributed
+single-button columns. Novel: quiet touch scrolling and one 30px utility rhythm
+shared by Theme, Balance and Key.
+
+Defect → repair: the 42-record list stretched its grid row; it now scrolls
+inside a 68dvh/640px bound. Settings and Combine overlapped in the side rail;
+semantic action groups and a two-row intermediate breakpoint keep every square
+separate. Rejected alternatives were truncating the prompt collection, hiding
+the library by default, or globally shrinking all controls. Live inspection
+found no overlap, horizontal overflow or browser errors; TypeScript, production
+build and 68 files / 524 tests passed, with zero lint errors and four inherited
+warnings. The result remains local and `awaiting-review`.

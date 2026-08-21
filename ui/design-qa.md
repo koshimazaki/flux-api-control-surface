@@ -300,3 +300,26 @@ Verification: `npx tsc --noEmit` passed; `npm test` passed 68 files / 524 tests;
 inherited warnings; live browser inspection found no horizontal overflow at
 the narrow breakpoint. The former dotted video-brand spelling no longer occurs;
 technical `flux3` route and code identifiers remain unchanged by design.
+
+## Human follow-up: narrow Prompt Library rhythm
+
+The operator's 1558×1100 and mobile captures exposed one responsive composition
+defect rather than a new visual direction: the full saved-prompt list set the
+height of the workspace, square library actions were distributed as unrelated
+columns and could overlap in the 240px rail, and Theme, Balance and Key differed
+slightly in rendered height.
+
+The repair bounds the library to the viewport and gives its prompt list an
+independent touch-scroll region with no visible scrollbar. The prompt editor is
+capped on narrow screens. Header/library actions are grouped; the 240px rail
+uses two compact rows while the 310px rail keeps one row. All square library
+actions become 30px with 14px glyphs on mobile, and Theme, Balance and Key now
+share an exact 30px utility height. The apparently malformed combo icon was two
+buttons overlapping; separation fixed it without replacing the icon language.
+
+Live inspection measured a 506px library with a 327px viewport over 2511px of
+prompt content, hidden scrollbar, `pan-y` touch behavior, a 283px editor, no
+control overlap or horizontal overflow, and no browser errors. TypeScript,
+production build and 68 files / 524 tests passed; lint remains at zero errors
+and four inherited warnings. Desktop library geometry and workflows remain
+unchanged. Promotion and publication remain human gates.

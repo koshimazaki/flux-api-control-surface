@@ -32,33 +32,37 @@ export function PromptLibraryControls({
   return (
     <div className="libraryActions">
       <div className="comboControlCluster">
-        <ComboModeMenu
-          mode={comboSettings.mode}
-          open={modeMenuOpen}
-          onOpenChange={(open) => {
-            setModeMenuOpen(open);
-            if (open) setSettingsOpen(false);
-          }}
-          onModeChange={onComboModeChange}
-        />
-        <ComboSettingsPopover
-          settings={comboSettings}
-          open={settingsOpen}
-          onOpenChange={(open) => {
-            setSettingsOpen(open);
-            if (open) setModeMenuOpen(false);
-          }}
-          onSave={onComboSettingsSave}
-        />
-        <IconButton title="Create combo prompt" onClick={onBuildCombo} disabled={selectedCount < 2}>
-          <Combine size={16} />
-        </IconButton>
-        <IconButton title="Clear combo" onClick={onClearCombo} disabled={!selectedCount && !activeId.startsWith("combo_")}>
-          <RotateCcw size={17} />
-        </IconButton>
-        <IconButton title="Export prompts" onClick={onExport}>
-          <FileJson size={16} />
-        </IconButton>
+        <div className="comboControlPrimary">
+          <ComboModeMenu
+            mode={comboSettings.mode}
+            open={modeMenuOpen}
+            onOpenChange={(open) => {
+              setModeMenuOpen(open);
+              if (open) setSettingsOpen(false);
+            }}
+            onModeChange={onComboModeChange}
+          />
+          <ComboSettingsPopover
+            settings={comboSettings}
+            open={settingsOpen}
+            onOpenChange={(open) => {
+              setSettingsOpen(open);
+              if (open) setModeMenuOpen(false);
+            }}
+            onSave={onComboSettingsSave}
+          />
+        </div>
+        <div className="comboControlActions">
+          <IconButton title="Create combo prompt" onClick={onBuildCombo} disabled={selectedCount < 2}>
+            <Combine size={16} />
+          </IconButton>
+          <IconButton title="Clear combo" onClick={onClearCombo} disabled={!selectedCount && !activeId.startsWith("combo_")}>
+            <RotateCcw size={17} />
+          </IconButton>
+          <IconButton title="Export prompts" onClick={onExport}>
+            <FileJson size={16} />
+          </IconButton>
+        </div>
       </div>
     </div>
   );

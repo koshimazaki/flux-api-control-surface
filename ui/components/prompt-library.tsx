@@ -81,19 +81,21 @@ export function PromptLibrary({
   return (
     <aside className="panel library">
       <PanelHeader title="Prompt Library">
-        {canShowTemplates && (
-          <IconButton
-            title={showTemplates ? "Back to saved prompts" : "Video prompt templates"}
-            onClick={() => setShowTemplates((current) => !current)}
-          >
-            <LayoutTemplate size={17} />
-          </IconButton>
-        )}
-        {canCollapse && (
-          <IconButton title="Collapse prompt library" onClick={() => onCollapsedChange?.(true)}>
-            <ChevronLeft size={17} />
-          </IconButton>
-        )}
+        <div className="libraryHeaderActions">
+          {canShowTemplates && (
+            <IconButton
+              title={showTemplates ? "Back to saved prompts" : "Video prompt templates"}
+              onClick={() => setShowTemplates((current) => !current)}
+            >
+              <LayoutTemplate size={17} />
+            </IconButton>
+          )}
+          {canCollapse && (
+            <IconButton title="Collapse prompt library" onClick={() => onCollapsedChange?.(true)}>
+              <ChevronLeft size={17} />
+            </IconButton>
+          )}
+        </div>
       </PanelHeader>
       <PromptLibraryControls
         activeId={activeId}
