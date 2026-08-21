@@ -16,7 +16,7 @@
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 14px;
+  gap: var(--space-5, 14px);
 }
 
 .flux3PreviewPanel,
@@ -28,7 +28,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px;
+  padding: var(--space-5, 12px);
 }
 
 .flux3EndpointBadge {
@@ -165,7 +165,7 @@
 
 .flux3Controls {
   align-self: stretch;
-  padding: 12px;
+  padding: var(--space-5, 12px);
 }
 
 .flux3Controls textarea {

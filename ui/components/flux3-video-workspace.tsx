@@ -308,7 +308,9 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       </div>
 
       <aside className="flux3Controls panel controls">
-        <PanelHeader title="Create video" subtitle="Choose what the model starts from" />
+        <PanelHeader title="Create video" subtitle="Choose what the model starts from">
+          <Film size={18} aria-label="FLUX.3 video creation" />
+        </PanelHeader>
         <div className="flux3ModePicker">
           {modeOptions.map(({ id, label, detail, icon: Icon }) => (
             <button type="button" className={mode === id ? "active" : ""} key={id} onClick={() => setMode(id)}>

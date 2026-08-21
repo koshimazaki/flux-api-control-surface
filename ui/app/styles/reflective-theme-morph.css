@@ -173,6 +173,7 @@
   padding: var(--space-5) var(--space-6);
   overflow: visible;
   isolation: isolate;
+  z-index: 1400;
 }
 
 .dsgn-root .topBarRight {
@@ -427,6 +428,17 @@
   border-color: #62c4e6;
   background: rgba(98, 196, 230, 0.15);
   color: #9be1f2;
+}
+
+.dsgn-root .editor .promptPresetToolbar {
+  width: min(640px, 100%);
+  align-self: center;
+  margin: 0 auto var(--space-5);
+}
+
+.dsgn-root .editor .promptPresetToolbar .presetToggle {
+  justify-content: center;
+  gap: var(--space-2);
 }
 
 .flux3HeaderTools {

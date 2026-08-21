@@ -147,45 +147,45 @@ export function PromptEditor({
       <PanelHeader
         title={<span className="promptHeaderTitle" title={headerSummary}>{headerSummary}</span>}
         subtitle={activePrompt?.plant_form || "Structured FLUX.2 prompt"}
-      >
-        <div className="presetRow" role="group" aria-label="Look presets">
-          <div className="presetGroup" role="radiogroup" aria-label="Lighting style">
-            {presets.map((preset) => {
-              const active = preset.id === activePresetId;
-              return (
-                <button
-                  key={preset.id}
-                  className={active ? "presetToggle active" : "presetToggle"}
-                  data-preset-id={preset.id}
-                  aria-pressed={active}
-                  onClick={() => applyPreset(preset)}
-                >
-                  <Wand2 size={15} />
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-          <div className="presetGroup environmentPresetGroup" role="radiogroup" aria-label="Environment">
-            {environmentOptions.map((environment) => {
-              const active = environment.id === activeEnvironment;
-              return (
-                <button
-                  key={environment.id}
-                  className={active ? "presetToggle active" : "presetToggle"}
-                  data-environment-id={environment.id}
-                  aria-pressed={active}
-                  title={environment.description}
-                  onClick={() => applyEnvironment(environment)}
-                >
-                  <MapPin size={15} />
-                  {comboEnvironmentLabel(environment)}
-                </button>
-              );
-            })}
-          </div>
+      />
+
+      <div className="presetRow promptPresetToolbar" role="group" aria-label="Look presets">
+        <div className="presetGroup" role="radiogroup" aria-label="Lighting style">
+          {presets.map((preset) => {
+            const active = preset.id === activePresetId;
+            return (
+              <button
+                key={preset.id}
+                className={active ? "presetToggle active" : "presetToggle"}
+                data-preset-id={preset.id}
+                aria-pressed={active}
+                onClick={() => applyPreset(preset)}
+              >
+                <Wand2 size={15} />
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
-      </PanelHeader>
+        <div className="presetGroup environmentPresetGroup" role="radiogroup" aria-label="Environment">
+          {environmentOptions.map((environment) => {
+            const active = environment.id === activeEnvironment;
+            return (
+              <button
+                key={environment.id}
+                className={active ? "presetToggle active" : "presetToggle"}
+                data-environment-id={environment.id}
+                aria-pressed={active}
+                title={environment.description}
+                onClick={() => applyEnvironment(environment)}
+              >
+                <MapPin size={15} />
+                {comboEnvironmentLabel(environment)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <textarea
         ref={textareaRef}

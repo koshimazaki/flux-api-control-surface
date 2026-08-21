@@ -209,3 +209,32 @@ Rejected alternatives:
   also returned HTTP 200 with no server exception.
 - Browser automation again rejected localhost under its URL policy, so the
   desktop/mobile material verdict remains the human promotion gate.
+
+## Human follow-up: shell consistency repair
+
+The operator reviewed the linked Reflective child and kept the overall
+direction, animations and denser FLUX.3 treatment. The remaining screenshot-
+backed defects were narrow: theme and Keychain overlays painted behind the
+workspace; the two prompt-preset groups sat too close to the right edge; the
+Create video panel lacked the same corner identity gesture as Glyphs; and the
+later-added FLUX.3 workspace did not share the surrounding spacing rhythm.
+The operator also reviewed the Audio analysis/export sequence and concluded it
+was coherent, so no Audio behaviour changed.
+
+One bounded repair was made:
+
+- Raised the topbar stacking context so both anchored overlays clear every
+  workspace panel without changing their data or disclosure behaviour.
+- Moved the lighting and environment presets into one centered toolbar and
+  tightened icon-to-label spacing.
+- Added the shared PanelHeader corner film mark to Create video.
+- Confirmed all seven modes, including FLUX.3, already use the same
+  `TabButtonBar`; replaced FLUX.3's later hard-coded inner gap and padding with
+  the same Holodeck spacing token used by the surrounding workspace.
+
+The repair keeps the theme system, shader, BFL workflows, FLUX.3 modes, queue,
+pricing and Audio logic frozen. Verification: 66 files / 514 tests passed;
+production build passed; lint has zero errors and the same four inherited
+warnings; diff whitespace passed; `/` and `/api/dashboard/queue` returned HTTP
+200 after the preview was restarted on port 3017. Final visual promotion remains
+a human gate.

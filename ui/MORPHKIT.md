@@ -106,3 +106,22 @@ Verification is 66 test files / 514 tests, production build, zero lint errors
 with four inherited warnings, clean diff whitespace and a local HTTP 200
 preview. Promotion remains `awaiting-review`; browser automation could not
 cross its localhost URL policy, and no push or publication occurred.
+
+### Human-reviewed shell normalization
+
+The next human review kept the linked theme direction but requested one small
+shell-consistency repair. The theme and Keychain menus now inherit a topbar
+stacking context above the workspace, Generate's two preset groups are centered
+with tighter icon spacing, and Create video's `PanelHeader` now carries the same
+corner identity gesture as the other tool panels.
+
+FLUX.3 was verified to use the exact shared `TabButtonBar` implementation; no
+duplicate tab component existed. Its later hard-coded inner gap and panel
+padding were normalized to the shared Holodeck spacing token so selecting the
+mode no longer introduces a separate rhythm. The user's Audio observation was
+recorded as accepted without code change.
+
+Mechanical verification remains green at 66 test files / 514 tests, successful
+production build, zero lint errors with four inherited warnings, clean diff
+whitespace, and HTTP 200 for the preview and queue endpoint. The result remains
+local and `awaiting-review` until the final visual verdict.
