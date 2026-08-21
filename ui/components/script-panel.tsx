@@ -14,7 +14,7 @@ type ScriptPanelProps = {
 };
 
 /**
- * Thin shell for the Script surface. The image pair workflow and the FLUX.3
+ * Thin shell for the Script surface. The image pair workflow and the FLUX 3
  * Video Script are sibling sub-tabs; this component only chooses between them.
  */
 export function ScriptPanel(props: ScriptPanelProps) {

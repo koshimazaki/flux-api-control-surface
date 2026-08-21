@@ -81,8 +81,8 @@ export type ReferenceRole = "character" | "style" | "environment" | "pose" | "lo
 
 export type BatchMode = "current" | "library" | "permutations";
 
-export type WorkspaceMode = "prompt" | "erase" | "vto" | "outpaint" | "deblur" | "flux3" | "glyphs";
-export type ImageWorkspaceMode = Exclude<WorkspaceMode, "prompt" | "flux3">;
+export type WorkspaceMode = "prompt" | "erase" | "vto" | "outpaint" | "deblur" | "flux3" | "upscale" | "glyphs";
+export type ImageWorkspaceMode = Exclude<WorkspaceMode, "prompt" | "flux3" | "upscale">;
 
 export type DashboardTab = "script" | "audio" | "assets" | "runs" | "collections" | "apis" | "mcp" | "system";
 

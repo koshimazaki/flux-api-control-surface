@@ -252,7 +252,7 @@ server.registerTool(
   {
     title: "Plan Video Script Batch",
     description:
-      "Deterministically plan a FLUX.3 Video Script batch without spending anything: pools from asset ids or a saved Collection, sequence/per-slot generator workflows (combination, arrangement, rotation, cartesian, zip, seeded sample), prompt assignment from inline texts or promptIds, even or timed keyframes, dedupe, hard cap, and per-second cost. Returns the preview chain, per-row validation, and queue-ready jobs — submit them with enqueue_generation_jobs when the cost is accepted.",
+      "Deterministically plan a FLUX 3 Video Script batch without spending anything: pools from asset ids or a saved Collection, sequence/per-slot generator workflows (combination, arrangement, rotation, cartesian, zip, seeded sample), prompt assignment from inline texts or promptIds, even or timed keyframes, dedupe, hard cap, and per-second cost. Returns the preview chain, per-row validation, and queue-ready jobs — submit them with enqueue_generation_jobs when the cost is accepted.",
     inputSchema: {
       payload: z.record(z.string(), z.unknown())
     },
@@ -282,7 +282,7 @@ server.registerTool(
   {
     title: "Enqueue Generation Jobs",
     description:
-      "Enqueue one or more image, tool, or FLUX.3 video jobs onto the server-owned queue. Returns queue job ids immediately; the server keeps executing them with no browser open.",
+      "Enqueue one or more image, tool, or FLUX 3 video jobs onto the server-owned queue. Returns queue job ids immediately; the server keeps executing them with no browser open.",
     inputSchema: {
       jobs: z
         .array(
@@ -382,11 +382,21 @@ server.registerTool(
 server.registerTool(
   "list_flux3_videos",
   {
-    title: "List FLUX.3 Videos",
-    description: "List locally saved FLUX.3 video renders and draft-cache availability.",
+    title: "List FLUX 3 Videos",
+    description: "List locally saved FLUX 3 video renders and draft-cache availability.",
     inputSchema: {}
   },
   async () => result(await requestJson("/api/bfl/flux3-video"))
+);
+
+server.registerTool(
+  "list_video_upscales",
+  {
+    title: "List FLUX 3 Video Upscales",
+    description: "List locally saved FLUX 3 Video Upscale outputs with source and comparison URLs.",
+    inputSchema: {}
+  },
+  async () => result(await requestJson("/api/bfl/video-upscale"))
 );
 
 server.registerTool(
@@ -430,9 +440,9 @@ server.registerTool(
 server.registerTool(
   "generate_flux3_video",
   {
-    title: "Generate FLUX.3 Video",
+    title: "Generate FLUX 3 Video",
     description:
-      "Generate and locally save FLUX.3 text-to-video, image-to-video, video continuation, or deterministic draft enhancement output.",
+      "Generate and locally save FLUX 3 text-to-video, image-to-video, video continuation, or deterministic draft enhancement output.",
     inputSchema: {
       payload: z.record(z.string(), z.unknown())
     },
@@ -442,6 +452,33 @@ server.registerTool(
     }
   },
   async ({ payload }) => result(await post("/api/bfl/flux3-video", payload))
+);
+
+server.registerTool(
+  "upscale_video",
+  {
+    title: "Upscale Video with FLUX 3",
+    description:
+      "Upscale and locally save an MP4 with FLUX 3 Video Upscale. Supports 1.5×–3×, precise or creative recovery, an optional detail prompt, and safety tolerance 0–4.",
+    inputSchema: {
+      inputVideo: z.string().min(1).describe("Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL."),
+      upscaleFactor: z.number().min(1.5).max(3).optional(),
+      creativity: z.union([z.literal(0), z.literal(1)]).optional().describe("0 precise, 1 creative."),
+      prompt: z.string().max(4000).optional(),
+      safetyTolerance: z.number().int().min(0).max(4).optional(),
+      title: z.string().max(160).optional(),
+      sourceAssetId: z.string().optional(),
+      sourceName: z.string().optional(),
+      sourceWidth: z.number().int().positive().optional(),
+      sourceHeight: z.number().int().positive().optional(),
+      durationSeconds: z.number().positive().max(20).optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async (payload) => result(await post("/api/bfl/video-upscale", payload))
 );
 
 server.registerTool(

@@ -157,7 +157,7 @@ const SOUND_PATTERN = /\b(sound|sfx|room tone|ambience|ambient|foley)\b\s*:/i;
 
 /**
  * Best-effort category for a prompt with no explicit one — used when a prompt is
- * promoted from a rated generation or saved off a FLUX.3 asset. Timed beats win
+ * promoted from a rated generation or saved off a FLUX 3 asset. Timed beats win
  * over dialogue, dialogue over length, and anything short is simple.
  */
 export function inferVideoCategory(text: string): VideoPromptCategory {

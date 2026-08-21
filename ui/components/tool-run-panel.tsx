@@ -111,7 +111,7 @@ export function ToolRunPanel(props: ToolRunPanelProps) {
     (props.mode === "vto" && (!props.vtoGarmentCount || !props.promptText.trim()));
 
   return (
-    <aside className="panel controls toolControls">
+    <aside className={`panel controls toolControls mode-${props.mode}`}>
       <PanelHeader
         title={copy.title}
         subtitle={props.sourceAsset ? props.sourceAsset.title || props.sourceAsset.id : "No source loaded"}

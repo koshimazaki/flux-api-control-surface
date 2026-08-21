@@ -234,6 +234,39 @@
   color: var(--muted);
   white-space: nowrap;
   font-size: 11px;
+  /* `strong` above already clips; `small` did not, so a long value grew the
+     `auto` track instead of being cut, and widened the whole panel. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A queue row must never widen its panel. Grid children default to min-content,
+   so without min-width:0 an unbreakable string sets the floor for the track. */
+.queueBox,
+.queueMeter,
+.queueJob,
+.queueEmpty {
+  min-width: 0;
+}
+
+.queueJob > *,
+.queueEmpty > * {
+  min-width: 0;
+}
+
+/* A failed row carries a raw provider error of unbounded length. Ellipsising it
+   hides the only thing that matters, so the row stacks and the message wraps —
+   an error you cannot read is useless. */
+.queueJob.failed {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.queueJob.failed small {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
 }
 
 .queueJob.running {

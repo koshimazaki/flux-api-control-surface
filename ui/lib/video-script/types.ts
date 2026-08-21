@@ -103,7 +103,7 @@ export type VideoScriptEditorState = {
   timingMode: VideoScriptTimingMode;
   /** Batch-level timing template applied to every row without an override. */
   timingTemplate: number[];
-  /** Repeatable plan expansion only; FLUX.3 exposes no fresh-generation seed. */
+  /** Repeatable plan expansion only; FLUX 3 exposes no fresh-generation seed. */
   seed: number;
   hardCap: number;
 };

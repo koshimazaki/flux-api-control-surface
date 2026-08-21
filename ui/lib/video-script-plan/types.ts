@@ -3,11 +3,11 @@ import type { PromptRecord } from "@/lib/types";
 
 /**
  * Batch settings for a Video Script plan. This mirrors the `Flux3VideoSettings`
- * shape used by the implementation plan: the subset of FLUX.3 request options a
+ * shape used by the implementation plan: the subset of FLUX 3 request options a
  * planned row owns. Media inputs, API keys, and polling state never live here.
  */
 export type VideoScriptSettings = {
-  /** Seconds, or "auto" to let FLUX.3 decide (only legal with 1-2 untimed keyframes). */
+  /** Seconds, or "auto" to let FLUX 3 decide (only legal with 1-2 untimed keyframes). */
   duration: number | "auto";
   resolution: Flux3VideoResolution;
   aspectRatio: Flux3VideoAspectRatio;
@@ -73,7 +73,7 @@ export type VideoScriptGenerator =
       workflow: "sequence";
       /** Pool that fills every keyframe position. */
       poolId: string;
-      /** Number of keyframe positions per row (1-10 for a valid FLUX.3 job). */
+      /** Number of keyframe positions per row (1-10 for a valid FLUX 3 job). */
       slotCount: number;
       mode: VideoScriptSequenceMode;
     }
@@ -143,7 +143,7 @@ export type VideoScriptPlanInput = {
   /** Batch-level timing template in seconds, one entry per keyframe. */
   timingTemplate?: number[];
   settings?: Partial<VideoScriptSettings>;
-  /** Repeatable plan expansion only. FLUX.3 exposes no fresh-generation seed. */
+  /** Repeatable plan expansion only. FLUX 3 exposes no fresh-generation seed. */
   seed?: number;
   hardCap?: number;
   expansionLimit?: number;

@@ -1,0 +1,745 @@
+/*
+ * Linked MorphKit pass: repaired BFL × Quiet Signal theme orchestration.
+ * Component behaviour and BFL semantics stay invariant; this layer only moves
+ * the material ground, signal palette, and compact theme/header instruments.
+ */
+
+.dsgn-root {
+  --glass-panel-hi: rgba(63, 72, 82, 0.66);
+  --glass-panel-lo: rgba(22, 27, 32, 0.58);
+  --glass-panel-edge: rgba(174, 205, 224, 0.16);
+  --glass-specular: rgba(255, 255, 255, 0.11);
+  --glass-reflection: rgba(124, 206, 234, 0.055);
+  --glass-blur: 26px;
+}
+
+.dsgn-root[data-surface-theme="frozen"] {
+  --surface-void: #0b1117;
+  --surface-sunken: #101923;
+  --surface-base: #17232d;
+  --surface-raised: #21313e;
+  --surface-overlay: #2d404e;
+  --surface-inset: #0d151d;
+  --text-primary: #e8f2fa;
+  --text-secondary: #a9bbc9;
+  --text-muted: #718796;
+  --text-faint: #4b626f;
+  --border-subtle: #21313e;
+  --border-default: #314654;
+  --border-strong: #496676;
+  --border-machined: #648293;
+  --metal-hi: #344b5a;
+  --metal-mid: #233542;
+  --metal-lo: #14212b;
+  --accent: #8cc9ff;
+  --accent-strong: #b3dcff;
+  --accent-ghost: rgba(140, 201, 255, 0.15);
+  --acc-green: #a9b8ff;
+  --acc-green-strong: #c4ceff;
+  --acc-green-dim: #4a567f;
+  --acc-green-ghost: rgba(169, 184, 255, 0.13);
+  --acc-intel: #78e2ee;
+  --acc-intel-strong: #a7f1f6;
+  --acc-intel-dim: #356e78;
+  --acc-intel-ghost: rgba(120, 226, 238, 0.14);
+  --acc-armament: #a989e7;
+  --acc-armament-strong: #c2a8f1;
+  --acc-armament-dim: #584779;
+  --acc-armament-ghost: rgba(169, 137, 231, 0.15);
+  --acc-readout: #c4f5ff;
+  --glass-panel-hi: rgba(46, 72, 90, 0.68);
+  --glass-panel-lo: rgba(14, 27, 37, 0.56);
+  --glass-panel-edge: rgba(179, 228, 255, 0.22);
+  --glass-specular: rgba(224, 247, 255, 0.14);
+  --glass-reflection: rgba(120, 226, 238, 0.075);
+}
+
+.dsgn-root[data-surface-theme="quiet-signal"] {
+  --surface-void: #111315;
+  --surface-sunken: #171a1c;
+  --surface-base: #202427;
+  --surface-raised: #2b3033;
+  --surface-overlay: #373d40;
+  --surface-inset: #131618;
+  --text-primary: #e9e8e1;
+  --text-secondary: #b4b1a7;
+  --text-muted: #7f8079;
+  --text-faint: #555a58;
+  --border-subtle: #292e30;
+  --border-default: #3b4244;
+  --border-strong: #555f60;
+  --border-machined: #6d7777;
+  --metal-hi: #3a4042;
+  --metal-mid: #292e30;
+  --metal-lo: #1a1e20;
+  --accent: #f0a25b;
+  --accent-strong: #ffc078;
+  --accent-ghost: rgba(240, 162, 91, 0.15);
+  --acc-green: #a48ac4;
+  --acc-green-strong: #c0a8db;
+  --acc-green-dim: #554765;
+  --acc-green-ghost: rgba(164, 138, 196, 0.13);
+  --acc-intel: #69c7df;
+  --acc-intel-strong: #9be1ee;
+  --acc-intel-dim: #356778;
+  --acc-intel-ghost: rgba(105, 199, 223, 0.14);
+  --acc-armament: #e17852;
+  --acc-armament-strong: #ed9b6d;
+  --acc-armament-dim: #744132;
+  --acc-armament-ghost: rgba(225, 120, 82, 0.15);
+  --acc-readout: #b8edf3;
+  --glass-panel-hi: rgba(57, 62, 64, 0.68);
+  --glass-panel-lo: rgba(24, 28, 30, 0.6);
+  --glass-panel-edge: rgba(230, 196, 151, 0.14);
+  --glass-specular: rgba(255, 244, 224, 0.1);
+  --glass-reflection: rgba(240, 162, 91, 0.045);
+  --glass-blur: 22px;
+}
+
+/* Exact frost-grey RAMS palette from Quiet Signal's sidkit-grey source. The
+   BFL information architecture and behaviours remain unchanged. */
+.dsgn-root[data-surface-theme="rams-lite"] {
+  color-scheme: light;
+  --surface-void: #b8b8b8;
+  --surface-sunken: #242424;
+  --surface-base: #b8b8b8;
+  --surface-raised: #d4d4d4;
+  --surface-overlay: #e6e6e6;
+  --surface-inset: #a3a3a3;
+  --text-primary: #191919;
+  --text-secondary: #525252;
+  --text-muted: #737373;
+  --text-faint: #8b8b8b;
+  --text-disabled: #9b9b9b;
+  --border-subtle: #b4b4b4;
+  --border-default: #a3a3a3;
+  --border-strong: #737373;
+  --border-machined: #525252;
+  --metal-hi: #ededed;
+  --metal-mid: #d4d4d4;
+  --metal-lo: #b8b8b8;
+  --accent: #ff9f43;
+  --accent-strong: #f97316;
+  --accent-ghost: rgba(255, 159, 67, 0.2);
+  --on-accent: #1a1a1a;
+  --acc-green: #ff9f43;
+  --acc-green-strong: #f97316;
+  --acc-green-dim: #b65f1b;
+  --acc-green-ghost: rgba(255, 159, 67, 0.18);
+  --acc-intel: #62c4e6;
+  --acc-intel-strong: #237f9f;
+  --acc-intel-dim: #397f96;
+  --acc-intel-ghost: rgba(98, 196, 230, 0.2);
+  --acc-armament: #f97316;
+  --acc-armament-strong: #c94f0b;
+  --acc-armament-dim: #98451b;
+  --acc-armament-ghost: rgba(249, 115, 22, 0.18);
+  --acc-readout: #525252;
+  --acc-readout-ghost: rgba(82, 82, 82, 0.14);
+  --spec-heat-cold: #e6e6e6;
+  --spec-heat-low: #62c4e6;
+  --spec-heat-mid: #ff9f43;
+  --spec-heat-high: #f97316;
+  --spec-heat-hot: #df5e0f;
+  --spec-heat-peak: #c94f0b;
+  --glass-panel-hi: rgba(246, 247, 247, 0.86);
+  --glass-panel-lo: rgba(190, 194, 196, 0.72);
+  --glass-panel-edge: rgba(255, 255, 255, 0.58);
+  --glass-specular: rgba(255, 255, 255, 0.66);
+  --glass-reflection: rgba(98, 196, 230, 0.13);
+  --glass-blur: 30px;
+}
+
+.backgroundShader[data-surface-theme="reflective"] canvas {
+  opacity: 0.68;
+  filter: contrast(1.12) brightness(0.84) saturate(1.04);
+}
+
+.backgroundShader[data-surface-theme="frozen"] {
+  background: #0b1117;
+}
+
+.backgroundShader[data-surface-theme="frozen"] canvas {
+  opacity: 0.7;
+  filter: hue-rotate(18deg) contrast(1.1) brightness(0.78) saturate(0.92);
+}
+
+.backgroundShader[data-surface-theme="quiet-signal"] {
+  background: #111315;
+}
+
+.backgroundShader[data-surface-theme="quiet-signal"] canvas {
+  opacity: 0.62;
+  filter: hue-rotate(-9deg) contrast(1.1) brightness(0.74) saturate(0.78);
+}
+
+.backgroundShader[data-surface-theme="rams-lite"] { background: #d4d4d4; }
+.backgroundShader[data-surface-theme="rams-lite"] canvas {
+  opacity: 0.3;
+  filter: grayscale(0.42) hue-rotate(8deg) contrast(0.88) brightness(1.48) saturate(0.62);
+}
+
+.backgroundShader[data-surface-theme="reflective"] .backgroundShaderWash {
+  background:
+    radial-gradient(circle at 64% 22%, rgba(98, 196, 230, 0.07), transparent 38%),
+    linear-gradient(90deg, rgba(16, 19, 22, 0.58), rgba(23, 26, 30, 0.23) 48%, rgba(16, 19, 22, 0.62));
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.46);
+}
+
+.backgroundShader[data-surface-theme="frozen"] .backgroundShaderWash {
+  background:
+    radial-gradient(circle at 60% 18%, rgba(120, 226, 238, 0.09), transparent 40%),
+    linear-gradient(90deg, rgba(11, 17, 23, 0.62), rgba(17, 29, 40, 0.26) 48%, rgba(11, 17, 23, 0.66));
+  box-shadow: inset 0 0 160px rgba(2, 8, 13, 0.48);
+}
+
+.backgroundShader[data-surface-theme="quiet-signal"] .backgroundShaderWash {
+  background:
+    radial-gradient(circle at 62% 20%, rgba(240, 162, 91, 0.055), transparent 38%),
+    linear-gradient(90deg, rgba(17, 19, 21, 0.66), rgba(28, 31, 33, 0.3) 48%, rgba(17, 19, 21, 0.7));
+  box-shadow: inset 0 0 170px rgba(0, 0, 0, 0.52);
+}
+
+.backgroundShader[data-surface-theme="rams-lite"] .backgroundShaderWash {
+  background:
+    radial-gradient(circle at 62% 18%, rgba(98, 196, 230, 0.16), transparent 42%),
+    linear-gradient(90deg, rgba(230, 230, 230, 0.78), rgba(212, 212, 212, 0.38) 48%, rgba(184, 184, 184, 0.72));
+  box-shadow: inset 0 0 160px rgba(82, 82, 82, 0.22);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .keyBoxFields,
+.dsgn-root[data-surface-theme="rams-lite"] .themePickerMenu {
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.78), transparent 38%),
+    rgba(220, 222, 223, 0.96);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .promptEditor,
+.dsgn-root[data-surface-theme="rams-lite"] input,
+.dsgn-root[data-surface-theme="rams-lite"] textarea,
+.dsgn-root[data-surface-theme="rams-lite"] select,
+.dsgn-root[data-surface-theme="rams-lite"] .queueEmpty,
+.dsgn-root[data-surface-theme="rams-lite"] .videoUpscaleTarget,
+.dsgn-root[data-surface-theme="rams-lite"] .videoUpscaleCost {
+  background: rgba(244, 245, 245, 0.72);
+  color: var(--text-primary);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .workspaceModeBar .tabButton {
+  background: linear-gradient(180deg, rgba(242, 243, 243, 0.86), rgba(188, 191, 193, 0.82));
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .workspaceModeBar .tabButton.active {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgba(255, 185, 112, 0.68), rgba(224, 153, 84, 0.38));
+  color: #191919;
+}
+
+.dsgn-root .workspaceModeBar .tabButton-upscale.active {
+  border-color: var(--acc-intel);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--acc-intel) 24%, transparent), color-mix(in srgb, var(--surface-sunken) 78%, transparent));
+  color: var(--acc-intel-strong);
+  box-shadow: var(--rim-top), 0 0 10px -3px var(--acc-intel);
+}
+
+.dsgn-root .topbar,
+.dsgn-root .panel,
+.dsgn-root .assetsPanel,
+.dsgn-root .statCard,
+.dsgn-root .tabBar,
+.dsgn-root .referenceDock {
+  border-color: color-mix(in srgb, var(--border-machined) 72%, var(--glass-panel-edge));
+  background:
+    linear-gradient(118deg, var(--glass-specular) 0%, rgba(255, 255, 255, 0.025) 16%, transparent 39%),
+    radial-gradient(circle at 78% -20%, var(--glass-reflection), transparent 48%),
+    repeating-linear-gradient(90deg, rgba(var(--lumen), 0.012) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--glass-panel-hi), var(--glass-panel-lo));
+  box-shadow:
+    inset 0 1px 0 var(--glass-specular),
+    inset 1px 0 0 rgba(255, 255, 255, 0.025),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.54),
+    0 10px 28px rgba(0, 0, 0, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.24) brightness(1.03);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.24) brightness(1.03);
+}
+
+/* The gallery can be several screens tall. A full-height backdrop blur plus
+   the fine repeating grain forces expensive re-rasterization during scroll,
+   and the grain reads as stray stripes between the header and thumbnails. */
+.dsgn-root .assetLibraryPanel {
+  background:
+    linear-gradient(118deg, var(--glass-specular) 0%, rgba(255, 255, 255, 0.018) 18%, transparent 42%),
+    radial-gradient(circle at 78% -20%, var(--glass-reflection), transparent 48%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-raised) 88%, var(--surface-void)),
+      color-mix(in srgb, var(--surface-base) 90%, var(--surface-void))
+    );
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.dsgn-root button {
+  background:
+    linear-gradient(116deg, rgba(255, 255, 255, 0.075), transparent 36%),
+    var(--mat-gunmetal);
+}
+
+.dsgn-root .topbar {
+  min-height: 76px;
+  padding: var(--space-5) var(--space-6);
+  overflow: visible;
+  isolation: isolate;
+  z-index: 1400;
+}
+
+.dsgn-root .topBarRight {
+  min-width: 0;
+  display: block;
+}
+
+.dsgn-root .topBarUtilityRow {
+  --header-utility-height: 30px;
+  gap: var(--space-3);
+  flex-wrap: nowrap;
+}
+
+.dsgn-root .topBarStatus {
+  margin-right: var(--space-2);
+}
+
+.dsgn-root .compactBalance {
+  height: var(--header-utility-height);
+  min-height: var(--header-utility-height);
+  max-height: var(--header-utility-height);
+  box-sizing: border-box;
+  grid-template-columns: auto auto 26px;
+  gap: var(--space-2);
+  align-items: center;
+  padding: 2px 3px 2px 8px;
+  white-space: nowrap;
+}
+
+.dsgn-root .compactBalance span,
+.dsgn-root .compactBalance strong {
+  display: block;
+  grid-row: 1;
+  margin: 0;
+  line-height: 1;
+}
+
+.dsgn-root .compactBalance span {
+  grid-column: 1;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dsgn-root .compactBalance strong {
+  grid-column: 2;
+  font-size: 10px;
+}
+
+.dsgn-root .compactBalance button {
+  width: 24px;
+  min-height: 24px;
+  grid-column: 3;
+  padding: 0;
+}
+
+.dsgn-root .keyBox {
+  position: relative;
+  width: auto;
+  min-width: 108px;
+  height: var(--header-utility-height);
+  min-height: var(--header-utility-height);
+  max-height: var(--header-utility-height);
+  box-sizing: border-box;
+  display: block;
+  padding: 2px;
+}
+
+.dsgn-root .keyBox.open {
+  width: auto;
+}
+
+.dsgn-root .keyDisclosure {
+  height: 24px;
+  min-height: 24px;
+  gap: 5px;
+  padding: 0 5px;
+}
+
+.dsgn-root .keyDisclosure .keySourceBadge {
+  min-width: 0;
+  padding: 2px 4px;
+  font-size: 8px;
+}
+
+.dsgn-root .keyBoxFields {
+  position: absolute;
+  z-index: 1200;
+  top: calc(100% + 7px);
+  right: 0;
+  width: min(430px, calc(100vw - 32px));
+  grid-template-columns: minmax(190px, 1fr) auto;
+  border: 1px solid var(--border-machined);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(118deg, var(--glass-specular), transparent 36%),
+    rgba(15, 19, 23, 0.92);
+  padding: var(--space-3);
+  box-shadow: var(--elev-4), var(--rim-top);
+  backdrop-filter: blur(26px) saturate(1.2);
+  -webkit-backdrop-filter: blur(26px) saturate(1.2);
+}
+
+.dsgn-root .keyBoxFields input {
+  min-height: 30px;
+  padding: 0 var(--space-3);
+}
+
+.themePicker {
+  position: relative;
+  height: var(--header-utility-height);
+}
+
+.dsgn-root .themePickerTrigger {
+  height: var(--header-utility-height);
+  min-height: var(--header-utility-height);
+  max-height: var(--header-utility-height);
+  box-sizing: border-box;
+  gap: 6px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.themePickerName {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+.themePickerSignals {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.themePickerSignals i {
+  width: 6px;
+  height: 6px;
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.themePickerChevron {
+  color: var(--text-muted);
+}
+
+.themePickerMenu {
+  position: absolute;
+  z-index: 1300;
+  top: calc(100% + 7px);
+  right: 0;
+  width: min(330px, calc(100vw - 32px));
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--border-machined);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(118deg, var(--glass-specular), transparent 36%),
+    rgba(15, 19, 23, 0.94);
+  padding: var(--space-3);
+  box-shadow: var(--elev-4), var(--rim-top);
+  backdrop-filter: blur(28px) saturate(1.25);
+  -webkit-backdrop-filter: blur(28px) saturate(1.25);
+}
+
+.themePickerMenuLabel {
+  padding: 3px 6px 5px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dsgn-root .themePickerOption {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 9px;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.015);
+  padding: 6px;
+  text-align: left;
+}
+
+.dsgn-root .themePickerOption:hover,
+.dsgn-root .themePickerOption.active {
+  border-color: var(--accent);
+  background: var(--accent-ghost);
+}
+
+.themePickerOptionPreview,
+.themePickerOptionCopy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.themePickerRamp {
+  height: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
+}
+
+.themePickerRamp i {
+  display: block;
+}
+
+.themePickerOptionCopy strong,
+.themePickerOptionCopy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.themePickerOptionCopy strong {
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.themePickerOptionCopy small {
+  color: var(--text-muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.dsgn-root .presetToggle.active[data-preset-id="magic"] {
+  border-color: #e9a35e;
+  background: rgba(233, 163, 94, 0.16);
+  color: #ffc181;
+}
+
+.dsgn-root .presetToggle.active[data-preset-id="cinema"] {
+  border-color: #a48ac4;
+  background: rgba(164, 138, 196, 0.16);
+  color: #c6afe0;
+}
+
+.dsgn-root .presetToggle.active[data-preset-id="moon"] {
+  border-color: #69c7df;
+  background: rgba(105, 199, 223, 0.14);
+  color: #9be1ee;
+}
+
+.dsgn-root .presetToggle.active[data-environment-id="jungle"] {
+  border-color: #a48ac4;
+  background: rgba(164, 138, 196, 0.16);
+  color: #c8b1e2;
+}
+
+.dsgn-root .presetToggle.active[data-environment-id="desert"] {
+  border-color: #df9450;
+  background: rgba(223, 148, 80, 0.16);
+  color: #f2b777;
+}
+
+.dsgn-root .presetToggle.active[data-environment-id="lab"] {
+  border-color: #62c4e6;
+  background: rgba(98, 196, 230, 0.15);
+  color: #9be1f2;
+}
+
+.dsgn-root .editor .promptPresetToolbar {
+  width: min(640px, 100%);
+  align-self: center;
+  margin: 0 auto var(--space-5);
+}
+
+.dsgn-root .editor .promptPresetToolbar .presetToggle {
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.flux3HeaderTools {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.flux3HeaderIcon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--acc-intel-dim);
+  border-radius: var(--radius-sm);
+  background: var(--acc-intel-ghost);
+  color: var(--acc-intel-strong);
+  box-shadow: var(--inset-1), var(--rim-top);
+}
+
+.dsgn-root .flux3ModePicker > button {
+  min-height: 68px;
+  display: grid;
+  grid-template-rows: 18px auto auto;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 7px 5px;
+  text-align: center;
+}
+
+.dsgn-root .flux3ModePicker > button > svg {
+  grid-row: 1;
+}
+
+.dsgn-root .flux3ModePicker > button > span {
+  display: contents;
+}
+
+.dsgn-root .flux3ModePicker strong {
+  grid-row: 2;
+  font-size: 11px;
+}
+
+.dsgn-root .flux3ModePicker small {
+  grid-row: 3;
+  max-width: 100%;
+  font-size: 8px;
+}
+
+/* Keep the saved-prompt rail from setting the height of the entire workspace
+   once the shell switches to its narrow grids. The list remains directly
+   scrollable, but the scrollbar stays visually quiet. */
+@media (max-width: 1160px) {
+  .dsgn-root .workspace > .library:not(.collapsedLibrary) {
+    align-self: start;
+    width: 100%;
+    max-height: min(68dvh, 640px);
+    overflow: hidden;
+  }
+
+  .dsgn-root .workspace > .library:not(.collapsedLibrary) .promptList {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .dsgn-root .workspace > .library:not(.collapsedLibrary) .promptList::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1160px) {
+  .dsgn-root .workspaceMain {
+    min-height: clamp(420px, 54dvh, 540px);
+  }
+
+  .dsgn-root .comboControlCluster {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+}
+
+@media (max-width: 900px) {
+  .dsgn-root .topBarUtilityRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .dsgn-root .topBarStatus {
+    grid-column: 1 / -1;
+    margin-right: 0;
+  }
+
+  .themePicker,
+  .dsgn-root .themePickerTrigger,
+  .dsgn-root .compactBalance {
+    width: 100%;
+  }
+
+  .dsgn-root .keyBox {
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+
+  .dsgn-root .keyBox.open {
+    width: 100%;
+  }
+
+  .dsgn-root .keyBoxFields,
+  .themePickerMenu {
+    right: 0;
+  }
+
+  .dsgn-root .library > .panelHeader .iconButton,
+  .dsgn-root .libraryActions .iconButton {
+    width: 30px;
+    min-height: 30px;
+    flex-basis: 30px;
+    padding: 0;
+  }
+
+  .dsgn-root .library > .panelHeader .iconButton svg,
+  .dsgn-root .libraryActions .iconButton svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .dsgn-root .libraryActions .comboModeButton {
+    min-height: 30px;
+    padding: 0 var(--space-3);
+  }
+
+  .dsgn-root .libraryActions,
+  .dsgn-root .comboControlCluster,
+  .dsgn-root .libraryHeaderActions,
+  .dsgn-root .comboControlPrimary,
+  .dsgn-root .comboControlActions {
+    gap: var(--space-2);
+  }
+
+  .dsgn-root .workspaceMain {
+    min-height: 0;
+  }
+
+  .dsgn-root .promptEditor {
+    height: clamp(220px, 38dvh, 320px);
+    min-height: 220px;
+    max-height: 320px;
+    flex: 0 1 auto;
+  }
+}
+
+@media (max-width: 540px) {
+  .dsgn-root .topBarUtilityRow {
+    grid-template-columns: 1fr;
+  }
+
+  .dsgn-root .topBarStatus,
+  .dsgn-root .keyBox {
+    grid-column: 1;
+  }
+
+  .flux3HeaderTools {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

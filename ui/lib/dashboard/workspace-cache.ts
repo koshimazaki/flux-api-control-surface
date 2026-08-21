@@ -43,7 +43,7 @@ function asNullableString(value: unknown) {
 }
 
 function isWorkspaceMode(value: unknown): value is WorkspaceMode {
-  return value === "prompt" || value === "erase" || value === "vto" || value === "outpaint" || value === "deblur" || value === "flux3" || value === "glyphs";
+  return value === "prompt" || value === "erase" || value === "vto" || value === "outpaint" || value === "deblur" || value === "flux3" || value === "upscale" || value === "glyphs";
 }
 
 function normalizeGarmentIds(value: unknown) {

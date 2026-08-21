@@ -455,7 +455,7 @@ describe("prompt assignment modes", () => {
   });
 });
 
-describe("FLUX.3 constraint validation", () => {
+describe("FLUX 3 constraint validation", () => {
   it("accepts one to ten keyframes and rejects an eleventh", () => {
     const ten = Array.from({ length: 10 }, (_, index) => `k_${index + 1}`);
     const result = plan({ manualRows: [{ assetIds: ten }, { assetIds: [...ten, "k_11"] }, { assetIds: [] }] });
@@ -507,7 +507,7 @@ describe("FLUX.3 constraint validation", () => {
     expect(errorCodes(result.rows[0])).toEqual(expect.arrayContaining(["aspect_ratio", "resolution"]));
   });
 
-  it("passes the shared FLUX.3 request blocker for every row it marks valid", () => {
+  it("passes the shared FLUX 3 request blocker for every row it marks valid", () => {
     const result = plan({
       pools: [pool("a", 4)],
       generator: { workflow: "sequence", poolId: "a", slotCount: 3, mode: "combination" },
@@ -616,7 +616,7 @@ describe("cost estimation", () => {
     expect(estimateVideoUsd({ mode: "draft_enhance", duration: 8, draft: false, resolution: "hd" })).toBeNull();
   });
 
-  it("keeps the rates constant in step with the shared FLUX.3 estimator", () => {
+  it("keeps the rates constant in step with the shared FLUX 3 estimator", () => {
     const cases = [
       { mode: "i2v", duration: 8, draft: true, resolution: "hd" },
       { mode: "i2v", duration: 8, draft: false, resolution: "hd" },

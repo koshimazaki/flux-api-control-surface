@@ -1,18 +1,40 @@
 "use client";
+import { useEffect, useState } from "react";
 import { BackgroundShader } from "@/components/background-shader";
 import { DashboardPanels } from "@/components/dashboard/dashboard-panels";
 import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
 import { Lightbox } from "@/components/lightbox";
 import { ReferenceDock } from "@/components/reference-dock";
 import { TopBar } from "@/components/top-bar";
+import { defaultSurfaceTheme, isSurfaceTheme, type SurfaceTheme } from "@/lib/surface-theme";
 import { useDashboardState } from "@/lib/use-dashboard-state";
 
 export default function Home() {
   const state = useDashboardState();
+  const [surfaceTheme, setSurfaceTheme] = useState<SurfaceTheme>(defaultSurfaceTheme);
+
+  useEffect(() => {
+    try {
+      const savedTheme = window.localStorage.getItem("bfl-surface-theme");
+      if (isSurfaceTheme(savedTheme)) setSurfaceTheme(savedTheme);
+    } catch {
+      // Theme persistence is optional; the control remains usable without it.
+    }
+  }, []);
+
+  function changeSurfaceTheme(theme: SurfaceTheme) {
+    setSurfaceTheme(theme);
+    try {
+      window.localStorage.setItem("bfl-surface-theme", theme);
+    } catch {
+      // Local storage may be unavailable in a hardened/private browsing context.
+    }
+  }
+
   return (
     <>
-      <BackgroundShader />
-      <main className="shell">
+      <BackgroundShader theme={surfaceTheme} />
+      <main className="shell dsgn-root" data-theme="cyberpunk-v2" data-surface-theme={surfaceTheme}>
         <TopBar
           apiKey={state.apiKey}
           onApiKeyChange={state.setApiKey}
@@ -21,8 +43,14 @@ export default function Home() {
           onSaveApiKey={state.saveApiKeyToSecureStore}
           onForgetApiKey={state.forgetSecureApiKey}
           onRefreshApiKey={() => void state.refreshApiKeyStatus()}
+          balanceCredits={state.balance.credits}
+          totalActualCredits={state.totalActualCredits}
+          isCheckingBalance={state.isCheckingBalance}
+          onCheckBalance={state.checkBalance}
+          surfaceTheme={surfaceTheme}
+          onSurfaceThemeChange={changeSurfaceTheme}
         />
-        {state.workspaceMode !== "flux3" && <ReferenceDock
+        {state.workspaceMode !== "flux3" && state.workspaceMode !== "upscale" && <ReferenceDock
           mode={state.workspaceMode}
           references={state.references}
           maxReferences={state.activeModelConfig.maxReferences}

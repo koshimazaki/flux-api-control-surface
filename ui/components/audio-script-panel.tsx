@@ -17,6 +17,8 @@ import {
   isDefaultMotionPrompt,
   readImageFile,
   syncShots,
+  audioWindowDefaultSeconds,
+  audioWindowMaxSeconds,
   type AudioShot,
   type ImageOption
 } from "@/lib/audio-script";
@@ -53,9 +55,9 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
   const [shots, setShots] = useState<AudioShot[]>([]);
   const [selectedMarkerId, setSelectedMarkerId] = useState("");
   const [startSeconds, setStartSeconds] = useState(0);
-  const [durationSeconds, setDurationSeconds] = useState(15);
+  const [durationSeconds, setDurationSeconds] = useState(audioWindowDefaultSeconds);
   const [sliceStartSeconds, setSliceStartSeconds] = useState(0);
-  const [sliceEndSeconds, setSliceEndSeconds] = useState(15);
+  const [sliceEndSeconds, setSliceEndSeconds] = useState(audioWindowDefaultSeconds);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [previewLoop, setPreviewLoop] = useState(false);
@@ -253,7 +255,7 @@ export function AudioScriptPanel(props: AudioScriptPanelProps) {
         startSeconds,
         durationSeconds,
         markerCount: shotCount,
-        maxDurationSeconds: 15
+        maxDurationSeconds: audioWindowMaxSeconds
       });
       setAnalysis(result);
       setMarkers(result.markers);

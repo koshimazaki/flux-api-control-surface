@@ -20,7 +20,7 @@ export function TabButtonBar<T extends string>({ items, value, onChange, classNa
     <div className={className ? `tabBar ${className}` : "tabBar"}>
       {items.map(({ id, label, count, icon: Icon }) => (
         <button
-          className={value === id ? "tabButton active" : "tabButton"}
+          className={["tabButton", `tabButton-${id}`, value === id ? "active" : ""].filter(Boolean).join(" ")}
           key={id}
           onClick={() => onChange(id)}
           type="button"

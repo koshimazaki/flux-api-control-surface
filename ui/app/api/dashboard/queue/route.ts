@@ -43,7 +43,7 @@ function toEnqueueOptions(raw: unknown, origin: string): EnqueueOptions | string
     kind,
     operation,
     title: typeof entry.title === "string" ? entry.title : undefined,
-    body,
+    body: kind === "video" ? { ...body, operation } : body,
     origin,
     apiKey: typeof body.apiKey === "string" ? body.apiKey : undefined,
     priority: typeof entry.priority === "number" ? entry.priority : undefined,

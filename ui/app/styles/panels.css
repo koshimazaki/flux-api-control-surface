@@ -50,6 +50,25 @@
   gap: 10px;
 }
 
+.libraryHeaderActions,
+.comboControlPrimary,
+.comboControlActions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.libraryHeaderActions {
+  flex: 0 0 auto;
+}
+
+.libraryHeaderActions .iconButton {
+  width: 34px;
+  min-height: 34px;
+  flex-basis: 34px;
+}
+
 /* generate/editor header: pin the light + environment radio groups so they stay
    in place, and let the applied-summary title/subtitle truncate rather than push
    the controls or grow the header. */
@@ -119,7 +138,15 @@ small {
   gap: 5px;
   min-width: 0;
   flex-wrap: nowrap;
-  justify-content: space-between;
+  justify-content: flex-start;
+}
+
+.comboControlPrimary {
+  flex: 0 1 auto;
+}
+
+.comboControlActions {
+  flex: 0 0 auto;
 }
 
 .comboActionMenu {

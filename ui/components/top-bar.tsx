@@ -1,4 +1,8 @@
-import { KeyRound, LockKeyhole, RadioTower, RefreshCcw, Trash2 } from "lucide-react";
+import { ChevronDown, KeyRound, LockKeyhole, RefreshCcw, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { BalanceCard } from "@/components/balance-card";
+import { ThemePicker } from "@/components/theme-picker";
+import type { SurfaceTheme } from "@/lib/surface-theme";
 import type { ApiKeyStatus } from "@/lib/types";
 
 type TopBarProps = {
@@ -9,6 +13,12 @@ type TopBarProps = {
   onSaveApiKey: () => void;
   onForgetApiKey: () => void;
   onRefreshApiKey: () => void;
+  balanceCredits: number | null;
+  totalActualCredits: number;
+  isCheckingBalance: boolean;
+  onCheckBalance: () => void;
+  surfaceTheme: SurfaceTheme;
+  onSurfaceThemeChange: (theme: SurfaceTheme) => void;
 };
 
 function sourceLabel(status: ApiKeyStatus | null) {
@@ -35,8 +45,15 @@ export function TopBar({
   isSavingApiKey,
   onSaveApiKey,
   onForgetApiKey,
-  onRefreshApiKey
+  onRefreshApiKey,
+  balanceCredits,
+  totalActualCredits,
+  isCheckingBalance,
+  onCheckBalance,
+  surfaceTheme,
+  onSurfaceThemeChange
 }: TopBarProps) {
+  const [keyOpen, setKeyOpen] = useState(false);
   const canSaveToKeychain = Boolean(apiKeyStatus?.keychain?.canWrite);
   const canForgetKeychain = Boolean(apiKeyStatus?.keychain?.configured && apiKeyStatus.keychain?.canWrite);
   const saveDisabled = !apiKey.trim() || isSavingApiKey || (apiKeyStatus !== null && !canSaveToKeychain);
@@ -59,56 +76,77 @@ export function TopBar({
         </div>
       </div>
       <div className="topBarRight">
-        <div className="topBarStatus" aria-label="Runtime status">
-          <span><RadioTower size={12} /> Local</span>
-          <span>FLUX.2</span>
-          <span>R2</span>
-        </div>
-        <form
-          className="keyBox"
-          aria-label="FLUX API key"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!saveDisabled) onSaveApiKey();
-          }}
-        >
-          <KeyRound size={16} />
-          <input
-            type="password"
-            placeholder={apiKeyStatus?.configured ? "Server key configured" : "FLUX API key"}
-            value={apiKey}
-            onChange={(event) => onApiKeyChange(event.target.value)}
+        <div className="topBarUtilityRow">
+          <ThemePicker value={surfaceTheme} onChange={onSurfaceThemeChange} />
+          <BalanceCard
+            compact
+            balanceCredits={balanceCredits}
+            totalActualCredits={totalActualCredits}
+            isCheckingBalance={isCheckingBalance}
+            onCheckBalance={onCheckBalance}
           />
-          <span className="keySourceBadge" title={sourceTitle(apiKeyStatus)}>
-            {sourceLabel(apiKeyStatus)}
-          </span>
-          <button
-            type="submit"
-            className="keyIconButton"
-            disabled={saveDisabled}
-            title="Save typed key to macOS Keychain (Enter)"
+          <form
+            className={keyOpen ? "keyBox open" : "keyBox"}
+            aria-label="FLUX API key"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!saveDisabled) onSaveApiKey();
+            }}
           >
-            <LockKeyhole size={15} />
-          </button>
-          <button
-            type="button"
-            className="keyIconButton"
-            onClick={onForgetApiKey}
-            disabled={!canForgetKeychain || isSavingApiKey}
-            title="Remove dashboard key from macOS Keychain"
-          >
-            <Trash2 size={15} />
-          </button>
-          <button
-            type="button"
-            className="keyIconButton"
-            onClick={onRefreshApiKey}
-            disabled={isSavingApiKey}
-            title="Refresh key status"
-          >
-            <RefreshCcw size={15} />
-          </button>
-        </form>
+            <button
+              type="button"
+              className="keyDisclosure"
+              aria-expanded={keyOpen}
+              onClick={() => setKeyOpen((open) => !open)}
+            >
+              <KeyRound size={14} />
+              <span>Key</span>
+              <span className="keySourceBadge" title={sourceTitle(apiKeyStatus)}>
+                {sourceLabel(apiKeyStatus)}
+              </span>
+              <ChevronDown className="keyDisclosureChevron" size={13} />
+            </button>
+            {keyOpen && (
+              <div className="keyBoxFields">
+                <input
+                  type="password"
+                  placeholder={apiKeyStatus?.configured ? "Server key configured" : "FLUX API key"}
+                  value={apiKey}
+                  onChange={(event) => onApiKeyChange(event.target.value)}
+                  autoFocus
+                />
+                <div className="keyBoxActions">
+                  <button
+                    type="submit"
+                    className="keyIconButton"
+                    disabled={saveDisabled}
+                    title="Save typed key to macOS Keychain (Enter)"
+                  >
+                    <LockKeyhole size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="keyIconButton"
+                    onClick={onForgetApiKey}
+                    disabled={!canForgetKeychain || isSavingApiKey}
+                    title="Remove dashboard key from macOS Keychain"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="keyIconButton"
+                    onClick={onRefreshApiKey}
+                    disabled={isSavingApiKey}
+                    title="Refresh key status"
+                  >
+                    <RefreshCcw size={15} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
       </div>
     </header>
   );

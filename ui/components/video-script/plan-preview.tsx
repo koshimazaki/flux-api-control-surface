@@ -57,7 +57,7 @@ export function VideoScriptPlanPreview(props: VideoScriptPlanPreviewProps) {
       </div>
       <small className="videoScriptSeedNote">
         <Info size={11} />
-        The planner seed makes row and prompt selection repeatable. FLUX.3 exposes no generation seed, so the same seed
+        The planner seed makes row and prompt selection repeatable. FLUX 3 exposes no generation seed, so the same seed
         will not reproduce identical renders — enhance a saved draft for that.
       </small>
 

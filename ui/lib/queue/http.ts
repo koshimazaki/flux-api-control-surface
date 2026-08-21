@@ -4,7 +4,7 @@ import { ensureQueueRunner } from "./runner";
 import { takeJobFailure } from "./runtime";
 
 export const IMAGE_ROUTE_WAIT_MS = 300_000;
-// Kept under the FLUX.3 route's maxDuration so the handler answers before Next
+// Kept under the FLUX 3 route's maxDuration so the handler answers before Next
 // tears it down; the job itself keeps running on the server queue.
 export const VIDEO_ROUTE_WAIT_MS = 290_000;
 

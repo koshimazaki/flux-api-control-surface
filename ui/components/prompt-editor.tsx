@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent as ReactDragEvent, type ReactNode } from "react";
 import { Clipboard, MapPin, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { PanelHeader } from "@/components/ui/panel-header";
@@ -10,6 +10,7 @@ import {
   referenceToken
 } from "@/lib/reference-roles";
 import { BFL_IMAGE_OPTION_MIME, setReferenceDragData } from "@/lib/reference-drag";
+import { insertPromptToken as insertToken } from "@/lib/prompt-utils";
 import type { AssetRecord, PromptRecord, ReferenceImage } from "@/lib/types";
 import { comboEnvironmentLabel, promptHeaderSummary, type ComboEnvironmentOption } from "@/lib/prompt-combo";
 import { applyEnvironmentToPrompt, applyPresetToPrompt, compactPrompt, presets } from "@/lib/prompt-utils";
@@ -32,6 +33,7 @@ type PromptEditorProps = {
   onEnvironmentSelect: (environment: string) => void;
   onReferenceDropPayload: (payload: string) => number | null | void;
   onReferenceFiles: (files: File[]) => Promise<number[]>;
+  referenceControls?: ReactNode;
 };
 
 export function PromptEditor({
@@ -51,7 +53,8 @@ export function PromptEditor({
   activeEnvironment,
   onEnvironmentSelect,
   onReferenceDropPayload,
-  onReferenceFiles
+  onReferenceFiles,
+  referenceControls
 }: PromptEditorProps) {
   const [activePresetId, setActivePresetId] = useState("");
   const [appliedEnvironmentId, setAppliedEnvironmentId] = useState("");
@@ -99,16 +102,15 @@ export function PromptEditor({
   function insertPromptToken(tokens: string) {
     if (!tokens.trim()) return;
     const textarea = textareaRef.current;
-    const start = textarea?.selectionStart ?? promptText.length;
-    const end = textarea?.selectionEnd ?? start;
-    const before = promptText.slice(0, start);
-    const after = promptText.slice(end);
-    const prefix = before && !/\s$/.test(before) ? " " : "";
-    const suffix = after && !/^\s/.test(after) ? " " : "";
-    const nextValue = `${before}${prefix}${tokens.trim()}${suffix}${after}`;
-    editPrompt(nextValue);
+    // Only treat the caret as live when the textarea actually holds focus. A
+    // blurred textarea reports selectionStart 0, so reading it unconditionally
+    // pushed every role token to the FRONT of the prompt whenever the user had
+    // not clicked into the box first.
+    const isFocused = Boolean(textarea) && typeof document !== "undefined" && document.activeElement === textarea;
+    const selection = isFocused && textarea ? { start: textarea.selectionStart, end: textarea.selectionEnd } : null;
+    const { text, cursor } = insertToken(promptText, tokens, selection);
+    editPrompt(text);
     window.setTimeout(() => {
-      const cursor = start + prefix.length + tokens.trim().length;
       textarea?.focus();
       textarea?.setSelectionRange(cursor, cursor);
     }, 0);
@@ -145,43 +147,45 @@ export function PromptEditor({
       <PanelHeader
         title={<span className="promptHeaderTitle" title={headerSummary}>{headerSummary}</span>}
         subtitle={activePrompt?.plant_form || "Structured FLUX.2 prompt"}
-      >
-        <div className="presetRow" role="group" aria-label="Look presets">
-          <div className="presetGroup" role="radiogroup" aria-label="Lighting style">
-            {presets.map((preset) => {
-              const active = preset.id === activePresetId;
-              return (
-                <button
-                  key={preset.id}
-                  className={active ? "presetToggle active" : "presetToggle"}
-                  aria-pressed={active}
-                  onClick={() => applyPreset(preset)}
-                >
-                  <Wand2 size={15} />
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-          <div className="presetGroup environmentPresetGroup" role="radiogroup" aria-label="Environment">
-            {environmentOptions.map((environment) => {
-              const active = environment.id === activeEnvironment;
-              return (
-                <button
-                  key={environment.id}
-                  className={active ? "presetToggle active" : "presetToggle"}
-                  aria-pressed={active}
-                  title={environment.description}
-                  onClick={() => applyEnvironment(environment)}
-                >
-                  <MapPin size={15} />
-                  {comboEnvironmentLabel(environment)}
-                </button>
-              );
-            })}
-          </div>
+      />
+
+      <div className="presetRow promptPresetToolbar" role="group" aria-label="Look presets">
+        <div className="presetGroup" role="radiogroup" aria-label="Lighting style">
+          {presets.map((preset) => {
+            const active = preset.id === activePresetId;
+            return (
+              <button
+                key={preset.id}
+                className={active ? "presetToggle active" : "presetToggle"}
+                data-preset-id={preset.id}
+                aria-pressed={active}
+                onClick={() => applyPreset(preset)}
+              >
+                <Wand2 size={15} />
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
-      </PanelHeader>
+        <div className="presetGroup environmentPresetGroup" role="radiogroup" aria-label="Environment">
+          {environmentOptions.map((environment) => {
+            const active = environment.id === activeEnvironment;
+            return (
+              <button
+                key={environment.id}
+                className={active ? "presetToggle active" : "presetToggle"}
+                data-environment-id={environment.id}
+                aria-pressed={active}
+                title={environment.description}
+                onClick={() => applyEnvironment(environment)}
+              >
+                <MapPin size={15} />
+                {comboEnvironmentLabel(environment)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <textarea
         ref={textareaRef}
@@ -191,6 +195,8 @@ export function PromptEditor({
         onDrop={(event) => void handleReferenceDrop(event)}
         spellCheck={false}
       />
+
+      {referenceControls}
 
       {(promptSourceAsset || activeReferences.length > 0) && (
         <div className="promptReferenceStrip">
@@ -235,17 +241,20 @@ export function PromptEditor({
                   );
                 })}
               </div>
-              <p>{submittedReferenceCue}</p>
-              <div className="submittedPromptBox">
-                <div>
-                  <strong>Submitted prompt</strong>
-                  <button type="button" onClick={() => void copyText(submittedPrompt)}>
-                    <Clipboard size={14} />
-                    Copy
-                  </button>
+              <details className="submittedPromptDetails">
+                <summary>Submission preview</summary>
+                <p>{submittedReferenceCue}</p>
+                <div className="submittedPromptBox">
+                  <div>
+                    <strong>Submitted prompt</strong>
+                    <button type="button" onClick={() => void copyText(submittedPrompt)}>
+                      <Clipboard size={14} />
+                      Copy
+                    </button>
+                  </div>
+                  <textarea value={submittedPrompt} readOnly spellCheck={false} />
                 </div>
-                <textarea value={submittedPrompt} readOnly spellCheck={false} />
-              </div>
+              </details>
             </>
           )}
         </div>

@@ -56,7 +56,7 @@ function mockSuccess() {
   });
 }
 
-describe("FLUX.3 video route", () => {
+describe("FLUX 3 video route", () => {
   afterEach(() => vi.clearAllMocks());
 
   it("submits, polls, downloads, and saves a text-to-video draft", async () => {

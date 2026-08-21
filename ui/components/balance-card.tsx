@@ -5,9 +5,31 @@ type BalanceCardProps = {
   totalActualCredits: number;
   isCheckingBalance: boolean;
   onCheckBalance: () => void;
+  compact?: boolean;
 };
 
-export function BalanceCard({ balanceCredits, totalActualCredits, isCheckingBalance, onCheckBalance }: BalanceCardProps) {
+export function BalanceCard({
+  balanceCredits,
+  totalActualCredits,
+  isCheckingBalance,
+  onCheckBalance,
+  compact = false
+}: BalanceCardProps) {
+  if (compact) {
+    return (
+      <div
+        className="statCard balanceStat statToneBalance compactBalance"
+        title={`${totalActualCredits.toFixed(2)} credits logged locally`}
+      >
+        <span>Balance</span>
+        <strong>{typeof balanceCredits === "number" ? `${balanceCredits.toFixed(2)} cr` : "unchecked"}</strong>
+        <button onClick={onCheckBalance} disabled={isCheckingBalance} title="Check FLUX credit balance" aria-label="Check FLUX credit balance">
+          <RefreshCcw className={isCheckingBalance ? "spin" : ""} size={13} />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="statCard balanceStat statToneBalance">
       <div>

@@ -33,6 +33,7 @@ const INTERNAL_ONLY = [
   "/api/outputs/reveal",
   "/api/bfl/tools/vto-composite",
   "/api/bfl/flux3-video/[id]",
+  "/api/bfl/video-upscale/[id]",
   // Submit/poll-step/finalize recovery primitives for the server queue. Agents
   // drive work through the queue tools; these exist for diagnostics and repair.
   "/api/bfl/jobs"
@@ -60,6 +61,7 @@ describe("MCP covers every core control-surface function", () => {
     const mustBeReachable = [
       "/api/bfl/generate",
       "/api/bfl/flux3-video",
+      "/api/bfl/video-upscale",
       "/api/bfl/tools",
       "/api/dashboard/batch",
       "/api/dashboard/run-plan",
@@ -78,10 +80,16 @@ describe("MCP covers every core control-surface function", () => {
     }
   });
 
-  it("wraps FLUX.3 video generation and saved-video listing", () => {
+  it("wraps FLUX 3 video generation and saved-video listing", () => {
     expect(registeredTools).toContain("generate_flux3_video");
     expect(registeredTools).toContain("list_flux3_videos");
     expect(mcpCalledRoutes).toContain("/api/bfl/flux3-video");
+  });
+
+  it("wraps FLUX 3 Video Upscale generation and saved comparisons", () => {
+    expect(registeredTools).toContain("upscale_video");
+    expect(registeredTools).toContain("list_video_upscales");
+    expect(mcpCalledRoutes).toContain("/api/bfl/video-upscale");
   });
 
   it("wraps the FLUX.2 [klein] finetune loop (dataset export, registry, finetuned generation)", () => {

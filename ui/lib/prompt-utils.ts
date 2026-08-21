@@ -63,6 +63,43 @@ export function stripReferenceCue(prompt: string) {
   return markerIndex >= 0 ? prompt.slice(0, markerIndex) : prompt;
 }
 
+/** A live caret. `null` means the editor is not focused — see insertPromptToken. */
+export type PromptSelection = { start: number; end: number } | null;
+
+function clampIndex(value: number, length: number) {
+  if (!Number.isFinite(value)) return length;
+  return Math.min(Math.max(Math.trunc(value), 0), length);
+}
+
+/**
+ * Splices `token` into `text` at the caret, padding with single spaces so the
+ * token never fuses to a neighbouring word.
+ *
+ * `selection` MUST be null whenever the textarea is not the focused element. A
+ * blurred textarea reports `selectionStart === 0`, which is a real number, so a
+ * `?? text.length` fallback never fires for it — the caller that did that
+ * prepended every role token to the front of the prompt whenever the user had
+ * not clicked into the box first. "No live caret" has to be stated by the
+ * caller; it cannot be inferred from the offset.
+ */
+export function insertPromptToken(text: string, token: string, selection: PromptSelection) {
+  const trimmed = token.trim();
+  if (!trimmed) return { text, cursor: text.length };
+
+  const start = selection ? clampIndex(selection.start, text.length) : text.length;
+  const end = selection ? Math.max(start, clampIndex(selection.end, text.length)) : start;
+
+  const before = text.slice(0, start);
+  const after = text.slice(end);
+  const prefix = before && !/\s$/.test(before) ? " " : "";
+  const suffix = after && !/^\s/.test(after) ? " " : "";
+
+  return {
+    text: `${before}${prefix}${trimmed}${suffix}${after}`,
+    cursor: start + prefix.length + trimmed.length
+  };
+}
+
 function cameraPatchForPreset(preset: PromptPreset) {
   return {
     lens: preset.lens,

@@ -4,7 +4,7 @@
  * The planner never calls `Math.random` or `Date.now`: identical input plus an
  * identical seed must always produce identical rows so a batch preview can be
  * shared, re-opened, and re-planned. The seed controls selection and ordering
- * only. FLUX.3 exposes no fresh-generation seed, so this never promises an
+ * only. FLUX 3 exposes no fresh-generation seed, so this never promises an
  * identical render.
  */
 

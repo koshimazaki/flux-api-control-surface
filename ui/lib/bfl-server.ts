@@ -4,7 +4,7 @@ import { toWorkspaceRelativePath, workspaceRoot } from "./local-paths";
 import { isBflPollFailureStatus } from "./provider-registry";
 import { fetchRemoteImage } from "./remote-archive";
 import { resolveApiKeyWithSource } from "./server-api-key";
-import { findLocalOutputImage } from "./server-output-store";
+import { findLocalOutputImage, invalidateLocalOutputImageIndex } from "./server-output-store";
 
 export const BFL_API_BASE = "https://api.bfl.ai/v1";
 
@@ -150,6 +150,24 @@ export async function resolveImageInput(value?: string, origin?: string, fallbac
     const output = await findLocalOutputImage(fallbackOutputId);
     if (output) return (await readFile(output.imagePath)).toString("base64");
   }
+  // An outputs URL is a POINTER, never image data. Reaching here means we
+  // identified one and BOTH resolvers came up empty — the asset is gone from
+  // disk (deleted output, or a browser-only asset whose stored descriptor still
+  // claims a local path).
+  //
+  // Returning it anyway sent "/api/outputs/<id>/image" into
+  // Buffer.from(value, "base64"), which happily decodes the path's base64-ish
+  // characters into a few garbage bytes, so the operator saw sharp's "Input
+  // buffer contains unsupported image format" — an error naming neither the
+  // reference nor the cause.
+  //
+  // Both the relative and absolute forms fail here, deliberately: the
+  // /api/outputs/[id]/image route resolves through the SAME fetchRemoteImage →
+  // findLocalOutputImage pair in the same order, so a fetch of the absolute form
+  // is a guaranteed 404. There is nothing to gain by letting it round-trip.
+  if (outputId) {
+    throw new Error("this reference is no longer available locally — re-add the image.");
+  }
   return normalizeImageInput(value.trim());
 }
 
@@ -185,6 +203,7 @@ export async function saveOutputFiles(options: {
     writeFile(promptPath, options.prompt, "utf8"),
     writeFile(metadataPath, JSON.stringify(metadataWithFiles, null, 2), "utf8")
   ]);
+  invalidateLocalOutputImageIndex();
 
   return {
     imagePath: toWorkspaceRelativePath(imagePath),

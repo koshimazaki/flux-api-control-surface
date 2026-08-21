@@ -1,6 +1,6 @@
 # FLUX API Control Surface
 
-Local Next.js control surface for FLUX.2 images and FLUX.3 video: prompts,
+Local Next.js control surface for FLUX.2 images and FLUX 3 video: prompts,
 batch permutations, Video Script keyframe batches, reference images, image
 tools, a server-owned generation queue, model evaluation, assets, costs, and
 logs.
@@ -149,10 +149,14 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
   pixel offsets (empty = centered), high/fast mode, optional experimental prompt.
 - **Deblur** (`flux-tools/deblur-v1`): sharpen the whole source image while
   preserving the scene. No prompt or mask.
-- **FLUX.3 Video** (`flux-3-video`): generate from text or one to ten ordered
+- **FLUX 3 Video** (`flux-3-video`): generate from text or one to ten ordered
   keyframes, continue an MP4, and optionally render a draft before enhancing it
   deterministically to 1080p. Generated videos are downloaded immediately and
   kept in the same local asset library as images.
+- **Video Upscale** (`flux-tools/video-upscale-v1`): upscale an MP4 at 1.5×–3×
+  in precise or creative mode, preserve audio, and save both source and result
+  for the workspace's before/after fader. The surface identifies the capability
+  as `FLUX 3 VIDEO UPSCALE · 2K / 4K`.
 - **Glyphs**: local SVG/PNG vectorization. The browser workspace can select a
   region visually, and agents can call `/api/glyphs/vectorize` for saved outputs.
 
@@ -165,7 +169,7 @@ controls.
 
 ## Generation Queue
 
-Every paid entry point — image generation, image tools, FLUX.3 video, and
+Every paid entry point — image generation, image tools, FLUX 3 video, and
 batches — enqueues onto one server-owned queue instead of running inside a
 blocking request:
 
@@ -190,7 +194,7 @@ provider jobs; it is diagnostic, not a second scheduler.
 
 ## Video Script
 
-The Script tab has Image and Video sub-tabs. The Video sub-tab builds FLUX.3
+The Script tab has Image and Video sub-tabs. The Video sub-tab builds FLUX 3
 image-to-video batches from Collections:
 
 - A keyframe matrix with four slots by default, expanding to the API maximum of
@@ -209,7 +213,7 @@ image-to-video batches from Collections:
   hard cap, and estimated cost before anything paid is enqueued.
 
 The planner itself is a pure library (`lib/video-script-plan/`) with a visible
-seed for repeatable row selection. FLUX.3 exposes no generation seed; to
+seed for repeatable row selection. FLUX 3 exposes no generation seed; to
 reproduce a render, enhance its saved draft.
 
 ## Model Evaluation + CLI
@@ -256,10 +260,12 @@ The UI is also an agent/MCP-facing local API:
   calls the local BFL route and saves image/prompt/metadata files.
 - `POST /api/bfl/tools` runs erase/vto/outpaint/deblur on an existing image with the
   same output persistence and provenance as generations.
-- `GET/POST /api/bfl/flux3-video` lists saved FLUX.3 videos or submits text-to-video,
+- `GET/POST /api/bfl/flux3-video` lists saved FLUX 3 videos or submits text-to-video,
   image-to-video, video continuation, and draft-enhancement jobs.
 - `GET /api/bfl/flux3-video/:id` serves a saved video or draft cache for local
   playback and download.
+- `GET/POST /api/bfl/video-upscale` lists or submits FLUX 3 Video Upscale jobs;
+  `GET /api/bfl/video-upscale/:id` serves the result or its preserved source.
 - `GET/POST/PATCH/DELETE /api/dashboard/queue` lists, enqueues, controls
   (pause/resume/retry/reorder), and cancels server-queue jobs.
 - `GET/PATCH /api/evaluations` returns normalized `bfl-evaluation/v1` records
@@ -282,7 +288,7 @@ BFL MCP is useful inside MCP clients such as Codex or Claude because it owns the
 OAuth flow and native BFL tool calls. This browser UI uses BFL's HTTP API for
 saved local outputs. The local stdio MCP wrapper exposes the JSON dashboard
 routes for prompts, plans, generation, tools, references, glyphs, credits, and
-caption job prep, plus FLUX.3 video listing/generation, generation-queue
+caption job prep, plus FLUX 3 video listing/generation, generation-queue
 control (`list_generation_queue`, `enqueue_generation_jobs`,
 `update_generation_job`, `cancel_generation_job`), evaluation records
 (`list_evaluations`, `update_evaluation`), finetune dataset export, registry,

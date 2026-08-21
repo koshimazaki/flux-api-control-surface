@@ -10,7 +10,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind") === "draft-cache" ? "draft-cache" : "video";
   const output = await findFlux3VideoOutput(decodeURIComponent(id), kind);
-  if (!output) return NextResponse.json({ error: "FLUX.3 output not found." }, { status: 404 });
+  if (!output) return NextResponse.json({ error: "FLUX 3 output not found." }, { status: 404 });
 
   const headers: Record<string, string> = {
     "content-type": output.contentType,

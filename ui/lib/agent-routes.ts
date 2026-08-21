@@ -46,6 +46,7 @@ export const agentRouteMap = {
   queue: "/api/dashboard/queue",
   generate: "/api/bfl/generate",
   flux3Video: "/api/bfl/flux3-video",
+  videoUpscale: "/api/bfl/video-upscale",
   tools: "/api/bfl/tools",
   providerJobs: "/api/bfl/jobs",
   glyphVectorize: "/api/glyphs/vectorize",
@@ -113,7 +114,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     method: "POST",
     path: agentRouteMap.videoScriptPlan,
     purpose:
-      "Plan a deterministic FLUX.3 Video Script batch: pools (asset ids or a Collection), pin/vary generator workflows, prompt assignment, timing templates, dedupe, hard caps, and per-second cost — returns queue-ready jobs for /api/dashboard/queue without spending anything.",
+      "Plan a deterministic FLUX 3 Video Script batch: pools (asset ids or a Collection), pin/vary generator workflows, prompt assignment, timing templates, dedupe, hard caps, and per-second cost — returns queue-ready jobs for /api/dashboard/queue without spending anything.",
     sideEffects: false,
     category: "generation",
     example: {
@@ -234,7 +235,14 @@ export const dashboardAgentRoutes: AgentRoute[] = [
   {
     method: "GET",
     path: agentRouteMap.flux3Video,
-    purpose: "List locally saved FLUX.3 video outputs, including draft-cache availability and local playback URLs.",
+    purpose: "List locally saved FLUX 3 video outputs, including draft-cache availability and local playback URLs.",
+    sideEffects: false,
+    category: "assets"
+  },
+  {
+    method: "GET",
+    path: agentRouteMap.videoUpscale,
+    purpose: "List locally saved FLUX 3 Video Upscale outputs with preserved source clips and comparison URLs.",
     sideEffects: false,
     category: "assets"
   },
@@ -264,7 +272,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     method: "POST",
     path: agentRouteMap.flux3Video,
     purpose:
-      "Generate FLUX.3 video from text, one to ten image keyframes, or an existing MP4; or enhance a saved draft deterministically. Polls, downloads, and saves the video locally.",
+      "Generate FLUX 3 video from text, one to ten image keyframes, or an existing MP4; or enhance a saved draft deterministically. Polls, downloads, and saves the video locally.",
     sideEffects: true,
     category: "generation",
     auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
@@ -281,6 +289,28 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       resolution: "hd",
       generateAudio: true,
       draft: true
+    }
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.videoUpscale,
+    purpose:
+      "Upscale an MP4 with FLUX 3 Video Upscale, preserve its audio, save both source and result locally, and expose a before/after comparison.",
+    sideEffects: true,
+    category: "tools",
+    auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
+    body: {
+      inputVideo: "Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL; MP4 up to 50 MB and 20 seconds.",
+      upscaleFactor: "1.5 through 3 (default 2)",
+      creativity: "0 precise or 1 creative (default 1)",
+      prompt: "Optional detail guidance",
+      safetyTolerance: "0 through 4 (default 2)"
+    },
+    example: {
+      inputVideo: "/api/bfl/flux3-video/<saved-id>",
+      upscaleFactor: 2,
+      creativity: 0,
+      safetyTolerance: 2
     }
   },
   {
@@ -523,7 +553,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
 
 export const localAgentCoverage = {
   generation:
-    "Image generation is wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate. FLUX.3 video generation, draft enhancement, and local video recovery are wired through /api/bfl/flux3-video. Every paid entry point enqueues onto the server-owned queue and waits, so execution, retry, and recovery are identical from the browser, MCP, and CLI.",
+    "Image generation is wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate. FLUX 3 generation is wired through /api/bfl/flux3-video; FLUX 3 Video Upscale is wired through /api/bfl/video-upscale with saved before/after media. Every paid entry point uses the server-owned queue, so execution, retry, and recovery are identical from the browser, MCP, and CLI.",
   queue:
     "One server-owned, file-backed generation queue runs image, tool, and video lanes with a renewable single-runner lease. Inspect and control it through /api/dashboard/queue; repair individual provider jobs through /api/bfl/jobs.",
   imageTools: "Erase, virtual try-on, outpaint, and deblur are wired through /api/bfl/tools and the image-tool workspace.",
@@ -542,7 +572,7 @@ export const localAgentCoverage = {
   uiSync:
     "Agent-created outputs are visible through /api/outputs and the browser gallery polls for new server outputs. A push event stream is still optional future polish.",
   evaluation:
-    "Saved image, tool, and FLUX.3 metadata is normalized through /api/evaluations for UI, MCP, CLI, JSON, and JSONL model review without duplicating generation history.",
+    "Saved image, tool, and FLUX 3 metadata is normalized through /api/evaluations for UI, MCP, CLI, JSON, and JSONL model review without duplicating generation history.",
   localOnly:
     "Browser-imported files and browser-side waveform analysis still require UI handoff. Saved outputs can be used by server-side agents."
 };
@@ -563,9 +593,11 @@ export const localDashboardMcpTools = [
   "cancel_generation_job",
   "generate_saved_image",
   "list_flux3_videos",
+  "list_video_upscales",
   "list_evaluations",
   "update_evaluation",
   "generate_flux3_video",
+  "upscale_video",
   "run_image_tool",
   "save_prompt",
   "delete_prompt",

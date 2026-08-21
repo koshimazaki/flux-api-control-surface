@@ -7,6 +7,7 @@ import {
   ImagePlus,
   Maximize2,
   Music,
+  ScanLine,
   Shirt,
   Send
 } from "lucide-react";
@@ -22,6 +23,7 @@ const badgeIcons = {
   outpaint: Maximize2,
   deblur: Focus,
   flux3: Film,
+  upscale: ScanLine,
   glyphs: Fingerprint
 };
 
@@ -31,6 +33,7 @@ const rolePriority: AssetBadge["kind"][] = [
   "deblur",
   "erase",
   "flux3",
+  "upscale",
   "glyphs",
   "collection",
   "reference",
@@ -48,7 +51,8 @@ export function assetRoleClassName(badges: AssetBadge[]) {
 }
 
 export function workspaceRoleLabel(mode: Exclude<WorkspaceMode, "prompt">) {
-  if (mode === "flux3") return "FLUX.3";
+  if (mode === "flux3") return "FLUX 3";
+  if (mode === "upscale") return "Upscale";
   if (mode === "vto") return "VTO";
   if (mode === "outpaint") return "Outpaint";
   if (mode === "deblur") return "Deblur";

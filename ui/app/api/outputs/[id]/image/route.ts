@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       return new NextResponse(remote.buffer, {
         headers: {
           "content-type": remote.contentType,
-          "cache-control": "private, max-age=3600"
+          "cache-control": "private, max-age=86400, stale-while-revalidate=604800"
         }
       });
     }
@@ -23,14 +23,17 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
   const output = await findLocalOutputImage(decodeURIComponent(id));
   if (!output) {
-    return NextResponse.json({ error: "Output image not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Output image not found" },
+      { status: 404, headers: { "cache-control": "private, max-age=60" } }
+    );
   }
 
   const image = await readFile(output.imagePath);
   return new NextResponse(image, {
     headers: {
       "content-type": output.contentType,
-      "cache-control": "private, max-age=3600"
+      "cache-control": "private, max-age=86400, stale-while-revalidate=604800"
     }
   });
 }

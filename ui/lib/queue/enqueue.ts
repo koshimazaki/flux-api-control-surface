@@ -5,6 +5,7 @@ import { mutateQueueState } from "./store";
 import { setJobRuntime } from "./runtime";
 import { awaitQueueJob, newQueueJobId, nudgeQueueRunner } from "./runner";
 import { estimateFlux3VideoUsd, type Flux3VideoRequest } from "@/lib/flux3-video";
+import { estimateVideoUpscaleUsd, VIDEO_UPSCALE_MODEL, VIDEO_UPSCALE_OPERATION, type VideoUpscaleRequest } from "@/lib/video-upscale";
 import { estimateMinimumCost, estimateTokens } from "@/lib/pricing";
 import { takeJobResponse } from "./runtime";
 
@@ -23,7 +24,9 @@ function defaultTitle(options: EnqueueOptions) {
   if (options.title?.trim()) return options.title.trim();
   if (bodyTitle) return bodyTitle;
   if (options.kind === "tool") return `${options.operation}-edit`;
-  if (options.kind === "video") return `FLUX.3 ${options.operation}`;
+  if (options.kind === "video") {
+    return options.operation === VIDEO_UPSCALE_OPERATION ? "FLUX 3 Video Upscale" : `FLUX 3 ${options.operation}`;
+  }
   return "bfl-generation";
 }
 
@@ -38,6 +41,10 @@ function estimateJobCost(options: EnqueueOptions) {
     return { credits: estimate.credits, usd: estimate.usd };
   }
   if (options.kind === "video") {
+    if (options.operation === VIDEO_UPSCALE_OPERATION) {
+      const usd = estimateVideoUpscaleUsd(options.body as VideoUpscaleRequest);
+      return typeof usd === "number" ? { credits: Math.round(usd * 100), usd } : {};
+    }
     const usd = estimateFlux3VideoUsd(options.body as Flux3VideoRequest);
     return typeof usd === "number" ? { credits: Math.round(usd * 100), usd } : {};
   }
@@ -46,7 +53,7 @@ function estimateJobCost(options: EnqueueOptions) {
 
 function modelLabel(options: EnqueueOptions) {
   if (typeof options.body.model === "string" && options.body.model.trim()) return options.body.model.trim();
-  if (options.kind === "video") return "flux-3-video";
+  if (options.kind === "video") return options.operation === VIDEO_UPSCALE_OPERATION ? VIDEO_UPSCALE_MODEL : "flux-3-video";
   if (options.kind === "tool") return `flux-tools/${options.operation}`;
   return "pro-preview";
 }

@@ -1,0 +1,197 @@
+.workspace.videoUpscaleMode {
+  grid-template-columns: 58px minmax(520px, 1fr) 340px;
+  grid-template-rows: auto minmax(620px, auto);
+  grid-template-areas:
+    ". modes modes"
+    ". main main";
+  height: auto;
+  min-height: clamp(720px, calc(100vh - 132px), 980px);
+}
+
+.workspace.videoUpscaleMode > .videoUpscaleWorkspace { grid-area: main; }
+
+.videoUpscaleWorkspace {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-5, 14px);
+}
+
+.videoUpscalePreview,
+.videoUpscaleControls { min-width: 0; }
+
+.videoUpscalePreview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--space-5, 12px);
+}
+
+.videoUpscaleDrop {
+  min-height: 540px;
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 9px;
+  border-style: dashed;
+  background: color-mix(in srgb, var(--surface-inset) 84%, transparent) !important;
+  color: var(--text-muted);
+}
+
+.videoUpscaleDrop strong { color: var(--text-primary); font-size: 16px; }
+.videoUpscaleDrop span { font-family: var(--font-mono); font-size: 10px; }
+
+.videoUpscaleSourcePreview {
+  min-height: 520px;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: #080a0c;
+}
+
+.videoUpscaleSourcePreview video {
+  width: 100%;
+  height: 100%;
+  max-height: 640px;
+  object-fit: contain;
+}
+
+.videoUpscaleSourcePreview > div,
+.videoUpscaleResultBar,
+.videoUpscaleResultBar > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.videoUpscaleSourcePreview > div { padding: 9px; }
+.videoUpscaleSourcePreview strong { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.videoUpscaleSourcePreview button { width: 30px; min-height: 30px; padding: 0; }
+
+.videoCompare { display: grid; gap: 8px; }
+.videoCompareStage {
+  position: relative;
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: #080a0c;
+}
+.videoCompareStage video,
+.videoCompareAfter {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.videoCompareStage video { object-fit: contain; }
+.videoCompareAfter { pointer-events: none; }
+.videoCompareAfter video { filter: saturate(1.02) contrast(1.015); }
+.videoCompareStage > input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+.videoCompareDivider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-1px);
+  background: var(--acc-intel);
+  box-shadow: 0 0 14px var(--acc-intel);
+  pointer-events: none;
+}
+.videoCompareDivider i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--acc-intel);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-sunken) 86%, transparent);
+  box-shadow: var(--elev-2);
+}
+.videoCompareDivider i::before,
+.videoCompareDivider i::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-top: 1px solid var(--acc-intel);
+  border-left: 1px solid var(--acc-intel);
+}
+.videoCompareDivider i::before { left: 6px; transform: translateY(-50%) rotate(-45deg); }
+.videoCompareDivider i::after { right: 6px; transform: translateY(-50%) rotate(135deg); }
+.videoCompareLabel {
+  position: absolute;
+  top: 10px;
+  z-index: 2;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: var(--radius-xs);
+  background: rgba(8,10,12,.72);
+  padding: 4px 7px;
+  color: #f4f4f2;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.videoCompareLabel.before { left: 10px; }
+.videoCompareLabel.after { right: 10px; }
+.videoComparePlay { justify-self: start; min-height: 34px; display: inline-flex; align-items: center; gap: 7px; }
+
+.videoUpscaleResultBar {
+  justify-content: space-between;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-inset) 76%, transparent);
+  padding: 10px;
+}
+.videoUpscaleResultBar > div:first-child { min-width: 0; display: grid; gap: 2px; }
+.videoUpscaleResultBar strong,
+.videoUpscaleResultBar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.videoUpscaleResultBar span { color: var(--text-muted); font-size: 10px; }
+.videoUpscaleResultBar a,
+.videoUpscaleResultBar button { min-height: 32px; display: inline-flex; align-items: center; gap: 6px; color: var(--text-primary); text-decoration: none; }
+
+.videoUpscaleControls { align-self: stretch; padding: var(--space-5, 12px); }
+.videoUpscaleModePicker { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.videoUpscaleModePicker button { min-height: 64px; display: grid; place-items: center; align-content: center; gap: 3px; }
+.videoUpscaleModePicker button.active { border-color: var(--acc-intel); background: var(--acc-intel-ghost); color: var(--acc-intel-strong); }
+.videoUpscaleModePicker small { color: var(--text-muted); font-size: 9px; }
+.videoUpscaleControls label > span { float: right; color: var(--acc-intel-strong); font-family: var(--font-mono); }
+.videoUpscaleControls input[type="range"] { width: 100%; }
+.videoUpscaleControls textarea { resize: vertical; line-height: 1.45; }
+.videoUpscaleTarget,
+.videoUpscaleCost { display: grid; gap: 3px; border: 1px solid var(--border-default); border-radius: var(--radius-md); background: color-mix(in srgb, var(--surface-inset) 76%, transparent); padding: 10px; }
+.videoUpscaleTarget span,
+.videoUpscaleTarget small,
+.videoUpscaleCost span,
+.videoUpscaleCost small { color: var(--text-muted); font-size: 10px; }
+.videoUpscaleTarget strong,
+.videoUpscaleCost strong { font-size: 14px; }
+
+@media (max-width: 1160px) {
+  .workspace.videoUpscaleMode { grid-template-columns: 58px minmax(360px, 1fr); grid-template-areas: ". modes" ". main"; }
+  .videoUpscaleWorkspace { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .workspace.videoUpscaleMode { grid-template-columns: 1fr; grid-template-areas: "modes" "main"; }
+  .videoCompareStage,
+  .videoUpscaleDrop,
+  .videoUpscaleSourcePreview { min-height: 320px; }
+  .videoUpscaleResultBar { align-items: flex-start; flex-direction: column; }
+}

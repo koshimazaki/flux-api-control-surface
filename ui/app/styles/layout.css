@@ -31,7 +31,15 @@
   display: grid;
   justify-items: end;
   gap: 8px;
-  min-width: min(520px, 100%);
+  min-width: min(620px, 100%);
+}
+
+.topBarUtilityRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .topBarStatus {
@@ -113,7 +121,49 @@ h2 {
 }
 
 .keyBox {
+  width: auto;
+  min-width: 172px;
+  display: grid;
+  gap: 8px;
+  padding: 4px;
+}
+
+.keyBox.open {
   width: min(520px, 100%);
+}
+
+.keyDisclosure {
+  min-height: 32px;
+  justify-content: flex-start;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.keyDisclosure > span:nth-child(2) {
+  white-space: nowrap;
+}
+
+.keyDisclosureChevron {
+  margin-left: auto;
+  transition: transform 180ms ease;
+}
+
+.keyBox.open .keyDisclosureChevron {
+  transform: rotate(180deg);
+}
+
+.keyBoxFields {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.keyBoxActions {
+  display: flex;
+  gap: 5px;
 }
 
 .keyBox input,
@@ -187,14 +237,48 @@ h2 {
   padding: 0 10px;
 }
 
-/* The mode tabs + balance share the top row; the prompt library spans both rows so its
-   top aligns with the mode buttons (no gap) and the prompt list gets the full height. */
+.compactBalance {
+  min-height: 36px;
+  display: grid;
+  grid-template-columns: minmax(92px, auto) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 4px;
+}
+
+.compactBalance > div {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  gap: 3px 7px;
+  padding-left: 6px;
+}
+
+.compactBalance span {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.compactBalance strong {
+  grid-row: 1;
+  grid-column: 2;
+  margin: 0;
+  font-size: 14px;
+}
+
+.compactBalance small {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  font-size: 9px;
+}
+
+/* The prompt library spans both rows; modes run across the full working surface. */
 .workspace {
   display: grid;
   grid-template-columns: 310px minmax(420px, 1fr) 340px;
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
-    "library modes   balance"
+    "library modes   modes"
     "library main    run";
   gap: 14px;
   margin-top: 14px;
@@ -212,10 +296,6 @@ h2 {
 
 .workspace > .workspaceModeBar {
   grid-area: modes;
-}
-
-.workspace > .balanceStat {
-  grid-area: balance;
 }
 
 .workspace > .workspaceMain {

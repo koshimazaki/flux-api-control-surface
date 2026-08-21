@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { BalanceCard } from "@/components/balance-card";
 import { Flux3VideoWorkspace } from "@/components/flux3-video-workspace";
+import { GenerateReferenceControls } from "@/components/generate-reference-controls";
 import { ImageToolWorkspace } from "@/components/image-tool-workspace";
 import { PromptEditor } from "@/components/prompt-editor";
 import { PromptLibrary } from "@/components/prompt-library";
 import { RunPanel } from "@/components/run-panel";
 import { ToolRunPanel } from "@/components/tool-run-panel";
 import { WorkspaceModeTabs } from "@/components/workspace-mode-tabs";
+import { VideoUpscaleWorkspace } from "@/components/video-upscale-workspace";
 import { clampBatchCount, clampReferenceWeight } from "@/lib/dashboard-generation";
 import { downloadText, formatPrompt } from "@/lib/prompt-utils";
 import type { DashboardState } from "@/lib/use-dashboard-state";
@@ -14,9 +15,13 @@ import type { ImageWorkspaceMode } from "@/lib/types";
 
 export function DashboardWorkspace({ state }: { state: DashboardState }) {
   const isFlux3Mode = state.workspaceMode === "flux3";
+  const isUpscaleMode = state.workspaceMode === "upscale";
+  const isVideoMode = isFlux3Mode || isUpscaleMode;
   const imageToolMode: ImageWorkspaceMode | null =
-    state.workspaceMode === "prompt" || state.workspaceMode === "flux3" ? null : state.workspaceMode;
-  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isFlux3Mode);
+    state.workspaceMode === "prompt" || state.workspaceMode === "flux3" || state.workspaceMode === "upscale"
+      ? null
+      : state.workspaceMode;
+  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isVideoMode);
   const toolPromptText =
     imageToolMode === "vto" ? state.vtoPromptText : imageToolMode === "outpaint" ? state.outpaintPromptText : "";
   const setToolPromptText =
@@ -27,19 +32,19 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
       : () => undefined;
 
   useEffect(() => {
-    setLibraryCollapsed(Boolean(imageToolMode) || isFlux3Mode);
-  }, [imageToolMode, isFlux3Mode]);
+    const compactQuery = window.matchMedia("(max-width: 900px)");
+    const syncCollapsedState = () => {
+      setLibraryCollapsed(Boolean(imageToolMode) || isVideoMode || compactQuery.matches);
+    };
+    syncCollapsedState();
+    compactQuery.addEventListener("change", syncCollapsedState);
+    return () => compactQuery.removeEventListener("change", syncCollapsedState);
+  }, [imageToolMode, isVideoMode]);
 
   if (isFlux3Mode) {
     return (
       <section className="workspace flux3Mode">
         <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
-        <BalanceCard
-          balanceCredits={state.balance.credits}
-          totalActualCredits={state.totalActualCredits}
-          isCheckingBalance={state.isCheckingBalance}
-          onCheckBalance={state.checkBalance}
-        />
         <Flux3VideoWorkspace
           apiKey={state.apiKey}
           assets={state.assets}
@@ -56,15 +61,27 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
     );
   }
 
+  if (isUpscaleMode) {
+    return (
+      <section className="workspace videoUpscaleMode">
+        <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+        <VideoUpscaleWorkspace
+          apiKey={state.apiKey}
+          assets={state.assets}
+          onGenerated={() => void state.checkBalance()}
+          onOpenAssets={() => state.setActiveTab("assets")}
+          generationQueue={state.generationQueue}
+          generationQueueSummary={state.generationQueueSummary}
+          generationQueueConcurrency={state.generationQueueConcurrency}
+          generationQueueControls={state.generationQueueControls}
+        />
+      </section>
+    );
+  }
+
   return (
     <section className={["workspace", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
       <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
-      <BalanceCard
-        balanceCredits={state.balance.credits}
-        totalActualCredits={state.totalActualCredits}
-        isCheckingBalance={state.isCheckingBalance}
-        onCheckBalance={state.checkBalance}
-      />
       <PromptLibrary
         prompts={state.visiblePrompts}
         libraryOptions={state.promptLibraryOptions}
@@ -130,6 +147,26 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             onEnvironmentSelect={state.updateComboEnvironment}
             onReferenceDropPayload={state.addAssetToPromptReferences}
             onReferenceFiles={state.addPromptReferenceFiles}
+            referenceControls={
+              <GenerateReferenceControls
+                references={state.references}
+                maxReferences={state.activeModelConfig.maxReferences}
+                primaryReferenceUrl={state.primaryReferenceUrl}
+                primaryReferencePreview={state.primaryReferencePreview}
+                referenceWeight={state.referenceWeight}
+                referenceCue={state.referenceCue}
+                normalizeReferences={state.normalizeReferences}
+                onReferencesChange={state.setReferences}
+                onPrimaryReferenceUrlChange={state.setPrimaryReferenceUrl}
+                onPrimaryReferenceFiles={state.setPrimaryReferenceFiles}
+                onClearPrimaryReference={state.clearPrimaryReference}
+                onReferenceWeightChange={(value) => state.setReferenceWeight(clampReferenceWeight(value))}
+                onReferenceCueChange={state.setReferenceCue}
+                onNormalizeReferencesChange={state.setNormalizeReferences}
+                onReferenceFiles={state.addReferenceFiles}
+                onReferenceDropPayload={state.addReferenceFromDragPayload}
+              />
+            }
             onImport={state.importPromptJson}
             onSave={() => void state.savePrompt()}
             onSaveAsNew={() => void state.savePrompt(true)}
@@ -201,12 +238,6 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           selectedPromptCount={state.selectedComboIds.length}
           permutationPairCount={state.permutationPairCount}
           batchProgress={state.batchProgress}
-          references={state.references}
-          maxReferences={state.activeModelConfig.maxReferences}
-          primaryReferenceUrl={state.primaryReferenceUrl}
-          primaryReferencePreview={state.primaryReferencePreview}
-          referenceWeight={state.referenceWeight}
-          referenceCue={state.referenceCue}
           promptTokens={state.promptTokens}
           promptTokenLimit={state.activeModelConfig.promptTokenLimit}
           estimatedCredits={state.costEstimate.credits}
@@ -228,14 +259,6 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onNormalizeReferencesChange={state.setNormalizeReferences}
           onBatchCountChange={(value) => state.setBatchCount(clampBatchCount(value))}
           onBatchModeChange={state.setBatchMode}
-          onReferencesChange={state.setReferences}
-          onPrimaryReferenceUrlChange={state.setPrimaryReferenceUrl}
-          onPrimaryReferenceFiles={state.setPrimaryReferenceFiles}
-          onClearPrimaryReference={state.clearPrimaryReference}
-          onReferenceWeightChange={(value) => state.setReferenceWeight(clampReferenceWeight(value))}
-          onReferenceCueChange={state.setReferenceCue}
-          onReferenceFiles={state.addReferenceFiles}
-          onReferenceDropPayload={state.addReferenceFromDragPayload}
           onGenerate={() => void state.generate()}
         />
       )}

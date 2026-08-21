@@ -17,7 +17,7 @@ export async function GET() {
 }
 
 /**
- * Compatibility wrapper over the server-owned generation queue. FLUX.3 renders
+ * Compatibility wrapper over the server-owned generation queue. FLUX 3 renders
  * run in the video lane; if this request times out, the queue keeps polling and
  * saving the result instead of losing an accepted job.
  */
@@ -47,6 +47,6 @@ export async function POST(request: NextRequest) {
     },
     wait: wantsWait(body as Record<string, unknown>),
     waitMs: VIDEO_ROUTE_WAIT_MS,
-    fallbackError: "FLUX.3 video generation failed."
+    fallbackError: "FLUX 3 video generation failed."
   });
 }

@@ -1,0 +1,788 @@
+/*
+ * MorphKit adapter: Holodeck operator-panel grammar × BFL control-surface
+ * structure and behaviour. This file changes presentation only.
+ */
+
+body {
+  background: #101316;
+}
+
+body::before {
+  z-index: 1;
+  opacity: 0.2;
+  background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1) 0 1px, transparent 1px 3px);
+  mix-blend-mode: normal;
+}
+
+.backgroundShader {
+  background: #101316;
+}
+
+.backgroundShader canvas {
+  opacity: 0.52;
+  filter: contrast(1.08) brightness(0.76) saturate(0.82);
+}
+
+.backgroundShaderWash {
+  background:
+    linear-gradient(90deg, rgba(16, 19, 22, 0.72), rgba(23, 26, 30, 0.42) 48%, rgba(16, 19, 22, 0.76)),
+    linear-gradient(180deg, rgba(98, 196, 230, 0.035), rgba(16, 19, 22, 0.74));
+  box-shadow: inset 0 0 180px rgba(0, 0, 0, 0.56);
+}
+
+.dsgn-root.shell {
+  padding: var(--space-6);
+}
+
+.dsgn-root button,
+.dsgn-root input,
+.dsgn-root select,
+.dsgn-root textarea {
+  font-family: var(--font-sans);
+}
+
+.dsgn-root button {
+  min-height: var(--control-md);
+  border: 1px solid var(--border-machined);
+  border-radius: var(--radius-sm);
+  background: var(--mat-gunmetal);
+  color: var(--text-primary);
+  box-shadow: var(--elev-1), var(--rim-top);
+  transition: var(--tr-control);
+}
+
+.dsgn-root button:hover {
+  border-color: var(--acc-intel-dim);
+  background: var(--mat-steel);
+  color: var(--acc-intel-strong);
+}
+
+.dsgn-root button:active {
+  transform: translateY(1px);
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root input,
+.dsgn-root select,
+.dsgn-root textarea {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+  color: var(--text-primary);
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root input:focus,
+.dsgn-root select:focus,
+.dsgn-root textarea:focus {
+  border-color: var(--acc-intel);
+  box-shadow: var(--focus-ring);
+}
+
+.dsgn-root input::placeholder,
+.dsgn-root textarea::placeholder {
+  color: var(--text-faint);
+}
+
+.dsgn-root .topbar,
+.dsgn-root .panel,
+.dsgn-root .assetsPanel,
+.dsgn-root .statCard,
+.dsgn-root .tabBar,
+.dsgn-root .referenceDock {
+  border-color: var(--border-machined);
+  border-radius: var(--radius-md);
+  background:
+    repeating-linear-gradient(90deg, rgba(var(--lumen), 0.012) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(54, 61, 69, 0.78), rgba(27, 31, 36, 0.74));
+  box-shadow: var(--elev-2), var(--rim-top), var(--rim-bottom);
+  backdrop-filter: blur(22px) saturate(1.14);
+}
+
+.dsgn-root .topbar {
+  position: relative;
+  min-height: 82px;
+  padding: var(--space-4) var(--space-6);
+  overflow: hidden;
+}
+
+.dsgn-root .topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 16px -2px var(--accent);
+}
+
+.dsgn-root .topbar::after {
+  content: "SERVER QUEUE  /  PROVENANCE  /  EVALUATION";
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-2);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+
+.dsgn-root .topBarBrand {
+  gap: var(--space-5);
+}
+
+.dsgn-root .brandMark {
+  width: var(--control-lg);
+  height: var(--control-lg);
+  flex-basis: var(--control-lg);
+  border-color: var(--border-machined);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  box-shadow: var(--inset-2), var(--rim-top);
+}
+
+.dsgn-root .brandMark img {
+  width: 24px;
+}
+
+.dsgn-root .eyebrow {
+  margin-bottom: var(--space-2);
+  color: var(--accent-strong);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  line-height: var(--t-micro-lh);
+  letter-spacing: 0.12em;
+}
+
+.dsgn-root h1 {
+  color: var(--text-primary);
+  font-family: var(--font-tech);
+  font-size: var(--t-display);
+  line-height: var(--t-display-lh);
+  letter-spacing: var(--t-display-ls);
+  font-weight: var(--fw-semibold, 600);
+}
+
+.dsgn-root h2 {
+  color: var(--text-primary);
+  font-family: var(--font-tech);
+  font-size: var(--t-subhead);
+  line-height: var(--t-subhead-lh);
+  font-weight: 600;
+}
+
+.dsgn-root .topBarChips {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dsgn-root .topBarChips span:not(:last-child)::after {
+  color: var(--border-machined);
+}
+
+.dsgn-root .topBarStatus {
+  color: var(--acc-intel);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dsgn-root .keyBox,
+.dsgn-root .searchBox {
+  border-color: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root .keyBox {
+  min-height: var(--control-md);
+  height: auto;
+}
+
+.dsgn-root .keySourceBadge {
+  color: var(--acc-readout);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dsgn-root .workspace {
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+}
+
+.dsgn-root .workspaceModeBar,
+.dsgn-root .dashboardTabs > .tabBar {
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.dsgn-root .tabButton {
+  min-height: 30px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dsgn-root .tabButton:hover {
+  border-color: var(--acc-intel-dim);
+  color: var(--acc-intel-strong);
+}
+
+.dsgn-root .tabButton.active {
+  border-color: var(--accent);
+  background: var(--accent-ghost);
+  color: var(--accent-strong);
+  box-shadow: var(--rim-top), 0 0 10px -3px var(--accent);
+}
+
+.dsgn-root .dashboardTabs > .tabBar .tabButton.active {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+  color: var(--acc-intel-strong);
+  box-shadow: var(--rim-top), 0 0 10px -3px var(--acc-intel);
+}
+
+.dsgn-root .tabButton span {
+  min-width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-overlay);
+  color: var(--acc-readout);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root .statCard {
+  min-height: 70px;
+  padding: var(--space-5);
+}
+
+.dsgn-root .statCard span,
+.dsgn-root .statCard small,
+.dsgn-root .panelHeader p,
+.dsgn-root .assetDate,
+.dsgn-root small {
+  color: var(--text-muted);
+}
+
+.dsgn-root .statCard strong {
+  color: var(--acc-readout);
+  font-family: var(--font-tech);
+  font-size: var(--t-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.dsgn-root .panel,
+.dsgn-root .assetsPanel {
+  background:
+    linear-gradient(180deg, rgba(49, 55, 62, 0.7), rgba(30, 34, 39, 0.68)),
+    repeating-linear-gradient(90deg, rgba(var(--lumen), 0.01) 0 1px, transparent 1px 3px);
+}
+
+.dsgn-root .panel {
+  padding: var(--space-5);
+}
+
+.dsgn-root .editor,
+.dsgn-root .assetsPanel {
+  background:
+    linear-gradient(180deg, rgba(98, 196, 230, 0.11), transparent 108px),
+    linear-gradient(180deg, rgba(49, 55, 62, 0.7), rgba(30, 34, 39, 0.68));
+}
+
+.dsgn-root .controls {
+  background:
+    linear-gradient(180deg, rgba(234, 123, 123, 0.11), transparent 112px),
+    linear-gradient(180deg, rgba(49, 55, 62, 0.7), rgba(30, 34, 39, 0.68));
+}
+
+.dsgn-root .panelHeader,
+.dsgn-root .runLogHeader,
+.dsgn-root .flux3SectionHeader {
+  position: relative;
+}
+
+.dsgn-root .panelHeader {
+  min-height: 32px;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.dsgn-root .panelHeader::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 48px;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 8px -1px var(--accent);
+}
+
+.dsgn-root .editor .panelHeader::after,
+.dsgn-root .assetsPanel .panelHeader::after,
+.dsgn-root .flux3PreviewPanel .panelHeader::after {
+  background: var(--acc-intel);
+  box-shadow: 0 0 8px -1px var(--acc-intel);
+}
+
+.dsgn-root .panelHeader p,
+.dsgn-root .panelHeader small,
+.dsgn-root .controls label,
+.dsgn-root .libraryFilter,
+.dsgn-root .runLogHeader,
+.dsgn-root .costNote {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  line-height: var(--t-micro-lh);
+  letter-spacing: var(--t-micro-ls);
+  text-transform: uppercase;
+}
+
+.dsgn-root .promptItem,
+.dsgn-root .runLogItem,
+.dsgn-root .runLogEmpty,
+.dsgn-root .assetCard,
+.dsgn-root .batchBox,
+.dsgn-root .balanceBox,
+.dsgn-root .costGrid > div,
+.dsgn-root .referenceDropzone,
+.dsgn-root .referenceUrlBar,
+.dsgn-root .flux3MediaSection,
+.dsgn-root .flux3Recent,
+.dsgn-root .flux3ResultBar,
+.dsgn-root .flux3CostBox,
+.dsgn-root pre {
+  border-color: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root .promptItem:hover,
+.dsgn-root .assetCard:hover {
+  border-color: var(--border-machined);
+  background: var(--surface-raised);
+}
+
+.dsgn-root .promptItem.active,
+.dsgn-root .promptItem.active.selectedCombo {
+  border-color: var(--accent);
+  background: var(--accent-ghost);
+  box-shadow: inset 3px 0 0 var(--accent), var(--inset-1);
+}
+
+.dsgn-root .promptItem.selectedCombo {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+}
+
+.dsgn-root .comboModeButton,
+.dsgn-root .comboPopoverActions button,
+.dsgn-root .assetActions .fileButton,
+.dsgn-root .assetFilterChips button,
+.dsgn-root .flux3ResultBar a,
+.dsgn-root .flux3SectionHeader button {
+  border-color: var(--border-machined);
+  border-radius: var(--radius-sm);
+  background: var(--mat-gunmetal);
+  color: var(--text-primary);
+  box-shadow: var(--elev-1), var(--rim-top);
+}
+
+.dsgn-root .comboMenu,
+.dsgn-root .comboSettingsPopover,
+.dsgn-root .collectionSettingsPopover,
+.dsgn-root .assetReferenceMenu {
+  border-color: var(--border-machined);
+  border-radius: var(--radius-md);
+  background: rgba(23, 26, 30, 0.94);
+  box-shadow: var(--elev-4);
+}
+
+.dsgn-root .comboSettingsCard,
+.dsgn-root .collectionSettingsCard {
+  border-color: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--mat-gunmetal);
+  box-shadow: var(--elev-1), var(--rim-top);
+}
+
+.dsgn-root .generateButton,
+.dsgn-root .videoScriptEnqueue {
+  min-height: 46px;
+  border-color: var(--accent-strong);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  color: var(--on-accent);
+  font-family: var(--font-tech);
+  font-size: var(--t-subhead);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: var(--elev-2), var(--rim-top), 0 0 16px -8px var(--accent);
+}
+
+.dsgn-root .generateButton:hover,
+.dsgn-root .videoScriptEnqueue:hover {
+  border-color: var(--acc-readout);
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  color: var(--on-accent);
+}
+
+.dsgn-root .seedLockButton.selected,
+.dsgn-root .assetFilterChips button.active,
+.dsgn-root .assetActions .selected,
+.dsgn-root .flux3ModePicker > button.active {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+  color: var(--acc-intel-strong);
+  box-shadow: var(--rim-top), 0 0 10px -4px var(--acc-intel);
+}
+
+.dsgn-root .flux3EndpointBadge,
+.dsgn-root .assetOriginBadge,
+.dsgn-root .keySourceBadge {
+  border-color: var(--acc-intel-dim);
+  border-radius: var(--radius-pill);
+  background: var(--acc-intel-ghost);
+  color: var(--acc-intel-strong);
+}
+
+.dsgn-root .flux3Viewer,
+.dsgn-root .imageToolCanvas,
+.dsgn-root .maskPaintViewport,
+.dsgn-root .outpaintViewport,
+.dsgn-root .glyphStage {
+  border-color: var(--border-machined);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-inset);
+  background-image: var(--mat-grid);
+  background-size: var(--mat-grid-size) var(--mat-grid-size);
+  box-shadow: var(--inset-2);
+}
+
+.dsgn-root .flux3ViewerEmpty > svg,
+.dsgn-root .statCard > svg {
+  color: var(--acc-intel);
+}
+
+.dsgn-root .flux3Warning {
+  border-color: var(--acc-armament-dim);
+  border-radius: var(--radius-sm);
+  background: var(--acc-armament-ghost);
+  color: var(--acc-armament-strong);
+}
+
+.dsgn-root .errorText,
+.dsgn-root .runLogItem.failed {
+  color: var(--spec-heat-peak);
+}
+
+.dsgn-root .statusLine {
+  color: var(--acc-intel);
+  font-family: var(--font-mono);
+}
+
+.dsgn-root input[type="checkbox"],
+.dsgn-root input[type="radio"],
+.dsgn-root input[type="range"] {
+  accent-color: var(--accent);
+}
+
+.dsgn-root pre,
+.dsgn-root code,
+.dsgn-root .audioPlayerTime,
+.dsgn-root .assetOriginBadge {
+  font-family: var(--font-mono);
+}
+
+/* Second-pass integration repair: keep the Holodeck material vocabulary while
+   fitting it to a full application surface rather than isolated panels. */
+.dsgn-root .topBarRight {
+  gap: var(--space-3);
+}
+
+.dsgn-root .topBarUtilityRow {
+  gap: var(--space-4);
+}
+
+.dsgn-root .compactBalance {
+  border-color: var(--acc-intel-dim);
+  border-radius: var(--radius-sm);
+  background: rgba(19, 22, 26, 0.72);
+  box-shadow: var(--inset-1), var(--rim-top);
+  backdrop-filter: blur(16px);
+}
+
+.dsgn-root .compactBalance strong {
+  color: var(--acc-readout);
+  font-size: var(--t-sm);
+}
+
+.dsgn-root .compactBalance button {
+  min-height: 30px;
+  font-size: var(--t-micro);
+}
+
+.dsgn-root .keyBox {
+  border-color: var(--border-default);
+  background: rgba(19, 22, 26, 0.74);
+}
+
+.dsgn-root .keyDisclosure {
+  color: var(--text-secondary);
+}
+
+.dsgn-root .keyDisclosure:hover {
+  border-color: transparent;
+  background: rgba(98, 196, 230, 0.06);
+}
+
+.dsgn-root .keyDisclosure .keySourceBadge {
+  min-width: 62px;
+  border-radius: var(--radius-xs);
+  padding: 3px 6px;
+}
+
+.dsgn-root .keyBox input,
+.dsgn-root .referenceUrlBar input,
+.dsgn-root .searchBox input {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dsgn-root .keyBoxFields {
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-3);
+  animation: holodeck-disclose 240ms var(--ease-out) both;
+}
+
+.dsgn-root .workspaceModeBar .tabButton {
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  background:
+    repeating-linear-gradient(90deg, rgba(var(--lumen), 0.012) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(54, 61, 69, 0.78), rgba(27, 31, 36, 0.82));
+}
+
+.dsgn-root .workspaceModeBar .tabButton.active {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgba(234, 123, 123, 0.24), rgba(34, 28, 33, 0.76));
+}
+
+.dsgn-root .workspaceModeBar .tabButton-erase.active {
+  border-color: var(--acc-intel);
+  background: linear-gradient(180deg, rgba(98, 196, 230, 0.24), rgba(24, 34, 39, 0.78));
+  color: var(--acc-intel-strong);
+  box-shadow: var(--rim-top), 0 0 10px -3px var(--acc-intel);
+}
+
+.dsgn-root .promptEditor {
+  border-color: var(--border-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 24%),
+    rgba(12, 15, 18, 0.84);
+  color: var(--text-primary);
+  box-shadow: var(--inset-2), inset 0 0 42px rgba(98, 196, 230, 0.025);
+}
+
+.dsgn-root .editor .presetRow {
+  width: min(520px, 58vw);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.dsgn-root .editor .presetGroup {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dsgn-root .editor .presetGroup button {
+  width: 100%;
+  max-width: none;
+  padding: 0 var(--space-3);
+}
+
+.dsgn-root .generateReferenceControls {
+  border-color: var(--border-strong);
+  background: rgba(14, 18, 22, 0.74);
+  box-shadow: var(--inset-1), var(--rim-top);
+  backdrop-filter: blur(16px) saturate(1.1);
+}
+
+.dsgn-root .generateReferenceRoleGrid .referenceRoleDrop {
+  border-radius: var(--radius-sm);
+  background: rgba(19, 22, 26, 0.74);
+}
+
+.dsgn-root .generateReferenceRoleGrid .referenceRoleDrop.active {
+  border-color: var(--acc-intel-dim);
+  background: var(--acc-intel-ghost);
+}
+
+.dsgn-root .referenceRoleMeta code,
+.dsgn-root .promptReferenceChip,
+.dsgn-root .referenceRoleThumb em {
+  border-radius: var(--radius-xs);
+}
+
+.dsgn-root .promptReferenceStrip {
+  border-color: var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(14, 17, 21, 0.76);
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root .promptItem {
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-3);
+}
+
+.dsgn-root .promptSelect,
+.dsgn-root .promptSelect:hover {
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-primary);
+  padding: var(--space-2) var(--space-3);
+  transform: none;
+}
+
+.dsgn-root select {
+  border-radius: 8px 3px 8px 3px;
+  background-color: rgba(17, 20, 24, 0.9);
+  box-shadow: var(--inset-1), inset 0 1px 0 rgba(var(--lumen), 0.025);
+}
+
+.dsgn-root input[type="checkbox"],
+.dsgn-root input[type="radio"] {
+  accent-color: var(--accent);
+  filter: drop-shadow(0 0 3px rgba(234, 123, 123, 0.24));
+}
+
+.dsgn-root input[type="range"] {
+  accent-color: var(--acc-intel);
+}
+
+.dsgn-root .toolControls input[type="range"],
+.dsgn-root .glyphField input[type="range"] {
+  --tool-slider-start: rgba(9, 13, 16, 0.98);
+  --tool-slider-dark: rgba(14, 25, 30, 0.98);
+  --tool-slider-mid: rgba(47, 90, 108, 0.92);
+  --tool-slider-light: rgba(98, 196, 230, 0.98);
+}
+
+.dsgn-root .toolControls input[type="range"]::-webkit-slider-thumb,
+.dsgn-root .glyphField input[type="range"]::-webkit-slider-thumb {
+  border-color: var(--acc-readout);
+  background: linear-gradient(180deg, var(--acc-intel-strong), var(--acc-intel));
+  box-shadow: 0 0 0 3px var(--acc-intel-ghost), 0 2px 8px rgba(0, 0, 0, 0.42);
+}
+
+.dsgn-root .toolControls input[type="range"]::-moz-range-thumb,
+.dsgn-root .glyphField input[type="range"]::-moz-range-thumb {
+  border-color: var(--acc-readout);
+  background: linear-gradient(180deg, var(--acc-intel-strong), var(--acc-intel));
+  box-shadow: 0 0 0 3px var(--acc-intel-ghost), 0 2px 8px rgba(0, 0, 0, 0.42);
+}
+
+.dsgn-root .toolControls.mode-erase {
+  background:
+    linear-gradient(180deg, rgba(98, 196, 230, 0.13), transparent 112px),
+    linear-gradient(180deg, rgba(49, 55, 62, 0.7), rgba(30, 34, 39, 0.68));
+}
+
+.dsgn-root .queueBox {
+  border-color: var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(14, 18, 22, 0.74);
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root .queueMeter span.running,
+.dsgn-root .queueJob.running,
+.dsgn-root .queueJob.submitting,
+.dsgn-root .queueJob.downloading {
+  border-color: var(--acc-intel-dim);
+  background: var(--acc-intel-ghost);
+  box-shadow: 0 0 10px -4px var(--acc-intel);
+}
+
+.dsgn-root .queueEmpty {
+  border-radius: var(--radius-sm);
+  background: rgba(10, 13, 16, 0.72);
+}
+
+.dsgn-root .flux3ModePicker > button {
+  border-radius: var(--radius-sm);
+}
+
+.dsgn-root .flux3ModePicker > button.active {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+}
+
+@keyframes holodeck-disclose {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .dsgn-root.shell {
+    padding: var(--space-5);
+  }
+
+  .dsgn-root .topbar {
+    min-height: 0;
+  }
+
+  .dsgn-root .topbar::after {
+    display: none;
+  }
+
+  .dsgn-root .workspaceModeBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dsgn-root .workspaceModeBar .tabButton {
+    min-height: 42px;
+    justify-content: flex-start;
+    padding: 0 var(--space-4);
+  }
+
+  .dsgn-root .promptEditor {
+    min-height: 220px;
+  }
+
+  .dsgn-root .editor > .panelHeader {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .dsgn-root .editor .presetRow {
+    width: 100%;
+  }
+}

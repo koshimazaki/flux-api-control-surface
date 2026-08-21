@@ -3,6 +3,7 @@ import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { findLocalOutputImage } from "@/lib/server-output-store";
 import { findFlux3VideoOutput } from "@/lib/flux3-video-server";
+import { findVideoUpscaleOutput } from "@/lib/video-upscale-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,8 @@ async function resolveLocalFile(id: string) {
   if (image?.imagePath) return image.imagePath;
   const video = await findFlux3VideoOutput(id).catch(() => null);
   if (video?.filePath) return video.filePath;
+  const upscale = await findVideoUpscaleOutput(id).catch(() => null);
+  if (upscale?.filePath) return upscale.filePath;
   return null;
 }
 

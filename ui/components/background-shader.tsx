@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { SurfaceTheme } from "@/lib/surface-theme";
 
 function shade(value: number) {
   const clamped = Math.max(0, Math.min(1, value));
   return Math.round(5 + clamped * 68);
 }
 
-export function BackgroundShader() {
+type BackgroundShaderProps = {
+  theme: SurfaceTheme;
+};
+
+export function BackgroundShader({ theme }: BackgroundShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -39,6 +44,9 @@ export function BackgroundShader() {
     let columns = 0;
     let rows = 0;
     let imageData: ImageData | null = null;
+    let lastRenderAt = -Infinity;
+    let isScrolling = false;
+    let scrollTimer = 0;
 
     function resize() {
       width = window.innerWidth;
@@ -62,8 +70,22 @@ export function BackgroundShader() {
       cursor.targetY = event.clientY / height;
     }
 
+    function handleScroll() {
+      isScrolling = true;
+      window.clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(() => {
+        isScrolling = false;
+      }, 120);
+    }
+
     function render(time: number) {
-      if (!imageData) return;
+      frameId = window.requestAnimationFrame(render);
+      if (!imageData || document.hidden || isScrolling) return;
+
+      // Thirty frames per second is visually continuous for this slow field and
+      // leaves the main thread/compositor room for gallery scroll and decoding.
+      if (time - lastRenderAt < 1000 / 30) return;
+      lastRenderAt = time;
 
       cursor.x += (cursor.targetX - cursor.x) * 0.085;
       cursor.y += (cursor.targetY - cursor.y) * 0.085;
@@ -94,10 +116,13 @@ export function BackgroundShader() {
           const cursorLight = cursorPull * 0.5;
           const value = (swirl * 0.32 + ribbon * 0.26 + pulse * 0.2 + vignette * 0.66 + cursorLight) * 0.5 + 0.27;
           const tone = shade(value);
+          const cyanField = Math.max(0, ribbon * 0.5 + 0.5) * (0.34 + vignette * 0.42);
+          const roseField = Math.max(0, swirl * 0.5 + 0.5) * (0.22 + cursorPull * 0.56);
+          const amberField = Math.max(0, pulse * 0.5 + 0.5) * Math.max(0, vignette - 0.22);
 
-          data[offset] = tone;
-          data[offset + 1] = tone;
-          data[offset + 2] = Math.round(tone * 0.96);
+          data[offset] = Math.min(255, Math.round(tone * 0.72 + roseField * 66 + amberField * 42));
+          data[offset + 1] = Math.min(255, Math.round(tone * 0.76 + cyanField * 54 + amberField * 26));
+          data[offset + 2] = Math.min(255, Math.round(tone * 0.82 + cyanField * 72 + roseField * 42));
           data[offset + 3] = 255;
           offset += 4;
         }
@@ -106,23 +131,25 @@ export function BackgroundShader() {
       targetContext.imageSmoothingEnabled = true;
       bufferContext.putImageData(imageData, 0, 0);
       targetContext.drawImage(bufferCanvas, 0, 0, width, height);
-      frameId = window.requestAnimationFrame(render);
     }
 
     resize();
     frameId = window.requestAnimationFrame(render);
     window.addEventListener("resize", resize);
     window.addEventListener("pointermove", moveCursor, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       window.cancelAnimationFrame(frameId);
+      window.clearTimeout(scrollTimer);
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", moveCursor);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
   return (
-    <div className="backgroundShader" aria-hidden="true">
+    <div className="backgroundShader" data-surface-theme={theme} aria-hidden="true">
       <canvas ref={canvasRef} />
       <div className="backgroundShaderWash" />
     </div>

@@ -2,7 +2,7 @@ import { FLUX3_ASPECT_RATIOS, flux3MaxDuration, type Flux3VideoMode } from "@/li
 import { promptPlaceholderIssue } from "@/lib/prompt-placeholders";
 import type { VideoScriptRowError, VideoScriptSettings, VideoScriptTimingMode } from "./types";
 
-/** Confirmed FLUX.3 constraints. Kept here so a schema change lands in one place. */
+/** Confirmed FLUX 3 constraints. Kept here so a schema change lands in one place. */
 export const FLUX3_MIN_DURATION = 5;
 export const FLUX3_MIN_KEYFRAMES = 1;
 export const FLUX3_MAX_KEYFRAMES = 10;
@@ -65,7 +65,7 @@ function validateTiming(input: RowValidationInput): VideoScriptRowError[] {
 }
 
 /**
- * Step 6 of the expansion order: validate FLUX.3 keyframe, prompt, timing,
+ * Step 6 of the expansion order: validate FLUX 3 keyframe, prompt, timing,
  * duration, and safety constraints for one planned row. Rows keep their errors
  * instead of being dropped so the matrix can show what to fix.
  */
@@ -78,7 +78,7 @@ export function validateVideoScriptRow(input: RowValidationInput): VideoScriptRo
   } else if (keyframes > FLUX3_MAX_KEYFRAMES) {
     errors.push({
       code: "keyframe_count",
-      message: `FLUX.3 accepts up to ${FLUX3_MAX_KEYFRAMES} image keyframes; this row has ${keyframes}.`
+      message: `FLUX 3 accepts up to ${FLUX3_MAX_KEYFRAMES} image keyframes; this row has ${keyframes}.`
     });
   }
 

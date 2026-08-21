@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@400;500;600;700&family=Saira+Stencil+One&display=swap");
+
 @font-face {
   font-family: "Instrument Sans";
   src: url("https://bfl.ai/_next/static/media/26d0ba92e140f0dc-s.p.woff2") format("woff2");
@@ -13,4 +15,3 @@
   font-style: normal;
   font-weight: 500;
 }
-
