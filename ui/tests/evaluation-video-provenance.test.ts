@@ -8,7 +8,7 @@ const { readKeyframes } = await import("@/lib/generation-evaluation-server");
 
 describe("video keyframe provenance in the evaluation read model", () => {
   it("zips the adapter's parallel keyframe id and second arrays into a timeline", () => {
-    // What the FLUX.3 adapter actually writes.
+    // What the FLUX 3 adapter actually writes.
     expect(
       readKeyframes({
         keyframeAssetIds: ["asset-a", "asset-b", "asset-c"],

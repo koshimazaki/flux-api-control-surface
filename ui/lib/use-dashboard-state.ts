@@ -561,7 +561,7 @@ export function useDashboardState() {
       (badges[media.assetId] ||= []).push({
         label: `V${index + 1}`,
         kind: "flux3",
-        title: `FLUX.3 video keyframe ${index + 1}`
+        title: `FLUX 3 video keyframe ${index + 1}`
       });
     });
     return badges;
@@ -919,16 +919,16 @@ export function useDashboardState() {
   }
   function sendAssetToNextFlux3Keyframe(asset: AssetRecord) {
     if (asset.mediaType === "video") {
-      setRecoveryMessage("FLUX.3 keyframes take images. Drag videos into the continuation slot instead.");
+      setRecoveryMessage("FLUX 3 keyframes take images. Drag videos into the continuation slot instead.");
       return null;
     }
     const media = flux3MediaFromAsset(asset);
     if (!media) {
-      setRecoveryMessage("That asset has no loadable image source for FLUX.3 keyframes.");
+      setRecoveryMessage("That asset has no loadable image source for FLUX 3 keyframes.");
       return null;
     }
     if (flux3Keyframes.length >= 10) {
-      setRecoveryMessage("All ten FLUX.3 keyframes are full. Remove one before adding another.");
+      setRecoveryMessage("All ten FLUX 3 keyframes are full. Remove one before adding another.");
       return null;
     }
     setError("");
@@ -1006,7 +1006,11 @@ export function useDashboardState() {
       return;
     }
     if (workspaceMode === "flux3") {
-      setError("Use the FLUX.3 video controls in the video workspace.");
+      setError("Use the FLUX 3 video controls in the video workspace.");
+      return;
+    }
+    if (workspaceMode === "upscale") {
+      setError("Use the Video Upscale controls in the upscale workspace.");
       return;
     }
     if (!toolSourceAsset) {

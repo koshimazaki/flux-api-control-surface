@@ -35,7 +35,7 @@ export function flux3MediaFromAsset(asset: {
 }
 
 /**
- * An explicitly timed keyframe: `[seconds, image]`. FLUX.3 accepts either a
+ * An explicitly timed keyframe: `[seconds, image]`. FLUX 3 accepts either a
  * plain image array (evenly distributed) or these pairs on the same
  * `keyframes` field, so the request type keeps them apart and
  * `buildFlux3VideoPayload` serializes whichever one is present.
@@ -140,12 +140,12 @@ export function flux3RequestBlocker(input: Flux3VideoRequest) {
     return input.draftCache || input.draftCacheId ? null : "Choose a saved draft to enhance.";
   }
 
-  if (!input.prompt?.trim()) return "Describe the video you want FLUX.3 to generate.";
+  if (!input.prompt?.trim()) return "Describe the video you want FLUX 3 to generate.";
   if (input.mode === "i2v") {
     const timed = flux3TimedKeyframes(input);
     const count = flux3KeyframeCount(input);
     if (count < 1) return "Add at least one image keyframe.";
-    if (count > 10) return "FLUX.3 accepts up to ten image keyframes.";
+    if (count > 10) return "FLUX 3 accepts up to ten image keyframes.";
     if (timed.length) {
       const timingBlocker = flux3TimedKeyframeBlocker(timed, input.duration);
       if (timingBlocker) return timingBlocker;

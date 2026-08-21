@@ -76,7 +76,7 @@ function resultFromMetadata(metadata: SavedFlux3Metadata): Flux3VideoResult {
 
 export async function downloadFlux3Binary(url: string) {
   const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) throw new Error(`Could not download FLUX.3 output: ${response.status}`);
+  if (!response.ok) throw new Error(`Could not download FLUX 3 output: ${response.status}`);
   return {
     buffer: Buffer.from(await response.arrayBuffer()),
     contentType: response.headers.get("content-type") || "application/octet-stream"

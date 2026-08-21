@@ -46,7 +46,11 @@ describe("normalizeToolWorkspaceCache", () => {
     expect(cache.outpaintMode).toBe("high");
   });
 
-  it("restores the FLUX.3 workspace tab", () => {
+  it("restores the FLUX 3 workspace tab", () => {
     expect(normalizeToolWorkspaceCache({ workspaceMode: "flux3" }).workspaceMode).toBe("flux3");
+  });
+
+  it("restores the Video Upscale workspace tab", () => {
+    expect(normalizeToolWorkspaceCache({ workspaceMode: "upscale" }).workspaceMode).toBe("upscale");
   });
 });

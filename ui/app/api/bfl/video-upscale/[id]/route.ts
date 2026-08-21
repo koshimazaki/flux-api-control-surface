@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { NextRequest, NextResponse } from "next/server";
-import { findFlux3VideoOutput } from "@/lib/flux3-video-server";
+import { findVideoUpscaleOutput } from "@/lib/video-upscale-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,10 +8,9 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const url = new URL(request.url);
-  const kind = url.searchParams.get("kind") === "draft-cache" ? "draft-cache" : "video";
-  const output = await findFlux3VideoOutput(decodeURIComponent(id), kind);
-  if (!output) return NextResponse.json({ error: "FLUX 3 output not found." }, { status: 404 });
-
+  const kind = url.searchParams.get("kind") === "source" ? "source" : "video";
+  const output = await findVideoUpscaleOutput(decodeURIComponent(id), kind);
+  if (!output) return NextResponse.json({ error: "Video Upscale output not found." }, { status: 404 });
   const headers: Record<string, string> = {
     "content-type": output.contentType,
     "cache-control": "private, max-age=3600"

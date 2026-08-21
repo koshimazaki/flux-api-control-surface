@@ -285,7 +285,7 @@ export function VideoScriptPanel(props: VideoScriptPanelProps) {
     <>
       <PanelHeader
         title="Video script"
-        subtitle="Build repeatable FLUX.3 keyframe batches from Collections, prompts, and audio timing."
+        subtitle="Build repeatable FLUX 3 keyframe batches from Collections, prompts, and audio timing."
       />
 
       <div className="videoScriptGrid">

@@ -7,6 +7,7 @@ import { PromptLibrary } from "@/components/prompt-library";
 import { RunPanel } from "@/components/run-panel";
 import { ToolRunPanel } from "@/components/tool-run-panel";
 import { WorkspaceModeTabs } from "@/components/workspace-mode-tabs";
+import { VideoUpscaleWorkspace } from "@/components/video-upscale-workspace";
 import { clampBatchCount, clampReferenceWeight } from "@/lib/dashboard-generation";
 import { downloadText, formatPrompt } from "@/lib/prompt-utils";
 import type { DashboardState } from "@/lib/use-dashboard-state";
@@ -14,9 +15,13 @@ import type { ImageWorkspaceMode } from "@/lib/types";
 
 export function DashboardWorkspace({ state }: { state: DashboardState }) {
   const isFlux3Mode = state.workspaceMode === "flux3";
+  const isUpscaleMode = state.workspaceMode === "upscale";
+  const isVideoMode = isFlux3Mode || isUpscaleMode;
   const imageToolMode: ImageWorkspaceMode | null =
-    state.workspaceMode === "prompt" || state.workspaceMode === "flux3" ? null : state.workspaceMode;
-  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isFlux3Mode);
+    state.workspaceMode === "prompt" || state.workspaceMode === "flux3" || state.workspaceMode === "upscale"
+      ? null
+      : state.workspaceMode;
+  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isVideoMode);
   const toolPromptText =
     imageToolMode === "vto" ? state.vtoPromptText : imageToolMode === "outpaint" ? state.outpaintPromptText : "";
   const setToolPromptText =
@@ -29,12 +34,12 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
   useEffect(() => {
     const compactQuery = window.matchMedia("(max-width: 900px)");
     const syncCollapsedState = () => {
-      setLibraryCollapsed(Boolean(imageToolMode) || isFlux3Mode || compactQuery.matches);
+      setLibraryCollapsed(Boolean(imageToolMode) || isVideoMode || compactQuery.matches);
     };
     syncCollapsedState();
     compactQuery.addEventListener("change", syncCollapsedState);
     return () => compactQuery.removeEventListener("change", syncCollapsedState);
-  }, [imageToolMode, isFlux3Mode]);
+  }, [imageToolMode, isVideoMode]);
 
   if (isFlux3Mode) {
     return (
@@ -45,6 +50,24 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           assets={state.assets}
           keyframes={state.flux3Keyframes}
           onKeyframesChange={state.setFlux3Keyframes}
+          onGenerated={() => void state.checkBalance()}
+          onOpenAssets={() => state.setActiveTab("assets")}
+          generationQueue={state.generationQueue}
+          generationQueueSummary={state.generationQueueSummary}
+          generationQueueConcurrency={state.generationQueueConcurrency}
+          generationQueueControls={state.generationQueueControls}
+        />
+      </section>
+    );
+  }
+
+  if (isUpscaleMode) {
+    return (
+      <section className="workspace videoUpscaleMode">
+        <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+        <VideoUpscaleWorkspace
+          apiKey={state.apiKey}
+          assets={state.assets}
           onGenerated={() => void state.checkBalance()}
           onOpenAssets={() => state.setActiveTab("assets")}
           generationQueue={state.generationQueue}

@@ -2,7 +2,7 @@ import type { AssetCollection, AssetRecord } from "@/lib/types";
 
 /**
  * Source-browser selection rules, kept out of the React component so they stay
- * testable. FLUX.3 keyframes take images only, and the matrix stores asset ids,
+ * testable. FLUX 3 keyframes take images only, and the matrix stores asset ids,
  * so a member that cannot be resolved to an image is not a valid input.
  */
 
@@ -14,7 +14,7 @@ import type { AssetCollection, AssetRecord } from "@/lib/types";
  */
 export function videoScriptSourceIssue(asset: AssetRecord | undefined) {
   if (!asset) return "This asset is not in the loaded library.";
-  if (asset.mediaType === "video") return "Video assets cannot be used as FLUX.3 keyframes.";
+  if (asset.mediaType === "video") return "Video assets cannot be used as FLUX 3 keyframes.";
   const hasAnyImage = Boolean(
     asset.imageDataUrl || asset.imageUrl || asset.sampleUrl || asset.image_url || asset.localImagePath
   );

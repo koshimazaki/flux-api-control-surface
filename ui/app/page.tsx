@@ -50,7 +50,7 @@ export default function Home() {
           surfaceTheme={surfaceTheme}
           onSurfaceThemeChange={changeSurfaceTheme}
         />
-        {state.workspaceMode !== "flux3" && <ReferenceDock
+        {state.workspaceMode !== "flux3" && state.workspaceMode !== "upscale" && <ReferenceDock
           mode={state.workspaceMode}
           references={state.references}
           maxReferences={state.activeModelConfig.maxReferences}

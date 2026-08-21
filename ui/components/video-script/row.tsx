@@ -8,7 +8,7 @@ import type { VideoScriptEditorRow } from "@/lib/video-script/types";
 import { VIDEO_SCRIPT_ROW_MIME } from "@/lib/video-script/types";
 
 /**
- * One matrix row: one FLUX.3 image-to-video job. The row surfaces its own
+ * One matrix row: one FLUX 3 image-to-video job. The row surfaces its own
  * provenance — generator output or hand edited — because that badge is what
  * makes "Regenerate" safe to press.
  */

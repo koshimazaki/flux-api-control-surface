@@ -25,7 +25,7 @@ type Flux3VideoWorkspaceProps = {
   onKeyframesChange: (items: Flux3InputMedia[]) => void;
   onGenerated: () => void;
   onOpenAssets: () => void;
-  // FLUX.3 renders share the one server-owned queue with image and tool work, so
+  // FLUX 3 renders share the one server-owned queue with image and tool work, so
   // this workspace shows the same compact queue summary as the other panels.
   generationQueue: GenerationQueueJob[];
   generationQueueSummary: GenerationQueueSummary;
@@ -163,7 +163,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
           setWarning("");
           setError(
             job.error ||
-              (job.status === "cancelled" ? "The render was cancelled." : "The queued FLUX.3 render failed.")
+              (job.status === "cancelled" ? "The render was cancelled." : "The queued FLUX 3 render failed.")
           );
         }
       } catch {
@@ -209,7 +209,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
           );
           return;
         }
-        throw new Error(data.error || "FLUX.3 video generation failed.");
+        throw new Error(data.error || "FLUX 3 video generation failed.");
       }
       const next = data as Flux3VideoResult & { warning?: string | null };
       setResults((current) => [next, ...current.filter((item) => item.id !== next.id)]);
@@ -217,14 +217,14 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       if (next.warning) setWarning(next.warning);
       props.onGenerated();
     } catch (runError) {
-      setError(runError instanceof Error ? runError.message : "FLUX.3 video generation failed.");
+      setError(runError instanceof Error ? runError.message : "FLUX 3 video generation failed.");
     } finally {
       setIsRunning(false);
     }
   }
 
   function generate() {
-    const title = prompt.trim().slice(0, 72) || `FLUX.3 ${mode}`;
+    const title = prompt.trim().slice(0, 72) || `FLUX 3 ${mode}`;
     void submit(requestInput, title, draft ? "Generating draft" : "Rendering video");
   }
 
@@ -245,10 +245,10 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   return (
     <section className="flux3VideoWorkspace">
       <div className="flux3PreviewPanel panel">
-        <PanelHeader title="FLUX.3 Video" subtitle="Synchronized picture, speech, effects, and ambience in one request">
+        <PanelHeader title="FLUX 3 Video" subtitle="Synchronized picture, speech, effects, and ambience in one request">
           <div className="flux3HeaderTools">
             <span className="flux3EndpointBadge">POST /v1/flux-3-video</span>
-            <span className="flux3HeaderIcon" title="FLUX.3 video workspace" aria-label="FLUX.3 video workspace">
+            <span className="flux3HeaderIcon" title="FLUX 3 video workspace" aria-label="FLUX 3 video workspace">
               <Video size={18} />
             </span>
           </div>
@@ -259,7 +259,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
           ) : (
             <div className="flux3ViewerEmpty">
               <Film size={38} />
-              <strong>Your FLUX.3 render will play here</strong>
+              <strong>Your FLUX 3 render will play here</strong>
               <span>Draft first, select the shot, then enhance it without reinterpreting the generation.</span>
             </div>
           )}
@@ -270,7 +270,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
               <span>
                 {pendingQueueJobId
                   ? "The server keeps working with this tab closed. The video appears here and in Assets as soon as it is saved."
-                  : "FLUX.3 video jobs usually take a minute or two. The result is downloaded locally as soon as it is ready."}
+                  : "FLUX 3 video jobs usually take a minute or two. The result is downloaded locally as soon as it is ready."}
               </span>
             </div>
           )}
@@ -309,7 +309,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
 
       <aside className="flux3Controls panel controls">
         <PanelHeader title="Create video" subtitle="Choose what the model starts from">
-          <Film size={18} aria-label="FLUX.3 video creation" />
+          <Film size={18} aria-label="FLUX 3 video creation" />
         </PanelHeader>
         <div className="flux3ModePicker">
           {modeOptions.map(({ id, label, detail, icon: Icon }) => (
@@ -384,7 +384,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
           disabled={Boolean(blocker) || Boolean(pendingQueueJobId)}
           icon={Film}
         >
-          {draft ? "Generate draft" : "Render FLUX.3 video"}
+          {draft ? "Generate draft" : "Render FLUX 3 video"}
         </RunButton>
         {blocker && !error && <p className="flux3Blocker">{blocker}</p>}
       </aside>

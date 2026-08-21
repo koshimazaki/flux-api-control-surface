@@ -19,6 +19,13 @@ export const surfaceThemes = [
     description: "A restrained field-instrument morph using amber action and cyan state.",
     surfaces: ["#111315", "#191d20", "#2b3033"],
     signals: ["#f0a25b", "#69c7df", "#a48ac4"]
+  },
+  {
+    id: "rams-lite",
+    label: "Lite Quiet Signal · RAMS",
+    description: "Frost-grey and white RAMS ground with sparse orange action and cyan state.",
+    surfaces: ["#b8b8b8", "#d4d4d4", "#e6e6e6"],
+    signals: ["#ff9f43", "#62c4e6", "#525252"]
   }
 ] as const;
 

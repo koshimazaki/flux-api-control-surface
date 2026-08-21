@@ -9,7 +9,8 @@ export const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, strin
   vto: "VTO",
   outpaint: "Outpaint",
   deblur: "Deblur",
-  flux3: "FLUX.3",
+  flux3: "FLUX 3",
+  upscale: "Upscale",
   glyphs: "Glyphs"
 };
 
@@ -43,7 +44,7 @@ export function useToolSource(deps: UseToolSourceDeps) {
   } = deps;
 
   function loadToolSourceAsset(asset: AssetRecord) {
-    if (workspaceMode === "prompt" || workspaceMode === "flux3") return;
+    if (workspaceMode === "prompt" || workspaceMode === "flux3" || workspaceMode === "upscale") return;
     setSourceAssetIdForMode(workspaceMode, asset.id);
     setSelectedAsset(null);
     setError("");
@@ -104,7 +105,9 @@ export function useToolSource(deps: UseToolSourceDeps) {
   }
 
   function clearToolSourceAsset() {
-    if (workspaceMode !== "prompt" && workspaceMode !== "flux3") setSourceAssetIdForMode(workspaceMode, null);
+    if (workspaceMode !== "prompt" && workspaceMode !== "flux3" && workspaceMode !== "upscale") {
+      setSourceAssetIdForMode(workspaceMode, null);
+    }
   }
 
   return {

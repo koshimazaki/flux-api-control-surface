@@ -3,7 +3,7 @@ import type { DragEvent, ReactNode } from "react";
 import { readAssetDragId, readPoolDragId } from "@/lib/video-script/types";
 
 /**
- * Generic image slot, extracted from the VTO/FLUX.3 drop affordances so the
+ * Generic image slot, extracted from the VTO/FLUX 3 drop affordances so the
  * keyframe matrix reuses the gesture without inheriting garment-specific state.
  *
  * `variant` is what keeps the two matrix drop targets from being one ambiguous

@@ -96,6 +96,60 @@
   --glass-blur: 22px;
 }
 
+/* Exact frost-grey RAMS palette from Quiet Signal's sidkit-grey source. The
+   BFL information architecture and behaviours remain unchanged. */
+.dsgn-root[data-surface-theme="rams-lite"] {
+  color-scheme: light;
+  --surface-void: #b8b8b8;
+  --surface-sunken: #242424;
+  --surface-base: #b8b8b8;
+  --surface-raised: #d4d4d4;
+  --surface-overlay: #e6e6e6;
+  --surface-inset: #a3a3a3;
+  --text-primary: #191919;
+  --text-secondary: #525252;
+  --text-muted: #737373;
+  --text-faint: #8b8b8b;
+  --text-disabled: #9b9b9b;
+  --border-subtle: #b4b4b4;
+  --border-default: #a3a3a3;
+  --border-strong: #737373;
+  --border-machined: #525252;
+  --metal-hi: #ededed;
+  --metal-mid: #d4d4d4;
+  --metal-lo: #b8b8b8;
+  --accent: #ff9f43;
+  --accent-strong: #f97316;
+  --accent-ghost: rgba(255, 159, 67, 0.2);
+  --on-accent: #1a1a1a;
+  --acc-green: #ff9f43;
+  --acc-green-strong: #f97316;
+  --acc-green-dim: #b65f1b;
+  --acc-green-ghost: rgba(255, 159, 67, 0.18);
+  --acc-intel: #62c4e6;
+  --acc-intel-strong: #237f9f;
+  --acc-intel-dim: #397f96;
+  --acc-intel-ghost: rgba(98, 196, 230, 0.2);
+  --acc-armament: #f97316;
+  --acc-armament-strong: #c94f0b;
+  --acc-armament-dim: #98451b;
+  --acc-armament-ghost: rgba(249, 115, 22, 0.18);
+  --acc-readout: #525252;
+  --acc-readout-ghost: rgba(82, 82, 82, 0.14);
+  --spec-heat-cold: #e6e6e6;
+  --spec-heat-low: #62c4e6;
+  --spec-heat-mid: #ff9f43;
+  --spec-heat-high: #f97316;
+  --spec-heat-hot: #df5e0f;
+  --spec-heat-peak: #c94f0b;
+  --glass-panel-hi: rgba(246, 247, 247, 0.86);
+  --glass-panel-lo: rgba(190, 194, 196, 0.72);
+  --glass-panel-edge: rgba(255, 255, 255, 0.58);
+  --glass-specular: rgba(255, 255, 255, 0.66);
+  --glass-reflection: rgba(98, 196, 230, 0.13);
+  --glass-blur: 30px;
+}
+
 .backgroundShader[data-surface-theme="reflective"] canvas {
   opacity: 0.68;
   filter: contrast(1.12) brightness(0.84) saturate(1.04);
@@ -119,6 +173,12 @@
   filter: hue-rotate(-9deg) contrast(1.1) brightness(0.74) saturate(0.78);
 }
 
+.backgroundShader[data-surface-theme="rams-lite"] { background: #d4d4d4; }
+.backgroundShader[data-surface-theme="rams-lite"] canvas {
+  opacity: 0.3;
+  filter: grayscale(0.42) hue-rotate(8deg) contrast(0.88) brightness(1.48) saturate(0.62);
+}
+
 .backgroundShader[data-surface-theme="reflective"] .backgroundShaderWash {
   background:
     radial-gradient(circle at 64% 22%, rgba(98, 196, 230, 0.07), transparent 38%),
@@ -138,6 +198,48 @@
     radial-gradient(circle at 62% 20%, rgba(240, 162, 91, 0.055), transparent 38%),
     linear-gradient(90deg, rgba(17, 19, 21, 0.66), rgba(28, 31, 33, 0.3) 48%, rgba(17, 19, 21, 0.7));
   box-shadow: inset 0 0 170px rgba(0, 0, 0, 0.52);
+}
+
+.backgroundShader[data-surface-theme="rams-lite"] .backgroundShaderWash {
+  background:
+    radial-gradient(circle at 62% 18%, rgba(98, 196, 230, 0.16), transparent 42%),
+    linear-gradient(90deg, rgba(230, 230, 230, 0.78), rgba(212, 212, 212, 0.38) 48%, rgba(184, 184, 184, 0.72));
+  box-shadow: inset 0 0 160px rgba(82, 82, 82, 0.22);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .keyBoxFields,
+.dsgn-root[data-surface-theme="rams-lite"] .themePickerMenu {
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.78), transparent 38%),
+    rgba(220, 222, 223, 0.96);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .promptEditor,
+.dsgn-root[data-surface-theme="rams-lite"] input,
+.dsgn-root[data-surface-theme="rams-lite"] textarea,
+.dsgn-root[data-surface-theme="rams-lite"] select,
+.dsgn-root[data-surface-theme="rams-lite"] .queueEmpty,
+.dsgn-root[data-surface-theme="rams-lite"] .videoUpscaleTarget,
+.dsgn-root[data-surface-theme="rams-lite"] .videoUpscaleCost {
+  background: rgba(244, 245, 245, 0.72);
+  color: var(--text-primary);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .workspaceModeBar .tabButton {
+  background: linear-gradient(180deg, rgba(242, 243, 243, 0.86), rgba(188, 191, 193, 0.82));
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .workspaceModeBar .tabButton.active {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgba(255, 185, 112, 0.68), rgba(224, 153, 84, 0.38));
+  color: #191919;
+}
+
+.dsgn-root .workspaceModeBar .tabButton-upscale.active {
+  border-color: var(--acc-intel);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--acc-intel) 24%, transparent), color-mix(in srgb, var(--surface-sunken) 78%, transparent));
+  color: var(--acc-intel-strong);
+  box-shadow: var(--rim-top), 0 0 10px -3px var(--acc-intel);
 }
 
 .dsgn-root .topbar,

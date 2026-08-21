@@ -191,7 +191,7 @@ export function AssetCard(props: AssetCardProps) {
           event.dataTransfer.setData("text/plain", `asset:${asset.id}`);
           event.dataTransfer.effectAllowed = "copy";
         }}
-        title={isVideo ? "Open video or drag it into FLUX.3 continuation" : "Drag onto a workspace canvas, the prompt editor, an audio timing row, or the reference dropzone"}
+        title={isVideo ? "Open video or drag it into FLUX 3 continuation" : "Drag onto a workspace canvas, the prompt editor, an audio timing row, or the reference dropzone"}
       >
         {mediaFailed ? (
           <span className="assetMediaUnavailable" role="img" aria-label="Image unavailable">
@@ -311,7 +311,7 @@ export function AssetCard(props: AssetCardProps) {
             </div>
           </div>}
           {!isVideo && props.onSendToFlux3Keyframe && (
-            <button onClick={() => props.onSendToFlux3Keyframe?.(asset)} title="Add as next FLUX.3 video keyframe">
+            <button onClick={() => props.onSendToFlux3Keyframe?.(asset)} title="Add as next FLUX 3 video keyframe">
               <Clapperboard size={15} />
             </button>
           )}

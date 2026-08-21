@@ -6,7 +6,7 @@ import {
   redactFlux3Payload
 } from "@/lib/flux3-video";
 
-describe("FLUX.3 video request helpers", () => {
+describe("FLUX 3 video request helpers", () => {
   it("builds the documented text-to-video request with audio defaults", () => {
     expect(buildFlux3VideoPayload({ mode: "t2v", prompt: "fox through dawn mist" })).toEqual({
       mode: "t2v",

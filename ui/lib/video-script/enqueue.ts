@@ -56,7 +56,7 @@ function payloadFor(row: VideoScriptPlanRow, context: VideoScriptEnqueueContext,
     mode: row.mode,
     prompt: row.compiledPrompt,
     // Even rows send a plain image array; timed rows send `[seconds, image]`
-    // pairs on the additive field the FLUX.3 payload builder understands.
+    // pairs on the additive field the FLUX 3 payload builder understands.
     ...(timed?.length ? { timedKeyframes: timed } : { keyframes: row.assetIds.map(source) }),
     aspectRatio: row.settings.aspectRatio,
     duration: row.settings.duration,

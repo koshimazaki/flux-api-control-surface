@@ -55,7 +55,7 @@ type BuildAudioPromptOptions = {
  * The window has to cover a whole generated clip or the tail of the video has no
  * markers behind it. The old fixed 15 s ceiling was calibrated when shots were
  * Seedance clips cut against FLUX.2 stills. Both ends of that assumption have
- * since moved: FLUX.3 generates up to 20 s (`flux3MaxDuration`) and Seedance 2.5
+ * since moved: FLUX 3 generates up to 20 s (`flux3MaxDuration`) and Seedance 2.5
  * up to 30 s, so 15 s silently left the last third of a full clip unscored.
  *
  * The fader spans the longest clip any target model will produce, in the 5 s
@@ -67,7 +67,7 @@ export const audioWindowStepSeconds = 5;
 /** Longest clip we score against — Seedance 2.5. */
 export const audioWindowMaxSeconds = 30;
 
-/** Longest FLUX.3 t2v/i2v clip, marked on the fader as the FLUX boundary. */
+/** Longest FLUX 3 t2v/i2v clip, marked on the fader as the FLUX boundary. */
 export const audioWindowFluxMaxSeconds = flux3MaxDuration("t2v");
 
 export const audioWindowSteps: number[] = Array.from(
@@ -75,13 +75,13 @@ export const audioWindowSteps: number[] = Array.from(
   (_, index) => (index + 1) * audioWindowStepSeconds
 );
 
-/** Default window: a full-length FLUX.3 clip. */
+/** Default window: a full-length FLUX 3 clip. */
 export const audioWindowDefaultSeconds = audioWindowFluxMaxSeconds;
 
 /** What a given window length covers, for the fader caption. */
 export function audioWindowFitLabel(seconds: number) {
   if (seconds > audioWindowFluxMaxSeconds) return `${seconds}s · Seedance 2.5`;
-  if (seconds === audioWindowFluxMaxSeconds) return `${seconds}s · full FLUX.3 clip`;
+  if (seconds === audioWindowFluxMaxSeconds) return `${seconds}s · full FLUX 3 clip`;
   return `${seconds}s · partial clip`;
 }
 

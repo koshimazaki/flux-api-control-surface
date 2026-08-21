@@ -33,6 +33,8 @@ export const agentWorkflowGuide = {
       batch: agentRouteMap.batch,
       generate: agentRouteMap.generate,
       tools: agentRouteMap.tools,
+      flux3Video: agentRouteMap.flux3Video,
+      videoUpscale: agentRouteMap.videoUpscale,
       providerJobs: agentRouteMap.providerJobs,
       glyphVectorize: agentRouteMap.glyphVectorize,
       outputs: agentRouteMap.outputs,
@@ -60,10 +62,19 @@ export const agentWorkflowGuide = {
     {
       name: "Capture and evaluate model outputs",
       steps: [
-        `Generate through ${agentRouteMap.generate}, ${agentRouteMap.tools}, or ${agentRouteMap.flux3Video}`,
+        `Generate through ${agentRouteMap.generate}, ${agentRouteMap.tools}, ${agentRouteMap.flux3Video}, or ${agentRouteMap.videoUpscale}`,
         `GET ${agentRouteMap.evaluations} or call list_evaluations`,
         `PATCH ${agentRouteMap.evaluations}?id=<generationId> or call update_evaluation`,
         "Export JSON/JSONL from the Runs tab or npm run --silent cli -- evaluations --format jsonl"
+      ]
+    },
+    {
+      name: "Upscale a saved FLUX 3 video",
+      steps: [
+        `GET ${agentRouteMap.outputs} or ${agentRouteMap.flux3Video}`,
+        `POST ${agentRouteMap.videoUpscale} with inputVideo and upscaleFactor 1.5 through 3`,
+        `GET ${agentRouteMap.videoUpscale} for the saved source/result comparison URLs`,
+        `GET ${agentRouteMap.outputs} to recover the result in Assets`
       ]
     },
     {
@@ -81,7 +92,7 @@ export const agentWorkflowGuide = {
         `GET ${agentRouteMap.outputs}`,
         "Use imageUrl or imageDataUrl from the selected asset in references[]",
         `POST ${agentRouteMap.runPlan} for dry-run/cost planning`,
-        `POST ${agentRouteMap.videoScriptPlan} to plan FLUX.3 Video Script permutation batches (free) and get queue-ready jobs`,
+        `POST ${agentRouteMap.videoScriptPlan} to plan FLUX 3 Video Script permutation batches (free) and get queue-ready jobs`,
         `POST ${agentRouteMap.generate} or ${agentRouteMap.batch}`
       ]
     },
@@ -163,7 +174,8 @@ export const agentWorkflowGuide = {
     "Export this collection as a FLUX.2 [klein] LoRA dataset, register the hosted finetune_id, then generate with strength 1.2.",
     "Given audio markers, render an audio-reactive guide MP4 and attach it to the next video-model prompt record.",
     "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery.",
-    "Generate a FLUX.3 video from request.json with the CLI, then list and rate its captured evaluation record.",
+    "Generate a FLUX 3 video from request.json with the CLI, then list and rate its captured evaluation record.",
+    "Upscale a saved FLUX 3 clip at 2× in precise mode, then compare source and result in the Upscale tab.",
     "Save a video prompt with save_prompt using mediaType video, a videoCategory, and structured beats, then read it back grouped in the Video prompt library."
   ],
   coverage: localAgentCoverage,

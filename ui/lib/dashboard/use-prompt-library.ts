@@ -256,7 +256,7 @@ export function usePromptLibrary(deps: UsePromptLibraryDeps) {
     }
   }
   /**
-   * Gallery save. A FLUX.3 video asset defaults to the Video library with its
+   * Gallery save. A FLUX 3 video asset defaults to the Video library with its
    * category inferred from the prompt (timed beats, dialogue, detail), so video
    * prompts never land in the image groups. Image assets keep the old behavior.
    */

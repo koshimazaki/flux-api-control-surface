@@ -53,7 +53,7 @@ The top control comparison verifies the details too small in the full view: exac
 
 ## Interaction and browser checks
 
-- Generate, Erase, Outpaint and FLUX.3 mode transitions were exercised in sequence.
+- Generate, Erase, Outpaint and FLUX 3 mode transitions were exercised in sequence.
 - The lower dashboard tab strip and the Assets surface were rendered and captured.
 - Browser warnings/errors after the final interaction timestamp: none.
 - Paid generation, key mutation and destructive asset actions were intentionally not exercised.
@@ -90,7 +90,7 @@ Holodeck panels. Fifteen review screenshots are preserved at
   fields.
 - The mobile surface was too tall and the full prompt library competed with
   the main task.
-- FLUX.3 media and mode controls expanded more than their information density
+- FLUX 3 media and mode controls expanded more than their information density
   justified.
 
 ### Novel traits worth retaining
@@ -116,12 +116,12 @@ feedback directly. One coherent surface-integration repair was made:
   field treatment and collapsed advanced shaping behind a disclosure.
 - Flattened prompt-library row internals, lightened the recessed prompt field,
   restyled sliders/selects/checkboxes and gave active queue work a cyan state.
-- Made FLUX.3 mode selectors denser and collapsed the Prompt Library by default
+- Made FLUX 3 mode selectors denser and collapsed the Prompt Library by default
   below 900px.
 
 Frozen variables: BFL product nouns, state and API behaviour; Holodeck palette,
 font stack and material vocabulary; generation, queue, asset and mode
-workflows. The repair did not add themes, new FLUX.3 modes, video editing or a
+workflows. The repair did not add themes, new FLUX 3 modes, video editing or a
 motion-library dependency.
 
 Rejected alternatives:
@@ -151,10 +151,10 @@ Branch: `codex/bfl-reflective-theme-morph`
 ### Human-first review of the repaired child
 
 The operator reviewed the repaired BFL surface before this linked iteration.
-Animations and the denser FLUX.3 arrangement were judged materially better,
+Animations and the denser FLUX 3 arrangement were judged materially better,
 and the overall direction remained worth keeping. The remaining defects were
 specific: the material still needed a more reflective feel and a visible shade
-field; Keychain and Balance were aligned but too large; FLUX.3 lacked a video
+field; Keychain and Balance were aligned but too large; FLUX 3 lacked a video
 identity mark and its mode icons did not share one baseline; Jungle, Desert and
 Lab inherited the same green selected state; and the design needed recoverable
 theme comparison rather than another irreversible global repaint.
@@ -175,7 +175,7 @@ pass, preserving the repaired branch as the comparison point.
   overlay and no longer changes header height.
 - Gave Magic Hour, Cinematic, Moonlit, Jungle, Desert and Lab distinct selected
   signals instead of one green state.
-- Added a video-camera identity mark to the FLUX.3 header and placed Text,
+- Added a video-camera identity mark to the FLUX 3 header and placed Text,
   Images and Continue icons, names and descriptions on a consistent vertical
   grid.
 - Carried the isolated cloud correctness commit `f5510a8` for missing local
@@ -184,7 +184,7 @@ pass, preserving the repaired branch as the comparison point.
 
 Frozen variables: BFL product nouns and workflows; API/keychain behaviour;
 generation and queue semantics; current animation behaviour; repaired prompt
-reference composition; FLUX.3 request modes and pricing; no remote publication.
+reference composition; FLUX 3 request modes and pricing; no remote publication.
 
 Rejected alternatives:
 
@@ -193,7 +193,7 @@ Rejected alternatives:
 - Pulling the complete outer `ui-theme-revamp` branch. Its relevant audio
   transport was already present here, while its older global-CSS patch would
   reintroduce stale assumptions.
-- Adding FLUX.3 video-edit modes in the material pass. That changes product
+- Adding FLUX 3 video-edit modes in the material pass. That changes product
   behaviour and needs its own modular workflow decision.
 - A fake decorative scope or radar. Quiet Signal requires operational signals
   to reflect real state; the retained ambient field is explicitly material,
@@ -213,11 +213,11 @@ Rejected alternatives:
 ## Human follow-up: shell consistency repair
 
 The operator reviewed the linked Reflective child and kept the overall
-direction, animations and denser FLUX.3 treatment. The remaining screenshot-
+direction, animations and denser FLUX 3 treatment. The remaining screenshot-
 backed defects were narrow: theme and Keychain overlays painted behind the
 workspace; the two prompt-preset groups sat too close to the right edge; the
 Create video panel lacked the same corner identity gesture as Glyphs; and the
-later-added FLUX.3 workspace did not share the surrounding spacing rhythm.
+later-added FLUX 3 workspace did not share the surrounding spacing rhythm.
 The operator also reviewed the Audio analysis/export sequence and concluded it
 was coherent, so no Audio behaviour changed.
 
@@ -228,28 +228,28 @@ One bounded repair was made:
 - Moved the lighting and environment presets into one centered toolbar and
   tightened icon-to-label spacing.
 - Added the shared PanelHeader corner film mark to Create video.
-- Confirmed all seven modes, including FLUX.3, already use the same
-  `TabButtonBar`; replaced FLUX.3's later hard-coded inner gap and padding with
+- Confirmed all seven modes, including FLUX 3, already use the same
+  `TabButtonBar`; replaced FLUX 3's later hard-coded inner gap and padding with
   the same Holodeck spacing token used by the surrounding workspace.
 
-The repair keeps the theme system, shader, BFL workflows, FLUX.3 modes, queue,
+The repair keeps the theme system, shader, BFL workflows, FLUX 3 modes, queue,
 pricing and Audio logic frozen. Verification: 66 files / 514 tests passed;
 production build passed; lint has zero errors and the same four inherited
 warnings; diff whitespace passed; `/` and `/api/dashboard/queue` returned HTTP
 200 after the preview was restarted on port 3017. Final visual promotion remains
 a human gate.
 
-## Human follow-up: FLUX.3 scale and gallery stability
+## Human follow-up: FLUX 3 scale and gallery stability
 
-The next human review found that selecting FLUX.3 still appeared to zoom the
+The next human review found that selecting FLUX 3 still appeared to zoom the
 workspace, gallery thumbnails could disappear or stall during scroll, and the
 reflective grain produced visible stripes across the gallery header/surface.
-Inspection confirmed three bounded causes: FLUX.3 bypassed the shared collapsed
+Inspection confirmed three bounded causes: FLUX 3 bypassed the shared collapsed
 rail geometry, every missing legacy thumbnail rebuilt the full output-file
 index, and the several-screen gallery carried both a repeating grain and a
 full-height backdrop blur while the ambient shader continued rendering at 60fps.
 
-One stability/material repair was made. FLUX.3 now preserves the shared 58px
+One stability/material repair was made. FLUX 3 now preserves the shared 58px
 rail and 340px control rhythm until the common mobile breakpoint. Output-image
 lookups share a five-second server index, successful responses receive a durable
 private cache policy, missing pointers receive a short negative cache, and
@@ -264,3 +264,39 @@ the restarted local preview, `/` and `/api/outputs?limit=5` returned HTTP 200.
 An intentionally missing image returned the expected cached 404; after the
 initial index build, the repeated lookup fell from about 2.68s to 0.06s. The
 result remains local and the final scroll/material verdict remains a human gate.
+
+## Human follow-up: RAMS surface and Video Upscale
+
+The operator accepted the stability repair, requested the exact frost-grey /
+white Quiet Signal RAMS surface as a theme preset, and selected Video Upscale
+as the next BFL capability after checking the current official FLUX Tools set.
+They also required the BFL brand spelling `FLUX 3` everywhere in visible copy,
+removal of the unsupported local-runtime header claim, a separate Upscale
+tab beside FLUX 3, the exact subtitle `FLUX 3 VIDEO UPSCALE · 2K / 4K`, and MCP
+support rather than a UI-only mock.
+
+Implemented and reviewed states:
+
+- Desktop RAMS theme: exact grey/white, orange action and cyan intelligence
+  tokens; subtle shader remains visible under pale glass; Key, Balance and
+  theme instruments stay in one line.
+- Desktop tabs: Generate through Glyphs all measured the same width; selecting
+  FLUX 3 retained the same workspace rail and control column instead of zooming.
+- Upscale: empty source state, Precise/Creative choice, 1.5×–3× factor, target
+  dimensions, optional detail prompt, safety and cost estimate render as one
+  coherent BFL tool workspace.
+- Mobile: tabs use the same two-column component; Upscale has no internal
+  overflow; the Assets header now stacks so its actions no longer widen the
+  document or create a horizontal scrollbar.
+- Overlay stacking: the theme menu rendered at z-index 1300 and the Key menu at
+  1200 inside the topbar's 1400 stacking context, both above workspace panels.
+
+The before/after fader, provider submission and output audio were not exercised
+with paid inference. Their deterministic contracts are covered by unit/route
+tests, while a real output remains the honest final quality gate.
+
+Verification: `npx tsc --noEmit` passed; `npm test` passed 68 files / 524 tests;
+`npm run build` passed; `npm run lint` reports zero errors and the same four
+inherited warnings; live browser inspection found no horizontal overflow at
+the narrow breakpoint. The former dotted video-brand spelling no longer occurs;
+technical `flux3` route and code identifiers remain unchanged by design.

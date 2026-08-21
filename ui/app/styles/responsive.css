@@ -168,4 +168,20 @@
   .assetActions {
     width: 100%;
   }
+
+  .assetsPanel > .panelHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .assetActions,
+  .assetFilterChips {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .assetFilterChips {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
 }

@@ -1,4 +1,4 @@
-import { ChevronDown, KeyRound, LockKeyhole, RadioTower, RefreshCcw, Trash2 } from "lucide-react";
+import { ChevronDown, KeyRound, LockKeyhole, RefreshCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { BalanceCard } from "@/components/balance-card";
 import { ThemePicker } from "@/components/theme-picker";
@@ -77,11 +77,6 @@ export function TopBar({
       </div>
       <div className="topBarRight">
         <div className="topBarUtilityRow">
-          <div className="topBarStatus" aria-label="Runtime status">
-            <span><RadioTower size={12} /> Local</span>
-            <span>FLUX.2</span>
-            <span>R2</span>
-          </div>
           <ThemePicker value={surfaceTheme} onChange={onSurfaceThemeChange} />
           <BalanceCard
             compact

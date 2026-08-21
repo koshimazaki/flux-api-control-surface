@@ -7,7 +7,7 @@ import type {
 } from "./types";
 
 /**
- * BFL FLUX.3 preview pricing as of 2026-08-05: $0.06/s for t2v/i2v drafts,
+ * BFL FLUX 3 preview pricing as of 2026-08-05: $0.06/s for t2v/i2v drafts,
  * $0.17/s HD, $0.29/s FHD; video continuation is $0.12/s draft, $0.43/s HD,
  * $0.54/s FHD.
  *
@@ -17,7 +17,7 @@ import type {
  * every estimator here takes an optional table argument.
  */
 export const FLUX3_VIDEO_RATES: VideoScriptRateTable = {
-  source: "BFL FLUX.3 preview pricing",
+  source: "BFL FLUX 3 preview pricing",
   capturedAt: "2026-08-05",
   currency: "USD",
   perSecond: {

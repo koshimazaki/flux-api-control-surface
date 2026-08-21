@@ -132,7 +132,7 @@ function outputPathFor(candidate: MetadataCandidate, mediaType: "image" | "video
 }
 
 /**
- * The FLUX.3 adapter records a keyframe timeline as parallel `keyframeAssetIds`
+ * The FLUX 3 adapter records a keyframe timeline as parallel `keyframeAssetIds`
  * and `keyframeSeconds` arrays, while older records used a single `keyframes`
  * array of objects. Read both so video evaluations keep their timeline.
  */
@@ -215,7 +215,9 @@ async function toEvaluationRecord(
     },
     output: {
       previewUrl: mediaType === "video"
-        ? `/api/bfl/flux3-video/${encodeURIComponent(id)}`
+        ? model === "flux-tools-video-upscale-v1"
+          ? `/api/bfl/video-upscale/${encodeURIComponent(id)}`
+          : `/api/bfl/flux3-video/${encodeURIComponent(id)}`
         : `/api/outputs/${encodeURIComponent(id)}/image`,
       localPath,
       metadataPath: toWorkspaceRelativePath(candidate.metadataPath)

@@ -44,7 +44,7 @@ export function Flux3MediaDropzone(props: Flux3MediaDropzoneProps) {
   async function addFiles(files: File[], insertAt = props.keyframes.length) {
     const matching = files.filter((file) => (expectsVideo ? file.type === "video/mp4" : file.type.startsWith("image/")));
     if (!matching.length) {
-      props.onError(expectsVideo ? "FLUX.3 continuation accepts an MP4 clip." : "Choose image files for keyframes.");
+      props.onError(expectsVideo ? "FLUX 3 continuation accepts an MP4 clip." : "Choose image files for keyframes.");
       return;
     }
     try {
@@ -59,7 +59,7 @@ export function Flux3MediaDropzone(props: Flux3MediaDropzoneProps) {
         const next = [...props.keyframes];
         next.splice(Math.max(0, Math.min(insertAt, next.length)), 0, ...media);
         props.onKeyframesChange(next);
-        if (matching.length > available) props.onError("Only the first ten FLUX.3 keyframes were added.");
+        if (matching.length > available) props.onError("Only the first ten FLUX 3 keyframes were added.");
       }
     } catch (error) {
       props.onError(error instanceof Error ? error.message : "Could not read the dropped media.");
@@ -84,7 +84,7 @@ export function Flux3MediaDropzone(props: Flux3MediaDropzoneProps) {
       const next = [...props.keyframes];
       next.splice(Math.max(0, Math.min(insertAt, next.length)), 0, media);
       props.onKeyframesChange(next);
-    } else props.onError("FLUX.3 accepts up to ten image keyframes.");
+    } else props.onError("FLUX 3 accepts up to ten image keyframes.");
     return true;
   }
 

@@ -98,7 +98,7 @@ function normalizeManualRows(rows: VideoScriptManualRow[] | undefined): DraftRow
  * 3. expand the selected image permutation mode;
  * 4. deduplicate identical ordered keyframe rows;
  * 5. apply the prompt assignment mode;
- * 6. validate FLUX.3 keyframe, timing, duration, and safety constraints;
+ * 6. validate FLUX 3 keyframe, timing, duration, and safety constraints;
  * 7. apply the hard job cap;
  * 8. estimate cost and emit queue-ready rows.
  */

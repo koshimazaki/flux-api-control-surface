@@ -69,7 +69,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
       }
     }
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "FLUX.3 video generation failed.", status: 500 };
+    return { error: error instanceof Error ? error.message : "FLUX 3 video generation failed.", status: 500 };
   }
 
   let payload: Record<string, unknown>;
@@ -78,17 +78,17 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
   } catch (error) {
     // The legacy route surfaced payload validation through its 500 handler; keep
     // that status so existing callers see the same failure shape.
-    return { error: error instanceof Error ? error.message : "FLUX.3 video generation failed.", status: 500 };
+    return { error: error instanceof Error ? error.message : "FLUX 3 video generation failed.", status: 500 };
   }
 
   const prompt =
     body.prompt?.trim() ||
-    (typeof draftSource?.metadata.prompt === "string" ? draftSource.metadata.prompt : "[FLUX.3 draft enhancement]");
+    (typeof draftSource?.metadata.prompt === "string" ? draftSource.metadata.prompt : "[FLUX 3 draft enhancement]");
   const title =
     body.title?.trim() ||
     (body.mode === "draft_enhance" && draftSource?.metadata.title
       ? `${draftSource.metadata.title} enhanced`
-      : `FLUX.3 ${body.mode}`);
+      : `FLUX 3 ${body.mode}`);
 
   return {
     kind: "video" as const,
