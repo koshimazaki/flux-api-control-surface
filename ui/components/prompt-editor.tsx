@@ -156,6 +156,7 @@ export function PromptEditor({
                 <button
                   key={preset.id}
                   className={active ? "presetToggle active" : "presetToggle"}
+                  data-preset-id={preset.id}
                   aria-pressed={active}
                   onClick={() => applyPreset(preset)}
                 >
@@ -172,6 +173,7 @@ export function PromptEditor({
                 <button
                   key={environment.id}
                   className={active ? "presetToggle active" : "presetToggle"}
+                  data-environment-id={environment.id}
                   aria-pressed={active}
                   title={environment.description}
                   onClick={() => applyEnvironment(environment)}

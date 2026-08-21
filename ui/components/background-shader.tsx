@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { SurfaceTheme } from "@/lib/surface-theme";
 
 function shade(value: number) {
   const clamped = Math.max(0, Math.min(1, value));
   return Math.round(5 + clamped * 68);
 }
 
-export function BackgroundShader() {
+type BackgroundShaderProps = {
+  theme: SurfaceTheme;
+};
+
+export function BackgroundShader({ theme }: BackgroundShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -125,7 +130,7 @@ export function BackgroundShader() {
   }, []);
 
   return (
-    <div className="backgroundShader" aria-hidden="true">
+    <div className="backgroundShader" data-surface-theme={theme} aria-hidden="true">
       <canvas ref={canvasRef} />
       <div className="backgroundShaderWash" />
     </div>

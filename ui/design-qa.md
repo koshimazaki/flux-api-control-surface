@@ -143,3 +143,69 @@ Rejected alternatives:
   browser's URL security policy rejected the already-open localhost page. No
   alternate browser route was used. The final desktop/mobile visual verdict
   therefore remains a human gate on `http://127.0.0.1:3017/`.
+
+## Linked reflective-theme iteration
+
+Branch: `codex/bfl-reflective-theme-morph`
+
+### Human-first review of the repaired child
+
+The operator reviewed the repaired BFL surface before this linked iteration.
+Animations and the denser FLUX.3 arrangement were judged materially better,
+and the overall direction remained worth keeping. The remaining defects were
+specific: the material still needed a more reflective feel and a visible shade
+field; Keychain and Balance were aligned but too large; FLUX.3 lacked a video
+identity mark and its mode icons did not share one baseline; Jungle, Desert and
+Lab inherited the same green selected state; and the design needed recoverable
+theme comparison rather than another irreversible global repaint.
+
+Human verdict on the repaired child: `repair` through one linked theme/material
+pass, preserving the repaired branch as the comparison point.
+
+### Repair made
+
+- Added a persistent compact theme instrument with three controlled grounds:
+  Reflective, Frozen and Quiet Signal. Theme changes only semantic material and
+  colour tokens; model, prompt, queue, asset and output data are invariant.
+- Increased shader visibility under lower-opacity panels and added directional
+  specular highlights, edge reflection and stronger blur to the shared panel
+  material.
+- Put runtime, theme, Balance and Keychain in one compact utility line. Balance
+  now exposes one value plus an icon action; API-key entry opens as an anchored
+  overlay and no longer changes header height.
+- Gave Magic Hour, Cinematic, Moonlit, Jungle, Desert and Lab distinct selected
+  signals instead of one green state.
+- Added a video-camera identity mark to the FLUX.3 header and placed Text,
+  Images and Continue icons, names and descriptions on a consistent vertical
+  grid.
+- Carried the isolated cloud correctness commit `f5510a8` for missing local
+  references, prompt-token insertion, the audio analysis window and queue
+  overflow without importing a competing layout.
+
+Frozen variables: BFL product nouns and workflows; API/keychain behaviour;
+generation and queue semantics; current animation behaviour; repaired prompt
+reference composition; FLUX.3 request modes and pricing; no remote publication.
+
+Rejected alternatives:
+
+- A wholesale light SIDKIT/RAMS repaint. The source parent remains `observed`,
+  and replacing the BFL material ground would exceed a theme-level morph.
+- Pulling the complete outer `ui-theme-revamp` branch. Its relevant audio
+  transport was already present here, while its older global-CSS patch would
+  reintroduce stale assumptions.
+- Adding FLUX.3 video-edit modes in the material pass. That changes product
+  behaviour and needs its own modular workflow decision.
+- A fake decorative scope or radar. Quiet Signal requires operational signals
+  to reflect real state; the retained ambient field is explicitly material,
+  not simulated telemetry.
+
+### Verification
+
+- `npm test`: 66 files, 514 tests passed.
+- `npm run build`: passed.
+- `npm run lint`: zero errors; the same four pre-existing warnings remain.
+- `git diff --check`: passed.
+- Local preview: HTTP 200 at `http://127.0.0.1:3017/`; live queue/output polling
+  also returned HTTP 200 with no server exception.
+- Browser automation again rejected localhost under its URL policy, so the
+  desktop/mobile material verdict remains the human promotion gate.

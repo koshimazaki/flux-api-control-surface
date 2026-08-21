@@ -15,8 +15,23 @@ export function BalanceCard({
   onCheckBalance,
   compact = false
 }: BalanceCardProps) {
+  if (compact) {
+    return (
+      <div
+        className="statCard balanceStat statToneBalance compactBalance"
+        title={`${totalActualCredits.toFixed(2)} credits logged locally`}
+      >
+        <span>Balance</span>
+        <strong>{typeof balanceCredits === "number" ? `${balanceCredits.toFixed(2)} cr` : "unchecked"}</strong>
+        <button onClick={onCheckBalance} disabled={isCheckingBalance} title="Check FLUX credit balance" aria-label="Check FLUX credit balance">
+          <RefreshCcw className={isCheckingBalance ? "spin" : ""} size={13} />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className={["statCard", "balanceStat", "statToneBalance", compact ? "compactBalance" : ""].filter(Boolean).join(" ")}>
+    <div className="statCard balanceStat statToneBalance">
       <div>
         <span>Balance</span>
         <strong>{typeof balanceCredits === "number" ? `${balanceCredits.toFixed(2)} cr` : "unchecked"}</strong>

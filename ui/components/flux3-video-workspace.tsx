@@ -246,7 +246,12 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
     <section className="flux3VideoWorkspace">
       <div className="flux3PreviewPanel panel">
         <PanelHeader title="FLUX.3 Video" subtitle="Synchronized picture, speech, effects, and ambience in one request">
-          <span className="flux3EndpointBadge">POST /v1/flux-3-video</span>
+          <div className="flux3HeaderTools">
+            <span className="flux3EndpointBadge">POST /v1/flux-3-video</span>
+            <span className="flux3HeaderIcon" title="FLUX.3 video workspace" aria-label="FLUX.3 video workspace">
+              <Video size={18} />
+            </span>
+          </div>
         </PanelHeader>
         <div className="flux3Viewer">
           {selected ? (
