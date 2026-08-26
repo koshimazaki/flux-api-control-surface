@@ -498,12 +498,20 @@
   color: var(--accent-strong);
 }
 
-/* RAMS content wells are paper, not dark instrument glass: cards and prompt
-   boxes sit white on the frost ground and turn grey only on hover or
-   selection, while the VTO stage keeps every glyph and label at full ink. */
+/* RAMS content wells are paper, not dark instrument glass. Gallery cells sit
+   quiet grey on the frost ground, brighten on hover, and go full paper white
+   when selected, while the VTO stage keeps every glyph and label at full ink. */
+.dsgn-root[data-surface-theme="rams-lite"] .assetCard {
+  background: var(--surface-raised);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .assetCard:hover {
+  background: var(--surface-overlay);
+}
+
 .dsgn-root[data-surface-theme="rams-lite"] .assetCard.selectedAsset {
   border-color: var(--border-machined);
-  background: var(--surface-raised);
+  background: var(--surface-sunken);
 }
 
 .dsgn-root[data-surface-theme="rams-lite"] .assetPrompt {
