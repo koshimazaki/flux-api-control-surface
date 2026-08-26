@@ -35,6 +35,9 @@ describe("FLUX 3 Video Upscale request helpers", () => {
   it("guards factor, duration, file size, and output megapixels", () => {
     expect(videoUpscaleRequestBlocker({ inputVideo: "x", upscaleFactor: 3.1 })).toMatch(/between 1.5/i);
     expect(videoUpscaleRequestBlocker({ inputVideo: "x", durationSeconds: 21 })).toMatch(/20 seconds/i);
+    // FLUX 3's own 20 s renders report container durations slightly over 20.
+    expect(videoUpscaleRequestBlocker({ inputVideo: "x", durationSeconds: 20.4 })).toBeNull();
+    expect(videoUpscaleRequestBlocker({ inputVideo: "x", durationSeconds: 20.6 })).toMatch(/20 seconds/i);
     expect(videoUpscaleRequestBlocker({ inputVideo: "x", sourceBytes: 51 * 1024 * 1024 })).toMatch(/50 MB/i);
     expect(videoUpscaleRequestBlocker({ inputVideo: "x", sourceWidth: 2560, sourceHeight: 1440, upscaleFactor: 2 })).toMatch(/13.75 MP/i);
   });

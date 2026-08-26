@@ -86,6 +86,8 @@ export default function Home() {
           onSendToPrompt={state.sendAssetToPrompt}
           onSendToWorkspace={state.sendAssetToWorkspace}
           onSendToReference={state.sendAssetToReference}
+          onSendToFlux3Continue={state.sendAssetToFlux3Continue}
+          onSendToUpscale={state.sendAssetToUpscale}
           onDownload={state.downloadAssetImage}
         />
       </main>

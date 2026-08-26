@@ -1,4 +1,4 @@
-import { Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, Send, Shirt } from "lucide-react";
+import { Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, ScanLine, Send, Shirt, Video } from "lucide-react";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { referenceDropTargets } from "@/lib/reference-roles";
 import type { AssetRecord, ImageWorkspaceMode, ReferenceRole } from "@/lib/types";
@@ -11,10 +11,12 @@ type LightboxProps = {
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
+  onSendToFlux3Continue?: (asset: AssetRecord) => void;
+  onSendToUpscale?: (asset: AssetRecord) => void;
   onDownload: (asset: AssetRecord) => void;
 };
 
-export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onDownload }: LightboxProps) {
+export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onSendToFlux3Continue, onSendToUpscale, onDownload }: LightboxProps) {
   if (!asset) return null;
   const isVideo = asset.mediaType === "video";
   const mediaSource = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
@@ -45,6 +47,30 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, on
               <Send size={15} />
               Prompt
             </button>
+            {isVideo && onSendToFlux3Continue && (
+              <button
+                onClick={() => {
+                  onSendToFlux3Continue(asset);
+                  onClose();
+                }}
+                title="Continue this video in FLUX 3"
+              >
+                <Video size={15} />
+                Continue
+              </button>
+            )}
+            {isVideo && onSendToUpscale && (
+              <button
+                onClick={() => {
+                  onSendToUpscale(asset);
+                  onClose();
+                }}
+                title="Send to Video Upscale"
+              >
+                <ScanLine size={15} />
+                Upscale
+              </button>
+            )}
             {!isVideo && <div className="assetReferenceAction lightboxReferenceAction">
               <button
                 onClick={() => onSendToReference(asset, addImageTarget.role, addImageTarget.id)}
