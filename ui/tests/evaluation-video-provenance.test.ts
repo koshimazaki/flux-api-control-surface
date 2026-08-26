@@ -4,7 +4,7 @@ vi.mock("@/lib/queue/evaluation", () => ({
   unsuccessfulQueueEvaluations: vi.fn().mockResolvedValue([])
 }));
 
-const { readKeyframes } = await import("@/lib/generation-evaluation-server");
+const { newestCandidatePerId, readKeyframes } = await import("@/lib/generation-evaluation-server");
 
 describe("video keyframe provenance in the evaluation read model", () => {
   it("zips the adapter's parallel keyframe id and second arrays into a timeline", () => {
@@ -41,5 +41,21 @@ describe("video keyframe provenance in the evaluation read model", () => {
 
   it("returns nothing for a generation with no keyframes at all", () => {
     expect(readKeyframes({})).toEqual([]);
+  });
+});
+
+describe("evaluation candidate deduplication", () => {
+  it("keeps one record per generation id, from the newest metadata save", () => {
+    // A 20-second render whose sidecar was re-saved on each poll cycle.
+    const candidates = [
+      { metadata: { id: "9d71" }, fileStat: { mtimeMs: 1_000 } },
+      { metadata: { id: "9d71" }, fileStat: { mtimeMs: 3_000 } },
+      { metadata: { id: "9d71" }, fileStat: { mtimeMs: 2_000 } },
+      { metadata: { id: "other" }, fileStat: { mtimeMs: 500 } }
+    ];
+    const kept = newestCandidatePerId(candidates);
+    expect(kept).toHaveLength(2);
+    expect(kept.find((item) => item.metadata.id === "9d71")?.fileStat.mtimeMs).toBe(3_000);
+    expect(kept.find((item) => item.metadata.id === "other")?.fileStat.mtimeMs).toBe(500);
   });
 });

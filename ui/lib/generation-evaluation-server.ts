@@ -160,6 +160,24 @@ function timingFor(value: unknown): GenerationTiming | undefined {
   return typeof timing.requestStartedAt === "string" && typeof timing.capturedAt === "string" ? timing : undefined;
 }
 
+/**
+ * A long-running job saves its metadata sidecar more than once (each poll and
+ * recovery pass writes a fresh timestamped file), and a generation can also
+ * exist in both the current and legacy output roots. One generation id must
+ * yield one evaluation record, from its newest — most complete — save.
+ */
+export function newestCandidatePerId<T extends { metadata: Record<string, any>; fileStat: { mtimeMs: number | bigint } }>(
+  candidates: T[]
+): T[] {
+  const byId = new Map<string, T>();
+  for (const candidate of candidates) {
+    const id = String(candidate.metadata.id);
+    const current = byId.get(id);
+    if (!current || candidate.fileStat.mtimeMs > current.fileStat.mtimeMs) byId.set(id, candidate);
+  }
+  return [...byId.values()];
+}
+
 async function toEvaluationRecord(
   candidate: MetadataCandidate,
   annotations: Record<string, GenerationEvaluationAnnotation>
@@ -228,7 +246,9 @@ async function toEvaluationRecord(
 
 export async function listGenerationEvaluations(filters: EvaluationFilters = {}) {
   const [candidates, annotations] = await Promise.all([readCandidates(), readAnnotations()]);
-  const saved = await Promise.all(candidates.map((candidate) => toEvaluationRecord(candidate, annotations)));
+  const saved = await Promise.all(
+    newestCandidatePerId(candidates).map((candidate) => toEvaluationRecord(candidate, annotations))
+  );
   // Failed and cancelled queue attempts join the same read model so retries and
   // recoveries are visible next to the generations that succeeded.
   const unsuccessful = await unsuccessfulQueueEvaluations(annotations);
