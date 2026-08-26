@@ -127,7 +127,9 @@
 .dsgn-root[data-surface-theme="rams-lite"] {
   color-scheme: light;
   --surface-void: #b8b8b8;
-  --surface-sunken: #242424;
+  /* Sunken wells must stay light here: cards, prompts and result bars paint
+     this token under near-black text, so a dark well goes dark-on-dark. */
+  --surface-sunken: #f4f5f5;
   --surface-base: #b8b8b8;
   --surface-raised: #d4d4d4;
   --surface-overlay: #e6e6e6;
@@ -494,6 +496,48 @@
   border-color: color-mix(in srgb, var(--accent) 68%, var(--border-strong));
   background: var(--accent-ghost);
   color: var(--accent-strong);
+}
+
+/* RAMS content wells are paper, not dark instrument glass: cards and prompt
+   boxes sit white on the frost ground and turn grey only on hover or
+   selection, while the VTO stage keeps every glyph and label at full ink. */
+.dsgn-root[data-surface-theme="rams-lite"] .assetCard.selectedAsset {
+  border-color: var(--border-machined);
+  background: var(--surface-raised);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .assetPrompt {
+  border-color: var(--border-default);
+  background: rgba(250, 250, 250, 0.92);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .assetPrompt pre {
+  color: var(--text-primary);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .assetPromptRefs {
+  border-top-color: var(--border-subtle);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .vtoPersonDrop,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoGarmentSlot {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .vtoPersonDrop.active,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoGarmentSlot.active {
+  border-color: var(--accent);
+  background: var(--accent-ghost);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .vtoEmptyDrop,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoEmptyDrop span,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoSlotEmpty,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoSlotEmpty span,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoSlotHeader {
+  color: var(--text-primary);
 }
 
 @keyframes workspace-domain-enter {
