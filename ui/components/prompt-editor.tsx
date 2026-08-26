@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type DragEvent as ReactDragEvent, type Rea
 import { Clipboard, MapPin, RotateCcw, Save, SaveAll, Trash2, Upload, Wand2 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { SelectorGroup, SelectorOption } from "@/components/ui/selector-group";
 import {
   referenceDisplayName,
   referencePreviewSrc,
@@ -150,41 +151,48 @@ export function PromptEditor({
       />
 
       <div className="presetRow promptPresetToolbar" role="group" aria-label="Look presets">
-        <div className="presetGroup" role="radiogroup" aria-label="Lighting style">
+        <SelectorGroup variant="raised" className="presetGroup" role="radiogroup" aria-label="Lighting style">
           {presets.map((preset) => {
             const active = preset.id === activePresetId;
             return (
-              <button
+              <SelectorOption
+                variant="raised"
+                selected={active}
                 key={preset.id}
-                className={active ? "presetToggle active" : "presetToggle"}
+                className="presetToggle"
                 data-preset-id={preset.id}
-                aria-pressed={active}
                 onClick={() => applyPreset(preset)}
               >
                 <Wand2 size={15} />
                 {preset.label}
-              </button>
+              </SelectorOption>
             );
           })}
-        </div>
-        <div className="presetGroup environmentPresetGroup" role="radiogroup" aria-label="Environment">
+        </SelectorGroup>
+        <SelectorGroup
+          variant="raised"
+          className="presetGroup environmentPresetGroup"
+          role="radiogroup"
+          aria-label="Environment"
+        >
           {environmentOptions.map((environment) => {
             const active = environment.id === activeEnvironment;
             return (
-              <button
+              <SelectorOption
+                variant="raised"
+                selected={active}
                 key={environment.id}
-                className={active ? "presetToggle active" : "presetToggle"}
+                className="presetToggle"
                 data-environment-id={environment.id}
-                aria-pressed={active}
                 title={environment.description}
                 onClick={() => applyEnvironment(environment)}
               >
                 <MapPin size={15} />
                 {comboEnvironmentLabel(environment)}
-              </button>
+              </SelectorOption>
             );
           })}
-        </div>
+        </SelectorGroup>
       </div>
 
       <textarea

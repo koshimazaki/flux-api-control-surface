@@ -35,6 +35,14 @@
   margin-bottom: 0;
 }
 
+.tabBar.workspaceModeBar-image {
+  grid-template-columns: repeat(6, minmax(88px, 1fr));
+}
+
+.tabBar.workspaceModeBar-video {
+  grid-template-columns: repeat(6, minmax(88px, 1fr));
+}
+
 .workspaceModeBar .tabButton {
   min-width: 0;
   min-height: 50px;

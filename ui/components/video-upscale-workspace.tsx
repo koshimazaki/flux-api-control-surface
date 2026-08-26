@@ -11,7 +11,8 @@ import {
   videoUpscaleRequestBlocker,
   type VideoUpscaleCreativity,
   type VideoUpscaleRequest,
-  type VideoUpscaleResult
+  type VideoUpscaleResult,
+  type VideoUpscaleSourceInput
 } from "@/lib/video-upscale";
 import type { AssetRecord } from "@/lib/types";
 
@@ -29,6 +30,8 @@ type SourceVideo = {
 type VideoUpscaleWorkspaceProps = {
   apiKey: string;
   assets: AssetRecord[];
+  /** Video sent from another surface (library card, FLUX 3 header); nonce re-applies repeat sends. */
+  pendingSource?: (VideoUpscaleSourceInput & { nonce: number }) | null;
   onGenerated: () => void;
   onOpenAssets: () => void;
   generationQueue: GenerationQueueJob[];
@@ -63,6 +66,7 @@ function inspectVideo(source: string) {
 export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [source, setSource] = useState<SourceVideo | null>(null);
+  const [isDropActive, setIsDropActive] = useState(false);
   const [factor, setFactor] = useState(2);
   const [creativity, setCreativity] = useState<VideoUpscaleCreativity>(1);
   const [prompt, setPrompt] = useState("");
@@ -102,6 +106,19 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    const seed = props.pendingSource;
+    if (!seed?.url) return;
+    let cancelled = false;
+    void inspectVideo(seed.url).then((details) => {
+      if (cancelled) return;
+      setSource({ id: seed.assetId || `sent-${seed.nonce}`, assetId: seed.assetId, name: seed.name, source: seed.url, ...details });
+      setSelectedId(null);
+      setError("");
+    });
+    return () => { cancelled = true; };
+  }, [props.pendingSource]);
 
   useEffect(() => {
     if (!pendingQueueJobId) return;
@@ -203,10 +220,25 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
 
   return (
     <section className="videoUpscaleWorkspace">
-      <div className="videoUpscalePreview panel">
+      {/* The whole preview panel accepts drops: a saved result or current source
+          replaces the empty dropzone, and dropping a new clip must still work. */}
+      <div
+        className={`videoUpscalePreview panel${isDropActive ? " dropReady" : ""}`}
+        onDragOver={(event) => event.preventDefault()}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setIsDropActive(true);
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsDropActive(false);
+        }}
+        onDrop={(event) => {
+          setIsDropActive(false);
+          handleDrop(event);
+        }}
+      >
         <PanelHeader title="Video Upscale" subtitle="FLUX 3 VIDEO UPSCALE · 2K / 4K">
           <div className="flux3HeaderTools">
-            <span className="flux3EndpointBadge">POST /v1/flux-tools/video-upscale-v1</span>
             <span className="flux3HeaderIcon" aria-label="FLUX 3 Video Upscale"><ScanLine size={18} /></span>
           </div>
         </PanelHeader>
@@ -218,7 +250,7 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
             <div><Film size={16} /><strong>{source.name}</strong><button type="button" onClick={() => setSource(null)} title="Remove source"><X size={14} /></button></div>
           </div>
         ) : (
-          <button className="videoUpscaleDrop" type="button" onClick={() => inputRef.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
+          <button className="videoUpscaleDrop" type="button" onClick={() => inputRef.current?.click()}>
             <Upload size={28} />
             <strong>Drop an MP4 or saved FLUX 3 video</strong>
             <span>Maximum 50 MB · 20 seconds · 2560 × 1440 input</span>

@@ -1,12 +1,14 @@
 .workspace.videoUpscaleMode {
-  grid-template-columns: 58px minmax(520px, 1fr) 340px;
+  grid-template-columns: 310px minmax(520px, 1fr) 340px;
   grid-template-rows: auto minmax(620px, auto);
   grid-template-areas:
-    ". modes modes"
-    ". main main";
+    "library modes modes"
+    "library main main";
   height: auto;
   min-height: clamp(720px, calc(100vh - 132px), 980px);
 }
+
+.workspace.videoUpscaleMode.libraryCollapsed { grid-template-columns: 58px minmax(520px, 1fr) 340px; }
 
 .workspace.videoUpscaleMode > .videoUpscaleWorkspace { grid-area: main; }
 
@@ -25,6 +27,13 @@
   flex-direction: column;
   gap: 12px;
   padding: var(--space-5, 12px);
+}
+
+/* The whole panel is a drop target so a new clip can replace the current
+   source or result without hunting for the empty dropzone. */
+.videoUpscalePreview.dropReady {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
 }
 
 .videoUpscaleDrop {
@@ -56,7 +65,7 @@
 .videoUpscaleSourcePreview video {
   width: 100%;
   height: 100%;
-  max-height: 640px;
+  max-height: 100%;
   object-fit: contain;
 }
 
@@ -72,10 +81,17 @@
 .videoUpscaleSourcePreview strong { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .videoUpscaleSourcePreview button { width: 30px; min-height: 30px; padding: 0; }
 
-.videoCompare { display: grid; gap: 8px; }
+.videoCompare {
+  display: grid;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
 .videoCompareStage {
   position: relative;
   min-height: 520px;
+  height: 100%;
   overflow: hidden;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -184,12 +200,14 @@
 .videoUpscaleCost strong { font-size: 14px; }
 
 @media (max-width: 1160px) {
-  .workspace.videoUpscaleMode { grid-template-columns: 58px minmax(360px, 1fr); grid-template-areas: ". modes" ". main"; }
+  .workspace.videoUpscaleMode { grid-template-columns: 240px minmax(360px, 1fr); grid-template-areas: "library modes" "library main"; }
+  .workspace.videoUpscaleMode.libraryCollapsed { grid-template-columns: 58px minmax(360px, 1fr); }
   .videoUpscaleWorkspace { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 900px) {
-  .workspace.videoUpscaleMode { grid-template-columns: 1fr; grid-template-areas: "modes" "main"; }
+  .workspace.videoUpscaleMode { grid-template-columns: 1fr; grid-template-areas: "modes" "library" "main"; }
+  .workspace.videoUpscaleMode.libraryCollapsed { grid-template-columns: 1fr; }
   .videoCompareStage,
   .videoUpscaleDrop,
   .videoUpscaleSourcePreview { min-height: 320px; }

@@ -57,8 +57,11 @@ export function videoUpscaleRequestBlocker(request: VideoUpscaleRequest) {
   if (finite(request.sourceBytes) && request.sourceBytes > VIDEO_UPSCALE_MAX_BYTES) {
     return "Video Upscale accepts MP4 files up to 50 MB.";
   }
-  if (finite(request.durationSeconds) && request.durationSeconds > VIDEO_UPSCALE_MAX_SECONDS) {
-    return "Video Upscale accepts clips up to 20 seconds.";
+  // FLUX 3's own "20 second" renders report container durations slightly over
+  // 20 (audio padding, metadata rounding). Compare on whole seconds so BFL's
+  // own maximum-length output is never rejected by its own upscaler UI.
+  if (finite(request.durationSeconds) && Math.round(request.durationSeconds) > VIDEO_UPSCALE_MAX_SECONDS) {
+    return `Video Upscale accepts clips up to 20 seconds; this clip reports ${request.durationSeconds.toFixed(1)} s.`;
   }
   const factor = request.upscaleFactor ?? 2;
   if (!finite(factor) || factor < 1.5 || factor > 3) return "Upscale factor must be between 1.5× and 3×.";
@@ -97,3 +100,10 @@ export function estimateVideoUpscaleUsd(request: VideoUpscaleRequest) {
 export function redactVideoUpscalePayload(payload: Record<string, unknown>) {
   return { ...payload, input_video: "[video input omitted]" };
 }
+
+/** A video handed to the upscale workspace from another surface (library card, FLUX 3 result). */
+export type VideoUpscaleSourceInput = {
+  assetId?: string;
+  name: string;
+  url: string;
+};

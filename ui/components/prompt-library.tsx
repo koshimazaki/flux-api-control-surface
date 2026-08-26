@@ -11,6 +11,7 @@ import { comboModeLabels, type ComboMode, type ComboSettings } from "@/lib/promp
 import type { PromptLibraryOption } from "@/lib/prompt-library-groups";
 import type { CompiledVideoPrompt } from "@/lib/video-prompt-templates";
 import type { PromptRecord } from "@/lib/types";
+import type { WorkspaceMediaKind } from "@/lib/workspace-media";
 
 type PromptLibraryProps = {
   prompts: PromptRecord[];
@@ -19,9 +20,11 @@ type PromptLibraryProps = {
   activeId: string;
   selectedIds: string[];
   comboSettings: ComboSettings;
+  mediaKind: WorkspaceMediaKind;
   collapsed?: boolean;
   canCollapse?: boolean;
   onLibraryChange: (id: string) => void;
+  onMediaKindChange: (kind: WorkspaceMediaKind) => void;
   onSelect: (id: string) => void;
   onToggleSelected: (id: string) => void;
   onComboModeChange: (mode: ComboMode) => void;
@@ -48,9 +51,11 @@ export function PromptLibrary({
   activeId,
   selectedIds,
   comboSettings,
+  mediaKind,
   collapsed,
   canCollapse,
   onLibraryChange,
+  onMediaKindChange,
   onSelect,
   onToggleSelected,
   onComboModeChange,
@@ -73,7 +78,9 @@ export function PromptLibrary({
       <CollapsedPromptLibrary
         comboSettings={comboSettings}
         selectedCount={selectedIds.length}
+        mediaKind={mediaKind}
         onOpen={() => onCollapsedChange?.(false)}
+        onMediaKindChange={onMediaKindChange}
       />
     );
   }

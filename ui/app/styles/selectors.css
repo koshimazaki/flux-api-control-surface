@@ -1,0 +1,29 @@
+/* Shared selector anatomy. Theme/material layers own colour and elevation;
+   these variants define structure and interaction roles only. */
+.selectorGroup,
+.selectorOption {
+  min-width: 0;
+}
+
+.selectorGroup-tabs {
+  display: flex;
+  align-items: center;
+}
+
+.selectorGroup-segmented,
+.selectorGroup-icon-rail {
+  display: grid;
+}
+
+.selectorGroup-raised {
+  display: inline-flex;
+  align-items: center;
+}
+
+.selectorOption-segmented {
+  border-radius: 0;
+}
+
+.selectorOption-icon-rail {
+  padding: 0;
+}

@@ -1,9 +1,11 @@
-import { Download, Film, Images, MessageSquareText, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
+import { Download, Film, Images, MessageSquareText, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Flux3MediaDropzone, type Flux3InputMedia } from "@/components/flux3-media-dropzone";
+import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 import type { GenerationQueueJob, GenerationQueueSummary } from "@/lib/generation-queue";
 import {
   FLUX3_ASPECT_RATIOS,
@@ -14,15 +16,24 @@ import {
   type Flux3VideoMode,
   type Flux3VideoRequest,
   type Flux3VideoResolution,
-  type Flux3VideoResult
+  type Flux3VideoResult,
+  type Flux3SourceMode
 } from "@/lib/flux3-video";
 import type { AssetRecord } from "@/lib/types";
 
 type Flux3VideoWorkspaceProps = {
   apiKey: string;
   assets: AssetRecord[];
+  mode: Flux3SourceMode;
+  onModeChange: (mode: Flux3SourceMode) => void;
   keyframes: Flux3InputMedia[];
   onKeyframesChange: (items: Flux3InputMedia[]) => void;
+  startVideo: Flux3InputMedia | null;
+  onStartVideoChange: (media: Flux3InputMedia | null) => void;
+  /** Prompt pushed from a library video card; the nonce re-applies repeat sends. */
+  promptSeed?: { text: string; nonce: number } | null;
+  /** Sends the selected render to the Video Upscale workspace. */
+  onSendToUpscale?: (source: VideoUpscaleSourceInput) => void;
   onGenerated: () => void;
   onOpenAssets: () => void;
   // FLUX 3 renders share the one server-owned queue with image and tool work, so
@@ -31,9 +42,11 @@ type Flux3VideoWorkspaceProps = {
   generationQueueSummary: GenerationQueueSummary;
   generationQueueConcurrency: number;
   generationQueueControls?: JobQueueControls;
+  /** Selected Video Library prompt; selecting another saved prompt loads it here. */
+  libraryPrompt?: string;
 };
 
-const modeOptions: Array<{ id: Exclude<Flux3VideoMode, "draft_enhance">; label: string; detail: string; icon: typeof Film }> = [
+const modeOptions: Array<{ id: Flux3SourceMode; label: string; detail: string; icon: typeof Film }> = [
   { id: "t2v", label: "Text", detail: "Prompt → video", icon: MessageSquareText },
   { id: "i2v", label: "Images", detail: "1–10 frames", icon: Images },
   { id: "v2v", label: "Continue", detail: "MP4 → next clip", icon: Video }
@@ -51,10 +64,11 @@ function durationOptions(max: number) {
 }
 
 export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
-  const [mode, setMode] = useState<Exclude<Flux3VideoMode, "draft_enhance">>("t2v");
+  const mode = props.mode;
   const [prompt, setPrompt] = useState("");
   const keyframes = props.keyframes;
-  const [startVideo, setStartVideo] = useState<Flux3InputMedia | null>(null);
+  const startVideo = props.startVideo;
+  const setStartVideo = props.onStartVideoChange;
   const [aspectRatio, setAspectRatio] = useState<Flux3VideoAspectRatio>("auto");
   const [duration, setDuration] = useState<number | "auto">("auto");
   const [resolution, setResolution] = useState<Flux3VideoResolution>("hd");
@@ -73,6 +87,19 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   const [pendingQueueJobId, setPendingQueueJobId] = useState<string | null>(null);
   const selected = results.find((item) => item.id === selectedId) || results[0] || null;
   const maxDuration = flux3MaxDuration(mode);
+
+  function updateKeyframes(items: Flux3InputMedia[]) {
+    if (items.length > keyframes.length) props.onModeChange("i2v");
+    props.onKeyframesChange(items);
+  }
+
+  useEffect(() => {
+    if (props.libraryPrompt?.trim()) setPrompt(props.libraryPrompt);
+  }, [props.libraryPrompt]);
+
+  useEffect(() => {
+    if (props.promptSeed?.text.trim()) setPrompt(props.promptSeed.text);
+  }, [props.promptSeed]);
 
   const requestInput = useMemo<Flux3VideoRequest>(
     () => ({
@@ -247,7 +274,14 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       <div className="flux3PreviewPanel panel">
         <PanelHeader title="FLUX 3 Video" subtitle="Synchronized picture, speech, effects, and ambience in one request">
           <div className="flux3HeaderTools">
-            <span className="flux3EndpointBadge">POST /v1/flux-3-video</span>
+            {selected && props.onSendToUpscale && (
+              <IconButton
+                title="Send this render to Video Upscale"
+                onClick={() => props.onSendToUpscale?.({ assetId: selected.id, name: selected.title, url: selected.videoUrl })}
+              >
+                <ScanLine size={15} />
+              </IconButton>
+            )}
             <span className="flux3HeaderIcon" title="FLUX 3 video workspace" aria-label="FLUX 3 video workspace">
               <Video size={18} />
             </span>
@@ -301,7 +335,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
           assets={props.assets}
           keyframes={keyframes}
           startVideo={startVideo}
-          onKeyframesChange={props.onKeyframesChange}
+          onKeyframesChange={updateKeyframes}
           onStartVideoChange={setStartVideo}
           onError={setError}
         />
@@ -313,7 +347,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
         </PanelHeader>
         <div className="flux3ModePicker">
           {modeOptions.map(({ id, label, detail, icon: Icon }) => (
-            <button type="button" className={mode === id ? "active" : ""} key={id} onClick={() => setMode(id)}>
+            <button type="button" className={mode === id ? "active" : ""} key={id} onClick={() => props.onModeChange(id)}>
               <Icon size={16} />
               <span><strong>{label}</strong><small>{detail}</small></span>
             </button>

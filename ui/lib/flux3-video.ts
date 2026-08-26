@@ -1,6 +1,13 @@
 export type Flux3VideoMode = "t2v" | "i2v" | "v2v" | "draft_enhance";
+export type Flux3SourceMode = Exclude<Flux3VideoMode, "draft_enhance">;
 export type Flux3VideoResolution = "hd" | "fhd";
 export type Flux3VideoAspectRatio = "auto" | "21:9" | "2:1" | "16:9" | "4:3" | "1:1" | "3:4" | "9:16";
+
+export const defaultFlux3SourceMode: Flux3SourceMode = "t2v";
+
+export function isFlux3SourceMode(value: unknown): value is Flux3SourceMode {
+  return value === "t2v" || value === "i2v" || value === "v2v";
+}
 
 export type Flux3InputMedia = {
   id: string;

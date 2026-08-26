@@ -44,10 +44,7 @@ export function ThemePicker({ value, onChange }: ThemePickerProps) {
         onClick={() => setOpen((current) => !current)}
       >
         <Palette size={14} />
-        <span className="themePickerName">{selected.label}</span>
-        <span className="themePickerSignals" aria-hidden="true">
-          {selected.signals.map((color) => <i key={color} style={{ backgroundColor: color }} />)}
-        </span>
+        <span className="themePickerName visuallyHidden">{selected.label}</span>
         <ChevronDown className="themePickerChevron" size={13} />
       </button>
       {open && (

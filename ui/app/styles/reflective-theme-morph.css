@@ -11,6 +11,10 @@
   --glass-specular: rgba(255, 255, 255, 0.11);
   --glass-reflection: rgba(124, 206, 234, 0.055);
   --glass-blur: 26px;
+  --mat-gunmetal:
+    radial-gradient(circle, rgba(var(--lumen), 0.022) 0 0.45px, transparent 0.72px) 0 0 / 5px 5px,
+    radial-gradient(circle, rgba(var(--shade), 0.045) 0 0.5px, transparent 0.78px) 2px 3px / 7px 7px,
+    linear-gradient(180deg, var(--metal-mid), var(--metal-lo));
 }
 
 .dsgn-root[data-surface-theme="frozen"] {
@@ -54,46 +58,68 @@
   --glass-reflection: rgba(120, 226, 238, 0.075);
 }
 
-.dsgn-root[data-surface-theme="quiet-signal"] {
-  --surface-void: #111315;
-  --surface-sunken: #171a1c;
-  --surface-base: #202427;
-  --surface-raised: #2b3033;
-  --surface-overlay: #373d40;
-  --surface-inset: #131618;
-  --text-primary: #e9e8e1;
-  --text-secondary: #b4b1a7;
-  --text-muted: #7f8079;
-  --text-faint: #555a58;
-  --border-subtle: #292e30;
-  --border-default: #3b4244;
-  --border-strong: #555f60;
-  --border-machined: #6d7777;
-  --metal-hi: #3a4042;
-  --metal-mid: #292e30;
-  --metal-lo: #1a1e20;
-  --accent: #f0a25b;
-  --accent-strong: #ffc078;
-  --accent-ghost: rgba(240, 162, 91, 0.15);
-  --acc-green: #a48ac4;
-  --acc-green-strong: #c0a8db;
-  --acc-green-dim: #554765;
-  --acc-green-ghost: rgba(164, 138, 196, 0.13);
-  --acc-intel: #69c7df;
-  --acc-intel-strong: #9be1ee;
-  --acc-intel-dim: #356778;
-  --acc-intel-ghost: rgba(105, 199, 223, 0.14);
-  --acc-armament: #e17852;
-  --acc-armament-strong: #ed9b6d;
-  --acc-armament-dim: #744132;
-  --acc-armament-ghost: rgba(225, 120, 82, 0.15);
-  --acc-readout: #b8edf3;
-  --glass-panel-hi: rgba(57, 62, 64, 0.68);
-  --glass-panel-lo: rgba(24, 28, 30, 0.6);
-  --glass-panel-edge: rgba(230, 196, 151, 0.14);
-  --glass-specular: rgba(255, 244, 224, 0.1);
-  --glass-reflection: rgba(240, 162, 91, 0.045);
+.dsgn-root[data-surface-theme="quiet-signal"],
+.dsgn-root[data-surface-theme="bfl-stone"] {
+  --surface-void: #050705;
+  --surface-sunken: #090b09;
+  --surface-base: #0d100e;
+  --surface-raised: #151a16;
+  --surface-overlay: #202720;
+  --surface-inset: #070907;
+  --text-primary: #edf2e9;
+  --text-secondary: #bac6b5;
+  --text-muted: #7d8c78;
+  --text-faint: #4e5e4f;
+  --border-subtle: #19201a;
+  --border-default: #29312b;
+  --border-strong: #414d43;
+  --border-machined: #58645a;
+  --metal-hi: #252b27;
+  --metal-mid: #171c18;
+  --metal-lo: #0c0f0d;
+  --accent: #a8be5c;
+  --accent-strong: #c0d672;
+  --accent-ghost: rgba(168, 190, 92, 0.09);
+  --acc-green: #a8be5c;
+  --acc-green-strong: #c0d672;
+  --acc-green-dim: #59662f;
+  --acc-green-ghost: rgba(168, 190, 92, 0.09);
+  --acc-intel: #a8be5c;
+  --acc-intel-strong: #c0d672;
+  --acc-intel-dim: #59662f;
+  --acc-intel-ghost: rgba(168, 190, 92, 0.09);
+  --acc-armament: #a8be5c;
+  --acc-armament-strong: #c0d672;
+  --acc-armament-dim: #59662f;
+  --acc-armament-ghost: rgba(168, 190, 92, 0.09);
+  --acc-readout: #c0d672;
+  --glass-panel-hi: rgba(28, 32, 29, 0.72);
+  --glass-panel-lo: rgba(7, 9, 8, 0.68);
+  --glass-panel-edge: rgba(168, 190, 92, 0.08);
+  --glass-specular: rgba(232, 244, 228, 0.08);
+  --glass-reflection: rgba(168, 190, 92, 0.018);
   --glass-blur: 22px;
+}
+
+.dsgn-root[data-surface-theme="bfl-stone"] {
+  --accent: #82b878;
+  --accent-strong: #b7dfae;
+  --accent-ghost: rgba(130, 184, 120, 0.15);
+  --acc-green: #82b878;
+  --acc-green-strong: #b7dfae;
+  --acc-green-dim: #496d48;
+  --acc-green-ghost: rgba(130, 184, 120, 0.14);
+  --acc-intel: #82b878;
+  --acc-intel-strong: #b7dfae;
+  --acc-intel-dim: #496d48;
+  --acc-intel-ghost: rgba(130, 184, 120, 0.14);
+  --acc-armament: #82b878;
+  --acc-armament-strong: #b7dfae;
+  --acc-armament-dim: #496d48;
+  --acc-armament-ghost: rgba(130, 184, 120, 0.15);
+  --acc-readout: #c4e4be;
+  --glass-panel-edge: rgba(130, 184, 120, 0.12);
+  --glass-reflection: rgba(130, 184, 120, 0.035);
 }
 
 /* Exact frost-grey RAMS palette from Quiet Signal's sidkit-grey source. The
@@ -101,7 +127,9 @@
 .dsgn-root[data-surface-theme="rams-lite"] {
   color-scheme: light;
   --surface-void: #b8b8b8;
-  --surface-sunken: #242424;
+  /* Sunken wells must stay light here: cards, prompts and result bars paint
+     this token under near-black text, so a dark well goes dark-on-dark. */
+  --surface-sunken: #f4f5f5;
   --surface-base: #b8b8b8;
   --surface-raised: #d4d4d4;
   --surface-overlay: #e6e6e6;
@@ -165,12 +193,21 @@
 }
 
 .backgroundShader[data-surface-theme="quiet-signal"] {
-  background: #111315;
+  background: #050705;
 }
 
 .backgroundShader[data-surface-theme="quiet-signal"] canvas {
-  opacity: 0.62;
-  filter: hue-rotate(-9deg) contrast(1.1) brightness(0.74) saturate(0.78);
+  opacity: 0.24;
+  filter: hue-rotate(72deg) contrast(1.14) brightness(0.48) saturate(0.9);
+}
+
+.backgroundShader[data-surface-theme="bfl-stone"] {
+  background: #050705;
+}
+
+.backgroundShader[data-surface-theme="bfl-stone"] canvas {
+  opacity: 0.36;
+  filter: hue-rotate(66deg) contrast(1.18) brightness(0.52) saturate(0.94);
 }
 
 .backgroundShader[data-surface-theme="rams-lite"] { background: #d4d4d4; }
@@ -195,9 +232,18 @@
 
 .backgroundShader[data-surface-theme="quiet-signal"] .backgroundShaderWash {
   background:
-    radial-gradient(circle at 62% 20%, rgba(240, 162, 91, 0.055), transparent 38%),
-    linear-gradient(90deg, rgba(17, 19, 21, 0.66), rgba(28, 31, 33, 0.3) 48%, rgba(17, 19, 21, 0.7));
-  box-shadow: inset 0 0 170px rgba(0, 0, 0, 0.52);
+    radial-gradient(circle at 62% 20%, rgba(168, 190, 92, 0.026), transparent 34%),
+    radial-gradient(circle at 24% 72%, rgba(89, 102, 47, 0.02), transparent 32%),
+    linear-gradient(90deg, rgba(5, 7, 5, 0.84), rgba(9, 13, 10, 0.5) 48%, rgba(5, 7, 5, 0.88));
+  box-shadow: inset 0 0 190px rgba(0, 0, 0, 0.66);
+}
+
+.backgroundShader[data-surface-theme="bfl-stone"] .backgroundShaderWash {
+  background:
+    radial-gradient(circle at 62% 20%, rgba(130, 184, 120, 0.065), transparent 34%),
+    radial-gradient(circle at 24% 72%, rgba(74, 116, 72, 0.05), transparent 32%),
+    linear-gradient(90deg, rgba(5, 7, 5, 0.84), rgba(9, 13, 10, 0.5) 48%, rgba(5, 7, 5, 0.88));
+  box-shadow: inset 0 0 190px rgba(0, 0, 0, 0.66);
 }
 
 .backgroundShader[data-surface-theme="rams-lite"] .backgroundShaderWash {
@@ -225,21 +271,35 @@
   color: var(--text-primary);
 }
 
+.dsgn-root .workspaceModeBar .tabButton,
 .dsgn-root[data-surface-theme="rams-lite"] .workspaceModeBar .tabButton {
-  background: linear-gradient(180deg, rgba(242, 243, 243, 0.86), rgba(188, 191, 193, 0.82));
+  border-color: color-mix(in srgb, var(--border-machined) 58%, transparent);
+  background:
+    linear-gradient(118deg, var(--glass-specular), transparent 40%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 82%, transparent), color-mix(in srgb, var(--surface-sunken) 90%, transparent));
+  color: var(--text-secondary);
+  box-shadow: var(--rim-top), var(--elev-1);
 }
 
+/* RAMS is a pale instrument ground. Inactive tools should sit quietly on that
+   surface rather than inheriting the dark-theme recessed lower half. */
+.dsgn-root[data-surface-theme="rams-lite"] .workspaceModeBar .tabButton:not(.active) {
+  border-color: color-mix(in srgb, var(--border-strong) 54%, transparent);
+  background: color-mix(in srgb, var(--surface-raised) 82%, var(--surface-overlay));
+  color: var(--text-secondary);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.dsgn-root .workspaceModeBar .tabButton.active,
+.dsgn-root .workspaceModeBar .tabButton-erase.active,
+.dsgn-root .workspaceModeBar .tabButton-upscale.active,
 .dsgn-root[data-surface-theme="rams-lite"] .workspaceModeBar .tabButton.active {
-  border-color: var(--accent);
-  background: linear-gradient(180deg, rgba(255, 185, 112, 0.68), rgba(224, 153, 84, 0.38));
-  color: #191919;
-}
-
-.dsgn-root .workspaceModeBar .tabButton-upscale.active {
-  border-color: var(--acc-intel);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--acc-intel) 24%, transparent), color-mix(in srgb, var(--surface-sunken) 78%, transparent));
-  color: var(--acc-intel-strong);
-  box-shadow: var(--rim-top), 0 0 10px -3px var(--acc-intel);
+  border-color: color-mix(in srgb, var(--accent) 68%, var(--border-strong));
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface-raised));
+  color: var(--accent-strong);
+  box-shadow: none;
+  text-shadow: none;
 }
 
 .dsgn-root .topbar,
@@ -252,7 +312,8 @@
   background:
     linear-gradient(118deg, var(--glass-specular) 0%, rgba(255, 255, 255, 0.025) 16%, transparent 39%),
     radial-gradient(circle at 78% -20%, var(--glass-reflection), transparent 48%),
-    repeating-linear-gradient(90deg, rgba(var(--lumen), 0.012) 0 1px, transparent 1px 3px),
+    radial-gradient(circle, rgba(var(--lumen), 0.018) 0 0.45px, transparent 0.72px) 0 0 / 5px 5px,
+    radial-gradient(circle, rgba(var(--shade), 0.035) 0 0.5px, transparent 0.78px) 2px 3px / 7px 7px,
     linear-gradient(180deg, var(--glass-panel-hi), var(--glass-panel-lo));
   box-shadow:
     inset 0 1px 0 var(--glass-specular),
@@ -271,6 +332,8 @@
   background:
     linear-gradient(118deg, var(--glass-specular) 0%, rgba(255, 255, 255, 0.018) 18%, transparent 42%),
     radial-gradient(circle at 78% -20%, var(--glass-reflection), transparent 48%),
+    radial-gradient(circle, rgba(var(--lumen), 0.014) 0 0.42px, transparent 0.7px) 0 0 / 6px 6px,
+    radial-gradient(circle, rgba(var(--shade), 0.028) 0 0.48px, transparent 0.76px) 2px 3px / 9px 9px,
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--surface-raised) 88%, var(--surface-void)),
@@ -287,11 +350,236 @@
 }
 
 .dsgn-root .topbar {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) auto minmax(300px, 1fr);
   min-height: 76px;
   padding: var(--space-5) var(--space-6);
   overflow: visible;
   isolation: isolate;
   z-index: 1400;
+}
+
+.dsgn-root .topBarMediaSwitch {
+  align-self: center;
+  justify-self: center;
+}
+
+.workspaceMediaSwitch {
+  display: grid;
+  border: 1px solid var(--border-machined);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(118deg, var(--glass-specular), transparent 42%),
+    var(--glass-panel);
+  box-shadow: var(--rim-top), var(--elev-2);
+  overflow: hidden;
+}
+
+.workspaceMediaSwitch-header {
+  width: 154px;
+  height: 30px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dsgn-root .workspaceMediaSwitch button {
+  min-width: 0;
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 180ms ease, background 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.dsgn-root .workspaceMediaSwitch button + button {
+  border-left: 1px solid var(--border-machined);
+}
+
+.dsgn-root .workspaceMediaSwitch button:hover {
+  color: var(--cream);
+  background: var(--glass-hover);
+}
+
+.dsgn-root .workspaceMediaSwitch button.active {
+  color: var(--accent-strong);
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.11), transparent 40%),
+    color-mix(in srgb, var(--accent) 14%, var(--glass-active));
+  box-shadow: inset 0 -2px 0 var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.workspaceMediaSwitch-rail {
+  width: 28px;
+  grid-template-rows: repeat(2, 28px);
+  gap: 10px;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dsgn-root .workspaceMediaSwitch-rail button,
+.dsgn-root .workspaceMediaSwitch-rail button + button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+}
+
+.dsgn-root .workspaceMediaSwitch-rail svg {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.dsgn-root .workspaceMediaSwitch-rail button.active {
+  color: var(--accent-strong);
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 58%, transparent));
+}
+
+/* Quiet Signal follows the Koshi Lime/Blackstone specimen: selection is a
+   flat instrument state, not a luminous yellow lamp. Keep the exact authored
+   lime visible through colour and a restrained fill, with no halo or raised
+   selection shadow. */
+.dsgn-root[data-surface-theme="quiet-signal"] .workspaceModeBar .tabButton.active {
+  border-color: color-mix(in srgb, var(--accent) 68%, var(--border-strong));
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-raised));
+  color: var(--accent-strong);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+/* The cyan wash that first appeared on Erase is useful as a secondary
+   intelligence signal against the olive/green grounds. Apply it consistently
+   to image-tool control panels in these two themes, without recolouring the
+   primary tool selector. */
+.dsgn-root[data-surface-theme="quiet-signal"] .toolControls,
+.dsgn-root[data-surface-theme="bfl-stone"] .toolControls {
+  background:
+    linear-gradient(180deg, rgba(98, 196, 230, 0.115), transparent 112px),
+    linear-gradient(180deg, rgba(32, 39, 44, 0.82), rgba(20, 25, 29, 0.86));
+}
+
+/* Erase keeps the cyan intelligence wash in the dark stone themes, but RAMS
+   treats every image-tool side panel as the same quiet frost-grey surface. */
+.dsgn-root[data-surface-theme="rams-lite"] .toolControls.mode-erase {
+  background:
+    linear-gradient(118deg, var(--glass-specular) 0%, rgba(255, 255, 255, 0.025) 16%, transparent 39%),
+    radial-gradient(circle at 78% -20%, var(--glass-reflection), transparent 48%),
+    radial-gradient(circle, rgba(var(--lumen), 0.018) 0 0.45px, transparent 0.72px) 0 0 / 5px 5px,
+    radial-gradient(circle, rgba(var(--shade), 0.035) 0 0.5px, transparent 0.78px) 2px 3px / 7px 7px,
+    linear-gradient(180deg, var(--glass-panel-hi), var(--glass-panel-lo));
+}
+
+/* RAMS uses orange as its media identity. Functional cyan remains available
+   elsewhere, but the FLUX 3 video presence follows the active theme signal. */
+.dsgn-root[data-surface-theme="rams-lite"] .flux3ViewerEmpty > svg {
+  color: var(--accent-strong);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .flux3HeaderIcon {
+  border-color: color-mix(in srgb, var(--accent) 68%, var(--border-strong));
+  background: var(--accent-ghost);
+  color: var(--accent-strong);
+}
+
+/* RAMS content wells are paper, not dark instrument glass. Gallery cells sit
+   quiet grey on the frost ground, brighten on hover, and go full paper white
+   when selected, while the VTO stage keeps every glyph and label at full ink. */
+.dsgn-root[data-surface-theme="rams-lite"] .assetCard {
+  background: var(--surface-raised);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .assetCard:hover {
+  background: var(--surface-overlay);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .assetCard.selectedAsset {
+  border-color: var(--border-machined);
+  background: var(--surface-sunken);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .assetPrompt {
+  border-color: var(--border-default);
+  background: rgba(250, 250, 250, 0.92);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .assetPrompt pre {
+  color: var(--text-primary);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .assetPromptRefs {
+  border-top-color: var(--border-subtle);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .vtoPersonDrop,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoGarmentSlot {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .vtoPersonDrop.active,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoGarmentSlot.active {
+  border-color: var(--accent);
+  background: var(--accent-ghost);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .vtoEmptyDrop,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoEmptyDrop span,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoSlotEmpty,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoSlotEmpty span,
+.dsgn-root[data-surface-theme="rams-lite"] .vtoSlotHeader {
+  color: var(--text-primary);
+}
+
+/* The BFL mark ships as a white SVG; on the paper tile it needs full ink. */
+.dsgn-root[data-surface-theme="rams-lite"] .brandMark img {
+  filter: brightness(0);
+}
+
+@keyframes workspace-domain-enter {
+  from {
+    opacity: 0.82;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dsgn-root .workspaceMain,
+.dsgn-root .flux3VideoWorkspace,
+.dsgn-root .videoUpscaleWorkspace {
+  animation: workspace-domain-enter 180ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dsgn-root .workspaceMediaSwitch button {
+    transition: none;
+  }
+
+  .dsgn-root .workspaceMain,
+  .dsgn-root .flux3VideoWorkspace,
+  .dsgn-root .videoUpscaleWorkspace {
+    animation: none;
+  }
 }
 
 .dsgn-root .topBarRight {
@@ -352,7 +640,7 @@
 .dsgn-root .keyBox {
   position: relative;
   width: auto;
-  min-width: 108px;
+  min-width: 36px;
   height: var(--header-utility-height);
   min-height: var(--header-utility-height);
   max-height: var(--header-utility-height);
@@ -368,8 +656,18 @@
 .dsgn-root .keyDisclosure {
   height: 24px;
   min-height: 24px;
-  gap: 5px;
-  padding: 0 5px;
+  gap: 2px;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.dsgn-root .keyDisclosureLabel,
+.dsgn-root .keyDisclosure .keySourceBadge {
+  display: none;
+}
+
+.dsgn-root .keyDisclosureChevron {
+  margin-left: 0;
 }
 
 .dsgn-root .keyDisclosure .keySourceBadge {
@@ -396,6 +694,14 @@
   -webkit-backdrop-filter: blur(26px) saturate(1.2);
 }
 
+.dsgn-root .keyStatusCopy {
+  grid-column: 1 / -1;
+  color: var(--soft);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+}
+
 .dsgn-root .keyBoxFields input {
   min-height: 30px;
   padding: 0 var(--space-3);
@@ -411,9 +717,15 @@
   min-height: var(--header-utility-height);
   max-height: var(--header-utility-height);
   box-sizing: border-box;
-  gap: 6px;
-  padding: 0 8px;
+  width: var(--header-utility-height);
+  justify-content: center;
+  gap: 0;
+  padding: 0;
   white-space: nowrap;
+}
+
+.dsgn-root .themePickerTrigger .themePickerChevron {
+  display: none;
 }
 
 .themePickerName {
@@ -658,9 +970,15 @@
 }
 
 @media (max-width: 900px) {
+  .dsgn-root .topbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .dsgn-root .topBarUtilityRow {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
     gap: var(--space-3);
   }
 
@@ -670,18 +988,20 @@
   }
 
   .themePicker,
-  .dsgn-root .themePickerTrigger,
+  .dsgn-root .themePickerTrigger {
+    width: var(--header-utility-height);
+  }
+
   .dsgn-root .compactBalance {
-    width: 100%;
+    width: auto;
   }
 
   .dsgn-root .keyBox {
-    width: 100%;
-    grid-column: 1 / -1;
+    width: 36px;
   }
 
   .dsgn-root .keyBox.open {
-    width: 100%;
+    width: 36px;
   }
 
   .dsgn-root .keyBoxFields,
@@ -730,12 +1050,30 @@
 
 @media (max-width: 540px) {
   .dsgn-root .topBarUtilityRow {
-    grid-template-columns: 1fr;
+    display: flex;
   }
 
   .dsgn-root .topBarStatus,
   .dsgn-root .keyBox {
-    grid-column: 1;
+    grid-column: auto;
+  }
+
+  .dsgn-root .topBarBrand {
+    gap: 10px;
+  }
+
+  .dsgn-root .brandMark {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .dsgn-root .brandMark img {
+    width: 23px;
+  }
+
+  .dsgn-root h1 {
+    font-size: 22px;
   }
 
   .flux3HeaderTools {

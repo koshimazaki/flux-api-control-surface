@@ -2,8 +2,10 @@ import { ChevronDown, KeyRound, LockKeyhole, RefreshCcw, Trash2 } from "lucide-r
 import { useState } from "react";
 import { BalanceCard } from "@/components/balance-card";
 import { ThemePicker } from "@/components/theme-picker";
+import { WorkspaceMediaSwitch } from "@/components/workspace-media-switch";
 import type { SurfaceTheme } from "@/lib/surface-theme";
 import type { ApiKeyStatus } from "@/lib/types";
+import type { WorkspaceMediaKind } from "@/lib/workspace-media";
 
 type TopBarProps = {
   apiKey: string;
@@ -19,6 +21,8 @@ type TopBarProps = {
   onCheckBalance: () => void;
   surfaceTheme: SurfaceTheme;
   onSurfaceThemeChange: (theme: SurfaceTheme) => void;
+  workspaceMediaKind: WorkspaceMediaKind;
+  onWorkspaceMediaKindChange: (kind: WorkspaceMediaKind) => void;
 };
 
 function sourceLabel(status: ApiKeyStatus | null) {
@@ -51,7 +55,9 @@ export function TopBar({
   isCheckingBalance,
   onCheckBalance,
   surfaceTheme,
-  onSurfaceThemeChange
+  onSurfaceThemeChange,
+  workspaceMediaKind,
+  onWorkspaceMediaKindChange
 }: TopBarProps) {
   const [keyOpen, setKeyOpen] = useState(false);
   const canSaveToKeychain = Boolean(apiKeyStatus?.keychain?.canWrite);
@@ -75,6 +81,9 @@ export function TopBar({
           </div>
         </div>
       </div>
+      <div className="topBarMediaSwitch">
+        <WorkspaceMediaSwitch value={workspaceMediaKind} onChange={onWorkspaceMediaKindChange} />
+      </div>
       <div className="topBarRight">
         <div className="topBarUtilityRow">
           <ThemePicker value={surfaceTheme} onChange={onSurfaceThemeChange} />
@@ -96,11 +105,12 @@ export function TopBar({
             <button
               type="button"
               className="keyDisclosure"
+              aria-label={`API key settings: ${sourceLabel(apiKeyStatus)}`}
               aria-expanded={keyOpen}
               onClick={() => setKeyOpen((open) => !open)}
             >
               <KeyRound size={14} />
-              <span>Key</span>
+              <span className="keyDisclosureLabel">Key</span>
               <span className="keySourceBadge" title={sourceTitle(apiKeyStatus)}>
                 {sourceLabel(apiKeyStatus)}
               </span>
@@ -108,6 +118,13 @@ export function TopBar({
             </button>
             {keyOpen && (
               <div className="keyBoxFields">
+                <p className="keyStatusCopy">
+                  {apiKeyStatus?.source === "macos-keychain"
+                    ? "Server key configured and stored in Keychain."
+                    : apiKeyStatus?.configured
+                    ? `Server key configured via ${sourceLabel(apiKeyStatus)}.`
+                    : "No server key configured."}
+                </p>
                 <input
                   type="password"
                   placeholder={apiKeyStatus?.configured ? "Server key configured" : "FLUX API key"}

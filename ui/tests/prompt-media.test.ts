@@ -116,6 +116,7 @@ describe("grouped prompt library views", () => {
     expect(options[0].count).toBe(records.length);
     expect(options.filter((option) => option.kind === "media").map((option) => option.label)).toEqual([
       "Image Prompts",
+      "Video Prompts",
       "Video — Simple",
       "Video — Detailed",
       "Video — Beat / Sequence",
@@ -123,6 +124,7 @@ describe("grouped prompt library views", () => {
       "Shared Prompts"
     ]);
     expect(byId.get("image_prompts")?.count).toBe(2);
+    expect(byId.get("video_prompts")?.count).toBe(2);
     expect(byId.get("video_simple")?.count).toBe(1);
     expect(byId.get("video_sequence")?.count).toBe(1);
     expect(byId.get("video_detailed")?.count).toBe(0);
@@ -138,6 +140,10 @@ describe("grouped prompt library views", () => {
   });
 
   it("filters by media group and by domain through one membership test", () => {
+    expect(records.filter((record) => promptMatchesLibrary(record, "video_prompts")).map((r) => r.id)).toEqual([
+      "v_simple",
+      "v_seq"
+    ]);
     expect(records.filter((record) => promptMatchesLibrary(record, "video_sequence")).map((r) => r.id)).toEqual([
       "v_seq"
     ]);

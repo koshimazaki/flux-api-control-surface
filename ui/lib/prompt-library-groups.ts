@@ -3,6 +3,8 @@ import { promptMediaType, promptVideoCategory, VIDEO_PROMPT_DOMAIN } from "./pro
 import type { PromptRecord } from "./types";
 
 export const ALL_PROMPT_LIBRARY_ID = "all";
+export const IMAGE_PROMPT_LIBRARY_ID = "image_prompts";
+export const VIDEO_PROMPT_LIBRARY_ID = VIDEO_PROMPT_DOMAIN;
 
 /** Group kind: the PRD media menu, or a per-domain collection. */
 export type PromptLibraryOptionKind = "all" | "media" | "domain";
@@ -20,7 +22,7 @@ export type PromptLibraryOption = {
  * them: an alien-creature prompt is both "Image Prompts" and "Alien Creatures".
  */
 export const PROMPT_MEDIA_GROUP_IDS = [
-  "image_prompts",
+  IMAGE_PROMPT_LIBRARY_ID,
   "video_simple",
   "video_detailed",
   "video_sequence",
@@ -33,6 +35,7 @@ export type PromptMediaGroupId = (typeof PROMPT_MEDIA_GROUP_IDS)[number];
 const LIBRARY_LABELS: Record<string, string> = {
   all: "All Prompts",
   image_prompts: "Image Prompts",
+  video_prompts: "Video Prompts",
   video_simple: "Video — Simple",
   video_detailed: "Video — Detailed",
   video_sequence: "Video — Beat / Sequence",
@@ -162,7 +165,19 @@ export function buildPromptLibraryOptions(records: PromptRecord[]): PromptLibrar
 
   return [
     { id: ALL_PROMPT_LIBRARY_ID, label: promptLibraryLabel(ALL_PROMPT_LIBRARY_ID), count: records.length, kind: "all" },
-    ...PROMPT_MEDIA_GROUP_IDS.map((id) => ({
+    {
+      id: IMAGE_PROMPT_LIBRARY_ID,
+      label: promptLibraryLabel(IMAGE_PROMPT_LIBRARY_ID),
+      count: mediaCounts.get(IMAGE_PROMPT_LIBRARY_ID) || 0,
+      kind: "media" as const
+    },
+    {
+      id: VIDEO_PROMPT_LIBRARY_ID,
+      label: promptLibraryLabel(VIDEO_PROMPT_LIBRARY_ID),
+      count: domainCounts.get(VIDEO_PROMPT_LIBRARY_ID) || 0,
+      kind: "media" as const
+    },
+    ...PROMPT_MEDIA_GROUP_IDS.filter((id) => id !== IMAGE_PROMPT_LIBRARY_ID).map((id) => ({
       id,
       label: promptLibraryLabel(id),
       count: mediaCounts.get(id) || 0,

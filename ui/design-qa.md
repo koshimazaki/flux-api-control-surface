@@ -6,13 +6,13 @@ Second-pass result: implemented; awaiting human visual verdict
 
 ## Comparison target
 
-- Source visual truth: `/Users/radek/Documents/GIthub/Demos/MORPHKIT/experiments/quiet-signal/pack/references/private/holodeck-operator-panels.jpg`
-- Source implementation truth: `/Users/radek/Documents/GIthub/HOLODECK/Holo` at `bef5668`, especially `src/styles/dsgndept-tokens.css`, `src/styles/dsgndept-materials.css`, and the Audio Intel, Camera and World Capture panel components.
+- Source visual truth: Holodeck operator-panels reference image (local, private, not in repo).
+- Source implementation truth: local Holodeck repo at `bef5668`, especially `src/styles/dsgndept-tokens.css`, `src/styles/dsgndept-materials.css`, and the Audio Intel, Camera and World Capture panel components.
 - Target implementation: `ui/` on `codex/bfl-holodeck-morph`
-- Implementation screenshot: `/Users/radek/Documents/GIthub/jobfund-hunt/tmp/design-audit/bfl-holodeck-morph-2026-08-19/05-bfl-morph-final.png`
-- Full comparison: `/Users/radek/Documents/GIthub/jobfund-hunt/tmp/design-audit/bfl-holodeck-morph-2026-08-19/06-source-vs-final.jpg`
-- Focused control comparison: `/Users/radek/Documents/GIthub/jobfund-hunt/tmp/design-audit/bfl-holodeck-morph-2026-08-19/07-focused-controls.jpg`
-- Additional app-wide state: `/Users/radek/Documents/GIthub/jobfund-hunt/tmp/design-audit/bfl-holodeck-morph-2026-08-19/04-bfl-morph-assets.png`
+- Implementation screenshot: local design-audit capture `05-bfl-morph-final.png` (2026-08-19, not in repo)
+- Full comparison: local design-audit capture `06-source-vs-final.jpg` (2026-08-19, not in repo)
+- Focused control comparison: local design-audit capture `07-focused-controls.jpg` (2026-08-19, not in repo)
+- Additional app-wide state: local design-audit capture `04-bfl-morph-assets.png` (2026-08-19, not in repo)
 
 ## Viewport and state
 
@@ -65,12 +65,12 @@ The top control comparison verifies the details too small in the full view: exac
 
 ## Human-first second-pass review
 
-Radek reviewed the first-pass child in the complete BFL application before any
+The operator reviewed the first-pass child in the complete BFL application before any
 second-pass scoring or repair suggestion. The transfer remained coherent and
 non-generic, and the added colour signals made sections easier to recognise,
 but the full-surface treatment was too heavy compared with the isolated
 Holodeck panels. Fifteen review screenshots are preserved at
-`/Users/radek/Documents/GIthub/Demos/BFL/tmp/design-audit/bfl-holodeck-second-pass-2026-08-19/human-review/`.
+`tmp/design-audit/bfl-holodeck-second-pass-2026-08-19/human-review/` (local, untracked).
 
 ### Survived
 
@@ -323,3 +323,126 @@ control overlap or horizontal overflow, and no browser errors. TypeScript,
 production build and 68 files / 524 tests passed; lint remains at zero errors
 and four inherited warnings. Desktop library geometry and workflows remain
 unchanged. Promotion and publication remain human gates.
+
+## Human follow-up: media domains and dark-signal comparison
+
+The operator's annotated review retained the new structure, motion and glass
+material, then isolated three final composition defects: image and video tools
+still read as one flat launcher, the library did not reveal a corresponding
+image/video collection state, and Quiet Signal used too many selected colours.
+RAMS also needed an orange Image/Video state because its prior blue selection
+was too quiet against pale frost glass.
+
+The repaired header now centers a distinct two-part Image/Video instrument and
+keeps Theme, Balance and Key on one compact right-hand plane. Selecting Image
+shows Generate, Erase, Outpaint, Deblur, VTO and Glyphs; selecting Video shows
+same-width, left-aligned FLUX 3 and Upscale controls. The expanded library
+switches to Image Prompts or Video Prompts, while the collapsed rail repeats the
+same state with bare 18px Image/Film glyphs. No route, queue, API or MCP contract
+changed, and the FLUX 3/Upscale endpoint labels were intentionally removed only
+from the visible workspace headers.
+
+Quiet Signal and BFL Stone now form a controlled comparison: identical
+near-black graphite/stone surfaces, with one lime family in Quiet Signal and
+one BFL-green family in BFL Stone. Unselected tool tabs remain graphite; only
+the active state receives the theme signal. Lite Quiet Signal · RAMS keeps its
+frost-grey/white material and uses orange for the media selector.
+
+Visual verification used the supplied 21 August header sketch and a normalized
+side-by-side review frame. Desktop checks confirmed tool/library synchronization,
+left-aligned video controls, overlay stacking and the exact Key status copy.
+Narrow checks measured `clientWidth: 410px`, `scrollWidth: 410px`, a 387px shell
+and a 387px FLUX 3 workspace; collapsed rail icons measured 18×18px. The preview
+was restarted after production build artifacts so all interactions were tested
+against clean development chunks; no new browser errors or warnings followed.
+
+Verification: `npm test` passed 69 files / 527 tests; `npx tsc --noEmit` passed;
+`npm run build` passed; lint reports zero errors and four inherited warnings;
+`git diff --check` passed. Paid inference, credentials and remote state were not
+mutated. Final palette preference and publication remain human gates.
+
+### Quiet Signal luminance correction
+
+The human palette gate rejected the initial unified lime as too yellow and
+glowy, especially on Generate. The correction returns to Koshi's authored Lime
+signal (`#A8BE5C`, strong `#C0D672`) and removes the active-tab halo, raised
+selection shadow and text glow. Generate now reads as a flat blackstone control
+with an 8% lime fill and restrained border. The media selector and rail keep a
+contained lime signal glow. The ambient lime shader is reduced to 24% opacity.
+BFL Stone and RAMS are frozen. Live inspection confirms the active Generate
+shadow computes to `none`.
+
+## Human follow-up: active tools and panel grain
+
+The operator retained the glow on the Image/Video selector and its rail icons,
+particularly in BFL Stone, but rejected the raised white/black/accent shade on
+Generate and the other selected workspace tools. The selected tool treatment is
+now flat across all themes. Quiet Signal and BFL Stone intentionally keep the
+cool-blue intelligence wash on image-tool control panels as a secondary signal.
+
+The visible vertical gallery/panel stripe was replaced with sparse,
+non-directional graphite speckle. RAMS now carries orange into the FLUX 3 empty
+viewer and header icon, and Image/Video domain changes use a subtle 180ms
+reduced-motion-safe entrance.
+
+Live browser evidence:
+
+- BFL Stone Erase: `background-image: none`; `box-shadow: none`.
+- BFL Stone Image: green inset signal retained.
+- Dark image-tool controls: cyan wash retained consistently.
+- RAMS Video and both FLUX 3 identity icons: orange.
+- Assets Library: no `repeating-linear-gradient` in its computed panel material.
+- Browser diagnostics: no warning or error entries after the repair.
+
+Verification: TypeScript passed; 69 files / 527 tests passed; production build
+passed; lint has zero errors and four inherited warnings; diff whitespace
+passed. Current visual verdict: awaiting the operator's final comparison.
+
+### RAMS inactive-tool correction
+
+The operator accepted the dimensional inactive controls in every dark theme
+but found their near-black lower gradient too heavy on Lite Quiet Signal · RAMS.
+Only RAMS now renders inactive workspace tools as flat pale grey with no box or
+text shadow. The selected orange state is frozen. Live computed inspection of
+Generate/Erase reports no background image and no shadow; selected Outpaint is
+unchanged.
+
+## Component-system normalization
+
+The accepted selector differences are now explicit variants of one local
+primitive: `tabs`, `segmented`, `raised` and `icon-rail`. Workspace/dashboard
+launchers, Image/Video, both prompt preset groups and the collapsed library rail
+all render through `SelectorGroup` / `SelectorOption` without changing their
+appearance. The shared primitive owns active and accessibility state; theme CSS
+continues to own material and signal. Live DOM inspection confirmed all four
+variant markers and produced no new browser warning or error. TypeScript,
+70 files / 529 tests and the production build pass.
+
+## Human follow-up: persistent FLUX 3 intent
+
+The operator judged the combined surface definite progress and asked for two
+small state corrections rather than another navigation redesign. Reflective
+remains the first-run theme, while a valid selected theme is already restored
+from local storage. FLUX 3 now stores its last Text/Images/Continue source mode
+in the existing dashboard workspace cache, so switching to Upscale and back no
+longer resets the operation to Text.
+
+Image intent now travels with the image: adding keyframes in FLUX 3 selects
+Images, and sending an Asset as a FLUX 3 keyframe opens Video → FLUX 3 → Images
+before scrolling to the workspace. Text, Images and Continue remain internal
+source selectors because they share the same FLUX 3 endpoint, queue, pricing and
+output lifecycle. Upscale remains a separate top-level operation. Future Omni
+or Edit modes should be promoted only when they introduce a distinct real
+workflow, not in anticipation of one.
+
+Lite Quiet Signal · RAMS also received a scoped consistency fix: Erase no longer
+inherits the cyan side-panel wash that the operator retained in the dark stone
+themes. Live computed inspection confirmed that RAMS Erase and Outpaint now use
+identical panel backgrounds.
+
+Verification: TypeScript passed; 71 files / 532 tests passed; production build
+passed; lint reports zero errors and four inherited warnings; diff whitespace
+passed. Live checks verified Images → Upscale → FLUX 3 retention, Asset send →
+Images routing, theme and source-mode recovery after reload, and no browser
+warning or error in the clean preview. No API, MCP, paid inference, credential
+or remote state changed.

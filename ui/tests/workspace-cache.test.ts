@@ -5,6 +5,7 @@ describe("normalizeToolWorkspaceCache", () => {
   it("restores separate shared, VTO, Glyphs, and garment source ids", () => {
     const cache = normalizeToolWorkspaceCache({
       workspaceMode: "vto",
+      flux3SourceMode: "i2v",
       sharedSourceAssetId: "shared-image",
       vtoSourceAssetId: "person-image",
       glyphSourceAssetId: "glyph-image",
@@ -19,6 +20,7 @@ describe("normalizeToolWorkspaceCache", () => {
 
     expect(cache).toMatchObject({
       workspaceMode: "vto",
+      flux3SourceMode: "i2v",
       sharedSourceAssetId: "shared-image",
       vtoSourceAssetId: "person-image",
       glyphSourceAssetId: "glyph-image",
@@ -35,12 +37,14 @@ describe("normalizeToolWorkspaceCache", () => {
   it("falls back safely for malformed cache values", () => {
     const cache = normalizeToolWorkspaceCache({
       workspaceMode: "bad",
+      flux3SourceMode: "omni",
       sharedSourceAssetId: 123,
       vtoGarmentAssetIds: "not-an-array",
       outpaintMode: "turbo"
     });
 
     expect(cache.workspaceMode).toBe("prompt");
+    expect(cache.flux3SourceMode).toBe("t2v");
     expect(cache.sharedSourceAssetId).toBeNull();
     expect(cache.vtoGarmentAssetIds).toEqual([null, null, null, null]);
     expect(cache.outpaintMode).toBe("high");
@@ -52,5 +56,11 @@ describe("normalizeToolWorkspaceCache", () => {
 
   it("restores the Video Upscale workspace tab", () => {
     expect(normalizeToolWorkspaceCache({ workspaceMode: "upscale" }).workspaceMode).toBe("upscale");
+  });
+
+  it("remembers each valid FLUX 3 source mode", () => {
+    expect(normalizeToolWorkspaceCache({ flux3SourceMode: "t2v" }).flux3SourceMode).toBe("t2v");
+    expect(normalizeToolWorkspaceCache({ flux3SourceMode: "i2v" }).flux3SourceMode).toBe("i2v");
+    expect(normalizeToolWorkspaceCache({ flux3SourceMode: "v2v" }).flux3SourceMode).toBe("v2v");
   });
 });
