@@ -1,7 +1,7 @@
 # GlitchHunter FLUX.1 gen2 visual analysis
 
 Analyzed: 2026-08-01  
-Source: `/Users/radek/Documents/GIthub/Demos/Datasets/Flux.1/GlitchHunter/flux_gen2/gen2`  
+Source: local dataset `Datasets/Flux.1/GlitchHunter/flux_gen2/gen2` (not in repo)  
 Coverage: all 130 PNGs, inspected visually in numbered contact sheets  
 Machine-readable catalog: `configs/glitchhunter_gen2_style_catalog.json`
 

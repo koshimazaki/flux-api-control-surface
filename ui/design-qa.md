@@ -6,13 +6,13 @@ Second-pass result: implemented; awaiting human visual verdict
 
 ## Comparison target
 
-- Source visual truth: `/Users/radek/Documents/GIthub/Demos/MORPHKIT/experiments/quiet-signal/pack/references/private/holodeck-operator-panels.jpg`
-- Source implementation truth: `/Users/radek/Documents/GIthub/HOLODECK/Holo` at `bef5668`, especially `src/styles/dsgndept-tokens.css`, `src/styles/dsgndept-materials.css`, and the Audio Intel, Camera and World Capture panel components.
+- Source visual truth: Holodeck operator-panels reference image (local, private, not in repo).
+- Source implementation truth: local Holodeck repo at `bef5668`, especially `src/styles/dsgndept-tokens.css`, `src/styles/dsgndept-materials.css`, and the Audio Intel, Camera and World Capture panel components.
 - Target implementation: `ui/` on `codex/bfl-holodeck-morph`
-- Implementation screenshot: `/Users/radek/Documents/GIthub/jobfund-hunt/tmp/design-audit/bfl-holodeck-morph-2026-08-19/05-bfl-morph-final.png`
-- Full comparison: `/Users/radek/Documents/GIthub/jobfund-hunt/tmp/design-audit/bfl-holodeck-morph-2026-08-19/06-source-vs-final.jpg`
-- Focused control comparison: `/Users/radek/Documents/GIthub/jobfund-hunt/tmp/design-audit/bfl-holodeck-morph-2026-08-19/07-focused-controls.jpg`
-- Additional app-wide state: `/Users/radek/Documents/GIthub/jobfund-hunt/tmp/design-audit/bfl-holodeck-morph-2026-08-19/04-bfl-morph-assets.png`
+- Implementation screenshot: local design-audit capture `05-bfl-morph-final.png` (2026-08-19, not in repo)
+- Full comparison: local design-audit capture `06-source-vs-final.jpg` (2026-08-19, not in repo)
+- Focused control comparison: local design-audit capture `07-focused-controls.jpg` (2026-08-19, not in repo)
+- Additional app-wide state: local design-audit capture `04-bfl-morph-assets.png` (2026-08-19, not in repo)
 
 ## Viewport and state
 
@@ -65,12 +65,12 @@ The top control comparison verifies the details too small in the full view: exac
 
 ## Human-first second-pass review
 
-Radek reviewed the first-pass child in the complete BFL application before any
+The operator reviewed the first-pass child in the complete BFL application before any
 second-pass scoring or repair suggestion. The transfer remained coherent and
 non-generic, and the added colour signals made sections easier to recognise,
 but the full-surface treatment was too heavy compared with the isolated
 Holodeck panels. Fifteen review screenshots are preserved at
-`/Users/radek/Documents/GIthub/Demos/BFL/tmp/design-audit/bfl-holodeck-second-pass-2026-08-19/human-review/`.
+`tmp/design-audit/bfl-holodeck-second-pass-2026-08-19/human-review/` (local, untracked).
 
 ### Survived
 
