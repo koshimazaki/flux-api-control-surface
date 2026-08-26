@@ -78,3 +78,10 @@ skills/flux3-archetypes/
 
 # Generated Koshi Lab research dashboards are private working instruments.
 wiki-dashboard/
+
+# Nested working clone of this same repo (Codex workspace) — never commit.
+/flux-api-control-surface/
+
+# Root-level dependency and output directories (ui/ and cloudflare/ have their own).
+/node_modules/
+/output/
