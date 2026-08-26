@@ -471,7 +471,12 @@ server.registerTool(
       sourceName: z.string().optional(),
       sourceWidth: z.number().int().positive().optional(),
       sourceHeight: z.number().int().positive().optional(),
-      durationSeconds: z.number().positive().max(20).optional()
+      durationSeconds: z
+        .number()
+        .positive()
+        .lt(20.5)
+        .optional()
+        .describe("Measured source seconds. FLUX 3's own 20 s renders may report slightly over 20 from container metadata; the API rounds to whole seconds.")
     },
     annotations: {
       destructiveHint: false,
