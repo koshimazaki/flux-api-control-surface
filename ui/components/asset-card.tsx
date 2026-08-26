@@ -17,12 +17,14 @@ import {
   Maximize2,
   PackagePlus,
   Play,
+  ScanLine,
   Send,
   Shirt,
   Sparkles,
   Trash2,
   Upload,
-  UserRound
+  UserRound,
+  Video
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-badge";
@@ -55,6 +57,8 @@ type AssetCardProps = {
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToVtoGarment: (asset: AssetRecord) => void;
   onSendToFlux3Keyframe?: (asset: AssetRecord) => void;
+  onSendToFlux3Continue?: (asset: AssetRecord) => void;
+  onSendToUpscale?: (asset: AssetRecord) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSavePromptToLibrary: (asset: AssetRecord) => void;
 };
@@ -287,9 +291,19 @@ export function AssetCard(props: AssetCardProps) {
       </div>
       <div className="assetButtons">
         <div className="assetButtonGroup">
-          <button onClick={() => props.onSendToPrompt(asset)} title="Send prompt to Generate">
+          <button onClick={() => props.onSendToPrompt(asset)} title={isVideo ? "Send prompt to FLUX 3 video" : "Send prompt to Generate"}>
             <Send size={15} />
           </button>
+          {isVideo && props.onSendToFlux3Continue && (
+            <button onClick={() => props.onSendToFlux3Continue?.(asset)} title="Continue this video in FLUX 3">
+              <Video size={15} />
+            </button>
+          )}
+          {isVideo && props.onSendToUpscale && (
+            <button onClick={() => props.onSendToUpscale?.(asset)} title="Send to Video Upscale">
+              <ScanLine size={15} />
+            </button>
+          )}
           {!isVideo && <div className="assetReferenceAction">
             <button
               onClick={() => props.onSendToReference(asset, addImageTarget.role, addImageTarget.id)}

@@ -36,6 +36,7 @@ import {
 } from "@/lib/flux3-video";
 import { getBflModel } from "@/lib/provider-registry";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
+import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 import { referenceDropTargets, referenceRoleConfig, referenceRoleToken } from "@/lib/reference-roles";
 import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
 import { useAssetCollections } from "@/lib/dashboard/use-asset-collections";
@@ -128,6 +129,15 @@ export function useDashboardState() {
   const [flux3Keyframes, setFlux3Keyframes] = useState<Flux3InputMedia[]>([]);
   const [flux3SourceMode, setFlux3SourceMode] = useState<Flux3SourceMode>(
     defaultToolWorkspaceCache.flux3SourceMode
+  );
+  // Lifted like the keyframes so the continuation clip survives workspace switches
+  // and can be filled from the asset library.
+  const [flux3StartVideo, setFlux3StartVideo] = useState<Flux3InputMedia | null>(null);
+  // Seeds carry a nonce so re-sending the same prompt or clip still re-applies
+  // inside workspaces that keep their own editing state.
+  const [flux3PromptSeed, setFlux3PromptSeed] = useState<{ text: string; nonce: number } | null>(null);
+  const [upscaleSourceSeed, setUpscaleSourceSeed] = useState<(VideoUpscaleSourceInput & { nonce: number }) | null>(
+    null
   );
   const [toolMask, setToolMask] = useState("");
   const [toolBrushSize, setToolBrushSize] = useState(48);
@@ -856,6 +866,11 @@ export function useDashboardState() {
     await generate(scriptPayload, "permutations");
   }
   function sendAssetToPrompt(asset: AssetRecord) {
+    // A video's prompt belongs in the video prompt editor, not the image one.
+    if (asset.mediaType === "video") {
+      sendAssetToFlux3Prompt(asset);
+      return;
+    }
     setPromptText(formatPrompt(asset.prompt));
     setPromptSourceAssetId(asset.id);
     applyStoredSeed(asset.seed ? String(asset.seed) : "");
@@ -863,6 +878,41 @@ export function useDashboardState() {
     setWorkspaceMode("prompt");
     setRecoveryMessage(`Loaded prompt from ${asset.title || asset.id}.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function sendAssetToFlux3Prompt(asset: AssetRecord) {
+    setFlux3PromptSeed((current) => ({ text: formatPrompt(asset.prompt), nonce: (current?.nonce || 0) + 1 }));
+    setWorkspaceMode("flux3");
+    setRecoveryMessage(`Loaded the prompt from ${asset.title || asset.id} into FLUX 3 video.`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function sendAssetToFlux3Continue(asset: AssetRecord) {
+    if (asset.mediaType !== "video" || !asset.videoUrl) {
+      setRecoveryMessage("FLUX 3 continuation needs a saved video asset.");
+      return;
+    }
+    const media = flux3MediaFromAsset(asset);
+    if (!media) {
+      setRecoveryMessage("That asset has no loadable video source for FLUX 3 continuation.");
+      return;
+    }
+    setFlux3SourceMode("v2v");
+    setFlux3StartVideo(media);
+    setWorkspaceMode("flux3");
+    setRecoveryMessage(`Loaded ${asset.title || asset.id} into the FLUX 3 continuation slot.`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function sendVideoToUpscale(source: VideoUpscaleSourceInput) {
+    setUpscaleSourceSeed((current) => ({ ...source, nonce: (current?.nonce || 0) + 1 }));
+    setWorkspaceMode("upscale");
+    setRecoveryMessage(`Loaded ${source.name} into Video Upscale.`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function sendAssetToUpscale(asset: AssetRecord) {
+    if (asset.mediaType !== "video" || !asset.videoUrl) {
+      setRecoveryMessage("Video Upscale needs a saved video asset.");
+      return;
+    }
+    sendVideoToUpscale({ assetId: asset.id, name: asset.title || asset.id, url: asset.videoUrl });
   }
   function addAssetToPromptReferences(payload: string, role?: ReferenceRole, targetId?: string) {
     const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : payload;
@@ -1293,6 +1343,13 @@ export function useDashboardState() {
     setFlux3Keyframes,
     flux3SourceMode,
     setFlux3SourceMode,
+    flux3StartVideo,
+    setFlux3StartVideo,
+    flux3PromptSeed,
+    upscaleSourceSeed,
+    sendAssetToFlux3Continue,
+    sendAssetToUpscale,
+    sendVideoToUpscale,
     sendAssetToNextFlux3Keyframe,
     revealAssetLocally,
     setAudioAssignments,

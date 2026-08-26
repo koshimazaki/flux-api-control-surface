@@ -161,19 +161,23 @@
   background: #030303;
 }
 
+/* Same square chip language as the collection select button, so the media
+   badge reads instantly on any theme instead of washing out into the thumb. */
 .assetOriginBadge {
   position: absolute;
+  z-index: 1;
   left: 8px;
   bottom: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   max-width: calc(100% - 16px);
+  min-height: 26px;
   border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.72);
-  color: var(--soft);
-  padding: 4px 8px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.68);
+  color: #f3f1e6;
+  padding: 0 8px;
   font-family: var(--font-mono);
   font-size: 10px;
   line-height: 1;
@@ -238,8 +242,26 @@
   text-transform: uppercase;
 }
 
+/* Video thumbs sit under a light dim so they read as video at a glance; the
+   dim lifts on hover while the play affordance stays. The glyph is a fixed
+   light ink — theme remaps must not darken it onto its own dark chip. */
+.assetImageButton.videoAssetPreview::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+
+.assetImageButton.videoAssetPreview:hover::after {
+  opacity: 0;
+}
+
 .assetVideoPlay {
   position: absolute;
+  z-index: 1;
   inset: 50% auto auto 50%;
   width: 42px;
   height: 42px;
@@ -247,10 +269,15 @@
   place-items: center;
   transform: translate(-50%, -50%);
   border: 1px solid rgba(243, 241, 230, 0.38);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.62);
-  color: var(--cream);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #f3f1e6;
   backdrop-filter: blur(10px);
+  transition: background 160ms ease;
+}
+
+.assetImageButton.videoAssetPreview:hover .assetVideoPlay {
+  background: rgba(0, 0, 0, 0.52);
 }
 
 .assetImageButton.glyphAssetPreview img {

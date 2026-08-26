@@ -97,3 +97,10 @@ export function estimateVideoUpscaleUsd(request: VideoUpscaleRequest) {
 export function redactVideoUpscalePayload(payload: Record<string, unknown>) {
   return { ...payload, input_video: "[video input omitted]" };
 }
+
+/** A video handed to the upscale workspace from another surface (library card, FLUX 3 result). */
+export type VideoUpscaleSourceInput = {
+  assetId?: string;
+  name: string;
+  url: string;
+};

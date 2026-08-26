@@ -82,6 +82,10 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onModeChange={state.setFlux3SourceMode}
           keyframes={state.flux3Keyframes}
           onKeyframesChange={state.setFlux3Keyframes}
+          startVideo={state.flux3StartVideo}
+          onStartVideoChange={state.setFlux3StartVideo}
+          promptSeed={state.flux3PromptSeed}
+          onSendToUpscale={state.sendVideoToUpscale}
           onGenerated={() => void state.checkBalance()}
           onOpenAssets={() => state.setActiveTab("assets")}
           generationQueue={state.generationQueue}
@@ -102,6 +106,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
         <VideoUpscaleWorkspace
           apiKey={state.apiKey}
           assets={state.assets}
+          pendingSource={state.upscaleSourceSeed}
           onGenerated={() => void state.checkBalance()}
           onOpenAssets={() => state.setActiveTab("assets")}
           generationQueue={state.generationQueue}

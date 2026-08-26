@@ -548,6 +548,11 @@
   color: var(--text-primary);
 }
 
+/* The BFL mark ships as a white SVG; on the paper tile it needs full ink. */
+.dsgn-root[data-surface-theme="rams-lite"] .brandMark img {
+  filter: brightness(0);
+}
+
 @keyframes workspace-domain-enter {
   from {
     opacity: 0.82;

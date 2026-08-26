@@ -70,6 +70,8 @@ type AssetLibraryProps = {
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToVtoGarment: (asset: AssetRecord) => void;
   onSendToFlux3Keyframe?: (asset: AssetRecord) => void;
+  onSendToFlux3Continue?: (asset: AssetRecord) => void;
+  onSendToUpscale?: (asset: AssetRecord) => void;
   onRevealAsset?: (asset: AssetRecord) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSavePromptToLibrary: (asset: AssetRecord) => void;
@@ -344,6 +346,8 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   onSendToWorkspace={props.onSendToWorkspace}
                   onSendToVtoGarment={props.onSendToVtoGarment}
                   onSendToFlux3Keyframe={props.onSendToFlux3Keyframe}
+                  onSendToFlux3Continue={props.onSendToFlux3Continue}
+                  onSendToUpscale={props.onSendToUpscale}
                   onRevealAsset={props.onRevealAsset}
                   onSendToReference={props.onSendToReference}
                   onSavePromptToLibrary={props.onSavePromptToLibrary}

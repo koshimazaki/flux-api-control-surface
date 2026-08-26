@@ -1,9 +1,11 @@
-import { Download, Film, Images, MessageSquareText, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
+import { Download, Film, Images, MessageSquareText, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Flux3MediaDropzone, type Flux3InputMedia } from "@/components/flux3-media-dropzone";
+import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 import type { GenerationQueueJob, GenerationQueueSummary } from "@/lib/generation-queue";
 import {
   FLUX3_ASPECT_RATIOS,
@@ -26,6 +28,12 @@ type Flux3VideoWorkspaceProps = {
   onModeChange: (mode: Flux3SourceMode) => void;
   keyframes: Flux3InputMedia[];
   onKeyframesChange: (items: Flux3InputMedia[]) => void;
+  startVideo: Flux3InputMedia | null;
+  onStartVideoChange: (media: Flux3InputMedia | null) => void;
+  /** Prompt pushed from a library video card; the nonce re-applies repeat sends. */
+  promptSeed?: { text: string; nonce: number } | null;
+  /** Sends the selected render to the Video Upscale workspace. */
+  onSendToUpscale?: (source: VideoUpscaleSourceInput) => void;
   onGenerated: () => void;
   onOpenAssets: () => void;
   // FLUX 3 renders share the one server-owned queue with image and tool work, so
@@ -59,7 +67,8 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   const mode = props.mode;
   const [prompt, setPrompt] = useState("");
   const keyframes = props.keyframes;
-  const [startVideo, setStartVideo] = useState<Flux3InputMedia | null>(null);
+  const startVideo = props.startVideo;
+  const setStartVideo = props.onStartVideoChange;
   const [aspectRatio, setAspectRatio] = useState<Flux3VideoAspectRatio>("auto");
   const [duration, setDuration] = useState<number | "auto">("auto");
   const [resolution, setResolution] = useState<Flux3VideoResolution>("hd");
@@ -87,6 +96,10 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   useEffect(() => {
     if (props.libraryPrompt?.trim()) setPrompt(props.libraryPrompt);
   }, [props.libraryPrompt]);
+
+  useEffect(() => {
+    if (props.promptSeed?.text.trim()) setPrompt(props.promptSeed.text);
+  }, [props.promptSeed]);
 
   const requestInput = useMemo<Flux3VideoRequest>(
     () => ({
@@ -261,6 +274,14 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       <div className="flux3PreviewPanel panel">
         <PanelHeader title="FLUX 3 Video" subtitle="Synchronized picture, speech, effects, and ambience in one request">
           <div className="flux3HeaderTools">
+            {selected && props.onSendToUpscale && (
+              <IconButton
+                title="Send this render to Video Upscale"
+                onClick={() => props.onSendToUpscale?.({ assetId: selected.id, name: selected.title, url: selected.videoUrl })}
+              >
+                <ScanLine size={15} />
+              </IconButton>
+            )}
             <span className="flux3HeaderIcon" title="FLUX 3 video workspace" aria-label="FLUX 3 video workspace">
               <Video size={18} />
             </span>
