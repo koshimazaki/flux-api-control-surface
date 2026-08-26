@@ -5,6 +5,7 @@
 @import "./styles/layout.css";
 @import "./styles/panels.css";
 @import "./styles/controls.css";
+@import "./styles/selectors.css";
 @import "./styles/references.css";
 @import "./styles/generate-composer.css";
 @import "./styles/generate-runlog.css";

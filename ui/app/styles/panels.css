@@ -419,6 +419,10 @@ small {
   font-family: var(--font-mono);
 }
 
+.collapsedLibrary .workspaceMediaSwitch-rail {
+  margin-top: 28px;
+}
+
 .libraryFilter {
   display: grid;
   gap: 8px;

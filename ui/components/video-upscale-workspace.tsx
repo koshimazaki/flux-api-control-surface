@@ -206,7 +206,6 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
       <div className="videoUpscalePreview panel">
         <PanelHeader title="Video Upscale" subtitle="FLUX 3 VIDEO UPSCALE · 2K / 4K">
           <div className="flux3HeaderTools">
-            <span className="flux3EndpointBadge">POST /v1/flux-tools/video-upscale-v1</span>
             <span className="flux3HeaderIcon" aria-label="FLUX 3 Video Upscale"><ScanLine size={18} /></span>
           </div>
         </PanelHeader>

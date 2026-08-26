@@ -16,9 +16,16 @@ export const surfaceThemes = [
   {
     id: "quiet-signal",
     label: "Quiet Signal",
-    description: "A restrained field-instrument morph using amber action and cyan state.",
-    surfaces: ["#111315", "#191d20", "#2b3033"],
-    signals: ["#f0a25b", "#69c7df", "#a48ac4"]
+    description: "Near-black stone and graphite with Koshi's restrained lime signal.",
+    surfaces: ["#050705", "#0d100e", "#202720"],
+    signals: ["#a8be5c", "#c0d672", "#4e5247"]
+  },
+  {
+    id: "bfl-stone",
+    label: "BFL Stone",
+    description: "The same near-black stone ground with BFL green as the single signal family.",
+    surfaces: ["#050705", "#0d100e", "#202720"],
+    signals: ["#82b878", "#a6d39b", "#496d48"]
   },
   {
     id: "rams-lite",

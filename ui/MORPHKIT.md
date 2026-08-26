@@ -211,3 +211,161 @@ the library by default, or globally shrinking all controls. Live inspection
 found no overlap, horizontal overflow or browser errors; TypeScript, production
 build and 68 files / 524 tests passed, with zero lint errors and four inherited
 warnings. The result remains local and `awaiting-review`.
+
+### Image/video surface and signal-family pass
+
+The next human-first review kept the reflective/glass repair, animation,
+section clarity, FLUX 3 density and RAMS ground. The remaining issue was
+information architecture rather than another repaint: the flat eight-tool row
+mixed image and video work, the saved-prompt rail did not express the same
+domain, and the dark Quiet Signal experiment mixed lime, green, red-brown and
+blue selected states. The operator asked for a recoverable lime-versus-BFL-
+green comparison instead of one compromise palette.
+
+Trait accounting:
+
+| Outcome | Traits |
+|---|---|
+| Survived | BFL product nouns, APIs, MCP operations, queue/output behaviour, FLUX 3 spelling, image tools, video generation/upscale, theme persistence and responsive workflows |
+| Partial | The flat tool launcher became a domain-filtered launcher; the Prompt Library now follows the active media domain while retaining every saved record and fine-grained filter |
+| Lost | One undifferentiated eight-tool row; visible endpoint badges; square-on-square rail buttons; mixed red/brown/blue/green active-tool colours; narrow-page horizontal overflow |
+| Novel | Synchronized Image/Video control in header and collapsed rail; aggregate Image Prompts and Video Prompts views; Quiet Signal lime and BFL Stone green comparison presets; RAMS orange media selector |
+
+Defect → repair: image and video work now share one explicit state that updates
+the header, tool launcher, library filter and collapsed rail together. Image
+shows Generate, Erase, Outpaint, Deblur, VTO and Glyphs; Video shows equal-width,
+left-aligned FLUX 3 and Upscale controls. Quiet Signal uses one lime family,
+BFL Stone uses the same material with one green family, and all unselected tool
+tabs remain graphite. RAMS retains its frost-grey ground and uses orange for
+the Image/Video selection. A narrow-grid min-content defect that widened the
+page was repaired with zero-minimum tracks, and rail icon padding was removed
+so the Lucide Image/Film glyphs render at the intended 18px rather than 4px.
+
+Rejected alternatives: another eight-tool wrap, pill-shaped media tabs,
+boxed rail icons, a mixed lime/green dark theme, adding speculative provider
+tools beyond the current official catalogue, and changing API/MCP contracts to
+serve a UI-only grouping. Endpoint badges were also rejected as implementation
+noise inside product workspaces.
+
+Verification: 69 test files / 527 tests passed; TypeScript passed; production
+build passed; lint has zero errors and four inherited warnings; diff whitespace
+passed. Live desktop inspection exercised Image ↔ Video from both the header
+and collapsed rail, verified library synchronization, compact Key disclosure,
+theme stacking, Quiet Signal, BFL Stone and RAMS. At the narrow viewport,
+`clientWidth` and `scrollWidth` both measured 410px, both media rail icons were
+18×18px, and the FLUX 3 workspace remained the same 387px width as its shell.
+No new browser warning or error appeared after the clean preview restart. The
+candidate remains local and `awaiting-review`; publication is a separate gate.
+
+Immediate human palette gate: the first unified lime candidate was still too
+luminous. Its yellow halo, raised selection shadow and bright shader wash were
+rejected. Quiet Signal now uses the exact restrained Koshi Lime values
+`#A8BE5C` / `#C0D672` on the retained blackstone ground. Active tool and media
+states use the restrained lime instead of yellow; the active tool is a flat 8%
+fill with no outer/text shadow, while the media instrument retains its contained
+signal glow. The ambient lime field is reduced from 38% to 24% opacity.
+BFL Stone and RAMS remain unchanged. TypeScript, the three media-domain tests,
+lint with zero errors/four inherited warnings and live browser inspection pass.
+
+### Human-reviewed selection and grain correction
+
+The next live review narrowed the material defect further. The Image/Video
+instrument and its rail glyphs may retain their restrained glow, especially in
+BFL Stone; the rejected treatment was the white-to-black-to-accent shading on
+the selected workspace tool. Generate and every peer now use a flat 9% theme
+fill, machined accent border and no box/text shadow. Quiet Signal and BFL Stone
+also deliberately retain the cyan intelligence wash first observed on Erase,
+now consistently applied to every image-tool control panel rather than leaking
+from a single mode.
+
+Trait accounting:
+
+| Outcome | Traits |
+|---|---|
+| Survived | Image/Video grouping and glow; BFL Stone green atmosphere; Quiet Signal Koshi lime; RAMS orange action; all BFL workflows and API/MCP behaviour |
+| Partial | Reflective panel grain becomes a much finer non-directional graphite speckle; the blue Erase wash becomes a deliberate secondary intelligence signal across dark-theme image-tool panels |
+| Lost | Raised active-tool shade; white specular streak inside selection; visible vertical panel stripes |
+| Novel | 180ms reduced-motion-safe Image/Video domain entrance; RAMS orange FLUX 3 empty/header identity |
+
+Defect → repair: selected tools no longer read as raised gradient buttons;
+panel material no longer resolves into 1px directional stripes; RAMS video
+identity no longer falls back to cyan. Rejected alternatives were flattening
+the Image/Video glow, removing the useful blue contrast from the dark themes,
+or globally eliminating texture. Live inspection verified flat BFL Stone Erase,
+retained green media glow, the cyan control-panel wash, orange RAMS Video and
+FLUX 3 icons, a non-striped Assets surface, and the 180ms domain transition.
+TypeScript, 69 test files / 527 tests, production build and diff whitespace pass;
+lint remains at zero errors with four inherited warnings. Browser logs contain
+only development/Fast Refresh information. The result is local and remains at
+the human visual promotion gate.
+
+RAMS-only follow-up: the dark lower gradient and elevation shadow survive on
+inactive tool buttons in the darker themes, where the operator judged them
+successful. Lite Quiet Signal · RAMS alone replaces that treatment with a flat
+pale-grey inactive surface and no shadow. Its selected orange tool state is
+unchanged. Live computed evidence for Generate and Erase is
+`background-image: none; box-shadow: none`; selected Outpaint remains the same
+flat orange-accent state.
+
+### Selector component-system capture
+
+The accepted selector anatomies are now reusable UI primitives rather than
+page-specific conventions. `SelectorGroup` / `SelectorOption` define four typed
+variants: `tabs` for outside workspace/dashboard launchers, `segmented` for the
+contained Image/Video domain switch, `raised` for lighting/environment radio
+cards, and `icon-rail` for the collapsed library domain switch. The primitive
+owns the active class, `aria-pressed` state and variant markers; existing BFL
+theme/material CSS still owns colour, depth and signal.
+
+Survived: every accepted visual state, BFL noun, click path and responsive
+layout. Lost: three separate ad-hoc implementations of exclusive selection.
+Novel: one documented selector contract at `components/ui/README.md`, backed by
+pure variant tests. Rejected alternatives were importing a new component
+library or visually normalizing all selectors into one appearance—the distinct
+anatomies are the point. Verification: TypeScript, 70 test files / 529 tests,
+production build and live variant inspection pass; post-restart browser logs
+contain no new warning or error. API, MCP, queue and remote state are unchanged.
+
+### Persistent preference and FLUX 3 routing repair
+
+The next human review described the combined surface as definite progress and
+kept Reflective as the preferred first-run ground, while asking that individual
+theme choice survive reload. Inspection confirmed that contract already exists:
+`Reflective` is the default and only validated theme ids are restored from
+`bfl-surface-theme`. No new theme state path was added.
+
+The material workflow defect was inside FLUX 3. Text, Images and Continue were
+owned by the mounted workspace, so visiting the separate Upscale operation
+reset FLUX 3 to Text. The source mode now belongs to dashboard state and travels
+inside the existing workspace cache. Returning from Upscale restores the last
+source mode; adding image files/keyframes selects Images; and sending an Asset
+as a FLUX 3 keyframe opens the Video domain, FLUX 3 and Images in one action.
+
+The operator also considered promoting Text, Images and Continue into the main
+video tool rail. That alternative is rejected for this candidate: those modes
+share one FLUX 3 endpoint, queue, pricing model and output lifecycle, so they
+remain source selectors inside one product operation. Upscale remains top-level
+because it has a distinct input/output contract. A future Omni/Edit capability
+may become a top-level tool when its real endpoint and workflow are known; this
+decision does not pre-allocate decorative tabs.
+
+| Outcome | Traits |
+|---|---|
+| Survived | Reflective first-run default; persistent theme choice; FLUX 3/Upscale product separation; shared queue/API behaviour; Image/Video navigation and BFL nouns |
+| Partial | FLUX 3 local mode state moved to dashboard cache, changing ownership without changing the visible three-card anatomy |
+| Lost | Accidental reset to Text after visiting Upscale; Library image sends that added a keyframe without opening its destination |
+| Novel | Intent-preserving Asset → Video → FLUX 3 → Images routing; recoverable last-source mode across reload |
+
+RAMS received one theme-scoped material correction during the same human gate:
+Erase no longer inherits the dark-theme cyan control-panel wash. Its computed
+background now exactly matches Outpaint on Lite Quiet Signal · RAMS; Quiet
+Signal and BFL Stone retain the accepted cyan intelligence wash.
+
+Verification: TypeScript passed; 71 test files / 532 tests passed; production
+build passed; lint has zero errors and the same four inherited warnings; diff
+whitespace passed. Live browser checks verified Images → Upscale → FLUX 3
+retention, Asset send → Images routing, theme/source-mode persistence across a
+clean reload, identical RAMS Erase/Outpaint panel backgrounds, and no warning or
+error entries in the restarted preview. No paid inference, credential change,
+API/MCP mutation, remote push or publication occurred. The branch remains local
+and the broader visual candidate remains at the human promotion gate.

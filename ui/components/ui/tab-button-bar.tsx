@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { SelectorGroup, SelectorOption } from "@/components/ui/selector-group";
 
 export type TabButtonItem<T extends string> = {
   id: T;
@@ -13,23 +14,32 @@ type TabButtonBarProps<T extends string> = {
   onChange: (id: T) => void;
   className?: string;
   iconSize?: number;
+  ariaLabel?: string;
 };
 
-export function TabButtonBar<T extends string>({ items, value, onChange, className, iconSize = 16 }: TabButtonBarProps<T>) {
+export function TabButtonBar<T extends string>({
+  items,
+  value,
+  onChange,
+  className,
+  iconSize = 16,
+  ariaLabel
+}: TabButtonBarProps<T>) {
   return (
-    <div className={className ? `tabBar ${className}` : "tabBar"}>
+    <SelectorGroup variant="tabs" className={className ? `tabBar ${className}` : "tabBar"} aria-label={ariaLabel}>
       {items.map(({ id, label, count, icon: Icon }) => (
-        <button
-          className={["tabButton", `tabButton-${id}`, value === id ? "active" : ""].filter(Boolean).join(" ")}
+        <SelectorOption
+          variant="tabs"
+          selected={value === id}
+          className={["tabButton", `tabButton-${id}`].join(" ")}
           key={id}
           onClick={() => onChange(id)}
-          type="button"
         >
           <Icon size={iconSize} />
           {label}
           {typeof count === "number" && <span>{count}</span>}
-        </button>
+        </SelectorOption>
       ))}
-    </div>
+    </SelectorGroup>
   );
 }

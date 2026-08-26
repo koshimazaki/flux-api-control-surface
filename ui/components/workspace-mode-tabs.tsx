@@ -1,6 +1,7 @@
 import { Eraser, Fingerprint, Film, Focus, Maximize2, ScanLine, Shirt, Sparkles } from "lucide-react";
 import { TabButtonBar, type TabButtonItem } from "@/components/ui/tab-button-bar";
 import type { WorkspaceMode } from "@/lib/types";
+import { workspaceMediaKindForMode, workspaceModesForMedia } from "@/lib/workspace-media";
 
 const modes: TabButtonItem<WorkspaceMode>[] = [
   { id: "prompt", label: "Generate", icon: Sparkles },
@@ -19,5 +20,17 @@ type WorkspaceModeTabsProps = {
 };
 
 export function WorkspaceModeTabs({ value, onChange }: WorkspaceModeTabsProps) {
-  return <TabButtonBar items={modes} value={value} onChange={onChange} className="workspaceModeBar" iconSize={18} />;
+  const mediaKind = workspaceMediaKindForMode(value);
+  const visibleModes = workspaceModesForMedia(mediaKind);
+  const items = modes.filter((mode) => visibleModes.includes(mode.id));
+  return (
+    <TabButtonBar
+      items={items}
+      value={value}
+      onChange={onChange}
+      className={`workspaceModeBar workspaceModeBar-${mediaKind}`}
+      iconSize={18}
+      ariaLabel={`${mediaKind === "image" ? "Image" : "Video"} tools`}
+    />
+  );
 }

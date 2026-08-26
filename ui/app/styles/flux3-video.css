@@ -1,11 +1,15 @@
 .workspace.flux3Mode {
-  grid-template-columns: 58px minmax(520px, 1fr) 340px;
+  grid-template-columns: 310px minmax(520px, 1fr) 340px;
   grid-template-rows: auto minmax(620px, auto);
   grid-template-areas:
-    ". modes modes"
-    ". main  main";
+    "library modes modes"
+    "library main  main";
   height: auto;
   min-height: clamp(720px, calc(100vh - 132px), 980px);
+}
+
+.workspace.flux3Mode.libraryCollapsed {
+  grid-template-columns: 58px minmax(520px, 1fr) 340px;
 }
 
 .workspace.flux3Mode > .flux3VideoWorkspace {
@@ -459,11 +463,15 @@
 
 @media (max-width: 1160px) {
   .workspace.flux3Mode {
-    grid-template-columns: 58px minmax(360px, 1fr);
+    grid-template-columns: 240px minmax(360px, 1fr);
     grid-template-rows: auto auto;
     grid-template-areas:
-      ". modes"
-      ". main";
+      "library modes"
+      "library main";
+  }
+
+  .workspace.flux3Mode.libraryCollapsed {
+    grid-template-columns: 58px minmax(360px, 1fr);
   }
 
   .flux3VideoWorkspace {
@@ -480,7 +488,12 @@
     grid-template-columns: 1fr;
     grid-template-areas:
       "modes"
+      "library"
       "main";
+  }
+
+  .workspace.flux3Mode.libraryCollapsed {
+    grid-template-columns: 1fr;
   }
 
   .flux3Viewer {

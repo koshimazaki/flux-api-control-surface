@@ -49,6 +49,8 @@ export default function Home() {
           onCheckBalance={state.checkBalance}
           surfaceTheme={surfaceTheme}
           onSurfaceThemeChange={changeSurfaceTheme}
+          workspaceMediaKind={state.workspaceMediaKind}
+          onWorkspaceMediaKindChange={state.selectWorkspaceMediaKind}
         />
         {state.workspaceMode !== "flux3" && state.workspaceMode !== "upscale" && <ReferenceDock
           mode={state.workspaceMode}

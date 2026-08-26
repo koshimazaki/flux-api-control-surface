@@ -31,23 +31,55 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
       ? state.setOutpaintPromptText
       : () => undefined;
 
+  const promptLibrary = (
+    <PromptLibrary
+      prompts={state.visiblePrompts}
+      libraryOptions={state.promptLibraryOptions}
+      activeLibraryId={state.activePromptLibraryId}
+      activeId={state.activeId}
+      selectedIds={state.selectedComboIds}
+      comboSettings={state.comboSettings}
+      mediaKind={state.workspaceMediaKind}
+      collapsed={libraryCollapsed}
+      canCollapse
+      onLibraryChange={state.selectPromptLibrary}
+      onMediaKindChange={state.selectWorkspaceMediaKind}
+      onSelect={state.selectPrompt}
+      onToggleSelected={state.toggleComboPrompt}
+      onComboModeChange={state.updateComboMode}
+      onComboSettingsSave={state.saveComboSettings}
+      onClearCombo={state.resetComboPrompt}
+      onCollapsedChange={setLibraryCollapsed}
+      onBuildCombo={state.createComboPrompt}
+      onExport={() => downloadText("bfl-flower-prompts.json", JSON.stringify(state.prompts, null, 2))}
+      onUseTemplatePrompt={(compiled) => {
+        state.setPromptText(compiled.text);
+        state.setRecoveryMessage(`Loaded the ${compiled.templateName} template into the prompt editor.`);
+      }}
+      onSaveTemplatePrompt={(compiled) => void state.saveVideoPromptToLibrary(compiled)}
+    />
+  );
+
   useEffect(() => {
     const compactQuery = window.matchMedia("(max-width: 900px)");
     const syncCollapsedState = () => {
-      setLibraryCollapsed(Boolean(imageToolMode) || isVideoMode || compactQuery.matches);
+      if (compactQuery.matches) setLibraryCollapsed(true);
     };
     syncCollapsedState();
     compactQuery.addEventListener("change", syncCollapsedState);
     return () => compactQuery.removeEventListener("change", syncCollapsedState);
-  }, [imageToolMode, isVideoMode]);
+  }, []);
 
   if (isFlux3Mode) {
     return (
-      <section className="workspace flux3Mode">
+      <section className={["workspace", "flux3Mode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
         <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+        {promptLibrary}
         <Flux3VideoWorkspace
           apiKey={state.apiKey}
           assets={state.assets}
+          mode={state.flux3SourceMode}
+          onModeChange={state.setFlux3SourceMode}
           keyframes={state.flux3Keyframes}
           onKeyframesChange={state.setFlux3Keyframes}
           onGenerated={() => void state.checkBalance()}
@@ -56,6 +88,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           generationQueueSummary={state.generationQueueSummary}
           generationQueueConcurrency={state.generationQueueConcurrency}
           generationQueueControls={state.generationQueueControls}
+          libraryPrompt={state.visiblePrompts.find((prompt) => prompt.id === state.activeId)?.prompt}
         />
       </section>
     );
@@ -63,8 +96,9 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
 
   if (isUpscaleMode) {
     return (
-      <section className="workspace videoUpscaleMode">
+      <section className={["workspace", "videoUpscaleMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
         <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+        {promptLibrary}
         <VideoUpscaleWorkspace
           apiKey={state.apiKey}
           assets={state.assets}
@@ -82,30 +116,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
   return (
     <section className={["workspace", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
       <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
-      <PromptLibrary
-        prompts={state.visiblePrompts}
-        libraryOptions={state.promptLibraryOptions}
-        activeLibraryId={state.activePromptLibraryId}
-        activeId={state.activeId}
-        selectedIds={state.selectedComboIds}
-        comboSettings={state.comboSettings}
-        collapsed={libraryCollapsed}
-        canCollapse
-        onLibraryChange={state.selectPromptLibrary}
-        onSelect={state.selectPrompt}
-        onToggleSelected={state.toggleComboPrompt}
-        onComboModeChange={state.updateComboMode}
-        onComboSettingsSave={state.saveComboSettings}
-        onClearCombo={state.resetComboPrompt}
-        onCollapsedChange={setLibraryCollapsed}
-        onBuildCombo={state.createComboPrompt}
-        onExport={() => downloadText("bfl-flower-prompts.json", JSON.stringify(state.prompts, null, 2))}
-        onUseTemplatePrompt={(compiled) => {
-          state.setPromptText(compiled.text);
-          state.setRecoveryMessage(`Loaded the ${compiled.templateName} template into the prompt editor.`);
-        }}
-        onSaveTemplatePrompt={(compiled) => void state.saveVideoPromptToLibrary(compiled)}
-      />
+      {promptLibrary}
       <div className="workspaceMain">
         {imageToolMode ? (
           <ImageToolWorkspace

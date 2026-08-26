@@ -1,12 +1,14 @@
 .workspace.videoUpscaleMode {
-  grid-template-columns: 58px minmax(520px, 1fr) 340px;
+  grid-template-columns: 310px minmax(520px, 1fr) 340px;
   grid-template-rows: auto minmax(620px, auto);
   grid-template-areas:
-    ". modes modes"
-    ". main main";
+    "library modes modes"
+    "library main main";
   height: auto;
   min-height: clamp(720px, calc(100vh - 132px), 980px);
 }
+
+.workspace.videoUpscaleMode.libraryCollapsed { grid-template-columns: 58px minmax(520px, 1fr) 340px; }
 
 .workspace.videoUpscaleMode > .videoUpscaleWorkspace { grid-area: main; }
 
@@ -184,12 +186,14 @@
 .videoUpscaleCost strong { font-size: 14px; }
 
 @media (max-width: 1160px) {
-  .workspace.videoUpscaleMode { grid-template-columns: 58px minmax(360px, 1fr); grid-template-areas: ". modes" ". main"; }
+  .workspace.videoUpscaleMode { grid-template-columns: 240px minmax(360px, 1fr); grid-template-areas: "library modes" "library main"; }
+  .workspace.videoUpscaleMode.libraryCollapsed { grid-template-columns: 58px minmax(360px, 1fr); }
   .videoUpscaleWorkspace { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 900px) {
-  .workspace.videoUpscaleMode { grid-template-columns: 1fr; grid-template-areas: "modes" "main"; }
+  .workspace.videoUpscaleMode { grid-template-columns: 1fr; grid-template-areas: "modes" "library" "main"; }
+  .workspace.videoUpscaleMode.libraryCollapsed { grid-template-columns: 1fr; }
   .videoCompareStage,
   .videoUpscaleDrop,
   .videoUpscaleSourcePreview { min-height: 320px; }

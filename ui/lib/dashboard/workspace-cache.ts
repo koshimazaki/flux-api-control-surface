@@ -1,9 +1,15 @@
 import type { WorkspaceMode } from "@/lib/types";
+import {
+  defaultFlux3SourceMode,
+  isFlux3SourceMode,
+  type Flux3SourceMode
+} from "@/lib/flux3-video";
 
 export const TOOL_WORKSPACE_CACHE_KEY = "bfl-tool-workspace-cache";
 
 export type ToolWorkspaceCache = {
   workspaceMode: WorkspaceMode;
+  flux3SourceMode: Flux3SourceMode;
   sharedSourceAssetId: string | null;
   vtoSourceAssetId: string | null;
   glyphSourceAssetId: string | null;
@@ -18,6 +24,7 @@ export type ToolWorkspaceCache = {
 
 export const defaultToolWorkspaceCache: ToolWorkspaceCache = {
   workspaceMode: "prompt",
+  flux3SourceMode: defaultFlux3SourceMode,
   sharedSourceAssetId: null,
   vtoSourceAssetId: null,
   glyphSourceAssetId: null,
@@ -55,6 +62,9 @@ export function normalizeToolWorkspaceCache(value: unknown): ToolWorkspaceCache 
   const record = asRecord(value);
   return {
     workspaceMode: isWorkspaceMode(record.workspaceMode) ? record.workspaceMode : defaultToolWorkspaceCache.workspaceMode,
+    flux3SourceMode: isFlux3SourceMode(record.flux3SourceMode)
+      ? record.flux3SourceMode
+      : defaultToolWorkspaceCache.flux3SourceMode,
     sharedSourceAssetId: asNullableString(record.sharedSourceAssetId),
     vtoSourceAssetId: asNullableString(record.vtoSourceAssetId),
     glyphSourceAssetId: asNullableString(record.glyphSourceAssetId),

@@ -29,7 +29,11 @@ import { formatPrompt, stripReferenceCue } from "@/lib/prompt-utils";
 import { estimateMegapixels, estimateMinimumCost, estimateTokens, modelOptions } from "@/lib/pricing";
 import { advanceSeed, randomSeedString } from "@/lib/seed";
 import type { GenerationQueueJob } from "@/lib/generation-queue";
-import { flux3MediaFromAsset, type Flux3InputMedia } from "@/lib/flux3-video";
+import {
+  flux3MediaFromAsset,
+  type Flux3InputMedia,
+  type Flux3SourceMode
+} from "@/lib/flux3-video";
 import { getBflModel } from "@/lib/provider-registry";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import { referenceDropTargets, referenceRoleConfig, referenceRoleToken } from "@/lib/reference-roles";
@@ -39,6 +43,7 @@ import { glyphPreviewBackgroundForSvg, type GlyphPreviewBackground } from "@/lib
 import { useBalance } from "@/lib/dashboard/use-balance";
 import { useGlyphLabCache } from "@/lib/dashboard/use-glyph-lab-cache";
 import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
+import { IMAGE_PROMPT_LIBRARY_ID, VIDEO_PROMPT_LIBRARY_ID } from "@/lib/prompt-library-groups";
 import { useReferences } from "@/lib/dashboard/use-references";
 import { useServerQueue } from "@/lib/dashboard/use-server-queue";
 import { useToolSource, workspaceModeLabels } from "@/lib/dashboard/use-tool-source";
@@ -59,6 +64,11 @@ import type {
   WorkspaceMode,
   ApiKeyStatus
 } from "@/lib/types";
+import {
+  defaultWorkspaceModeForMedia,
+  workspaceMediaKindForMode,
+  type WorkspaceMediaKind
+} from "@/lib/workspace-media";
 
 type ApiKeyRouteResponse = Partial<ApiKeyStatus> & {
   deleted?: boolean;
@@ -108,6 +118,7 @@ export function useDashboardState() {
   const [batchProgress] = useState<BatchProgress | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTab>("assets");
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(defaultToolWorkspaceCache.workspaceMode);
+  const workspaceMediaKind = workspaceMediaKindForMode(workspaceMode);
   const [toolSourceAssetId, setToolSourceAssetId] = useState<string | null>(defaultToolWorkspaceCache.sharedSourceAssetId);
   const [vtoSourceAssetId, setVtoSourceAssetId] = useState<string | null>(defaultToolWorkspaceCache.vtoSourceAssetId);
   const [glyphSourceAssetId, setGlyphSourceAssetId] = useState<string | null>(defaultToolWorkspaceCache.glyphSourceAssetId);
@@ -115,6 +126,9 @@ export function useDashboardState() {
     defaultToolWorkspaceCache.vtoGarmentAssetIds
   );
   const [flux3Keyframes, setFlux3Keyframes] = useState<Flux3InputMedia[]>([]);
+  const [flux3SourceMode, setFlux3SourceMode] = useState<Flux3SourceMode>(
+    defaultToolWorkspaceCache.flux3SourceMode
+  );
   const [toolMask, setToolMask] = useState("");
   const [toolBrushSize, setToolBrushSize] = useState(48);
   const [toolDilatePixels, setToolDilatePixels] = useState(10);
@@ -360,6 +374,17 @@ export function useDashboardState() {
     importPromptJson: importPromptJsonWithText
   } = usePromptLibrary({ setPromptText: editPromptText, setSeed: applyStoredSeed, setBatchMode, setError, setRecoveryMessage });
 
+  function selectWorkspaceMediaKind(kind: WorkspaceMediaKind) {
+    setWorkspaceMode(defaultWorkspaceModeForMedia(kind));
+  }
+
+  useEffect(() => {
+    selectPromptLibrary(workspaceMediaKind === "video" ? VIDEO_PROMPT_LIBRARY_ID : IMAGE_PROMPT_LIBRARY_ID);
+    // Library selection follows only a media-domain transition. Fine-grained
+    // prompt categories remain user-controlled while a domain stays active.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceMediaKind]);
+
   const {
     trainingCollection,
     setTrainingCollection,
@@ -581,6 +606,7 @@ export function useDashboardState() {
   useEffect(() => {
     const cache = loadToolWorkspaceCache();
     setWorkspaceMode(cache.workspaceMode);
+    setFlux3SourceMode(cache.flux3SourceMode);
     setToolSourceAssetId(cache.sharedSourceAssetId);
     setVtoSourceAssetId(cache.vtoSourceAssetId);
     setGlyphSourceAssetId(cache.glyphSourceAssetId);
@@ -605,6 +631,7 @@ export function useDashboardState() {
       () =>
         persistToolWorkspaceCache({
           workspaceMode,
+          flux3SourceMode,
           sharedSourceAssetId: toolSourceAssetId,
           vtoSourceAssetId,
           glyphSourceAssetId,
@@ -621,6 +648,7 @@ export function useDashboardState() {
     return () => window.clearTimeout(timer);
   }, [
     workspaceMode,
+    flux3SourceMode,
     hasHydratedWorkspaceCache,
     toolSourceAssetId,
     vtoSourceAssetId,
@@ -932,7 +960,14 @@ export function useDashboardState() {
       return null;
     }
     setError("");
+    setFlux3SourceMode("i2v");
+    setWorkspaceMode("flux3");
+    setSelectedAsset(null);
     setFlux3Keyframes((current) => (current.length >= 10 ? current : [...current, media]));
+    setRecoveryMessage(
+      `Added ${asset.title || asset.id} as FLUX 3 keyframe ${flux3Keyframes.length + 1} and opened Images mode.`
+    );
+    window.scrollTo({ top: 0, behavior: "smooth" });
     return flux3Keyframes.length + 1;
   }
   async function revealAssetLocally(asset: AssetRecord) {
@@ -1218,7 +1253,9 @@ export function useDashboardState() {
     activeTab,
     setActiveTab,
     workspaceMode,
+    workspaceMediaKind,
     setWorkspaceMode,
+    selectWorkspaceMediaKind,
     toolSourceAssetId: activeToolSourceAssetId,
     toolSourceAsset,
     vtoGarmentSlots,
@@ -1254,6 +1291,8 @@ export function useDashboardState() {
     assetBadges,
     flux3Keyframes,
     setFlux3Keyframes,
+    flux3SourceMode,
+    setFlux3SourceMode,
     sendAssetToNextFlux3Keyframe,
     revealAssetLocally,
     setAudioAssignments,
