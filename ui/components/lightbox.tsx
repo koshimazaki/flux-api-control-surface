@@ -1,4 +1,4 @@
-import { Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, ScanLine, Send, Shirt, Video } from "lucide-react";
+import { Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, PencilLine, ScanLine, Send, Shirt, Video } from "lucide-react";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { referenceDropTargets } from "@/lib/reference-roles";
 import type { AssetRecord, ImageWorkspaceMode, ReferenceRole } from "@/lib/types";
@@ -12,11 +12,12 @@ type LightboxProps = {
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSendToFlux3Continue?: (asset: AssetRecord) => void;
+  onSendToEdit?: (asset: AssetRecord) => void;
   onSendToUpscale?: (asset: AssetRecord) => void;
   onDownload: (asset: AssetRecord) => void;
 };
 
-export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onSendToFlux3Continue, onSendToUpscale, onDownload }: LightboxProps) {
+export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onSendToFlux3Continue, onSendToEdit, onSendToUpscale, onDownload }: LightboxProps) {
   if (!asset) return null;
   const isVideo = asset.mediaType === "video";
   const mediaSource = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
@@ -57,6 +58,18 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, on
               >
                 <Video size={15} />
                 Continue
+              </button>
+            )}
+            {isVideo && onSendToEdit && (
+              <button
+                onClick={() => {
+                  onSendToEdit(asset);
+                  onClose();
+                }}
+                title="Send to Video Edit"
+              >
+                <PencilLine size={15} />
+                Edit
               </button>
             )}
             {isVideo && onSendToUpscale && (

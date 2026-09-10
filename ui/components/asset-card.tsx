@@ -16,6 +16,7 @@ import {
   Info,
   Maximize2,
   PackagePlus,
+  PencilLine,
   Play,
   ScanLine,
   Send,
@@ -58,6 +59,7 @@ type AssetCardProps = {
   onSendToVtoGarment: (asset: AssetRecord) => void;
   onSendToFlux3Keyframe?: (asset: AssetRecord) => void;
   onSendToFlux3Continue?: (asset: AssetRecord) => void;
+  onSendToEdit?: (asset: AssetRecord) => void;
   onSendToUpscale?: (asset: AssetRecord) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSavePromptToLibrary: (asset: AssetRecord) => void;
@@ -297,6 +299,11 @@ export function AssetCard(props: AssetCardProps) {
           {isVideo && props.onSendToFlux3Continue && (
             <button onClick={() => props.onSendToFlux3Continue?.(asset)} title="Continue this video in FLUX 3">
               <Video size={15} />
+            </button>
+          )}
+          {isVideo && props.onSendToEdit && (
+            <button onClick={() => props.onSendToEdit?.(asset)} title="Send to Video Edit">
+              <PencilLine size={15} />
             </button>
           )}
           {isVideo && props.onSendToUpscale && (

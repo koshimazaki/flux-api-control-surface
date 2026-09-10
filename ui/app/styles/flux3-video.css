@@ -178,46 +178,6 @@
   line-height: 1.45;
 }
 
-.flux3ModePicker {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.flux3ModePicker > button {
-  min-width: 0;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 7px;
-  padding: 6px 8px;
-}
-
-.flux3ModePicker > button.active {
-  border-color: rgba(159, 176, 157, 0.72);
-  background: rgba(85, 102, 89, 0.28);
-  color: var(--cream);
-}
-
-.flux3ModePicker span {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.flux3ModePicker strong,
-.flux3ModePicker small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.flux3ModePicker small {
-  color: var(--muted);
-  font-size: 9px;
-}
-
 .flux3SettingsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

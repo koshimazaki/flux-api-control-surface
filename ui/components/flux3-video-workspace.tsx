@@ -1,10 +1,11 @@
-import { Download, Film, Images, MessageSquareText, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
+import { Download, Film, PencilLine, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Flux3MediaDropzone, type Flux3InputMedia } from "@/components/flux3-media-dropzone";
 import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import type { VideoEditSourceInput } from "@/lib/video-edit";
 import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 import type { GenerationQueueJob, GenerationQueueSummary } from "@/lib/generation-queue";
 import {
@@ -32,6 +33,8 @@ type Flux3VideoWorkspaceProps = {
   onStartVideoChange: (media: Flux3InputMedia | null) => void;
   /** Prompt pushed from a library video card; the nonce re-applies repeat sends. */
   promptSeed?: { text: string; nonce: number } | null;
+  /** Sends the selected render to the Video Edit workspace. */
+  onSendToEdit?: (source: VideoEditSourceInput) => void;
   /** Sends the selected render to the Video Upscale workspace. */
   onSendToUpscale?: (source: VideoUpscaleSourceInput) => void;
   onGenerated: () => void;
@@ -46,12 +49,8 @@ type Flux3VideoWorkspaceProps = {
   libraryPrompt?: string;
 };
 
-const modeOptions: Array<{ id: Flux3SourceMode; label: string; detail: string; icon: typeof Film }> = [
-  { id: "t2v", label: "Text", detail: "Prompt → video", icon: MessageSquareText },
-  { id: "i2v", label: "Images", detail: "1–10 frames", icon: Images },
-  { id: "v2v", label: "Continue", detail: "MP4 → next clip", icon: Video }
-];
-
+// The source mode (Text / Frames / Continue) is chosen from the video tool rail
+// above the workspace; this panel only names the active one.
 function formatMode(mode: Flux3VideoMode) {
   if (mode === "t2v") return "Text to video";
   if (mode === "i2v") return "Image to video";
@@ -274,6 +273,14 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       <div className="flux3PreviewPanel panel">
         <PanelHeader title="FLUX 3 Video" subtitle="Synchronized picture, speech, effects, and ambience in one request">
           <div className="flux3HeaderTools">
+            {selected && props.onSendToEdit && (
+              <IconButton
+                title="Send this render to Video Edit"
+                onClick={() => props.onSendToEdit?.({ assetId: selected.id, name: selected.title, url: selected.videoUrl })}
+              >
+                <PencilLine size={15} />
+              </IconButton>
+            )}
             {selected && props.onSendToUpscale && (
               <IconButton
                 title="Send this render to Video Upscale"
@@ -342,17 +349,9 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       </div>
 
       <aside className="flux3Controls panel controls">
-        <PanelHeader title="Create video" subtitle="Choose what the model starts from">
+        <PanelHeader title="Create video" subtitle={`FLUX 3 · ${formatMode(mode)}`}>
           <Film size={18} aria-label="FLUX 3 video creation" />
         </PanelHeader>
-        <div className="flux3ModePicker">
-          {modeOptions.map(({ id, label, detail, icon: Icon }) => (
-            <button type="button" className={mode === id ? "active" : ""} key={id} onClick={() => props.onModeChange(id)}>
-              <Icon size={16} />
-              <span><strong>{label}</strong><small>{detail}</small></span>
-            </button>
-          ))}
-        </div>
         <label>
           Video prompt
           <textarea

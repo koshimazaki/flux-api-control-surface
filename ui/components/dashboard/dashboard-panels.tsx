@@ -93,6 +93,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onSendToVtoGarment={state.sendAssetToNextVtoGarment}
           onSendToFlux3Keyframe={state.sendAssetToNextFlux3Keyframe}
           onSendToFlux3Continue={state.sendAssetToFlux3Continue}
+          onSendToEdit={state.sendAssetToEdit}
           onSendToUpscale={state.sendAssetToUpscale}
           onRevealAsset={(asset) => void state.revealAssetLocally(asset)}
           onSendToReference={state.sendAssetToReference}

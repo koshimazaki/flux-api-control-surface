@@ -71,6 +71,7 @@ type AssetLibraryProps = {
   onSendToVtoGarment: (asset: AssetRecord) => void;
   onSendToFlux3Keyframe?: (asset: AssetRecord) => void;
   onSendToFlux3Continue?: (asset: AssetRecord) => void;
+  onSendToEdit?: (asset: AssetRecord) => void;
   onSendToUpscale?: (asset: AssetRecord) => void;
   onRevealAsset?: (asset: AssetRecord) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
@@ -347,6 +348,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   onSendToVtoGarment={props.onSendToVtoGarment}
                   onSendToFlux3Keyframe={props.onSendToFlux3Keyframe}
                   onSendToFlux3Continue={props.onSendToFlux3Continue}
+                  onSendToEdit={props.onSendToEdit}
                   onSendToUpscale={props.onSendToUpscale}
                   onRevealAsset={props.onRevealAsset}
                   onSendToReference={props.onSendToReference}

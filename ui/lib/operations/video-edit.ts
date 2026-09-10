@@ -1,44 +1,43 @@
 import { patchOutputMetadataFile } from "@/lib/bfl-server";
 import { buildGenerationTiming } from "@/lib/generation-capture";
 import {
-  buildVideoUpscalePayload,
-  estimateVideoUpscaleUsd,
-  redactVideoUpscalePayload,
-  VIDEO_UPSCALE_ENDPOINT,
-  VIDEO_UPSCALE_MODEL,
-  VIDEO_UPSCALE_OPERATION,
-  VIDEO_UPSCALE_MAX_BYTES,
-  type VideoUpscaleRequest
-} from "@/lib/video-upscale";
+  buildVideoEditPayload,
+  estimateVideoEditUsd,
+  redactVideoEditPayload,
+  VIDEO_EDIT_ENDPOINT,
+  VIDEO_EDIT_MAX_BYTES,
+  VIDEO_EDIT_MODEL,
+  VIDEO_EDIT_OPERATION,
+  type VideoEditRequest
+} from "@/lib/video-edit";
+import { saveVideoEditOutput } from "@/lib/video-edit-server";
 import { downloadVideoBinary, resolveVideoInput } from "@/lib/video-input-server";
-import { saveVideoUpscaleOutput } from "@/lib/video-upscale-server";
 import type { OperationAdapter, OperationFinalizeInput, PreparedOperation } from "./types";
 
-export type VideoUpscaleRouteBody = VideoUpscaleRequest & {
+export type VideoEditRouteBody = VideoEditRequest & {
   apiKey?: string;
   wait?: boolean;
 };
 
 async function prepare(rawBody: Record<string, any>, origin = "http://localhost") {
-  const body = rawBody as VideoUpscaleRouteBody;
+  const body = rawBody as VideoEditRouteBody;
   try {
     const source = await resolveVideoInput(body.inputVideo || "", origin);
-    if (source.buffer.byteLength > VIDEO_UPSCALE_MAX_BYTES) {
-      return { error: "Video Upscale accepts MP4 files up to 50 MB.", status: 400 };
+    if (source.buffer.byteLength > VIDEO_EDIT_MAX_BYTES) {
+      return { error: "Video Edit accepts MP4 files up to 50 MB.", status: 400 };
     }
-    const request: VideoUpscaleRequest = {
+    const request: VideoEditRequest = {
       ...body,
       inputVideo: source.buffer.toString("base64"),
       sourceBytes: source.buffer.byteLength
     };
-    const payload = buildVideoUpscalePayload(request);
-    const prompt = body.prompt?.trim() || "[FLUX 3 video upscale]";
+    const payload = buildVideoEditPayload(request);
     return {
       kind: "video" as const,
-      operation: VIDEO_UPSCALE_OPERATION,
-      title: body.title?.trim() || body.sourceName?.trim() || "FLUX 3 Video Upscale",
-      prompt,
-      endpoint: VIDEO_UPSCALE_ENDPOINT,
+      operation: VIDEO_EDIT_OPERATION,
+      title: body.title?.trim() || body.sourceName?.trim() || "FLUX Video Edit",
+      prompt: payload.prompt,
+      endpoint: VIDEO_EDIT_ENDPOINT,
       payload,
       sourceAssetIds: body.sourceAssetId ? [body.sourceAssetId] : [],
       context: {
@@ -46,19 +45,15 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
         sourceContentType: source.contentType,
         sourceName: body.sourceName || source.sourceName,
         sourceAssetId: body.sourceAssetId || null,
-        upscaleFactor: body.upscaleFactor ?? 2,
-        creativity: body.creativity ?? 1,
-        safetyTolerance: body.safetyTolerance ?? 2,
+        safetyTolerance: payload.safety_tolerance,
         sourceWidth: body.sourceWidth,
         sourceHeight: body.sourceHeight,
         durationSeconds: body.durationSeconds,
-        outputWidth: body.sourceWidth ? Math.round(body.sourceWidth * (body.upscaleFactor ?? 2)) : undefined,
-        outputHeight: body.sourceHeight ? Math.round(body.sourceHeight * (body.upscaleFactor ?? 2)) : undefined,
-        estimatedUsd: estimateVideoUpscaleUsd(body)
+        estimatedUsd: estimateVideoEditUsd(body)
       }
     } satisfies PreparedOperation;
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Video Upscale preparation failed.", status: 400 };
+    return { error: error instanceof Error ? error.message : "Video Edit preparation failed.", status: 400 };
   }
 }
 
@@ -74,24 +69,20 @@ async function finalize(input: OperationFinalizeInput) {
     id,
     title: prepared.title,
     prompt: prepared.prompt,
-    model: VIDEO_UPSCALE_MODEL,
-    operation: VIDEO_UPSCALE_OPERATION,
+    model: VIDEO_EDIT_MODEL,
+    operation: VIDEO_EDIT_OPERATION,
     createdAt,
-    endpointName: VIDEO_UPSCALE_ENDPOINT,
+    endpointName: VIDEO_EDIT_ENDPOINT,
     pollingUrl: input.pollingUrl,
     sampleUrl,
     sourceAssetId: prepared.context.sourceAssetId,
     sourceName: prepared.context.sourceName,
-    upscaleFactor: prepared.context.upscaleFactor,
-    creativity: prepared.context.creativity,
     safetyTolerance: prepared.context.safetyTolerance,
     sourceWidth: prepared.context.sourceWidth,
     sourceHeight: prepared.context.sourceHeight,
     durationSeconds: prepared.context.durationSeconds,
-    outputWidth: prepared.context.outputWidth,
-    outputHeight: prepared.context.outputHeight,
     estimatedUsd: prepared.context.estimatedUsd,
-    payload: redactVideoUpscalePayload(prepared.payload),
+    payload: redactVideoEditPayload(prepared.payload),
     queue: input.queue,
     timing: buildGenerationTiming(marks),
     submit: {
@@ -103,9 +94,10 @@ async function finalize(input: OperationFinalizeInput) {
           ? input.creditsBefore - input.creditsAfter
           : null
     },
-    result: { status: result.status, audioPreserved: true }
+    // Duration, aspect ratio and audio are set from the source by the server.
+    result: { status: result.status, outputFollowsSource: true }
   };
-  const saved = await saveVideoUpscaleOutput({
+  const saved = await saveVideoEditOutput({
     id,
     title: prepared.title,
     prompt: prepared.prompt,
@@ -134,7 +126,7 @@ async function finalize(input: OperationFinalizeInput) {
   };
 }
 
-export const videoUpscaleAdapter: OperationAdapter = {
+export const videoEditAdapter: OperationAdapter = {
   kind: "video",
   prepare,
   finalize,
@@ -142,6 +134,6 @@ export const videoUpscaleAdapter: OperationAdapter = {
     const sampleUrl = result.result?.sample;
     return typeof sampleUrl === "string" && sampleUrl
       ? { url: sampleUrl }
-      : { error: "BFL result did not include an upscaled video URL." };
+      : { error: "BFL result did not include an edited video URL." };
   }
 };

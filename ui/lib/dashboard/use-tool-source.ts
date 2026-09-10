@@ -3,6 +3,7 @@ import type { ImportImageAssetOptions } from "@/lib/dashboard/use-asset-library"
 import { assetFromImageSource } from "@/lib/image-asset-import";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import type { AssetRecord, ImageWorkspaceMode, WorkspaceMode } from "@/lib/types";
+import { isImageWorkspaceMode } from "@/lib/workspace-media";
 
 export const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, string> = {
   erase: "Erase",
@@ -10,6 +11,7 @@ export const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, strin
   outpaint: "Outpaint",
   deblur: "Deblur",
   flux3: "FLUX 3",
+  edit: "Edit",
   upscale: "Upscale",
   glyphs: "Glyphs"
 };
@@ -44,7 +46,8 @@ export function useToolSource(deps: UseToolSourceDeps) {
   } = deps;
 
   function loadToolSourceAsset(asset: AssetRecord) {
-    if (workspaceMode === "prompt" || workspaceMode === "flux3" || workspaceMode === "upscale") return;
+    // Video workspaces own their own clip inputs; only image tools take a source asset here.
+    if (!isImageWorkspaceMode(workspaceMode)) return;
     setSourceAssetIdForMode(workspaceMode, asset.id);
     setSelectedAsset(null);
     setError("");
@@ -105,9 +108,7 @@ export function useToolSource(deps: UseToolSourceDeps) {
   }
 
   function clearToolSourceAsset() {
-    if (workspaceMode !== "prompt" && workspaceMode !== "flux3" && workspaceMode !== "upscale") {
-      setSourceAssetIdForMode(workspaceMode, null);
-    }
+    if (isImageWorkspaceMode(workspaceMode)) setSourceAssetIdForMode(workspaceMode, null);
   }
 
   return {

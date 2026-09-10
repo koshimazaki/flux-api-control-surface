@@ -58,6 +58,10 @@ describe("normalizeToolWorkspaceCache", () => {
     expect(normalizeToolWorkspaceCache({ workspaceMode: "upscale" }).workspaceMode).toBe("upscale");
   });
 
+  it("restores the Video Edit workspace tab", () => {
+    expect(normalizeToolWorkspaceCache({ workspaceMode: "edit" }).workspaceMode).toBe("edit");
+  });
+
   it("remembers each valid FLUX 3 source mode", () => {
     expect(normalizeToolWorkspaceCache({ flux3SourceMode: "t2v" }).flux3SourceMode).toBe("t2v");
     expect(normalizeToolWorkspaceCache({ flux3SourceMode: "i2v" }).flux3SourceMode).toBe("i2v");

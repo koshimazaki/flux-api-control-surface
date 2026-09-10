@@ -3,6 +3,7 @@ import { useRef, type ChangeEvent, type DragEvent } from "react";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import type { AssetRecord } from "@/lib/types";
 import { flux3MediaFromAsset, type Flux3InputMedia, type Flux3VideoMode } from "@/lib/flux3-video";
+import { readFileAsDataUrl } from "@/lib/video-media-client";
 
 export type { Flux3InputMedia } from "@/lib/flux3-video";
 
@@ -17,15 +18,6 @@ type Flux3MediaDropzoneProps = {
   onStartVideoChange: (item: Flux3InputMedia | null) => void;
   onError: (message: string) => void;
 };
-
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error(`Could not read ${file.name}.`));
-    reader.readAsDataURL(file);
-  });
-}
 
 function mediaFromFile(file: File, source: string): Flux3InputMedia {
   return {

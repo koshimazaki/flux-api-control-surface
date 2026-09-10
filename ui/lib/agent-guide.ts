@@ -35,6 +35,7 @@ export const agentWorkflowGuide = {
       tools: agentRouteMap.tools,
       flux3Video: agentRouteMap.flux3Video,
       videoUpscale: agentRouteMap.videoUpscale,
+      videoEdit: agentRouteMap.videoEdit,
       providerJobs: agentRouteMap.providerJobs,
       glyphVectorize: agentRouteMap.glyphVectorize,
       outputs: agentRouteMap.outputs,
@@ -62,7 +63,7 @@ export const agentWorkflowGuide = {
     {
       name: "Capture and evaluate model outputs",
       steps: [
-        `Generate through ${agentRouteMap.generate}, ${agentRouteMap.tools}, ${agentRouteMap.flux3Video}, or ${agentRouteMap.videoUpscale}`,
+        `Generate through ${agentRouteMap.generate}, ${agentRouteMap.tools}, ${agentRouteMap.flux3Video}, ${agentRouteMap.videoEdit}, or ${agentRouteMap.videoUpscale}`,
         `GET ${agentRouteMap.evaluations} or call list_evaluations`,
         `PATCH ${agentRouteMap.evaluations}?id=<generationId> or call update_evaluation`,
         "Export JSON/JSONL from the Runs tab or npm run --silent cli -- evaluations --format jsonl"
@@ -75,6 +76,15 @@ export const agentWorkflowGuide = {
         `POST ${agentRouteMap.videoUpscale} with inputVideo and upscaleFactor 1.5 through 3`,
         `GET ${agentRouteMap.videoUpscale} for the saved source/result comparison URLs`,
         `GET ${agentRouteMap.outputs} to recover the result in Assets`
+      ]
+    },
+    {
+      name: "Edit a saved clip with one instruction",
+      steps: [
+        `GET ${agentRouteMap.outputs} or ${agentRouteMap.flux3Video}`,
+        `POST ${agentRouteMap.videoEdit} with inputVideo and a prompt that names only the change (or call edit_video)`,
+        `GET ${agentRouteMap.videoEdit} for the saved source/result comparison URLs`,
+        `Chain passes: POST ${agentRouteMap.videoEdit} again with the result URL as inputVideo, or hand it to ${agentRouteMap.videoUpscale}`
       ]
     },
     {
@@ -176,6 +186,7 @@ export const agentWorkflowGuide = {
     "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery.",
     "Generate a FLUX 3 video from request.json with the CLI, then list and rate its captured evaluation record.",
     "Upscale a saved FLUX 3 clip at 2× in precise mode, then compare source and result in the Upscale tab.",
+    "Edit a saved FLUX 3 clip so the orange bucket is gone, compare before and after in the Edit tab, then upscale the result.",
     "Save a video prompt with save_prompt using mediaType video, a videoCategory, and structured beats, then read it back grouped in the Video prompt library."
   ],
   coverage: localAgentCoverage,

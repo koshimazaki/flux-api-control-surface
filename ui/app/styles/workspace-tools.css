@@ -39,8 +39,9 @@
   grid-template-columns: repeat(6, minmax(88px, 1fr));
 }
 
+/* One equal column per video tool: Text, Frames, Continue, Edit, Upscale. */
 .tabBar.workspaceModeBar-video {
-  grid-template-columns: repeat(6, minmax(88px, 1fr));
+  grid-template-columns: repeat(5, minmax(88px, 1fr));
 }
 
 .workspaceModeBar .tabButton {

@@ -157,6 +157,14 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
   in precise or creative mode, preserve audio, and save both source and result
   for the workspace's before/after fader. The surface identifies the capability
   as `FLUX 3 VIDEO UPSCALE · 2K / 4K`.
+- **Video Edit** (`flux-tools/video-edit-v1`): edit an MP4 from one text
+  instruction (remove, add, replace, recolor, restyle, relight, change signs or
+  dialogue). The documented request is video + prompt + safety tolerance only;
+  duration, aspect ratio, and audio follow the source, and anything above 720p
+  returns at 720p. The source is saved beside the result for the before/after
+  fader, "Edit again" chains one change per pass, and the header hands an edit
+  to Upscale. The video rail shows Text, Frames, Continue, Edit, and Upscale as
+  one tab each; the first three open the shared FLUX 3 workspace.
 - **Glyphs**: local SVG/PNG vectorization. The browser workspace can select a
   region visually, and agents can call `/api/glyphs/vectorize` for saved outputs.
 
@@ -230,6 +238,7 @@ The same surface is scriptable:
 ```bash
 npm run --silent cli -- evaluations --media video --format jsonl
 npm run --silent cli -- generate-video --json request.json
+npm run --silent cli -- edit-video --json request.json
 npm run --silent cli -- evaluate GENERATION_ID --rating 5 --verdict keep --tags favorite,motion
 ```
 
@@ -266,6 +275,8 @@ The UI is also an agent/MCP-facing local API:
   playback and download.
 - `GET/POST /api/bfl/video-upscale` lists or submits FLUX 3 Video Upscale jobs;
   `GET /api/bfl/video-upscale/:id` serves the result or its preserved source.
+- `GET/POST /api/bfl/video-edit` lists or submits FLUX Video Edit jobs;
+  `GET /api/bfl/video-edit/:id` serves the result or its preserved source.
 - `GET/POST/PATCH/DELETE /api/dashboard/queue` lists, enqueues, controls
   (pause/resume/retry/reorder), and cancels server-queue jobs.
 - `GET/PATCH /api/evaluations` returns normalized `bfl-evaluation/v1` records
@@ -288,7 +299,9 @@ BFL MCP is useful inside MCP clients such as Codex or Claude because it owns the
 OAuth flow and native BFL tool calls. This browser UI uses BFL's HTTP API for
 saved local outputs. The local stdio MCP wrapper exposes the JSON dashboard
 routes for prompts, plans, generation, tools, references, glyphs, credits, and
-caption job prep, plus FLUX 3 video listing/generation, generation-queue
+caption job prep, plus FLUX 3 video listing/generation, FLUX Video Edit and
+Video Upscale (`edit_video`, `upscale_video` — neither exists in the hosted
+FLUX MCP), generation-queue
 control (`list_generation_queue`, `enqueue_generation_jobs`,
 `update_generation_job`, `cancel_generation_job`), evaluation records
 (`list_evaluations`, `update_evaluation`), finetune dataset export, registry,

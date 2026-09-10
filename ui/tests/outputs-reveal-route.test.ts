@@ -9,13 +9,15 @@ const mocks = vi.hoisted(() => ({
   ),
   findImage: vi.fn(),
   findVideo: vi.fn(),
-  findUpscale: vi.fn()
+  findUpscale: vi.fn(),
+  findEdit: vi.fn()
 }));
 
 vi.mock("node:child_process", () => ({ execFile: mocks.execFile }));
 vi.mock("@/lib/server-output-store", () => ({ findLocalOutputImage: mocks.findImage }));
 vi.mock("@/lib/flux3-video-server", () => ({ findFlux3VideoOutput: mocks.findVideo }));
 vi.mock("@/lib/video-upscale-server", () => ({ findVideoUpscaleOutput: mocks.findUpscale }));
+vi.mock("@/lib/video-edit-server", () => ({ findVideoEditOutput: mocks.findEdit }));
 
 const OUTPUTS = path.resolve(process.cwd(), "..", "outputs");
 const IMAGE_PATH = path.join(OUTPUTS, "flux-api-control-surface", "2026-08-05", "flower.png");
@@ -50,6 +52,7 @@ describe("POST /api/outputs/reveal", () => {
     mocks.findImage.mockResolvedValue(null);
     mocks.findVideo.mockResolvedValue(null);
     mocks.findUpscale.mockResolvedValue(null);
+    mocks.findEdit.mockResolvedValue(null);
     const response = await POST(revealRequest({ id: "remote-only" }));
     expect(response.status).toBe(404);
     expect(mocks.execFile).not.toHaveBeenCalled();
@@ -79,6 +82,17 @@ describe("POST /api/outputs/reveal", () => {
     mocks.findVideo.mockResolvedValue(null);
     mocks.findUpscale.mockResolvedValue({ filePath: VIDEO_PATH });
     const response = await POST(revealRequest({ id: "upscale-1" }));
+    expect(response.status).toBe(200);
+    expect(mocks.execFile).toHaveBeenCalledWith("open", ["-R", VIDEO_PATH], expect.any(Function));
+  });
+
+  it("reveals a saved Video Edit result", async () => {
+    setPlatform("darwin");
+    mocks.findImage.mockResolvedValue(null);
+    mocks.findVideo.mockResolvedValue(null);
+    mocks.findUpscale.mockResolvedValue(null);
+    mocks.findEdit.mockResolvedValue({ filePath: VIDEO_PATH });
+    const response = await POST(revealRequest({ id: "edit-1" }));
     expect(response.status).toBe(200);
     expect(mocks.execFile).toHaveBeenCalledWith("open", ["-R", VIDEO_PATH], expect.any(Function));
   });

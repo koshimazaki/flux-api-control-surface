@@ -47,6 +47,7 @@ export const agentRouteMap = {
   generate: "/api/bfl/generate",
   flux3Video: "/api/bfl/flux3-video",
   videoUpscale: "/api/bfl/video-upscale",
+  videoEdit: "/api/bfl/video-edit",
   tools: "/api/bfl/tools",
   providerJobs: "/api/bfl/jobs",
   glyphVectorize: "/api/glyphs/vectorize",
@@ -248,6 +249,13 @@ export const dashboardAgentRoutes: AgentRoute[] = [
   },
   {
     method: "GET",
+    path: agentRouteMap.videoEdit,
+    purpose: "List locally saved FLUX Video Edit outputs with preserved source clips and before/after comparison URLs.",
+    sideEffects: false,
+    category: "assets"
+  },
+  {
+    method: "GET",
     path: agentRouteMap.evaluations,
     purpose:
       "List normalized image/video generation records with prompts, settings, lifecycle timings, costs, local outputs, provenance, and evaluation annotations. Use format=jsonl for agent pipelines.",
@@ -310,6 +318,25 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       inputVideo: "/api/bfl/flux3-video/<saved-id>",
       upscaleFactor: 2,
       creativity: 0,
+      safetyTolerance: 2
+    }
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.videoEdit,
+    purpose:
+      "Edit an MP4 with FLUX Video Edit from one text instruction (remove, add, replace, recolor, restyle, relight, change signs or dialogue). Duration, aspect ratio and audio follow the source; anything above 720p returns at 720p. Saves source and result locally and exposes a before/after comparison. No image references, masks or seeds — the documented request is video + prompt + safetyTolerance.",
+    sideEffects: true,
+    category: "tools",
+    auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
+    body: {
+      inputVideo: "Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL; MP4 up to 50 MB and 15 seconds, at least 160 px per side.",
+      prompt: "Required edit instruction, 1 through 4096 characters. Name only the change; everything unmentioned stays as filmed.",
+      safetyTolerance: "0 through 4 (default 2)"
+    },
+    example: {
+      inputVideo: "/api/bfl/flux3-video/<saved-id>",
+      prompt: "Remove the orange bucket.",
       safetyTolerance: 2
     }
   },
@@ -553,7 +580,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
 
 export const localAgentCoverage = {
   generation:
-    "Image generation is wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate. FLUX 3 generation is wired through /api/bfl/flux3-video; FLUX 3 Video Upscale is wired through /api/bfl/video-upscale with saved before/after media. Every paid entry point uses the server-owned queue, so execution, retry, and recovery are identical from the browser, MCP, and CLI.",
+    "Image generation is wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate. FLUX 3 generation is wired through /api/bfl/flux3-video; FLUX 3 Video Upscale through /api/bfl/video-upscale and FLUX Video Edit through /api/bfl/video-edit, both with saved before/after media. Every paid entry point uses the server-owned queue, so execution, retry, and recovery are identical from the browser, MCP, and CLI.",
   queue:
     "One server-owned, file-backed generation queue runs image, tool, and video lanes with a renewable single-runner lease. Inspect and control it through /api/dashboard/queue; repair individual provider jobs through /api/bfl/jobs.",
   imageTools: "Erase, virtual try-on, outpaint, and deblur are wired through /api/bfl/tools and the image-tool workspace.",
@@ -594,10 +621,12 @@ export const localDashboardMcpTools = [
   "generate_saved_image",
   "list_flux3_videos",
   "list_video_upscales",
+  "list_video_edits",
   "list_evaluations",
   "update_evaluation",
   "generate_flux3_video",
   "upscale_video",
+  "edit_video",
   "run_image_tool",
   "save_prompt",
   "delete_prompt",

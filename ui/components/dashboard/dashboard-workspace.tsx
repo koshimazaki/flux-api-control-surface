@@ -6,22 +6,29 @@ import { PromptEditor } from "@/components/prompt-editor";
 import { PromptLibrary } from "@/components/prompt-library";
 import { RunPanel } from "@/components/run-panel";
 import { ToolRunPanel } from "@/components/tool-run-panel";
-import { WorkspaceModeTabs } from "@/components/workspace-mode-tabs";
+import { VideoEditWorkspace } from "@/components/video-edit-workspace";
 import { VideoUpscaleWorkspace } from "@/components/video-upscale-workspace";
+import { WorkspaceModeTabs } from "@/components/workspace-mode-tabs";
 import { clampBatchCount, clampReferenceWeight } from "@/lib/dashboard-generation";
 import { downloadText, formatPrompt } from "@/lib/prompt-utils";
 import type { DashboardState } from "@/lib/use-dashboard-state";
-import type { ImageWorkspaceMode } from "@/lib/types";
+import { isImageWorkspaceMode } from "@/lib/workspace-media";
 
 export function DashboardWorkspace({ state }: { state: DashboardState }) {
   const isFlux3Mode = state.workspaceMode === "flux3";
+  const isEditMode = state.workspaceMode === "edit";
   const isUpscaleMode = state.workspaceMode === "upscale";
-  const isVideoMode = isFlux3Mode || isUpscaleMode;
-  const imageToolMode: ImageWorkspaceMode | null =
-    state.workspaceMode === "prompt" || state.workspaceMode === "flux3" || state.workspaceMode === "upscale"
-      ? null
-      : state.workspaceMode;
+  const isVideoMode = state.workspaceMediaKind === "video";
+  const imageToolMode = isImageWorkspaceMode(state.workspaceMode) ? state.workspaceMode : null;
   const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isVideoMode);
+  const modeTabs = (
+    <WorkspaceModeTabs
+      value={state.workspaceMode}
+      flux3SourceMode={state.flux3SourceMode}
+      onChange={state.setWorkspaceMode}
+      onFlux3SourceModeChange={state.setFlux3SourceMode}
+    />
+  );
   const toolPromptText =
     imageToolMode === "vto" ? state.vtoPromptText : imageToolMode === "outpaint" ? state.outpaintPromptText : "";
   const setToolPromptText =
@@ -73,7 +80,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
   if (isFlux3Mode) {
     return (
       <section className={["workspace", "flux3Mode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
-        <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+        {modeTabs}
         {promptLibrary}
         <Flux3VideoWorkspace
           apiKey={state.apiKey}
@@ -85,6 +92,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           startVideo={state.flux3StartVideo}
           onStartVideoChange={state.setFlux3StartVideo}
           promptSeed={state.flux3PromptSeed}
+          onSendToEdit={state.sendVideoToEdit}
           onSendToUpscale={state.sendVideoToUpscale}
           onGenerated={() => void state.checkBalance()}
           onOpenAssets={() => state.setActiveTab("assets")}
@@ -98,10 +106,31 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
     );
   }
 
+  if (isEditMode) {
+    return (
+      <section className={["workspace", "videoEditMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
+        {modeTabs}
+        {promptLibrary}
+        <VideoEditWorkspace
+          apiKey={state.apiKey}
+          assets={state.assets}
+          pendingSource={state.editSourceSeed}
+          onGenerated={() => void state.checkBalance()}
+          onOpenAssets={() => state.setActiveTab("assets")}
+          onSendToUpscale={state.sendVideoToUpscale}
+          generationQueue={state.generationQueue}
+          generationQueueSummary={state.generationQueueSummary}
+          generationQueueConcurrency={state.generationQueueConcurrency}
+          generationQueueControls={state.generationQueueControls}
+        />
+      </section>
+    );
+  }
+
   if (isUpscaleMode) {
     return (
       <section className={["workspace", "videoUpscaleMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
-        <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+        {modeTabs}
         {promptLibrary}
         <VideoUpscaleWorkspace
           apiKey={state.apiKey}
@@ -120,7 +149,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
 
   return (
     <section className={["workspace", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
-      <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+      {modeTabs}
       {promptLibrary}
       <div className="workspaceMain">
         {imageToolMode ? (

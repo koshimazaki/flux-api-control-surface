@@ -15,6 +15,7 @@ import {
   type VideoUpscaleSourceInput
 } from "@/lib/video-upscale";
 import type { AssetRecord } from "@/lib/types";
+import { inspectVideo, readFileAsDataUrl } from "@/lib/video-media-client";
 
 type SourceVideo = {
   id: string;
@@ -39,29 +40,6 @@ type VideoUpscaleWorkspaceProps = {
   generationQueueConcurrency: number;
   generationQueueControls?: JobQueueControls;
 };
-
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error(`Could not read ${file.name}.`));
-    reader.readAsDataURL(file);
-  });
-}
-
-function inspectVideo(source: string) {
-  return new Promise<{ width?: number; height?: number; duration?: number }>((resolve) => {
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.onloadedmetadata = () => resolve({
-      width: video.videoWidth || undefined,
-      height: video.videoHeight || undefined,
-      duration: Number.isFinite(video.duration) ? video.duration : undefined
-    });
-    video.onerror = () => resolve({});
-    video.src = source;
-  });
-}
 
 export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);

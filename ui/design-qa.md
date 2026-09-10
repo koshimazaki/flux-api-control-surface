@@ -446,3 +446,29 @@ passed. Live checks verified Images → Upscale → FLUX 3 retention, Asset send
 Images routing, theme and source-mode recovery after reload, and no browser
 warning or error in the clean preview. No API, MCP, paid inference, credential
 or remote state changed.
+
+## Human follow-up: Video Edit and a flat video tool rail
+
+The operator added FLUX Video Edit as a workspace and chose to promote FLUX 3's
+Text, Frames and Continue into the top video rail beside Edit and Upscale, so
+the Video domain reads like the Image domain: one equal-width tab per tool.
+"Frames" replaces "Images" because those inputs are pinned keyframes on a
+timeline and Images already names the image domain. The three FLUX 3 tabs open
+one shared workspace; switching between them keeps prompt, duration, aspect,
+resolution, audio and draft choices, and the panel header names the active
+mode. The in-panel three-card picker is gone.
+
+Video Edit: a source-clip slot in the controls rail (the video counterpart of
+a VTO garment slot) plus a whole-panel drop stage; a required instruction with
+a 4,096-character counter and starters drawn from BFL's editing guide; safety
+0–4; an output note (source length, aspect and audio, 24 fps, at most 720p)
+and a $0.03-per-second estimate. Results play in the before/after fader,
+"Edit again" chains the result as the next source, and the header hands an
+edit to Upscale. Library cards and the lightbox gain an Edit action for video
+assets, and asset badges recognise the new role.
+
+Verification: TypeScript passed; 75 files / 568 tests passed; lint reports
+zero errors and four inherited warnings. The production build and the live
+browser pass are pending: two dev servers were sharing `.next`, and the
+browser extension was not connected. No API key, paid inference or remote
+state changed.

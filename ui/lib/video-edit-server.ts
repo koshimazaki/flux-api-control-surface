@@ -2,30 +2,26 @@ import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { slugify } from "@/lib/bfl-server";
 import { toWorkspaceRelativePath } from "@/lib/local-paths";
-import type { VideoUpscaleCreativity, VideoUpscaleResult } from "@/lib/video-upscale";
+import { VIDEO_EDIT_MODEL, type VideoEditResult } from "@/lib/video-edit";
 
-export const VIDEO_UPSCALE_OUTPUT_ROOT = path.resolve(
+export const VIDEO_EDIT_OUTPUT_ROOT = path.resolve(
   process.cwd(),
   "..",
   "outputs",
   "flux-api-control-surface",
-  "video-upscale"
+  "video-edit"
 );
 
-type SavedVideoUpscaleMetadata = {
+type SavedVideoEditMetadata = {
   id: string;
   title: string;
   prompt: string;
-  model: "flux-tools-video-upscale-v1";
+  model: typeof VIDEO_EDIT_MODEL;
   createdAt: string;
-  upscaleFactor: number;
-  creativity: VideoUpscaleCreativity;
   safetyTolerance: number;
   sourceWidth?: number;
   sourceHeight?: number;
   durationSeconds?: number;
-  outputWidth?: number;
-  outputHeight?: number;
   estimatedUsd?: number | null;
   sourceAssetId?: string | null;
   sourceName?: string;
@@ -59,22 +55,18 @@ function videoExtension(contentType: string) {
   return "mp4";
 }
 
-function resultFromMetadata(metadata: SavedVideoUpscaleMetadata): VideoUpscaleResult {
+function resultFromMetadata(metadata: SavedVideoEditMetadata): VideoEditResult {
   return {
     id: metadata.id,
     title: metadata.title,
     prompt: metadata.prompt,
     createdAt: metadata.createdAt,
-    sourceVideoUrl: `/api/bfl/video-upscale/${encodeURIComponent(metadata.id)}?kind=source`,
-    videoUrl: `/api/bfl/video-upscale/${encodeURIComponent(metadata.id)}`,
-    upscaleFactor: metadata.upscaleFactor,
-    creativity: metadata.creativity,
+    sourceVideoUrl: `/api/bfl/video-edit/${encodeURIComponent(metadata.id)}?kind=source`,
+    videoUrl: `/api/bfl/video-edit/${encodeURIComponent(metadata.id)}`,
     safetyTolerance: metadata.safetyTolerance,
     sourceWidth: metadata.sourceWidth,
     sourceHeight: metadata.sourceHeight,
     durationSeconds: metadata.durationSeconds,
-    outputWidth: metadata.outputWidth,
-    outputHeight: metadata.outputHeight,
     estimatedUsd: metadata.estimatedUsd,
     costCredits: metadata.submit?.cost ?? null,
     creditsAfter: metadata.submit?.creditsAfter ?? null,
@@ -83,10 +75,8 @@ function resultFromMetadata(metadata: SavedVideoUpscaleMetadata): VideoUpscaleRe
   };
 }
 
-// Input resolution (data URLs, remote URLs, saved local clips) lives in
-// lib/video-input-server.ts so Video Upscale and Video Edit share it.
-
-export async function saveVideoUpscaleOutput(options: {
+/** Saves the source beside the edited clip so the before/after fader survives a reload. */
+export async function saveVideoEditOutput(options: {
   id: string;
   title: string;
   prompt: string;
@@ -94,17 +84,17 @@ export async function saveVideoUpscaleOutput(options: {
   sourceContentType: string;
   videoBuffer: Buffer;
   videoContentType: string;
-  metadata: Omit<SavedVideoUpscaleMetadata, "outputSourceFileName" | "outputFileName" | "outputFiles"> & Record<string, unknown>;
+  metadata: Omit<SavedVideoEditMetadata, "outputSourceFileName" | "outputFileName" | "outputFiles"> & Record<string, unknown>;
 }) {
   const createdAt = options.metadata.createdAt || new Date().toISOString();
   const date = createdAt.slice(0, 10);
   const stamp = createdAt.replace(/[:.]/g, "-");
-  const safeTitle = slugify(options.title) || "video-upscale";
+  const safeTitle = slugify(options.title) || "video-edit";
   const safeId = slugify(options.id) || `${Date.now()}`;
   const baseName = `${stamp}_${safeTitle}_${safeId}`;
-  const outputDir = path.join(VIDEO_UPSCALE_OUTPUT_ROOT, date);
+  const outputDir = path.join(VIDEO_EDIT_OUTPUT_ROOT, date);
   const sourceFileName = `${baseName}.source.${videoExtension(options.sourceContentType)}`;
-  const outputFileName = `${baseName}.upscaled.${videoExtension(options.videoContentType)}`;
+  const outputFileName = `${baseName}.edited.${videoExtension(options.videoContentType)}`;
   const promptFileName = `${baseName}.prompt.txt`;
   const metadataFileName = `${baseName}.json`;
   await mkdir(outputDir, { recursive: true });
@@ -114,7 +104,7 @@ export async function saveVideoUpscaleOutput(options: {
     promptPath: toWorkspaceRelativePath(path.join(outputDir, promptFileName)),
     metadataPath: toWorkspaceRelativePath(path.join(outputDir, metadataFileName))
   };
-  const metadata: SavedVideoUpscaleMetadata = {
+  const metadata: SavedVideoEditMetadata = {
     ...options.metadata,
     outputSourceFileName: sourceFileName,
     outputFileName,
@@ -130,25 +120,25 @@ export async function saveVideoUpscaleOutput(options: {
 }
 
 async function readMetadataFiles() {
-  const files = (await walk(VIDEO_UPSCALE_OUTPUT_ROOT)).filter((file) => file.endsWith(".json"));
+  const files = (await walk(VIDEO_EDIT_OUTPUT_ROOT)).filter((file) => file.endsWith(".json"));
   const items = await Promise.all(files.map(async (metadataPath) => {
     const [text, fileStat] = await Promise.all([readFile(metadataPath, "utf8"), stat(metadataPath)]);
-    const metadata = JSON.parse(text) as SavedVideoUpscaleMetadata;
-    if (metadata.model !== "flux-tools-video-upscale-v1" || !metadata.id || !metadata.outputFileName) return null;
+    const metadata = JSON.parse(text) as SavedVideoEditMetadata;
+    if (metadata.model !== VIDEO_EDIT_MODEL || !metadata.id || !metadata.outputFileName) return null;
     return { metadataPath, fileStat, metadata };
   }));
   return items.filter(Boolean).sort((a, b) => b!.fileStat.mtimeMs - a!.fileStat.mtimeMs) as Array<{
     metadataPath: string;
     fileStat: Awaited<ReturnType<typeof stat>>;
-    metadata: SavedVideoUpscaleMetadata;
+    metadata: SavedVideoEditMetadata;
   }>;
 }
 
-export async function listVideoUpscaleOutputs(limit = 20) {
+export async function listVideoEditOutputs(limit = 20) {
   return (await readMetadataFiles()).slice(0, Math.max(0, limit)).map(({ metadata }) => resultFromMetadata(metadata));
 }
 
-export async function findVideoUpscaleOutput(id: string, kind: "video" | "source" = "video") {
+export async function findVideoEditOutput(id: string, kind: "video" | "source" = "video") {
   const item = (await readMetadataFiles()).find(({ metadata }) => metadata.id === id);
   if (!item) return null;
   const fileName = kind === "source" ? item.metadata.outputSourceFileName : item.metadata.outputFileName;
