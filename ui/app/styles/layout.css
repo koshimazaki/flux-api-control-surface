@@ -296,6 +296,13 @@ h2 {
   margin-top: 14px;
   align-items: stretch;
   height: clamp(680px, calc(100vh - 132px), 900px);
+  /* The rail collapses and the domains use different column widths, and both
+     snapped. Easing the track sizes turns a jump into a move. */
+  transition: grid-template-columns 260ms var(--ease-out, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace { transition: none; }
 }
 
 .workspace.libraryCollapsed {

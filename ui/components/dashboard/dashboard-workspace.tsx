@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Flux3VideoWorkspace } from "@/components/flux3-video-workspace";
 import { GenerateReferenceControls } from "@/components/generate-reference-controls";
 import { ImageToolWorkspace } from "@/components/image-tool-workspace";
@@ -66,6 +66,21 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
       onSaveTemplatePrompt={(compiled) => void state.saveVideoPromptToLibrary(compiled)}
     />
   );
+
+  // The video tools are wide and the prompt rail is not used there, so entering
+  // the Video domain folds it away and leaving restores however it was left.
+  const lastMediaKind = useRef(state.workspaceMediaKind);
+  const collapsedBeforeVideo = useRef(libraryCollapsed);
+  useEffect(() => {
+    if (lastMediaKind.current === state.workspaceMediaKind) return;
+    if (state.workspaceMediaKind === "video") {
+      collapsedBeforeVideo.current = libraryCollapsed;
+      setLibraryCollapsed(true);
+    } else {
+      setLibraryCollapsed(collapsedBeforeVideo.current);
+    }
+    lastMediaKind.current = state.workspaceMediaKind;
+  }, [libraryCollapsed, state.workspaceMediaKind]);
 
   useEffect(() => {
     const compactQuery = window.matchMedia("(max-width: 900px)");
