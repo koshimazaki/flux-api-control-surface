@@ -45,27 +45,14 @@
   font-size: 10px;
 }
 
+/* Geometry comes from `.videoStage`; this only adds the FLUX 3 ground. */
 .flux3Viewer {
   position: relative;
-  min-height: 420px;
-  flex: 1 1 auto;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
   background:
     radial-gradient(circle at 50% 35%, rgba(85, 102, 89, 0.22), transparent 46%),
-    #020504;
-}
-
-.flux3Viewer > video {
-  display: block;
-  width: 100%;
-  height: 100%;
-  max-height: 660px;
-  object-fit: contain;
-  background: #020504;
+    var(--video-stage-bg);
 }
 
 .flux3ViewerEmpty {
@@ -454,10 +441,6 @@
 
   .workspace.flux3Mode.libraryCollapsed {
     grid-template-columns: 1fr;
-  }
-
-  .flux3Viewer {
-    min-height: 300px;
   }
 
   .flux3ResultBar,

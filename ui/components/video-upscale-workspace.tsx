@@ -16,6 +16,7 @@ import {
 } from "@/lib/video-upscale";
 import type { AssetRecord } from "@/lib/types";
 import { inspectVideo, readFileAsDataUrl } from "@/lib/video-media-client";
+import { videoStageStyle } from "@/lib/video-stage";
 
 type SourceVideo = {
   id: string;
@@ -224,11 +225,18 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
           <VideoComparisonFader beforeUrl={selected.sourceVideoUrl} afterUrl={selected.videoUrl} />
         ) : source ? (
           <div className="videoUpscaleSourcePreview">
-            <video src={source.source} controls playsInline preload="metadata" />
+            <video
+              className="videoStage"
+              style={videoStageStyle(source.width && source.height ? { width: source.width, height: source.height } : null)}
+              src={source.source}
+              controls
+              playsInline
+              preload="metadata"
+            />
             <div><Film size={16} /><strong>{source.name}</strong><button type="button" onClick={() => setSource(null)} title="Remove source"><X size={14} /></button></div>
           </div>
         ) : (
-          <button className="videoUpscaleDrop" type="button" onClick={() => inputRef.current?.click()}>
+          <button className="videoUpscaleDrop videoStage" type="button" onClick={() => inputRef.current?.click()}>
             <Upload size={28} />
             <strong>Drop an MP4 or saved FLUX 3 video</strong>
             <span>Maximum 50 MB · 20 seconds · 2560 × 1440 input</span>

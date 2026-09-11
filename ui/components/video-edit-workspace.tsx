@@ -19,6 +19,7 @@ import {
   type VideoEditSourceInput
 } from "@/lib/video-edit";
 import { inspectVideo, readFileAsDataUrl } from "@/lib/video-media-client";
+import { videoStageStyle } from "@/lib/video-stage";
 import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 
 type SourceVideo = {
@@ -263,7 +264,14 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
           <VideoComparisonFader beforeUrl={selected.sourceVideoUrl} afterUrl={selected.videoUrl} afterLabel="Edited" />
         ) : source ? (
           <div className="videoEditSourcePreview">
-            <video src={source.source} controls playsInline preload="metadata" />
+            <video
+              className="videoStage"
+              style={videoStageStyle(source.width && source.height ? { width: source.width, height: source.height } : null)}
+              src={source.source}
+              controls
+              playsInline
+              preload="metadata"
+            />
             <div>
               <Film size={16} />
               <strong>{source.name}</strong>
@@ -272,7 +280,7 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
             </div>
           </div>
         ) : (
-          <button className="videoEditDrop" type="button" onClick={() => inputRef.current?.click()}>
+          <button className="videoEditDrop videoStage" type="button" onClick={() => inputRef.current?.click()}>
             <Upload size={28} />
             <strong>Drop an MP4 or a saved video</strong>
             <span>Maximum 50 MB · 15 seconds · the edit keeps the source length, aspect ratio, and audio · up to 720p</span>

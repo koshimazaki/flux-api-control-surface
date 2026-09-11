@@ -6,6 +6,7 @@ import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
 import type { VideoEditSourceInput } from "@/lib/video-edit";
+import { videoAspectFromEvent, videoStageStyle, type VideoStageAspect } from "@/lib/video-stage";
 import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 import type { GenerationQueueJob, GenerationQueueSummary } from "@/lib/generation-queue";
 import {
@@ -84,6 +85,8 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   // running on the server queue, so this must never read as a failure — that
   // would invite a second paid Generate for work already in flight.
   const [pendingQueueJobId, setPendingQueueJobId] = useState<string | null>(null);
+  // The selected render sizes the stage; an empty stage keeps the 16:9 default.
+  const [stageAspect, setStageAspect] = useState<VideoStageAspect | null>(null);
   const selected = results.find((item) => item.id === selectedId) || results[0] || null;
   const maxDuration = flux3MaxDuration(mode);
 
@@ -294,9 +297,16 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
             </span>
           </div>
         </PanelHeader>
-        <div className="flux3Viewer">
+        <div className="flux3Viewer videoStage" style={videoStageStyle(stageAspect)}>
           {selected ? (
-            <video key={selected.videoUrl} src={selected.videoUrl} controls playsInline preload="metadata" />
+            <video
+              key={selected.videoUrl}
+              src={selected.videoUrl}
+              controls
+              playsInline
+              preload="metadata"
+              onLoadedMetadata={(event) => setStageAspect(videoAspectFromEvent(event))}
+            />
           ) : (
             <div className="flux3ViewerEmpty">
               <Film size={38} />

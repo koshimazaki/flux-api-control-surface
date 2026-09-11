@@ -1,0 +1,47 @@
+/* One stage geometry for every video tool.
+   FLUX 3, Video Edit, and Video Upscale previously each declared their own
+   min-heights (420 / 520 / 540) and let the box absorb whatever space the panel
+   had left, so the window changed size between tools and jumped whenever a
+   result bar appeared. The box is now sized by the clip's own aspect ratio,
+   bounded by one shared maximum, so playback is native and the window is
+   identical everywhere. */
+.dsgn-root {
+  --video-stage-aspect-w: 16;
+  --video-stage-aspect-h: 9;
+  --video-stage-max-height: 560px;
+  --video-stage-min-height: 220px;
+  --video-stage-bg: #050708;
+}
+
+.videoStage {
+  /* Never taller than the shared maximum, and narrowed to match when a portrait
+     clip would otherwise exceed it — so a tall clip letterboxes nothing. */
+  width: min(100%, calc(var(--video-stage-max-height) * var(--video-stage-aspect-w) / var(--video-stage-aspect-h)));
+  height: auto;
+  aspect-ratio: var(--video-stage-aspect-w) / var(--video-stage-aspect-h);
+  min-height: var(--video-stage-min-height);
+  max-height: var(--video-stage-max-height);
+  /* The panels are flex columns; the stage must not absorb their spare height. */
+  flex: 0 0 auto;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--border-default, var(--line));
+  border-radius: var(--radius-md, 8px);
+  background: var(--video-stage-bg);
+}
+
+video.videoStage,
+.videoStage > video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--video-stage-bg);
+}
+
+@media (max-width: 900px) {
+  .dsgn-root {
+    --video-stage-max-height: 360px;
+    --video-stage-min-height: 180px;
+  }
+}

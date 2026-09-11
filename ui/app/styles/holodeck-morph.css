@@ -458,7 +458,8 @@ body::before {
   color: var(--acc-intel-strong);
 }
 
-.dsgn-root .flux3Viewer,
+/* Every video stage (FLUX 3, Edit, Upscale) shares one material, not just one size. */
+.dsgn-root .videoStage,
 .dsgn-root .imageToolCanvas,
 .dsgn-root .maskPaintViewport,
 .dsgn-root .outpaintViewport,

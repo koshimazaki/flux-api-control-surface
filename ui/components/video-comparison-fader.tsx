@@ -1,5 +1,6 @@
 import { Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { videoAspectFromEvent, videoStageStyle, type VideoStageAspect } from "@/lib/video-stage";
 
 type VideoComparisonFaderProps = {
   beforeUrl: string;
@@ -13,6 +14,8 @@ export function VideoComparisonFader({ beforeUrl, afterUrl, beforeLabel = "Sourc
   const afterRef = useRef<HTMLVideoElement | null>(null);
   const [split, setSplit] = useState(50);
   const [playing, setPlaying] = useState(false);
+  // The source and its result share a frame size, so the source sets the stage.
+  const [aspect, setAspect] = useState<VideoStageAspect | null>(null);
 
   useEffect(() => {
     setPlaying(false);
@@ -48,7 +51,7 @@ export function VideoComparisonFader({ beforeUrl, afterUrl, beforeLabel = "Sourc
 
   return (
     <div className="videoCompare">
-      <div className="videoCompareStage">
+      <div className="videoCompareStage videoStage" style={videoStageStyle(aspect)}>
         <video
           ref={beforeRef}
           src={beforeUrl}
@@ -58,6 +61,7 @@ export function VideoComparisonFader({ beforeUrl, afterUrl, beforeLabel = "Sourc
           preload="metadata"
           onTimeUpdate={synchronize}
           onPause={() => setPlaying(false)}
+          onLoadedMetadata={(event) => setAspect(videoAspectFromEvent(event))}
           aria-label={`${beforeLabel} video`}
         />
         <div className="videoCompareAfter" style={{ clipPath: `inset(0 0 0 ${split}%)` }}>

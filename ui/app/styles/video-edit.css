@@ -37,9 +37,8 @@
   outline-offset: -6px;
 }
 
+/* Size comes from `.videoStage`, shared with FLUX 3 and Upscale. */
 .videoEditDrop {
-  min-height: 540px;
-  flex: 1 1 auto;
   display: grid;
   place-items: center;
   align-content: center;
@@ -58,22 +57,10 @@
   text-align: center;
 }
 
+/* The clip itself is the stage; the caption sits under it as chrome. */
 .videoEditSourcePreview {
-  min-height: 520px;
-  flex: 1 1 auto;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  overflow: hidden;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: #080a0c;
-}
-
-.videoEditSourcePreview video {
-  width: 100%;
-  height: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  gap: 6px;
 }
 
 .videoEditSourcePreview > div,
@@ -179,7 +166,5 @@
 @media (max-width: 900px) {
   .workspace.videoEditMode { grid-template-columns: 1fr; grid-template-areas: "modes" "library" "main"; }
   .workspace.videoEditMode.libraryCollapsed { grid-template-columns: 1fr; }
-  .videoEditDrop,
-  .videoEditSourcePreview { min-height: 320px; }
   .videoEditResultBar { align-items: flex-start; flex-direction: column; }
 }
