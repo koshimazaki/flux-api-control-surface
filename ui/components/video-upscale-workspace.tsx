@@ -15,6 +15,7 @@ import {
   type VideoUpscaleSourceInput
 } from "@/lib/video-upscale";
 import type { AssetRecord } from "@/lib/types";
+import { usePauseHiddenMedia } from "@/lib/use-pause-hidden-media";
 import { inspectVideo, readFileAsDataUrl } from "@/lib/video-media-client";
 import { videoStageStyle } from "@/lib/video-stage";
 
@@ -30,6 +31,8 @@ type SourceVideo = {
 };
 
 type VideoUpscaleWorkspaceProps = {
+  /** False while another video tool is on screen: this one stays mounted but hidden. */
+  active: boolean;
   apiKey: string;
   assets: AssetRecord[];
   /** Video sent from another surface (library card, FLUX 3 header); nonce re-applies repeat sends. */
@@ -43,6 +46,7 @@ type VideoUpscaleWorkspaceProps = {
 };
 
 export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
+  const rootRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [source, setSource] = useState<SourceVideo | null>(null);
   const [isDropActive, setIsDropActive] = useState(false);
@@ -57,6 +61,7 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
   const selected = selectedId ? results.find((item) => item.id === selectedId) || null : null;
+  usePauseHiddenMedia(rootRef, props.active);
   const request = useMemo<VideoUpscaleRequest>(() => ({
     inputVideo: source?.source || "",
     upscaleFactor: factor,
@@ -198,7 +203,7 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
   }
 
   return (
-    <section className="videoUpscaleWorkspace">
+    <section className="videoUpscaleWorkspace" ref={rootRef} hidden={!props.active}>
       {/* The whole preview panel accepts drops: a saved result or current source
           replaces the empty dropzone, and dropping a new clip must still work. */}
       <div

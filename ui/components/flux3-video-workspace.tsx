@@ -1,11 +1,12 @@
 import { Download, Film, PencilLine, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Flux3MediaDropzone, type Flux3InputMedia } from "@/components/flux3-media-dropzone";
 import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
 import type { VideoEditSourceInput } from "@/lib/video-edit";
+import { usePauseHiddenMedia } from "@/lib/use-pause-hidden-media";
 import { videoAspectFromEvent, videoStageStyle, type VideoStageAspect } from "@/lib/video-stage";
 import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 import type { GenerationQueueJob, GenerationQueueSummary } from "@/lib/generation-queue";
@@ -24,6 +25,8 @@ import {
 import type { AssetRecord } from "@/lib/types";
 
 type Flux3VideoWorkspaceProps = {
+  /** False while another video tool is on screen: this one stays mounted but hidden. */
+  active: boolean;
   apiKey: string;
   assets: AssetRecord[];
   mode: Flux3SourceMode;
@@ -87,6 +90,9 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   const [pendingQueueJobId, setPendingQueueJobId] = useState<string | null>(null);
   // The selected render sizes the stage; an empty stage keeps the 16:9 default.
   const [stageAspect, setStageAspect] = useState<VideoStageAspect | null>(null);
+  const [viewerLoading, setViewerLoading] = useState(false);
+  const rootRef = useRef<HTMLElement | null>(null);
+  usePauseHiddenMedia(rootRef, props.active);
   const selected = results.find((item) => item.id === selectedId) || results[0] || null;
   const maxDuration = flux3MaxDuration(mode);
 
@@ -272,7 +278,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   }
 
   return (
-    <section className="flux3VideoWorkspace">
+    <section className="flux3VideoWorkspace" ref={rootRef} hidden={!props.active}>
       <div className="flux3PreviewPanel panel">
         <PanelHeader title="FLUX 3 Video" subtitle="Synchronized picture, speech, effects, and ambience in one request">
           <div className="flux3HeaderTools">
@@ -297,7 +303,11 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
             </span>
           </div>
         </PanelHeader>
-        <div className="flux3Viewer videoStage" style={videoStageStyle(stageAspect)}>
+        <div
+          className="flux3Viewer videoStage"
+          data-loading={selected && viewerLoading ? "true" : undefined}
+          style={videoStageStyle(stageAspect)}
+        >
           {selected ? (
             <video
               key={selected.videoUrl}
@@ -305,6 +315,10 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
               controls
               playsInline
               preload="metadata"
+              onLoadStart={() => setViewerLoading(true)}
+              onLoadedData={() => setViewerLoading(false)}
+              onCanPlay={() => setViewerLoading(false)}
+              onError={() => setViewerLoading(false)}
               onLoadedMetadata={(event) => setStageAspect(videoAspectFromEvent(event))}
             />
           ) : (

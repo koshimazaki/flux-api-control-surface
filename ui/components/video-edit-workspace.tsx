@@ -20,6 +20,7 @@ import {
   type VideoEditResult,
   type VideoEditSourceInput
 } from "@/lib/video-edit";
+import { usePauseHiddenMedia } from "@/lib/use-pause-hidden-media";
 import { inspectVideo, readFileAsDataUrl } from "@/lib/video-media-client";
 import { videoStageStyle } from "@/lib/video-stage";
 import {
@@ -44,6 +45,8 @@ type SourceVideo = {
 };
 
 type VideoEditWorkspaceProps = {
+  /** False while another video tool is on screen: this one stays mounted but hidden. */
+  active: boolean;
   apiKey: string;
   assets: AssetRecord[];
   /** Clip handed over from another surface (library card, lightbox, FLUX 3 header); the nonce re-applies repeat sends. */
@@ -66,9 +69,11 @@ function sourceMeta(source: SourceVideo) {
 }
 
 export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
+  const rootRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const promptRef = useRef<HTMLTextAreaElement | null>(null);
   const sourceVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [sourceLoading, setSourceLoading] = useState(false);
   const [source, setSource] = useState<SourceVideo | null>(null);
   const [isDropActive, setIsDropActive] = useState(false);
   const [isSlotDropActive, setIsSlotDropActive] = useState(false);
@@ -177,10 +182,13 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
     return () => { cancelled = true; };
   }, [props.pendingSource]);
 
+  usePauseHiddenMedia(rootRef, props.active);
+
   // Space plays and pauses the clip, the way every editor behaves — but never
-  // while the caret is in the prompt or another field, where space is a space.
+  // while the caret is in the prompt or another field, where space is a space,
+  // and never while another video tool is the one on screen.
   useEffect(() => {
-    if (!source || selected) return;
+    if (!props.active || !source || selected) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.code !== "Space" && event.key !== " ") return;
       const target = event.target as HTMLElement | null;
@@ -231,6 +239,7 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
     setSelectedId(null);
     setError("");
     setPlayheadSeconds(0);
+    setSourceLoading(true);
     const overLength = needsTrimForEdit(next.duration);
     // An over-length clip cannot be edited at all, so open the bracket for it
     // straight away rather than leaving the run button disabled with a message.
@@ -375,7 +384,7 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
   const promptLength = prompt.trim().length;
 
   return (
-    <section className="videoEditWorkspace">
+    <section className="videoEditWorkspace" ref={rootRef} hidden={!props.active}>
       {/* The whole preview panel accepts drops, like Video Upscale: a saved result
           or the current source replaces the empty dropzone, and a new clip must
           still be able to land. */}
@@ -435,8 +444,12 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
           <div className="videoEditSourcePreview">
             <video
               className="videoStage"
+              data-loading={sourceLoading ? "true" : undefined}
               style={videoStageStyle(source.width && source.height ? { width: source.width, height: source.height } : null)}
               ref={sourceVideoRef}
+              onLoadedData={() => setSourceLoading(false)}
+              onCanPlay={() => setSourceLoading(false)}
+              onError={() => setSourceLoading(false)}
               src={source.source}
               controls
               playsInline

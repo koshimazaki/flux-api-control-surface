@@ -35,6 +35,34 @@
   background: var(--video-stage-bg);
 }
 
+/* Hidden tabs stay mounted, so their state and buffered media survive. The
+   workspace roots set `display`, which would otherwise beat the `hidden`
+   attribute's default. */
+.flux3VideoWorkspace[hidden],
+.videoEditWorkspace[hidden],
+.videoUpscaleWorkspace[hidden] {
+  display: none !important;
+}
+
+/* A clip that has not painted its first frame is transparent, so the stage's
+   own background shows through: a blocky shimmer on a step timing reads as
+   loading without a spinner over the picture. */
+@keyframes video-stage-loading {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 64px 0, -64px 0; }
+}
+
+.videoStage[data-loading="true"] {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 8px, transparent 8px 16px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 8px, transparent 8px 16px);
+  animation: video-stage-loading 1.2s steps(8) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .videoStage[data-loading="true"] { animation: none; }
+}
+
 video.videoStage,
 .videoStage > video {
   display: block;

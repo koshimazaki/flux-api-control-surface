@@ -77,12 +77,18 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
     return () => compactQuery.removeEventListener("change", syncCollapsedState);
   }, []);
 
-  if (isFlux3Mode) {
+  if (isVideoMode) {
+    // All three video tools stay mounted and the inactive ones are hidden.
+    // Returning a different tree per tab unmounted the last one, which threw
+    // away its saved-result list, its loaded clip and its buffered video, so
+    // every tab change refetched and reloaded — the jump and the reloading.
+    const videoModeClass = isEditMode ? "videoEditMode" : isUpscaleMode ? "videoUpscaleMode" : "flux3Mode";
     return (
-      <section className={["workspace", "flux3Mode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
+      <section className={["workspace", videoModeClass, libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
         {modeTabs}
         {promptLibrary}
         <Flux3VideoWorkspace
+          active={isFlux3Mode}
           apiKey={state.apiKey}
           assets={state.assets}
           mode={state.flux3SourceMode}
@@ -102,16 +108,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           generationQueueControls={state.generationQueueControls}
           libraryPrompt={state.visiblePrompts.find((prompt) => prompt.id === state.activeId)?.prompt}
         />
-      </section>
-    );
-  }
-
-  if (isEditMode) {
-    return (
-      <section className={["workspace", "videoEditMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
-        {modeTabs}
-        {promptLibrary}
         <VideoEditWorkspace
+          active={isEditMode}
           apiKey={state.apiKey}
           assets={state.assets}
           pendingSource={state.editSourceSeed}
@@ -123,16 +121,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           generationQueueConcurrency={state.generationQueueConcurrency}
           generationQueueControls={state.generationQueueControls}
         />
-      </section>
-    );
-  }
-
-  if (isUpscaleMode) {
-    return (
-      <section className={["workspace", "videoUpscaleMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
-        {modeTabs}
-        {promptLibrary}
         <VideoUpscaleWorkspace
+          active={isUpscaleMode}
           apiKey={state.apiKey}
           assets={state.assets}
           pendingSource={state.upscaleSourceSeed}
