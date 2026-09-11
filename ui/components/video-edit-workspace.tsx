@@ -98,6 +98,27 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
   }), [prompt, safetyTolerance, source]);
   const blocker = videoEditRequestBlocker(request);
   const estimatedUsd = estimateVideoEditUsd(request);
+  // The cut needs a clip and its measured length; everything else is explained
+  // in the tooltip rather than by hiding the control.
+  const canCut = Boolean(source?.duration);
+  const cutTooltip = !source
+    ? "Load a clip to cut it"
+    : !source.duration
+      ? "Reading the clip's length…"
+      : trimOpen && !selected
+        ? "Hide the cut timeline"
+        : "Cut this clip to 15 seconds";
+
+  /** Opening the bracket returns to the source, so the timeline is on screen with it. */
+  function toggleCut() {
+    if (!canCut) return;
+    if (selected) {
+      setSelectedId(null);
+      setTrimOpen(true);
+      return;
+    }
+    setTrimOpen((open) => !open);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -305,16 +326,17 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
       >
         <PanelHeader title="Video Edit" subtitle="FLUX VIDEO EDIT · DESCRIBE THE CHANGE, KEEP THE SHOT">
           <div className="flux3HeaderTools">
-            {source?.duration && !selected && (
-              <IconButton
-                title={trimOpen ? "Hide the cut timeline" : "Cut this clip to 15 seconds"}
-                className={trimOpen ? "active" : undefined}
-                aria-pressed={trimOpen}
-                onClick={() => setTrimOpen((open) => !open)}
-              >
-                <Scissors size={15} />
-              </IconButton>
-            )}
+            {/* Always present while Edit is open, so the cut is discoverable
+                before a clip is loaded and while a result is on screen. */}
+            <IconButton
+              title={cutTooltip}
+              className={trimOpen && !selected ? "active" : undefined}
+              aria-pressed={trimOpen && !selected}
+              disabled={!canCut}
+              onClick={toggleCut}
+            >
+              <Scissors size={15} />
+            </IconButton>
             {selected && props.onSendToUpscale && (
               <IconButton
                 title="Send this edit to Video Upscale"
@@ -344,6 +366,16 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
               <Film size={16} />
               <strong>{source.name}</strong>
               <span>{sourceMeta(source)}</span>
+              <button
+                type="button"
+                className={`videoEditCutButton${trimOpen ? " active" : ""}`}
+                onClick={toggleCut}
+                disabled={!canCut}
+                title={cutTooltip}
+              >
+                <Scissors size={13} />
+                {trimOpen ? "Hide cut" : "Cut"}
+              </button>
               <button type="button" onClick={() => setSource(null)} title="Remove source"><X size={14} /></button>
             </div>
             {trimOpen && source.duration && (

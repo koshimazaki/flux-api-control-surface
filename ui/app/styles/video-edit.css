@@ -72,6 +72,23 @@
 }
 
 .videoEditSourcePreview > div { padding: 9px; }
+/* Sits with the clip's name, under the video, where the cut is being judged.
+   Scoped past `.videoEditSourcePreview button`, which squares every button there. */
+.videoEditSourcePreview .videoEditCutButton {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+.videoEditSourcePreview .videoEditCutButton.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text-primary);
+}
 .videoEditSourcePreview strong { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .videoEditSourcePreview > div > span { color: var(--text-muted); font-family: var(--font-mono); font-size: 10px; white-space: nowrap; }
 .videoEditSourcePreview button { width: 30px; min-height: 30px; padding: 0; }
