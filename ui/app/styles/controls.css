@@ -124,11 +124,11 @@
 
 .queueBox {
   display: grid;
-  gap: 9px;
+  gap: 7px;
   border: 1px solid var(--line);
   background: rgba(0, 0, 0, 0.28);
   border-radius: 8px;
-  padding: 10px;
+  padding: 9px;
 }
 
 .queueHeader {
@@ -193,9 +193,16 @@
 }
 
 .queueMeter span {
-  height: 6px;
+  /* A lane indicator, not a headline: thin enough to read at a glance. */
+  height: 3px;
   border-radius: 999px;
   background: rgba(243, 241, 230, 0.12);
+}
+
+.queueControlDanger {
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--accent) 46%, transparent) !important;
+  color: var(--accent-strong, var(--accent)) !important;
 }
 
 .queueMeter span.running {

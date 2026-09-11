@@ -435,6 +435,7 @@ export function useDashboardState() {
       onResume: () => void serverQueue.resume(),
       onRetry: (id: string) => void serverQueue.retry(id),
       onCancel: (id: string) => void serverQueue.cancel(id),
+      onDismiss: (id: string) => void serverQueue.dismiss(id),
       onPrioritize: (id: string, priority: number) => void serverQueue.prioritize(id, priority),
       onClearSettled: () => void serverQueue.clearSettled()
     }),

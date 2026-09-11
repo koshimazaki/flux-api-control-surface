@@ -14,6 +14,8 @@ export type JobQueueControls = {
   onResume: () => void;
   onRetry: (id: string) => void;
   onCancel: (id: string) => void;
+  /** Removes one settled job from the queue record; saved outputs are untouched. */
+  onDismiss?: (id: string) => void;
   onPrioritize: (id: string, priority: number) => void;
   onClearSettled: () => void;
 };
@@ -35,7 +37,8 @@ export function JobQueue({ queue, summary, concurrency, controls }: JobQueueProp
   const activeJobs = queue.filter((job) => ACTIVE_STATUSES.includes(job.status));
   const settledJobs = queue.filter((job) => !ACTIVE_STATUSES.includes(job.status));
   const visibleJobs = activeJobs.slice(0, 6);
-  const retryableJobs = settledJobs.filter((job) => job.status === "failed").slice(0, 3);
+  const failedJobs = settledJobs.filter((job) => job.status === "failed");
+  const retryableJobs = failedJobs.slice(0, 3);
   const meterSlots = Math.max(1, Math.min(concurrency, 12));
 
   return (
@@ -59,6 +62,17 @@ export function JobQueue({ queue, summary, concurrency, controls }: JobQueueProp
           <button type="button" onClick={controls.onClearSettled} disabled={!settledJobs.length}>
             Clear settled
           </button>
+          {/* A failed job stays on screen until it is dealt with, so the way to
+              deal with it belongs beside the other queue actions. */}
+          {failedJobs.length > 0 && controls.onDismiss && (
+            <button
+              type="button"
+              className="queueControlDanger"
+              onClick={() => failedJobs.forEach((job) => controls.onDismiss?.(job.id))}
+            >
+              Clear failed
+            </button>
+          )}
         </div>
       )}
       {controls?.paused && <p className="queueNotice">{controls.pauseReason || "Queue paused."}</p>}
@@ -98,6 +112,11 @@ export function JobQueue({ queue, summary, concurrency, controls }: JobQueueProp
                 <button type="button" onClick={() => controls.onRetry(job.id)}>
                   Retry
                 </button>
+                {controls.onDismiss && (
+                  <button type="button" onClick={() => controls.onDismiss?.(job.id)} title="Remove this job from the queue">
+                    Dismiss
+                  </button>
+                )}
               </div>
             </div>
           ))}

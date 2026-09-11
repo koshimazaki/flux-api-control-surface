@@ -1,6 +1,7 @@
 import { Download, Film, PencilLine, Repeat, Save, ScanLine, Scissors, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { VideoComparisonFader } from "@/components/video-comparison-fader";
+import { VideoEditStarters } from "@/components/video-edit-starters";
 import { VideoTrimTimeline } from "@/components/video-trim-timeline";
 import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
@@ -11,9 +12,9 @@ import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import type { AssetRecord } from "@/lib/types";
 import {
   VIDEO_EDIT_PROMPT_MAX_CHARS,
-  VIDEO_EDIT_PROMPT_STARTERS,
   VIDEO_EDIT_USD_PER_SECOND,
   estimateVideoEditUsd,
+  toggleStarterInPrompt,
   videoEditRequestBlocker,
   type VideoEditRequest,
   type VideoEditResult,
@@ -264,8 +265,9 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
     promptRef.current?.focus();
   }
 
-  function insertStarter(text: string) {
-    setPrompt(text);
+  /** Toggles a starter in and out of the prompt; repeated clicks never duplicate it. */
+  function toggleStarter(text: string) {
+    setPrompt((current) => toggleStarterInPrompt(current, text));
     promptRef.current?.focus();
   }
 
@@ -591,13 +593,10 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
           <span>Everything you don&apos;t mention stays as filmed.</span>
           <span>{promptLength}/{VIDEO_EDIT_PROMPT_MAX_CHARS}</span>
         </div>
-        <div className="videoEditStarters" aria-label="Prompt starters">
-          {VIDEO_EDIT_PROMPT_STARTERS.map((starter) => (
-            <button type="button" key={starter.label} onClick={() => insertStarter(starter.prompt)} title={starter.prompt}>
-              {starter.label}
-            </button>
-          ))}
-        </div>
+        {/* One scrolling line: these are my phrasing shortcuts from BFL's video
+            editing guide, not an API feature, so they should not cost the rail
+            two rows of height. */}
+        <VideoEditStarters prompt={prompt} onToggle={toggleStarter} />
         <label>Safety<select value={safetyTolerance} onChange={(event) => setSafetyTolerance(Number(event.target.value))}>{[0, 1, 2, 3, 4].map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
         <div className="videoEditOutput">
           <span>Output</span>

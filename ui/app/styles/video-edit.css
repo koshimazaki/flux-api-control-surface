@@ -316,8 +316,77 @@
   font-family: var(--font-mono);
   font-size: 10px;
 }
-.videoEditStarters { display: flex; flex-wrap: wrap; gap: 6px; }
-.videoEditStarters button { min-height: 28px; padding: 0 9px; font-size: 11px; }
+/* One trigger in the rail; the chips live in a grid inside its menu, so eight
+   shortcuts cost one line instead of two rows. */
+.videoEditStarters { position: relative; min-width: 0; }
+
+.videoEditStartersTrigger {
+  width: 100%;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  font-size: 11px;
+}
+
+.videoEditStartersChevron { margin-left: auto; }
+
+.videoEditStartersCount {
+  min-width: 17px;
+  height: 17px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.videoEditStartersMenu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay, rgba(16, 18, 20, 0.98));
+  padding: 8px;
+  box-shadow: var(--elev-2, 0 14px 30px rgba(0, 0, 0, 0.45));
+}
+
+.videoEditStartersMenuLabel {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.videoEditStartersGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.videoEditStartersGrid button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.videoEditStartersGrid button.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--text-primary);
+}
 
 .videoEditOutput,
 .videoEditCost {

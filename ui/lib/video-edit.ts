@@ -75,6 +75,26 @@ export const VIDEO_EDIT_PROMPT_STARTERS: VideoEditPromptStarter[] = [
   { label: "Relight", prompt: "Change the scene to [time of day or weather]. Keep the same camera move and blocking." }
 ];
 
+/**
+ * A starter behaves as a toggle rather than an insert: clicking one twice must
+ * not leave two copies in the prompt. Different starters compound, so several
+ * changes can be written out, and clicking an applied one takes it back off.
+ */
+export function toggleStarterInPrompt(prompt: string, starter: string) {
+  const existing = prompt || "";
+  if (existing.includes(starter)) {
+    return existing.replace(starter, "").replace(/[ \t]{2,}/g, " ").replace(/ +\n/g, "\n").trim();
+  }
+  const head = existing.trimEnd();
+  return head ? `${head} ${starter}` : starter;
+}
+
+/** Which starters are currently written into the prompt, so the menu can show it. */
+export function activeStarterLabels(prompt: string, starters: VideoEditPromptStarter[] = VIDEO_EDIT_PROMPT_STARTERS) {
+  const text = prompt || "";
+  return starters.filter((starter) => text.includes(starter.prompt)).map((starter) => starter.label);
+}
+
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
