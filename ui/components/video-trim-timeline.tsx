@@ -1,4 +1,4 @@
-import { Save, Scissors } from "lucide-react";
+import { Pause, Play, Repeat, Save, Scissors, Square } from "lucide-react";
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   VIDEO_TRIM_FPS,
@@ -23,6 +23,11 @@ type VideoTrimTimelineProps = {
   isCutting: boolean;
   /** Real ffmpeg progress while the cut runs; null when nothing is running. */
   cutPercent?: number | null;
+  loop: boolean;
+  onLoopChange: (loop: boolean) => void;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+  onStop: () => void;
   /** Where the source clip is currently playing, so the bracket can be read against it. */
   playheadSeconds?: number;
 };
@@ -114,6 +119,24 @@ export function VideoTrimTimeline(props: VideoTrimTimelineProps) {
     <section className="videoTrim">
       <div className="videoTrimHeader">
         <span><Scissors size={13} />Cut to 15 seconds</span>
+        {/* Transport for the bracket. Space does the same as the play button. */}
+        <span className="videoTrimTransport">
+          <button type="button" onClick={props.onTogglePlay} title={props.isPlaying ? "Pause (space)" : "Play the cut (space)"}>
+            {props.isPlaying ? <Pause size={13} /> : <Play size={13} />}
+          </button>
+          <button type="button" onClick={props.onStop} title="Stop and return to the first frame of the cut">
+            <Square size={12} />
+          </button>
+          <button
+            type="button"
+            className={props.loop ? "active" : ""}
+            aria-pressed={props.loop}
+            onClick={() => props.onLoopChange(!props.loop)}
+            title={props.loop ? "Looping the cut" : "Play the cut once"}
+          >
+            <Repeat size={13} />
+          </button>
+        </span>
         <span className="videoTrimReadout">
           {formatTimecode(selection.start)} → {formatTimecode(selection.end)} ·{" "}
           <strong>{length.toFixed(2)} s</strong> · {framesIn(length)} frames

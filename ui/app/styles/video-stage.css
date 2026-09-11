@@ -14,6 +14,11 @@
 }
 
 .videoStage {
+  /* A <video> is a replaced element: inside a grid or flex parent it keeps its
+     intrinsic width (1920px and up) unless this is set, and overflows the
+     column to sit under the controls panel. */
+  min-width: 0;
+  max-width: 100%;
   /* Never taller than the shared maximum, and narrowed to match when a portrait
      clip would otherwise exceed it — so a tall clip letterboxes nothing. */
   width: min(100%, calc(var(--video-stage-max-height) * var(--video-stage-aspect-w) / var(--video-stage-aspect-h)));

@@ -57,10 +57,13 @@
   text-align: center;
 }
 
-/* The clip itself is the stage; the caption sits under it as chrome. */
+/* The clip itself is the stage; the caption sits under it as chrome.
+   `minmax(0, …)` lets the video shrink instead of overflowing the column. */
 .videoEditSourcePreview {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
+  min-width: 0;
 }
 
 .videoEditSourcePreview > div,
@@ -130,6 +133,20 @@
 }
 
 .videoTrimHeader > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+
+.videoTrimTransport { display: inline-flex; align-items: center; gap: 4px; margin-right: auto; margin-left: 4px; }
+.videoTrimTransport button {
+  width: 26px;
+  min-height: 26px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+.videoTrimTransport button.active {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+  color: var(--acc-intel-strong);
+}
 .videoTrimReadout { text-transform: none; letter-spacing: 0; }
 .videoTrimReadout strong { color: var(--acc-intel-strong, var(--text-primary)); }
 

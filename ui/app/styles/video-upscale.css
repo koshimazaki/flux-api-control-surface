@@ -50,10 +50,13 @@
 .videoUpscaleDrop strong { color: var(--text-primary); font-size: 16px; }
 .videoUpscaleDrop span { font-family: var(--font-mono); font-size: 10px; }
 
-/* The clip itself is the stage; the caption sits under it as chrome. */
+/* The clip itself is the stage; the caption sits under it as chrome.
+   `minmax(0, …)` lets the video shrink instead of overflowing the column. */
 .videoUpscaleSourcePreview {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
+  min-width: 0;
 }
 
 .videoUpscaleSourcePreview > div,

@@ -86,6 +86,9 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
   const [isCutting, setIsCutting] = useState(false);
   const [cutPercent, setCutPercent] = useState<number | null>(null);
   const [playheadSeconds, setPlayheadSeconds] = useState(0);
+  // Looping the bracket is how the in and out points actually get judged.
+  const [loopCut, setLoopCut] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const selected = selectedId ? results.find((item) => item.id === selectedId) || null : null;
   const request = useMemo<VideoEditRequest>(() => ({
     inputVideo: source?.source || "",
@@ -110,6 +113,31 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
       : trimOpen && !selected
         ? "Hide the cut timeline"
         : "Cut this clip to 15 seconds";
+
+  /** Plays from the bracket's start, so a cut is always judged from its first frame. */
+  function playSelection() {
+    const video = sourceVideoRef.current;
+    if (!video) return;
+    if (trimOpen && (video.currentTime < trimSelection.start || video.currentTime >= trimSelection.end)) {
+      video.currentTime = trimSelection.start;
+    }
+    void video.play().catch(() => undefined);
+  }
+
+  function togglePlay() {
+    const video = sourceVideoRef.current;
+    if (!video) return;
+    if (video.paused) playSelection();
+    else video.pause();
+  }
+
+  /** Back to the first frame of the cut, paused. */
+  function stopPlayback() {
+    const video = sourceVideoRef.current;
+    if (!video) return;
+    video.pause();
+    video.currentTime = trimOpen ? trimSelection.start : 0;
+  }
 
   /** Opening the bracket returns to the source, so the timeline is on screen with it. */
   function toggleCut() {
@@ -147,6 +175,24 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
     });
     return () => { cancelled = true; };
   }, [props.pendingSource]);
+
+  // Space plays and pauses the clip, the way every editor behaves — but never
+  // while the caret is in the prompt or another field, where space is a space.
+  useEffect(() => {
+    if (!source || selected) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.code !== "Space" && event.key !== " ") return;
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) return;
+      // The video's own controls already handle space when they have focus.
+      if (target instanceof HTMLVideoElement) return;
+      event.preventDefault();
+      togglePlay();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   useEffect(() => {
     if (!pendingQueueJobId) return;
@@ -393,7 +439,38 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
               controls
               playsInline
               preload="metadata"
-              onTimeUpdate={(event) => setPlayheadSeconds(event.currentTarget.currentTime)}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onLoadedMetadata={(event) => {
+                // The element on screen is the authority on the clip's length;
+                // the detached probe can miss it. Without this the cut stays
+                // disabled for a clip that plays perfectly well.
+                const video = event.currentTarget;
+                const duration = Number.isFinite(video.duration) ? video.duration : undefined;
+                if (!duration) return;
+                setSource((current) => {
+                  if (!current || current.duration === duration) return current;
+                  return {
+                    ...current,
+                    duration,
+                    width: current.width || video.videoWidth || undefined,
+                    height: current.height || video.videoHeight || undefined
+                  };
+                });
+                setTrimSelection((current) =>
+                  current.end > current.start ? clampTrimSelection(current, duration) : defaultTrimSelection(duration)
+                );
+              }}
+              onTimeUpdate={(event) => {
+                const video = event.currentTarget;
+                setPlayheadSeconds(video.currentTime);
+                // Loop the bracket so the cut can be watched end to end.
+                if (!trimOpen || !loopCut || video.paused) return;
+                if (video.currentTime >= trimSelection.end || video.currentTime < trimSelection.start - 0.25) {
+                  video.currentTime = trimSelection.start;
+                  void video.play().catch(() => undefined);
+                }
+              }}
             />
             <div>
               <Film size={16} />
@@ -426,6 +503,11 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
                 isCutting={isCutting}
                 cutPercent={cutPercent}
                 playheadSeconds={playheadSeconds}
+                loop={loopCut}
+                onLoopChange={setLoopCut}
+                isPlaying={isPlaying}
+                onTogglePlay={togglePlay}
+                onStop={stopPlayback}
               />
             )}
           </div>

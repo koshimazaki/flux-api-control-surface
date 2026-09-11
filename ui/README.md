@@ -170,9 +170,16 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
   the clip's full length. Drag the middle to slide it, drag an edge to resize,
   arrow keys step one frame (shift steps a second). Both edges snap to the
   24 fps grid the API normalizes to; a cut can be as short as 17 frames and
-  never longer than 15 seconds. Save replaces the source with the cut. It is
-  local and free: no BFL request, no queue, no credits. An over-length clip
-  opens the bracket automatically.
+  never longer than 15 seconds — any clip can be cut, not just an over-length
+  one. Play, stop, and loop the bracket from the timeline, or press space to
+  play and pause. Saving shows ffmpeg's own percentage, stores the cut in the
+  library as its own clip, and loads it as the source. It is local and free:
+  no BFL request, no queue, no credits.
+
+Saved clips are served with range support, so a browser can seek them, loop a
+selection, and read a clip's true duration. Without it a chunked response
+reports `duration` as `Infinity`, which silently disables anything that needs a
+length.
 - **Glyphs**: local SVG/PNG vectorization. The browser workspace can select a
   region visually, and agents can call `/api/glyphs/vectorize` for saved outputs.
 
