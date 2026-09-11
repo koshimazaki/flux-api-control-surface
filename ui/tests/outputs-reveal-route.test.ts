@@ -10,7 +10,8 @@ const mocks = vi.hoisted(() => ({
   findImage: vi.fn(),
   findVideo: vi.fn(),
   findUpscale: vi.fn(),
-  findEdit: vi.fn()
+  findEdit: vi.fn(),
+  findTrim: vi.fn()
 }));
 
 vi.mock("node:child_process", () => ({ execFile: mocks.execFile }));
@@ -18,6 +19,7 @@ vi.mock("@/lib/server-output-store", () => ({ findLocalOutputImage: mocks.findIm
 vi.mock("@/lib/flux3-video-server", () => ({ findFlux3VideoOutput: mocks.findVideo }));
 vi.mock("@/lib/video-upscale-server", () => ({ findVideoUpscaleOutput: mocks.findUpscale }));
 vi.mock("@/lib/video-edit-server", () => ({ findVideoEditOutput: mocks.findEdit }));
+vi.mock("@/lib/video-trim-server", () => ({ findVideoTrimOutput: mocks.findTrim }));
 
 const OUTPUTS = path.resolve(process.cwd(), "..", "outputs");
 const IMAGE_PATH = path.join(OUTPUTS, "flux-api-control-surface", "2026-08-05", "flower.png");
@@ -53,6 +55,7 @@ describe("POST /api/outputs/reveal", () => {
     mocks.findVideo.mockResolvedValue(null);
     mocks.findUpscale.mockResolvedValue(null);
     mocks.findEdit.mockResolvedValue(null);
+    mocks.findTrim.mockResolvedValue(null);
     const response = await POST(revealRequest({ id: "remote-only" }));
     expect(response.status).toBe(404);
     expect(mocks.execFile).not.toHaveBeenCalled();

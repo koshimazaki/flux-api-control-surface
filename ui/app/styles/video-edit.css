@@ -90,6 +90,134 @@
 .videoEditResultBar a,
 .videoEditResultBar button { min-height: 32px; display: inline-flex; align-items: center; gap: 6px; color: var(--text-primary); text-decoration: none; }
 
+/* Cut timeline: a bracket over the clip's whole length, capped at 15 seconds. */
+.videoTrim {
+  display: grid;
+  gap: 7px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-inset) 78%, transparent);
+  padding: 9px 10px;
+}
+
+.videoTrimHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.videoTrimHeader > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+.videoTrimReadout { text-transform: none; letter-spacing: 0; }
+.videoTrimReadout strong { color: var(--acc-intel-strong, var(--text-primary)); }
+
+.videoTrimTrack {
+  position: relative;
+  height: 46px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm, 6px);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 6px),
+    #0a0d0f;
+  cursor: pointer;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.videoTrimTrack.grabbing { cursor: grabbing; }
+
+.videoTrimTick,
+.videoTrimReach,
+.videoTrimPlayhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  pointer-events: none;
+}
+
+.videoTrimTick { background: rgba(255, 255, 255, 0.14); }
+.videoTrimTick.major { background: rgba(255, 255, 255, 0.3); }
+/* The furthest edge the bracket may reach from its current start. */
+.videoTrimReach {
+  width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.videoTrimPlayhead { width: 2px; background: var(--acc-intel, #62c4e6); box-shadow: 0 0 8px var(--acc-intel, #62c4e6); }
+
+.videoTrimBracket {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 18px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm, 6px);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  cursor: grab;
+  touch-action: none;
+}
+
+.videoTrimBracket:focus-visible { outline: 2px solid var(--acc-intel); outline-offset: 2px; }
+
+.videoTrimBracket > span {
+  flex: 1;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.videoTrimHandle {
+  flex: 0 0 auto;
+  width: 11px;
+  min-height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.videoTrimFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.videoTrimFooter small { color: var(--text-muted); font-size: 10px; line-height: 1.45; }
+
+.videoTrimSave {
+  flex: 0 0 auto;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 11px;
+}
+
+.videoEditBlockerAction {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
 .videoEditControls { align-self: stretch; padding: var(--space-5, 12px); }
 .videoEditControls textarea { resize: vertical; line-height: 1.45; }
 

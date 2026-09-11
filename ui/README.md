@@ -165,6 +165,14 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
   fader, "Edit again" chains one change per pass, and the header hands an edit
   to Upscale. The video rail shows Text, Frames, Continue, Edit, and Upscale as
   one tab each; the first three open the shared FLUX 3 workspace.
+- **Cut** (local ffmpeg, inside Video Edit): FLUX 3 renders up to 20 seconds but
+  Video Edit takes 15, so the scissors in the Edit header opens a bracket over
+  the clip's full length. Drag the middle to slide it, drag an edge to resize,
+  arrow keys step one frame (shift steps a second). Both edges snap to the
+  24 fps grid the API normalizes to; a cut can be as short as 17 frames and
+  never longer than 15 seconds. Save replaces the source with the cut. It is
+  local and free: no BFL request, no queue, no credits. An over-length clip
+  opens the bracket automatically.
 - **Glyphs**: local SVG/PNG vectorization. The browser workspace can select a
   region visually, and agents can call `/api/glyphs/vectorize` for saved outputs.
 
@@ -239,6 +247,7 @@ The same surface is scriptable:
 npm run --silent cli -- evaluations --media video --format jsonl
 npm run --silent cli -- generate-video --json request.json
 npm run --silent cli -- edit-video --json request.json
+npm run --silent cli -- trim-video --json request.json
 npm run --silent cli -- evaluate GENERATION_ID --rating 5 --verdict keep --tags favorite,motion
 ```
 
@@ -277,6 +286,8 @@ The UI is also an agent/MCP-facing local API:
   `GET /api/bfl/video-upscale/:id` serves the result or its preserved source.
 - `GET/POST /api/bfl/video-edit` lists or submits FLUX Video Edit jobs;
   `GET /api/bfl/video-edit/:id` serves the result or its preserved source.
+- `GET/POST /api/bfl/video-trim` lists or cuts clips with local ffmpeg (free, no
+  BFL call); `GET /api/bfl/video-trim/:id` serves a cut.
 - `GET/POST/PATCH/DELETE /api/dashboard/queue` lists, enqueues, controls
   (pause/resume/retry/reorder), and cancels server-queue jobs.
 - `GET/PATCH /api/evaluations` returns normalized `bfl-evaluation/v1` records
@@ -301,7 +312,7 @@ saved local outputs. The local stdio MCP wrapper exposes the JSON dashboard
 routes for prompts, plans, generation, tools, references, glyphs, credits, and
 caption job prep, plus FLUX 3 video listing/generation, FLUX Video Edit and
 Video Upscale (`edit_video`, `upscale_video` — neither exists in the hosted
-FLUX MCP), generation-queue
+FLUX MCP), local clip cutting (`trim_video`), generation-queue
 control (`list_generation_queue`, `enqueue_generation_jobs`,
 `update_generation_job`, `cancel_generation_job`), evaluation records
 (`list_evaluations`, `update_evaluation`), finetune dataset export, registry,

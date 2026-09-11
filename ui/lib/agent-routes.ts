@@ -48,6 +48,7 @@ export const agentRouteMap = {
   flux3Video: "/api/bfl/flux3-video",
   videoUpscale: "/api/bfl/video-upscale",
   videoEdit: "/api/bfl/video-edit",
+  videoTrim: "/api/bfl/video-trim",
   tools: "/api/bfl/tools",
   providerJobs: "/api/bfl/jobs",
   glyphVectorize: "/api/glyphs/vectorize",
@@ -256,6 +257,13 @@ export const dashboardAgentRoutes: AgentRoute[] = [
   },
   {
     method: "GET",
+    path: agentRouteMap.videoTrim,
+    purpose: "List locally cut clips with their source bracket (start, end, duration) and playback URLs.",
+    sideEffects: false,
+    category: "assets"
+  },
+  {
+    method: "GET",
     path: agentRouteMap.evaluations,
     purpose:
       "List normalized image/video generation records with prompts, settings, lifecycle timings, costs, local outputs, provenance, and evaluation annotations. Use format=jsonl for agent pipelines.",
@@ -338,6 +346,26 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       inputVideo: "/api/bfl/flux3-video/<saved-id>",
       prompt: "Remove the orange bucket.",
       safetyTolerance: 2
+    }
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.videoTrim,
+    purpose:
+      "Cut a clip down to one bracket with local ffmpeg, so an over-length render (FLUX 3 makes up to 20 s) can be fed to Video Edit, which takes at most 15 s. Local and free: no BFL request, no API key, no queue, no credits. Both edges snap to the 24 fps grid the API normalizes to, the cut must be at least 17 frames, and the result saves locally for use as the next inputVideo.",
+    sideEffects: true,
+    category: "tools",
+    body: {
+      inputVideo: "Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL.",
+      start: "Cut start in seconds",
+      end: "Cut end in seconds; at most 15 s after start and at least 17 frames",
+      sourceDurationSeconds: "Required — the clip's full duration, used to keep the bracket inside it"
+    },
+    example: {
+      inputVideo: "/api/bfl/flux3-video/<saved-id>",
+      start: 2,
+      end: 17,
+      sourceDurationSeconds: 20
     }
   },
   {
@@ -622,11 +650,13 @@ export const localDashboardMcpTools = [
   "list_flux3_videos",
   "list_video_upscales",
   "list_video_edits",
+  "list_video_trims",
   "list_evaluations",
   "update_evaluation",
   "generate_flux3_video",
   "upscale_video",
   "edit_video",
+  "trim_video",
   "run_image_tool",
   "save_prompt",
   "delete_prompt",

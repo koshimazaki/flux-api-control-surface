@@ -410,6 +410,16 @@ server.registerTool(
 );
 
 server.registerTool(
+  "list_video_trims",
+  {
+    title: "List Cut Clips",
+    description: "List locally cut clips with the bracket each was cut from and its playback URL.",
+    inputSchema: {}
+  },
+  async () => result(await requestJson("/api/bfl/video-trim"))
+);
+
+server.registerTool(
   "list_evaluations",
   {
     title: "List Generation Evaluations",
@@ -527,6 +537,29 @@ server.registerTool(
     }
   },
   async (payload) => result(await post("/api/bfl/video-edit", payload))
+);
+
+server.registerTool(
+  "trim_video",
+  {
+    title: "Cut a Clip to Length",
+    description:
+      "Cut a clip down to one bracket with local ffmpeg so an over-length render can be edited: FLUX 3 makes up to 20 seconds, FLUX Video Edit accepts at most 15. Local and free — no BFL request, no API key, no queue, no credits. Edges snap to the 24 fps grid the API normalizes to, and the saved result can be passed straight back as inputVideo to edit_video.",
+    inputSchema: {
+      inputVideo: z.string().min(1).describe("Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL."),
+      start: z.number().min(0).describe("Cut start in seconds."),
+      end: z.number().positive().describe("Cut end in seconds; at most 15 s after start, at least 17 frames."),
+      sourceDurationSeconds: z.number().positive().describe("The clip's full duration, so the bracket stays inside it."),
+      title: z.string().max(160).optional(),
+      sourceAssetId: z.string().optional(),
+      sourceName: z.string().optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async (payload) => result(await post("/api/bfl/video-trim", payload))
 );
 
 server.registerTool(

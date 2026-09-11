@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { findFlux3VideoOutput } from "@/lib/flux3-video-server";
 import { findVideoEditOutput } from "@/lib/video-edit-server";
+import { findVideoTrimOutput } from "@/lib/video-trim-server";
 import { findVideoUpscaleOutput } from "@/lib/video-upscale-server";
 
 /**
@@ -11,9 +12,16 @@ import { findVideoUpscaleOutput } from "@/lib/video-upscale-server";
  */
 export type ResolvedVideoInput = { buffer: Buffer; contentType: string; sourceName: string };
 
-type LocalVideoPointer = { kind: "flux3" | "upscale" | "edit"; id: string; source: boolean };
+type LocalVideoPointer = { kind: "flux3" | "upscale" | "edit" | "trim"; id: string; source: boolean };
 
-const LOCAL_VIDEO_ROUTE = /^\/api\/bfl\/(flux3-video|video-upscale|video-edit)\/([^/]+)$/;
+const LOCAL_VIDEO_ROUTE = /^\/api\/bfl\/(flux3-video|video-upscale|video-edit|video-trim)\/([^/]+)$/;
+
+const POINTER_KIND = {
+  "flux3-video": "flux3",
+  "video-upscale": "upscale",
+  "video-edit": "edit",
+  "video-trim": "trim"
+} as const;
 
 export async function downloadVideoBinary(url: string) {
   const response = await fetch(url, { cache: "no-store" });
@@ -30,12 +38,19 @@ export function localVideoPointer(value: string, origin: string): LocalVideoPoin
     if (url.origin !== origin) return null;
     const match = url.pathname.match(LOCAL_VIDEO_ROUTE);
     if (!match) return null;
-    const kind = match[1] === "flux3-video" ? "flux3" : match[1] === "video-upscale" ? "upscale" : "edit";
+    const kind = POINTER_KIND[match[1] as keyof typeof POINTER_KIND];
     return { kind, id: decodeURIComponent(match[2]), source: url.searchParams.get("kind") === "source" };
   } catch {
     return null;
   }
 }
+
+const POINTER_LABEL = {
+  flux3: "FLUX 3 video",
+  upscale: "upscale video",
+  edit: "edited video",
+  trim: "cut video"
+} as const;
 
 async function readLocalVideo(pointer: LocalVideoPointer): Promise<ResolvedVideoInput> {
   const side = pointer.source ? "source" : "video";
@@ -44,11 +59,10 @@ async function readLocalVideo(pointer: LocalVideoPointer): Promise<ResolvedVideo
       ? await findFlux3VideoOutput(pointer.id)
       : pointer.kind === "upscale"
         ? await findVideoUpscaleOutput(pointer.id, side)
-        : await findVideoEditOutput(pointer.id, side);
-  if (!saved) {
-    const label = pointer.kind === "flux3" ? "FLUX 3 video" : pointer.kind === "upscale" ? "upscale video" : "edited video";
-    throw new Error(`The selected ${label} is no longer available locally.`);
-  }
+        : pointer.kind === "edit"
+          ? await findVideoEditOutput(pointer.id, side)
+          : await findVideoTrimOutput(pointer.id);
+  if (!saved) throw new Error(`The selected ${POINTER_LABEL[pointer.kind]} is no longer available locally.`);
   return { buffer: await readFile(saved.filePath), contentType: saved.contentType, sourceName: saved.fileName };
 }
 

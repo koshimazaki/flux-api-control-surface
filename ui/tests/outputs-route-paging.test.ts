@@ -7,7 +7,8 @@ const mocks = vi.hoisted(() => ({
   fetchRemoteOutputAssets: vi.fn(),
   listFlux3VideoOutputs: vi.fn(),
   listVideoUpscaleOutputs: vi.fn(),
-  listVideoEditOutputs: vi.fn()
+  listVideoEditOutputs: vi.fn(),
+  listVideoTrimOutputs: vi.fn()
 }));
 
 vi.mock("@/lib/server-output-store", () => ({
@@ -29,6 +30,10 @@ vi.mock("@/lib/video-upscale-server", () => ({
 
 vi.mock("@/lib/video-edit-server", () => ({
   listVideoEditOutputs: mocks.listVideoEditOutputs
+}));
+
+vi.mock("@/lib/video-trim-server", () => ({
+  listVideoTrimOutputs: mocks.listVideoTrimOutputs
 }));
 
 const { GET } = await import("@/app/api/outputs/route");
@@ -69,6 +74,7 @@ beforeEach(() => {
   mocks.fetchRemoteOutputAssets.mockResolvedValue([]);
   mocks.listVideoUpscaleOutputs.mockResolvedValue([]);
   mocks.listVideoEditOutputs.mockResolvedValue([]);
+  mocks.listVideoTrimOutputs.mockResolvedValue([]);
   mocks.listFlux3VideoOutputs.mockImplementation(async (limit: number) =>
     Array.from({ length: Math.min(limit, 3) }, (_, index) => videoResult(index))
   );
@@ -109,6 +115,7 @@ describe("/api/outputs pagination across sources", () => {
     expect(mocks.listFlux3VideoOutputs).toHaveBeenCalledWith(30);
     expect(mocks.listVideoUpscaleOutputs).toHaveBeenCalledWith(30);
     expect(mocks.listVideoEditOutputs).toHaveBeenCalledWith(30);
+    expect(mocks.listVideoTrimOutputs).toHaveBeenCalledWith(30);
     expect(mocks.fetchRemoteOutputAssets).toHaveBeenCalledWith(30, expect.anything());
     expect(mocks.readLocalOutputAssets).toHaveBeenCalledWith(expect.objectContaining({ limit: 30, offset: 0 }));
   });

@@ -1,6 +1,7 @@
-import { Download, Film, PencilLine, Repeat, ScanLine, Upload, X } from "lucide-react";
+import { Download, Film, PencilLine, Repeat, ScanLine, Scissors, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { VideoComparisonFader } from "@/components/video-comparison-fader";
+import { VideoTrimTimeline } from "@/components/video-trim-timeline";
 import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { PanelHeader } from "@/components/ui/panel-header";
@@ -20,6 +21,13 @@ import {
 } from "@/lib/video-edit";
 import { inspectVideo, readFileAsDataUrl } from "@/lib/video-media-client";
 import { videoStageStyle } from "@/lib/video-stage";
+import {
+  clampTrimSelection,
+  defaultTrimSelection,
+  needsTrimForEdit,
+  type TrimSelection,
+  type VideoTrimResult
+} from "@/lib/video-trim";
 import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 
 type SourceVideo = {
@@ -58,6 +66,7 @@ function sourceMeta(source: SourceVideo) {
 export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const promptRef = useRef<HTMLTextAreaElement | null>(null);
+  const sourceVideoRef = useRef<HTMLVideoElement | null>(null);
   const [source, setSource] = useState<SourceVideo | null>(null);
   const [isDropActive, setIsDropActive] = useState(false);
   const [isSlotDropActive, setIsSlotDropActive] = useState(false);
@@ -69,6 +78,12 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
   const [pendingQueueJobId, setPendingQueueJobId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
+  // Local ffmpeg trimming, so an over-length render can be cut to the 15
+  // seconds Video Edit accepts without leaving the tool. Free: no BFL call.
+  const [trimOpen, setTrimOpen] = useState(false);
+  const [trimSelection, setTrimSelection] = useState<TrimSelection>({ start: 0, end: 0 });
+  const [isCutting, setIsCutting] = useState(false);
+  const [playheadSeconds, setPlayheadSeconds] = useState(0);
   const selected = selectedId ? results.find((item) => item.id === selectedId) || null : null;
   const request = useMemo<VideoEditRequest>(() => ({
     inputVideo: source?.source || "",
@@ -145,6 +160,12 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
     setSource(next);
     setSelectedId(null);
     setError("");
+    setPlayheadSeconds(0);
+    const overLength = needsTrimForEdit(next.duration);
+    // An over-length clip cannot be edited at all, so open the bracket for it
+    // straight away rather than leaving the run button disabled with a message.
+    setTrimSelection(next.duration ? defaultTrimSelection(next.duration) : { start: 0, end: 0 });
+    setTrimOpen(overLength);
   }
 
   async function selectFile(file: File) {
@@ -177,6 +198,41 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
   function insertStarter(text: string) {
     setPrompt(text);
     promptRef.current?.focus();
+  }
+
+  /**
+   * Cuts the bracket out with local ffmpeg and adopts the result as the source,
+   * so an over-length render becomes editable in place. Free: no BFL call.
+   */
+  async function cutSource() {
+    if (!source?.duration) return;
+    setIsCutting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/bfl/video-trim", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          inputVideo: source.source,
+          start: trimSelection.start,
+          end: trimSelection.end,
+          sourceDurationSeconds: source.duration,
+          sourceAssetId: source.assetId,
+          sourceName: source.name
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not cut the clip.");
+      const cut = data as VideoTrimResult;
+      const details = await inspectVideo(cut.videoUrl);
+      adoptSource({ id: cut.id, assetId: cut.id, name: cut.title, source: cut.videoUrl, ...details });
+      setTrimOpen(false);
+      props.onGenerated();
+    } catch (cutError) {
+      setError(cutError instanceof Error ? cutError.message : "Could not cut the clip.");
+    } finally {
+      setIsCutting(false);
+    }
   }
 
   function handleDrop(event: DragEvent) {
@@ -249,6 +305,16 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
       >
         <PanelHeader title="Video Edit" subtitle="FLUX VIDEO EDIT · DESCRIBE THE CHANGE, KEEP THE SHOT">
           <div className="flux3HeaderTools">
+            {source?.duration && !selected && (
+              <IconButton
+                title={trimOpen ? "Hide the cut timeline" : "Cut this clip to 15 seconds"}
+                className={trimOpen ? "active" : undefined}
+                aria-pressed={trimOpen}
+                onClick={() => setTrimOpen((open) => !open)}
+              >
+                <Scissors size={15} />
+              </IconButton>
+            )}
             {selected && props.onSendToUpscale && (
               <IconButton
                 title="Send this edit to Video Upscale"
@@ -267,10 +333,12 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
             <video
               className="videoStage"
               style={videoStageStyle(source.width && source.height ? { width: source.width, height: source.height } : null)}
+              ref={sourceVideoRef}
               src={source.source}
               controls
               playsInline
               preload="metadata"
+              onTimeUpdate={(event) => setPlayheadSeconds(event.currentTarget.currentTime)}
             />
             <div>
               <Film size={16} />
@@ -278,6 +346,22 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
               <span>{sourceMeta(source)}</span>
               <button type="button" onClick={() => setSource(null)} title="Remove source"><X size={14} /></button>
             </div>
+            {trimOpen && source.duration && (
+              <VideoTrimTimeline
+                duration={source.duration}
+                selection={trimSelection}
+                onSelectionChange={(next) => {
+                  setTrimSelection(next);
+                  // Park the paused preview on the first frame of the cut, so the
+                  // bracket is read against the frame it actually starts on.
+                  const video = sourceVideoRef.current;
+                  if (video?.paused && next.start !== trimSelection.start) video.currentTime = next.start;
+                }}
+                onCut={() => void cutSource()}
+                isCutting={isCutting}
+                playheadSeconds={playheadSeconds}
+              />
+            )}
           </div>
         ) : (
           <button className="videoEditDrop videoStage" type="button" onClick={() => inputRef.current?.click()}>
@@ -380,7 +464,17 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
         {(error || warning) && <p className={error ? "errorBox" : "flux3Warning"}>{error || warning}</p>}
         <JobQueue queue={props.generationQueue} summary={props.generationQueueSummary} concurrency={props.generationQueueConcurrency} controls={props.generationQueueControls} />
         <RunButton isRunning={isRunning || Boolean(pendingQueueJobId)} onClick={() => void run()} disabled={Boolean(blocker) || Boolean(pendingQueueJobId)} icon={PencilLine}>Edit with FLUX</RunButton>
-        {blocker && !error && <p className="flux3Blocker">{blocker}</p>}
+        {blocker && !error && (
+          <p className="flux3Blocker">
+            {blocker}
+            {needsTrimForEdit(source?.duration) && (
+              <button type="button" className="videoEditBlockerAction" onClick={() => setTrimOpen(true)}>
+                <Scissors size={12} />
+                Cut it to 15 s
+              </button>
+            )}
+          </p>
+        )}
       </aside>
     </section>
   );

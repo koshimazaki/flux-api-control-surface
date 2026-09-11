@@ -36,6 +36,7 @@ export const agentWorkflowGuide = {
       flux3Video: agentRouteMap.flux3Video,
       videoUpscale: agentRouteMap.videoUpscale,
       videoEdit: agentRouteMap.videoEdit,
+      videoTrim: agentRouteMap.videoTrim,
       providerJobs: agentRouteMap.providerJobs,
       glyphVectorize: agentRouteMap.glyphVectorize,
       outputs: agentRouteMap.outputs,
@@ -82,6 +83,7 @@ export const agentWorkflowGuide = {
       name: "Edit a saved clip with one instruction",
       steps: [
         `GET ${agentRouteMap.outputs} or ${agentRouteMap.flux3Video}`,
+        `Over 15 seconds? POST ${agentRouteMap.videoTrim} first (or call trim_video) — local ffmpeg, free`,
         `POST ${agentRouteMap.videoEdit} with inputVideo and a prompt that names only the change (or call edit_video)`,
         `GET ${agentRouteMap.videoEdit} for the saved source/result comparison URLs`,
         `Chain passes: POST ${agentRouteMap.videoEdit} again with the result URL as inputVideo, or hand it to ${agentRouteMap.videoUpscale}`
