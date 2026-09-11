@@ -52,6 +52,32 @@
   object-fit: cover;
 }
 
+/* A failed or cancelled attempt has no file to show. */
+.evaluationMediaEmpty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  padding: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.evaluationMediaEmpty strong {
+  color: var(--cream);
+  font-size: 12px;
+}
+
+.evaluationMediaEmpty span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
 .evaluationBody {
   align-content: start;
   padding: 12px;

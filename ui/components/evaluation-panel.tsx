@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, RefreshCw, Save, Sparkles } from "lucide-react";
+import { CircleSlash, Download, RefreshCw, Save, Sparkles } from "lucide-react";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { savePromptLibraryRecord } from "@/lib/dashboard-prompts";
 import { canPromoteGeneration, videoPromptRecordFromEvaluation } from "@/lib/prompt-media";
 import { downloadText } from "@/lib/prompt-utils";
+import { evaluationPreviewMedia } from "@/lib/generation-evaluation";
 import type { EvaluationVerdict, GenerationEvaluationRecord } from "@/lib/generation-evaluation";
 import type { PromptRecord } from "@/lib/types";
 
@@ -23,6 +24,30 @@ function formatDuration(durationMs?: number) {
 function formatCredits(record: GenerationEvaluationRecord) {
   const value = record.cost.chargedCredits ?? record.cost.submittedCredits;
   return typeof value === "number" ? `${value.toFixed(2)} cr` : "—";
+}
+
+function EvaluationMedia({ record }: { record: GenerationEvaluationRecord }) {
+  const media = evaluationPreviewMedia(record);
+  if (media.kind === "empty") {
+    return (
+      <div className="evaluationMedia evaluationMediaEmpty">
+        <CircleSlash size={22} />
+        <strong>{media.heading}</strong>
+        <span>{media.detail}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="evaluationMedia">
+      {media.kind === "video" ? (
+        <video src={media.src} controls preload="metadata" />
+      ) : (
+        // Saved output routes are local and stable; metadata is shown beside the preview.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={media.src} alt={record.title} loading="lazy" />
+      )}
+    </div>
+  );
 }
 
 export function EvaluationPanel(props: { onPromoted?: (record: PromptRecord) => void } = {}) {
@@ -160,15 +185,7 @@ export function EvaluationPanel(props: { onPromoted?: (record: PromptRecord) => 
       <div className="evaluationGrid">
         {visibleRecords.map((record) => (
           <article className="evaluationCard" key={record.id}>
-            <div className="evaluationMedia">
-              {record.mediaType === "video" ? (
-                <video src={record.output.previewUrl} controls preload="metadata" />
-              ) : (
-                // Saved output routes are local and stable; metadata is shown beside the preview.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={record.output.previewUrl} alt={record.title} loading="lazy" />
-              )}
-            </div>
+            <EvaluationMedia record={record} />
             <div className="evaluationBody">
               <div className="evaluationTitle">
                 <strong>{record.title}</strong>

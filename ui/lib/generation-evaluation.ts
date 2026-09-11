@@ -73,6 +73,27 @@ export const DEFAULT_EVALUATION_ANNOTATION: GenerationEvaluationAnnotation = {
   notes: ""
 };
 
+/** What the Evaluate card should put in its media box for one record. */
+export type EvaluationPreviewMedia =
+  | { kind: "video" | "image"; src: string }
+  | { kind: "empty"; heading: string; detail: string };
+
+/**
+ * Failed and cancelled queue attempts share the read model with saved
+ * generations but have no output file, so their preview URL is empty. Callers
+ * must render the reason instead of a media element: an empty `src` makes the
+ * browser re-request the whole page.
+ */
+export function evaluationPreviewMedia(record: GenerationEvaluationRecord): EvaluationPreviewMedia {
+  const src = record.output.previewUrl?.trim() || "";
+  if (src) return { kind: record.mediaType === "video" ? "video" : "image", src };
+  return {
+    kind: "empty",
+    heading: record.status === "cancelled" ? "Cancelled" : "No output saved",
+    detail: record.error?.trim() || `This ${record.mediaType} attempt never produced a file.`
+  };
+}
+
 export function approximatePromptTokens(prompt: string) {
   const trimmed = prompt.trim();
   if (!trimmed) return 0;
