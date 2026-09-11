@@ -1,4 +1,4 @@
-import { Download, Film, PencilLine, Repeat, ScanLine, Scissors, Upload, X } from "lucide-react";
+import { Download, Film, PencilLine, Repeat, Save, ScanLine, Scissors, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { VideoComparisonFader } from "@/components/video-comparison-fader";
 import { VideoTrimTimeline } from "@/components/video-trim-timeline";
@@ -25,6 +25,7 @@ import {
   clampTrimSelection,
   defaultTrimSelection,
   needsTrimForEdit,
+  trimSelectionBlocker,
   type TrimSelection,
   type VideoTrimResult
 } from "@/lib/video-trim";
@@ -83,6 +84,7 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
   const [trimOpen, setTrimOpen] = useState(false);
   const [trimSelection, setTrimSelection] = useState<TrimSelection>({ start: 0, end: 0 });
   const [isCutting, setIsCutting] = useState(false);
+  const [cutPercent, setCutPercent] = useState<number | null>(null);
   const [playheadSeconds, setPlayheadSeconds] = useState(0);
   const selected = selectedId ? results.find((item) => item.id === selectedId) || null : null;
   const request = useMemo<VideoEditRequest>(() => ({
@@ -227,8 +229,21 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
    */
   async function cutSource() {
     if (!source?.duration) return;
+    const progressId = `cut-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     setIsCutting(true);
+    setCutPercent(0);
     setError("");
+    // Real ffmpeg progress, polled while the cut runs.
+    const poll = window.setInterval(async () => {
+      try {
+        const response = await fetch(`/api/bfl/video-trim/progress?id=${encodeURIComponent(progressId)}`, { cache: "no-store" });
+        if (!response.ok) return;
+        const progress = (await response.json()).progress as { percent?: number } | null;
+        if (typeof progress?.percent === "number") setCutPercent(progress.percent);
+      } catch {
+        // A later tick retries; the request itself reports the real outcome.
+      }
+    }, 400);
     try {
       const response = await fetch("/api/bfl/video-trim", {
         method: "POST",
@@ -239,20 +254,27 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
           end: trimSelection.end,
           sourceDurationSeconds: source.duration,
           sourceAssetId: source.assetId,
-          sourceName: source.name
+          sourceName: source.name,
+          progressId
         })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not cut the clip.");
       const cut = data as VideoTrimResult;
+      setCutPercent(100);
       const details = await inspectVideo(cut.videoUrl);
+      // The cut is saved in the library as its own clip and becomes the source
+      // here, so the edit that motivated it can follow immediately.
       adoptSource({ id: cut.id, assetId: cut.id, name: cut.title, source: cut.videoUrl, ...details });
       setTrimOpen(false);
+      setWarning(`Saved ${cut.title} to the library (${cut.durationSeconds.toFixed(1)} s) and loaded it as the source.`);
       props.onGenerated();
     } catch (cutError) {
       setError(cutError instanceof Error ? cutError.message : "Could not cut the clip.");
     } finally {
+      window.clearInterval(poll);
       setIsCutting(false);
+      setCutPercent(null);
     }
   }
 
@@ -337,6 +359,17 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
             >
               <Scissors size={15} />
             </IconButton>
+            {/* Appears with the bracket: the cut is committed from here or from
+                the timeline's own button. */}
+            {trimOpen && !selected && (
+              <IconButton
+                title={isCutting ? `Cutting… ${Math.round(cutPercent ?? 0)}%` : "Save the cut as a new clip"}
+                disabled={isCutting || Boolean(trimSelectionBlocker(trimSelection, source?.duration))}
+                onClick={() => void cutSource()}
+              >
+                <Save size={15} />
+              </IconButton>
+            )}
             {selected && props.onSendToUpscale && (
               <IconButton
                 title="Send this edit to Video Upscale"
@@ -391,6 +424,7 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
                 }}
                 onCut={() => void cutSource()}
                 isCutting={isCutting}
+                cutPercent={cutPercent}
                 playheadSeconds={playheadSeconds}
               />
             )}

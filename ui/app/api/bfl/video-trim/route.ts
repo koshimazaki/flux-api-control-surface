@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveVideoInput } from "@/lib/video-input-server";
 import { clampTrimSelection, trimSelectionBlocker, VIDEO_TRIM_MODEL, type VideoTrimRequest } from "@/lib/video-trim";
 import { listVideoTrimOutputs, saveVideoTrimOutput, trimVideoFile } from "@/lib/video-trim-server";
+import { clearTrimProgress, setTrimProgress } from "@/lib/video-trim-progress";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +22,9 @@ export async function GET() {
  * BFL request, no API key, no queue, no credits.
  */
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => null) as (VideoTrimRequest & { sourceDurationSeconds?: number }) | null;
+  const body = await request.json().catch(() => null) as
+    | (VideoTrimRequest & { sourceDurationSeconds?: number; progressId?: string })
+    | null;
   if (!body) return jsonError("Request body must be valid JSON.");
   if (!body.inputVideo?.trim()) return jsonError("Add a clip to cut.");
 
@@ -34,13 +37,18 @@ export async function POST(request: NextRequest) {
   const blocker = trimSelectionBlocker(selection, sourceDuration);
   if (blocker) return jsonError(blocker);
 
+  const progressId = body.progressId?.trim() || "";
   try {
+    // Reading the source can itself take a moment for a large clip, so the
+    // percentage starts before ffmpeg does rather than sitting at nothing.
+    if (progressId) setTrimProgress(progressId, { percent: 0 });
     const source = await resolveVideoInput(body.inputVideo, new URL(request.url).origin);
     const duration = selection.end - selection.start;
     const videoBuffer = await trimVideoFile({
       sourceBuffer: source.buffer,
       start: selection.start,
-      duration
+      duration,
+      onPercent: progressId ? (percent) => setTrimProgress(progressId, { percent }) : undefined
     });
     const id = `trim-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const title = body.title?.trim() || `${body.sourceName?.trim() || source.sourceName} · cut`;
@@ -61,8 +69,14 @@ export async function POST(request: NextRequest) {
         sourceDurationSeconds: sourceDuration
       }
     });
+    if (progressId) setTrimProgress(progressId, { percent: 100, done: true });
     return NextResponse.json({ ...saved.result, outputFiles: saved.outputFiles });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "Could not cut the clip.", 500);
+    const message = error instanceof Error ? error.message : "Could not cut the clip.";
+    if (progressId) setTrimProgress(progressId, { percent: 0, done: true, error: message });
+    return jsonError(message, 500);
+  } finally {
+    // The browser stops polling on the response; drop the entry shortly after.
+    if (progressId) setTimeout(() => clearTrimProgress(progressId), 30_000);
   }
 }

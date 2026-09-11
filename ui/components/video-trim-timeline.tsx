@@ -21,6 +21,8 @@ type VideoTrimTimelineProps = {
   onSelectionChange: (selection: TrimSelection) => void;
   onCut: () => void;
   isCutting: boolean;
+  /** Real ffmpeg progress while the cut runs; null when nothing is running. */
+  cutPercent?: number | null;
   /** Where the source clip is currently playing, so the bracket can be read against it. */
   playheadSeconds?: number;
 };
@@ -174,11 +176,21 @@ export function VideoTrimTimeline(props: VideoTrimTimelineProps) {
       </div>
       <div className="videoTrimFooter">
         <small>
-          {blocker || `Drag to place the cut; arrow keys step one frame, shift one second. ${VIDEO_TRIM_FPS} fps grid, 15 s maximum.`}
+          {props.isCutting
+            ? "Cutting with ffmpeg; the result is saved to the library and becomes the source here."
+            : blocker || `Drag to place the cut; arrow keys step one frame, shift one second. ${VIDEO_TRIM_FPS} fps grid, 15 s maximum.`}
         </small>
-        <button type="button" className="videoTrimSave" onClick={props.onCut} disabled={Boolean(blocker) || props.isCutting}>
+        <button
+          type="button"
+          className="videoTrimSave"
+          onClick={props.onCut}
+          disabled={Boolean(blocker) || props.isCutting}
+          // A determinate bar behind the label, filled by real ffmpeg progress.
+          style={props.isCutting ? ({ "--cut-percent": `${Math.round(props.cutPercent ?? 0)}%` } as React.CSSProperties) : undefined}
+          data-cutting={props.isCutting ? "true" : undefined}
+        >
           <Save size={14} />
-          {props.isCutting ? "Cutting…" : "Save cut"}
+          {props.isCutting ? `Cutting… ${Math.round(props.cutPercent ?? 0)}%` : "Save cut"}
         </button>
       </div>
     </section>

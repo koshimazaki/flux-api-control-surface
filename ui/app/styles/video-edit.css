@@ -217,13 +217,29 @@
 .videoTrimFooter small { color: var(--text-muted); font-size: 10px; line-height: 1.45; }
 
 .videoTrimSave {
+  position: relative;
   flex: 0 0 auto;
   min-height: 30px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 0 11px;
+  overflow: hidden;
+  white-space: nowrap;
 }
+
+/* Real ffmpeg progress, filled behind the label. */
+.videoTrimSave[data-cutting="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--cut-percent, 0%);
+  background: color-mix(in srgb, var(--accent) 34%, transparent);
+  transition: width 200ms linear;
+  pointer-events: none;
+}
+
+.videoTrimSave > * { position: relative; }
 
 .videoEditBlockerAction {
   min-height: 24px;

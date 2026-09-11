@@ -5,6 +5,7 @@ import path from "node:path";
 import { slugify } from "@/lib/bfl-server";
 import { toWorkspaceRelativePath } from "@/lib/local-paths";
 import { buildTrimArgs, VIDEO_TRIM_MODEL, type VideoTrimResult } from "@/lib/video-trim";
+import { percentFromProgressChunk } from "@/lib/video-trim-progress";
 
 export const VIDEO_TRIM_OUTPUT_ROOT = path.resolve(
   process.cwd(),
@@ -57,12 +58,16 @@ function resultFromMetadata(metadata: SavedVideoTrimMetadata): VideoTrimResult {
   };
 }
 
-/** Same spawn shape as the audio routes: stderr is the only useful diagnostic. */
-export function runFfmpeg(args: string[]) {
+/**
+ * Same spawn shape as the audio routes, plus ffmpeg's `-progress` stream on
+ * stdout when a caller wants a percentage. stderr stays the diagnostic.
+ */
+export function runFfmpeg(args: string[], onProgressChunk?: (chunk: string) => void) {
   return new Promise<void>((resolve, reject) => {
-    const child = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
+    const child = spawn("ffmpeg", args, { stdio: ["ignore", onProgressChunk ? "pipe" : "ignore", "pipe"] });
     const chunks: Buffer[] = [];
-    child.stderr.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+    child.stdout?.on("data", (chunk) => onProgressChunk?.(String(chunk)));
+    child.stderr?.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
     child.on("error", (error) => {
       const message = (error as NodeJS.ErrnoException).code === "ENOENT"
         ? "ffmpeg is not installed or not on PATH, so clips cannot be cut locally."
@@ -89,13 +94,23 @@ export async function trimVideoFile(options: {
   sourceExtension?: string;
   start: number;
   duration: number;
+  onPercent?: (percent: number) => void;
 }) {
   const workDir = await mkdtemp(path.join(tmpdir(), "bfl-video-trim-"));
   const inputPath = path.join(workDir, `source.${options.sourceExtension || "mp4"}`);
   const outputPath = path.join(workDir, "trimmed.mp4");
   try {
     await writeFile(inputPath, options.sourceBuffer);
-    await runFfmpeg(buildTrimArgs({ inputPath, outputPath, start: options.start, duration: options.duration }));
+    const args = buildTrimArgs({ inputPath, outputPath, start: options.start, duration: options.duration });
+    await runFfmpeg(
+      options.onPercent ? [...args.slice(0, -1), "-progress", "pipe:1", "-nostats", args[args.length - 1]] : args,
+      options.onPercent
+        ? (chunk) => {
+            const percent = percentFromProgressChunk(chunk, options.duration);
+            if (percent !== null) options.onPercent?.(percent);
+          }
+        : undefined
+    );
     return await readFile(outputPath);
   } finally {
     await rm(workDir, { recursive: true, force: true });

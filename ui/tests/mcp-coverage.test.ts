@@ -36,6 +36,8 @@ const INTERNAL_ONLY = [
   "/api/bfl/video-upscale/[id]",
   "/api/bfl/video-edit/[id]",
   "/api/bfl/video-trim/[id]",
+  // Polled by the cut timeline for an ffmpeg percentage; UI-only progress.
+  "/api/bfl/video-trim/progress",
   // Submit/poll-step/finalize recovery primitives for the server queue. Agents
   // drive work through the queue tools; these exist for diagnostics and repair.
   "/api/bfl/jobs"
