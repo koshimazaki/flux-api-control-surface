@@ -1,5 +1,6 @@
 import { ChevronRight, Database, ImagePlus, X } from "lucide-react";
-import { useId, useState, type DragEvent as ReactDragEvent } from "react";
+import { useId, useState, type DragEvent as ReactDragEvent, type ReactNode } from "react";
+import { addReferenceAssignments } from "@/lib/reference-assignments";
 import { ReferenceTargetCard } from "@/components/reference-target-card";
 import { IconButton } from "@/components/ui/icon-button";
 import {
@@ -26,6 +27,7 @@ const REFERENCE_WEIGHT_STEPS = [
 ];
 
 type GenerateReferenceControlsProps = {
+  children?: ReactNode;
   references: ReferenceImage[];
   maxReferences: number;
   primaryReferenceUrl: string;
@@ -48,6 +50,7 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
   const [expanded, setExpanded] = useState(false);
   const bodyId = useId();
   const [dragTargetId, setDragTargetId] = useState("");
+  const [dropNotice, setDropNotice] = useState("");
   const activeReferenceCount = props.references.filter((reference) => Boolean(reference.value)).length;
   const referencesWithIndex = props.references.map((reference, index) => ({ reference, index }));
   const targetReferences = new Map<string, typeof referencesWithIndex>();
@@ -87,14 +90,15 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
 
   function removeReference(id: string) {
     props.onReferencesChange(props.references.filter((reference) => reference.id !== id));
+    setDropNotice("");
   }
 
-  function updateReferenceTarget(id: string, target: ReferenceDropTarget) {
-    props.onReferencesChange(
-      props.references.map((reference) =>
-        reference.id === id ? { ...reference, role: target.role, targetId: target.id } : reference
-      )
-    );
+  function copyReferenceToTarget(id: string, target: ReferenceDropTarget) {
+    const source = props.references.find((reference) => reference.id === id);
+    if (!source) return;
+    const result = addReferenceAssignments(props.references, [source], props.maxReferences, target);
+    props.onReferencesChange(result.references);
+    setDropNotice(result.limited ? `All ${props.maxReferences} reference slots are in use. Remove one to add another role.` : "");
   }
 
   function referenceDragClass(targetId: string, hasReferences: boolean) {
@@ -119,11 +123,12 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
     event.preventDefault();
     event.stopPropagation();
     setDragTargetId("");
+    setDropNotice("");
     const referencePayload = event.dataTransfer.getData(BFL_REFERENCE_MIME);
     if (referencePayload && target) {
       const draggedReference = parseReferenceDragPayload(referencePayload);
       if (draggedReference?.id && props.references.some((reference) => reference.id === draggedReference.id)) {
-        updateReferenceTarget(draggedReference.id, target);
+        copyReferenceToTarget(draggedReference.id, target);
         return;
       }
     }
@@ -169,6 +174,8 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
             onRemove={removeReference} />
         ))}
       </div>
+
+      {dropNotice && <p role="status">{dropNotice}</p>}
 
       <div className="generateReferenceUtilityRow">
         <div
@@ -321,6 +328,7 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
           </label>
         </div>
       </details>
+      {props.children}
       </div>
     </section>
   );

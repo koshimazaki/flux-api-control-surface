@@ -22,6 +22,10 @@ Before each later review, check the changed components and the running page.
 
 - References starts collapsed, with a left-aligned chevron, title and count.
 - Opening/closing preserves the references and releases space for the prompt.
+  Submitted references and the submission preview now collapse inside this panel.
+- Preset groups above the prompt align with its right edge.
+- A source image can occupy multiple roles without moving its earlier assignment;
+  repeat drops into the same target reuse that assignment and respect the model limit.
 - Panel, role cards and labels follow the chosen light or dark theme.
 - Each empty role card is a complete click/drop target; remove the tiny inner
   dashed Add box. Filled cards retain thumbnails, removal and adding more.
@@ -32,7 +36,9 @@ Before each later review, check the changed components and the running page.
 
 Checked in a temporary preview: collapsed initial state, reopening with inputs
 retained, light/dark theme, clicking the whole Character card to choose a file.
-Still check actual drag/drop routing and the final hover appearance in context.
+Reference copying, repeat drops, role removal and disclosure were checked with
+local fixtures. Regression tests cover shared sources, legacy style slots, limits,
+and metadata/cue preservation. Final hover appearance still needs user review.
 
 ## 3. Confirm the shared cube loader everywhere
 

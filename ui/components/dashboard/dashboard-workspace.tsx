@@ -200,7 +200,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             onEnvironmentSelect={state.updateComboEnvironment}
             onReferenceDropPayload={state.addAssetToPromptReferences}
             onReferenceFiles={state.addPromptReferenceFiles}
-            referenceControls={
+            referenceControls={(summary) => (
               <GenerateReferenceControls
                 references={state.references}
                 maxReferences={state.activeModelConfig.maxReferences}
@@ -218,8 +218,10 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
                 onNormalizeReferencesChange={state.setNormalizeReferences}
                 onReferenceFiles={state.addReferenceFiles}
                 onReferenceDropPayload={state.addReferenceFromDragPayload}
-              />
-            }
+              >
+                {summary}
+              </GenerateReferenceControls>
+            )}
             onImport={state.importPromptJson}
             onSave={() => void state.savePrompt()}
             onSaveAsNew={() => void state.savePrompt(true)}

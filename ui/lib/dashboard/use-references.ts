@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { buildReferenceCue, readReferenceFiles } from "@/lib/dashboard-generation";
 import { defaultReferenceCue } from "@/lib/prompt-utils";
 import { referenceRoleForIndex } from "@/lib/reference-roles";
+import { addReferenceAssignments } from "@/lib/reference-assignments";
 import type { AssetRecord, ReferenceImage, ReferenceRole } from "@/lib/types";
 
 const REFERENCES_STORAGE_KEY = "bfl-references";
@@ -193,26 +194,17 @@ export function useReferences({ assets, maxReferences, modelLabel, setError }: U
   }
 
   function addAssetReferences(nextAssets: AssetRecord[], role?: ReferenceRole, targetId?: string) {
-    const next = [...references];
-    const slots: number[] = [];
-
-    nextAssets.forEach((asset) => {
-      const existingIndex = next.findIndex((reference) => reference.assetId === asset.id);
-      if (existingIndex >= 0) {
-        if (role || targetId) {
-          next[existingIndex] = {
-            ...next[existingIndex],
-            role: role || next[existingIndex].role,
-            targetId: targetId || next[existingIndex].targetId
-          };
-        }
-        slots.push(existingIndex + 1);
-        return;
-      }
-      if (next.length >= referenceLimit) return;
-      next.push(referenceFromAsset(asset, next.length, role, targetId));
-      slots.push(next.length);
-    });
+    const { references: next, slots } = addReferenceAssignments(
+      references,
+      nextAssets.map((asset) => ({
+        id: asset.id,
+        name: asset.title || asset.id,
+        value: referenceValueForAsset(asset),
+        assetId: asset.id
+      })),
+      referenceLimit,
+      { role, id: targetId }
+    );
 
     if (!slots.length && nextAssets.length) {
       setError(`${modelLabel} accepts up to ${referenceLimit} reference image${referenceLimit === 1 ? "" : "s"}.`);
