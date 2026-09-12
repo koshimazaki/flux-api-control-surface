@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, PencilLine, ScanLine, Send, Shirt, Video } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { referenceDropTargets } from "@/lib/reference-roles";
 import type { AssetRecord, ImageWorkspaceMode, ReferenceRole } from "@/lib/types";
@@ -26,6 +26,13 @@ export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, o
   const index = asset ? list.findIndex((item) => item.id === asset.id) : -1;
   const previous = index > 0 ? list[index - 1] : null;
   const next = index >= 0 && index < list.length - 1 ? list[index + 1] : null;
+  // Which way the last step went, so the incoming asset slides in from that side.
+  const [direction, setDirection] = useState<"next" | "previous" | null>(null);
+
+  function step(target: AssetRecord, way: "next" | "previous") {
+    setDirection(way);
+    onNavigate?.(target);
+  }
 
   // Arrow keys step through the list and Escape closes, so a set can be
   // reviewed without going back to the grid between each one.
@@ -35,8 +42,8 @@ export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, o
       const target = event.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
       if (event.key === "Escape") onClose();
-      if (event.key === "ArrowLeft" && previous) onNavigate?.(previous);
-      if (event.key === "ArrowRight" && next) onNavigate?.(next);
+      if (event.key === "ArrowLeft" && previous) step(previous, "previous");
+      if (event.key === "ArrowRight" && next) step(next, "next");
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -47,7 +54,13 @@ export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, o
   const mediaSource = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
   const addImageTarget = referenceDropTargets.find((target) => target.id === "add-image") || referenceDropTargets[0];
   const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
-  const innerClassName = ["lightboxInner", isVideo ? "videoAssetLightbox" : "", glyphPreviewBackground ? "glyphAssetLightbox" : "", glyphPreviewClassName(glyphPreviewBackground)]
+  const innerClassName = [
+    "lightboxInner",
+    direction === "next" ? "steppingNext" : direction === "previous" ? "steppingPrevious" : "",
+    isVideo ? "videoAssetLightbox" : "",
+    glyphPreviewBackground ? "glyphAssetLightbox" : "",
+    glyphPreviewClassName(glyphPreviewBackground)
+  ]
     .filter(Boolean)
     .join(" ");
 
@@ -61,10 +74,10 @@ export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, o
           aria-label="Previous asset"
           onClick={(event) => {
             event.stopPropagation();
-            onNavigate(previous);
+            step(previous, "previous");
           }}
         >
-          <ChevronLeft size={26} />
+          <ChevronLeft size={30} />
         </button>
       )}
       {onNavigate && next && (
@@ -75,13 +88,14 @@ export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, o
           aria-label="Next asset"
           onClick={(event) => {
             event.stopPropagation();
-            onNavigate(next);
+            step(next, "next");
           }}
         >
-          <ChevronRight size={26} />
+          <ChevronRight size={30} />
         </button>
       )}
-      <div className={innerClassName} onClick={(event) => event.stopPropagation()}>
+      {/* Keyed on the asset so the slide replays for each step. */}
+      <div key={asset.id} className={innerClassName} onClick={(event) => event.stopPropagation()}>
         {isVideo ? (
           <video src={mediaSource} controls autoPlay playsInline />
         ) : (

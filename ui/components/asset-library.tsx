@@ -78,7 +78,8 @@ type AssetLibraryProps = {
   onSavePromptToLibrary: (asset: AssetRecord) => void;
   onToggleSelected: (id: string) => void;
   onToggleMetadata: (id: string) => void;
-  onOpen: (asset: AssetRecord) => void;
+  /** The second argument is the gallery's visible order, so the lightbox can page it. */
+  onOpen: (asset: AssetRecord, visible?: AssetRecord[]) => void;
   onDownload: (asset: AssetRecord) => void;
   onDelete: (id: string) => void;
 };
@@ -125,6 +126,9 @@ export function AssetLibrary(props: AssetLibraryProps) {
     props.onCollectionFilterChange(next.length === collectionFilterChipOptions.length ? [] : next);
   }
   const groupedAssets = showAssets ? groupAssetsByDate(mediaAssets) : [];
+  // Exactly what the grid shows, in the order it shows it, so paging the
+  // lightbox walks the gallery rather than some other list.
+  const visibleOrder = groupedAssets.flatMap(([, dateAssets]) => dateAssets);
   function onImageImport(event: ChangeEvent<HTMLInputElement>) {
     props.onImportImages(Array.from(event.target.files || []));
     event.target.value = "";
@@ -339,7 +343,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   key={asset.id}
                   onToggleSelected={props.onToggleSelected}
                   onToggleMetadata={props.onToggleMetadata}
-                  onOpen={props.onOpen}
+                  onOpen={(asset) => props.onOpen(asset, visibleOrder)}
                   onDownload={props.onDownload}
                   onDelete={props.onDelete}
                   onToggleFavorite={props.onToggleFavorite}

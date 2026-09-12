@@ -100,7 +100,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onSavePromptToLibrary={(asset) => void state.saveAssetPromptToLibrary(asset)}
           onToggleSelected={state.toggleAssetSelection}
           onToggleMetadata={(id) => state.setMetadataAssetId(state.metadataAssetId === id ? null : id)}
-          onOpen={state.setSelectedAsset}
+          onOpen={state.openAsset}
           onDownload={state.downloadAssetImage}
           onDelete={state.deleteAsset}
         />

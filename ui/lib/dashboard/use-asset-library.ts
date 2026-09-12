@@ -39,6 +39,9 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
   const [gridSize, setGridSize] = useState(4);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
   const [selectedAsset, setSelectedAsset] = useState<AssetRecord | null>(null);
+  // The list the lightbox pages through: whatever the gallery was showing when
+  // it was opened, falling back to everything.
+  const [lightboxAssets, setLightboxAssets] = useState<AssetRecord[]>([]);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [metadataAssetId, setMetadataAssetId] = useState<string | null>(null);
 
@@ -230,6 +233,12 @@ export function useAssetLibrary(deps: UseAssetLibraryDeps) {
     setAspectRatio,
     selectedAsset,
     setSelectedAsset,
+    lightboxAssets,
+    /** Opens an asset in the lightbox and records the list it was opened from. */
+    openAsset: (asset: AssetRecord, visible?: AssetRecord[]) => {
+      setLightboxAssets(visible?.length ? visible : assets);
+      setSelectedAsset(asset);
+    },
     selectedAssetIds,
     setSelectedAssetIds,
     metadataAssetId,
