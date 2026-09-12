@@ -127,6 +127,7 @@ export function buildRunPlan(prompts: PromptRecord[], body: RunPlanBody) {
         model,
         title: prompt.id,
         prompt: promptText,
+        originalPrompt: prompt.prompt,
         width,
         height,
         seed:

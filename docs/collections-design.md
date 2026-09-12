@@ -3,6 +3,10 @@
 Status: MVP implemented for general gallery collections. Captures the decisions
 from the design discussion and the current build shape. Scope remains phased.
 
+The gallery now shows compact folders in All and full-size folders when
+Collections is selected. See [gallery generation feedback](gallery-generation-feedback.md)
+for current sizing and loading behavior.
+
 ## Goal
 
 Let a user group gallery assets into named **Collections** (moodboards / project

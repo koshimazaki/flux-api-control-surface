@@ -103,6 +103,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
         {modeTabs}
         {promptLibrary}
         <Flux3VideoWorkspace
+          recreation={state.videoRecreation}
           active={isFlux3Mode}
           apiKey={state.apiKey}
           assets={state.assets}
@@ -124,6 +125,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           libraryPrompt={state.visiblePrompts.find((prompt) => prompt.id === state.activeId)?.prompt}
         />
         <VideoEditWorkspace
+          recreation={state.videoRecreation}
           active={isEditMode}
           apiKey={state.apiKey}
           assets={state.assets}
@@ -137,6 +139,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           generationQueueControls={state.generationQueueControls}
         />
         <VideoUpscaleWorkspace
+          recreation={state.videoRecreation}
           active={isUpscaleMode}
           apiKey={state.apiKey}
           assets={state.assets}

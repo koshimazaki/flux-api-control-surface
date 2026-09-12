@@ -180,7 +180,37 @@
 
 .collectionShelf {
   display: grid;
+  grid-template-columns: repeat(var(--collection-columns, 4), minmax(0, 1fr));
   gap: 12px;
+}
+
+/* All keeps folders at half the gallery card width. Explicit Collections
+   selection restores the full shelf; opened contents keep their own grid. */
+.collectionShelfCompact {
+  grid-template-columns: repeat(auto-fill, minmax(max(112px, calc(100% / var(--collection-compact-columns, 8) - 8px)), 1fr));
+  gap: 8px;
+}
+
+.collectionShelfCompact .collectionCard {
+  gap: 6px;
+  padding: 7px;
+}
+
+.collectionShelfCompact .collectionFolderPreview { padding: 8px; }
+.collectionShelfCompact .collectionBracket { display: none; }
+.collectionShelfCompact .collectionCoverGrid { gap: 3px; }
+.collectionShelfCompact .collectionCardMeta strong { font-size: 12px; }
+.collectionShelfCompact .collectionCardMeta span { font-size: 10px; }
+.collectionShelfCompact .collectionCardActions { gap: 4px; }
+.collectionShelfCompact .collectionCardActions button { width: 26px; min-height: 26px; }
+
+@media (max-width: 700px) {
+  .collectionShelf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .collectionShelfCompact { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
+}
+
+@media (max-width: 380px) {
+  .collectionShelf:not(.collectionShelfCompact) { grid-template-columns: minmax(0, 1fr); }
 }
 
 .collectionCard {

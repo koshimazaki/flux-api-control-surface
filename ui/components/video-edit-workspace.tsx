@@ -1,3 +1,5 @@
+import { numberSetting, textSetting, type RecreationSeed } from "@/lib/asset-recreation";
+import { recipeSource } from "@/lib/generation-recipe";
 import { Download, Film, PencilLine, Repeat, Save, ScanLine, Scissors, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { VideoComparisonFader } from "@/components/video-comparison-fader";
@@ -47,6 +49,7 @@ type SourceVideo = {
 type VideoEditWorkspaceProps = {
   /** False while another video tool is on screen: this one stays mounted but hidden. */
   active: boolean;
+  recreation?: RecreationSeed | null;
   apiKey: string;
   assets: AssetRecord[];
   /** Clip handed over from another surface (library card, lightbox, FLUX 3 header); the nonce re-applies repeat sends. */
@@ -168,6 +171,22 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    const recreation = props.recreation;
+    if (!recreation || recreation.recipe.operation !== "video-edit") return;
+    const b = recreation.recipe.body, url = recipeSource(b.inputVideo);
+    setPrompt(textSetting(b.prompt)); setSafetyTolerance(numberSetting(b.safetyTolerance, 2));
+    setTrimOpen(false);
+    setSelectedId(null); setError(""); setSource(null);
+    if (!url) return;
+    let cancelled = false;
+    void inspectVideo(url).then(details => {
+      if (!cancelled) setSource({ id: `recreate-${recreation.nonce}`, assetId: textSetting(b.sourceAssetId) || undefined,
+        name: textSetting(b.sourceName, "Original source clip"), source: url, ...details });
+    }).catch(() => { if (!cancelled) setError("The original source clip could not be loaded."); });
+    return () => { cancelled = true; };
+  }, [props.recreation]);
 
   useEffect(() => {
     const seed = props.pendingSource;

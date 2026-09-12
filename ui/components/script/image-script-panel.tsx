@@ -1,6 +1,7 @@
-import { ListChecks, Play, RotateCcw, Wand2 } from "lucide-react";
+import { ListChecks, RotateCcw, Wand2 } from "lucide-react";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { RunButton } from "@/components/ui/run-button";
 import type { PromptRecord } from "@/lib/types";
 
 /**
@@ -45,10 +46,9 @@ export function ImageScriptPanel(props: ImageScriptPanelProps) {
             <RotateCcw size={16} />
             Clear
           </button>
-          <button onClick={props.onRunScript} disabled={props.pairCount < 1 || props.isGenerating}>
-            <Play size={16} />
+          <RunButton variant="plain" isRunning={props.isGenerating} onClick={props.onRunScript} disabled={props.pairCount < 1}>
             Run pairs
-          </button>
+          </RunButton>
         </div>
       </PanelHeader>
 

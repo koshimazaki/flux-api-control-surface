@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, PencilLine, ScanLine, Send, Shirt, Video } from "lucide-react";
 import { useEffect, useState } from "react";
+import { VideoReveal } from "@/components/generation/video-reveal";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { referenceDropTargets } from "@/lib/reference-roles";
 import type { AssetRecord, ImageWorkspaceMode, ReferenceRole } from "@/lib/types";
@@ -56,7 +57,7 @@ export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, o
   const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
   const innerClassName = [
     "lightboxInner",
-    direction === "next" ? "steppingNext" : direction === "previous" ? "steppingPrevious" : "",
+    !isVideo && direction === "next" ? "steppingNext" : !isVideo && direction === "previous" ? "steppingPrevious" : "",
     isVideo ? "videoAssetLightbox" : "",
     glyphPreviewBackground ? "glyphAssetLightbox" : "",
     glyphPreviewClassName(glyphPreviewBackground)
@@ -97,7 +98,7 @@ export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, o
       {/* Keyed on the asset so the slide replays for each step. */}
       <div key={asset.id} className={innerClassName} onClick={(event) => event.stopPropagation()}>
         {isVideo ? (
-          <video src={mediaSource} controls autoPlay playsInline />
+          <VideoReveal key={`${asset.id}:${mediaSource}`} src={mediaSource} title={asset.title} width={asset.width} height={asset.height} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={mediaSource} alt={asset.title || asset.id} />

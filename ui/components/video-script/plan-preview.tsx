@@ -1,6 +1,7 @@
 import { AlertTriangle, Info, Play, Shield } from "lucide-react";
 import { MetaBox } from "@/components/ui/meta-box";
 import { NumberField } from "@/components/ui/number-field";
+import { RunButton } from "@/components/ui/run-button";
 import type { VideoScriptPlan } from "@/lib/video-script-plan";
 
 /**
@@ -106,10 +107,9 @@ export function VideoScriptPlanPreview(props: VideoScriptPlanPreviewProps) {
       {props.error && <p className="videoScriptError">{props.error}</p>}
       {props.notice && <p className="videoScriptNotice">{props.notice}</p>}
 
-      <button type="button" className="videoScriptEnqueue" onClick={props.onEnqueue} disabled={!canEnqueue}>
-        <Play size={14} />
+      <RunButton variant="plain" className="videoScriptEnqueue" isRunning={props.isEnqueueing} onClick={props.onEnqueue} disabled={!canEnqueue}>
         {props.isEnqueueing ? "Queueing" : `Queue ${preview.validRowCount} video ${preview.validRowCount === 1 ? "job" : "jobs"}`}
-      </button>
+      </RunButton>
     </aside>
   );
 }

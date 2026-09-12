@@ -141,7 +141,7 @@
 }
 
 .queueHeader small {
-  color: var(--muted);
+  color: var(--text-secondary, var(--muted));
   white-space: nowrap;
 }
 
@@ -160,9 +160,9 @@
 
 .queueControls button,
 .queueJobActions button {
-  border: 1px solid rgba(243, 241, 230, 0.14);
+  border: 1px solid var(--border-default, var(--line));
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--surface-raised, var(--bg));
   padding: 3px 8px;
   color: var(--soft);
   font-size: 11px;
@@ -182,7 +182,7 @@
 
 .queueNotice {
   margin: 0;
-  color: var(--muted);
+  color: var(--text-secondary, var(--muted));
   font-size: 11px;
 }
 
@@ -238,7 +238,7 @@
 
 .queueJob small,
 .queueEmpty small {
-  color: var(--muted);
+  color: var(--text-secondary, var(--muted));
   white-space: nowrap;
   font-size: 11px;
   /* `strong` above already clips; `small` did not, so a long value grew the
