@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ChangeEvent, type DragEvent } from "react";
 import { AssetCard } from "@/components/asset-card";
+import { GalleryGenerationCard } from "@/components/generation/gallery-generation-card";
+import { galleryEntries, type GalleryEntry, type GalleryGeneration } from "@/lib/gallery-generations";
 import { AssetCollectionGallery, visibleAssetCollections } from "@/components/asset-collection-gallery";
 import { PanelHeader } from "@/components/ui/panel-header";
 import type {
@@ -36,8 +38,11 @@ const collectionFilterLabels: Record<AssetCollectionFilter, string> = {
 };
 
 const collectionFilterChipOptions: AssetCollectionFilter[] = ["images", "videos", "collections"];
+const ignoreGenerationReveal = () => {};
 
 type AssetLibraryProps = {
+  generations?: GalleryGeneration[];
+  onGenerationRevealed?: (id: string) => void;
   assets: AssetRecord[];
   filteredAssets: AssetRecord[];
   searchQuery: string;
@@ -66,6 +71,7 @@ type AssetLibraryProps = {
   onRecover: () => void;
   onImportImages: (files: File[]) => void;
   onToggleFavorite: (id: string) => void;
+  onRecreate?: (asset: AssetRecord) => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToVtoGarment: (asset: AssetRecord) => void;
@@ -84,8 +90,8 @@ type AssetLibraryProps = {
   onDelete: (id: string) => void;
 };
 
-function groupAssetsByDate(assets: AssetRecord[]) {
-  const groups = new Map<string, AssetRecord[]>();
+function groupAssetsByDate(assets: GalleryEntry[]) {
+  const groups = new Map<string, GalleryEntry[]>();
   assets.forEach((asset) => {
     const date = new Date(asset.timestamp).toLocaleDateString(undefined, {
       year: "numeric",
@@ -125,10 +131,18 @@ export function AssetLibrary(props: AssetLibraryProps) {
       : [...props.collectionFilter, option];
     props.onCollectionFilterChange(next.length === collectionFilterChipOptions.length ? [] : next);
   }
-  const groupedAssets = showAssets ? groupAssetsByDate(mediaAssets) : [];
+  const visibleAssetIds = new Set(mediaAssets.map((asset) => asset.id));
+  const query = props.searchQuery.trim().toLowerCase();
+  const entries = galleryEntries(props.assets, props.generations || []).filter((entry) => {
+    if (entry.asset) return visibleAssetIds.has(entry.asset.id);
+    const job = entry.generation!.job;
+    const matchesMedia = filterAll || (job.kind === "video" ? filterHas("videos") : filterHas("images"));
+    return matchesMedia && (!query || `${job.title} ${job.operation}`.toLowerCase().includes(query));
+  });
+  const groupedAssets = showAssets ? groupAssetsByDate(entries) : [];
   // Exactly what the grid shows, in the order it shows it, so paging the
   // lightbox walks the gallery rather than some other list.
-  const visibleOrder = groupedAssets.flatMap(([, dateAssets]) => dateAssets);
+  const visibleOrder = groupedAssets.flatMap(([, dateAssets]) => dateAssets.flatMap((entry) => entry.asset ? [entry.asset] : []));
   function onImageImport(event: ChangeEvent<HTMLInputElement>) {
     props.onImportImages(Array.from(event.target.files || []));
     event.target.value = "";
@@ -311,6 +325,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
           collections={props.collections}
           searchQuery={props.searchQuery}
           showCollections={showCollections}
+          compact={!filterHas("collections")}
           openedCollection={props.openedCollection}
           assets={props.assets}
           gridSize={props.gridSize}
@@ -330,11 +345,13 @@ export function AssetLibrary(props: AssetLibraryProps) {
           <section className="assetDateGroup" key={date}>
             <div className="assetDateHeader">
               <strong>{date}</strong>
-              <span>{dateAssets.length} asset{dateAssets.length === 1 ? "" : "s"}</span>
+              <span>{dateAssets.filter((entry) => entry.asset).length} saved{dateAssets.some((entry) => !entry.asset) ? ` · ${dateAssets.filter((entry) => !entry.asset).length} in queue` : ""}</span>
             </div>
             <div className="assetGrid" style={assetGridStyle}>
-              {dateAssets.map((asset) => (
-                <AssetCard
+              {dateAssets.map((entry) => {
+                const asset = entry.asset;
+                const card = asset ? <AssetCard
+                  eagerPreview={Boolean(entry.generation && !entry.generation.revealed)}
                   asset={asset}
                   aspectRatio={props.aspectRatio}
                   badges={props.assetBadges[asset.id] || []}
@@ -347,6 +364,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   onDownload={props.onDownload}
                   onDelete={props.onDelete}
                   onToggleFavorite={props.onToggleFavorite}
+                  onRecreate={props.onRecreate}
                   onSendToPrompt={props.onSendToPrompt}
                   onSendToWorkspace={props.onSendToWorkspace}
                   onSendToVtoGarment={props.onSendToVtoGarment}
@@ -357,8 +375,12 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   onRevealAsset={props.onRevealAsset}
                   onSendToReference={props.onSendToReference}
                   onSavePromptToLibrary={props.onSavePromptToLibrary}
-                />
-              ))}
+                /> : null;
+                return entry.generation ? <GalleryGenerationCard
+                  key={entry.key} generation={entry.generation} asset={asset} aspectRatio={props.aspectRatio}
+                  onRevealed={props.onGenerationRevealed || ignoreGenerationReveal}
+                >{card}</GalleryGenerationCard> : card;
+              })}
             </div>
           </section>
         ))}

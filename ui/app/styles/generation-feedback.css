@@ -1,0 +1,77 @@
+.galleryGenerationSlot { position: relative; min-width: 0; }
+.galleryGenerationSlot > .assetCard { height: 100%; box-sizing: border-box; }
+.generationPendingCard .assetImageButton { border-radius: 4px; background: #151718; }
+.generationPendingIcon { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+.generationStatus { margin: 8px 0 2px; color: var(--soft); font-family: var(--font-mono); font-size: 11px; }
+.generationError { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.generationUnavailable { opacity: 0.7; }
+.generationOverlay { position: absolute; top: 11px; left: 11px; right: 11px; overflow: hidden; border-radius: 4px; pointer-events: none; }
+.generationReveal, .generationShader, .generationShaderStage { width: 100%; height: 100%; display: block; }
+.generationShader { position: relative; }
+.generationShaderCanvas, .generationMosaicCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.generationShaderCanvas { z-index: 1; }
+.generationMosaicCanvas { z-index: 2; opacity: 0; }
+.generationReveal { position: relative; overflow: hidden; }
+.generationShaderStage { background: #151718; }
+.generationShaderStage[data-phase="dissolving"] { background: transparent; }
+.generationStatic { position: absolute; inset: 0; pointer-events: none; }
+.generationStatic {
+  background: radial-gradient(ellipse at center, transparent, #151718),
+    repeating-conic-gradient(#24282a 0% 25%, #151718 0% 50%) 0 / 24px 24px;
+}
+.generationStatic.dissolving { animation: generationFallbackFade 150ms ease forwards; }
+@keyframes generationFallbackFade { to { opacity: 0; } }
+
+.videoRevealFrame { position: relative; width: 100%; min-width: 0; max-height: calc(100vh - 64px); align-self: center; border-radius: 8px; overflow: hidden; background: #000; }
+.videoRevealFrame > video { display: block; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 500ms cubic-bezier(0.22, 1, 0.36, 1); }
+.videoRevealReady > video { opacity: 1; }
+
+.queueHeading, .queueJobHeading { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.queueHeading { flex-wrap: wrap; }
+.queueElapsed { flex: 0 0 auto; color: var(--acc-intel-strong, var(--cyan)); font-family: var(--font-mono); font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.queueJobHeading strong { min-width: 0; }
+.queueJobHeading .queueElapsed { margin-left: auto; }
+.queueMeter > span { position: relative; overflow: hidden; }
+.queueMeter > span.running::before {
+  content: ""; position: absolute; inset: 0; opacity: 0.65;
+  background: radial-gradient(ellipse 17% 140% at 35% 50%, rgba(154, 210, 218, 0.8), transparent 90%),
+    radial-gradient(ellipse 21% 140% at 66% 50%, rgba(195, 145, 191, 0.45), transparent 90%),
+    linear-gradient(90deg, transparent 10%, rgba(109, 150, 203, 0.3) 48%, transparent 85%);
+  background-size: 220% 100%;
+  animation: queueFluidFlow 8s ease-in-out infinite alternate-reverse;
+  animation-delay: inherit;
+}
+.queueMeter > span.running::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 12% 110% at 50% 50%, rgba(228, 242, 245, 0.88), rgba(155, 203, 218, 0.35) 44%, transparent 100%);
+  background-size: 210% 100%;
+  animation: queueFluidFlow 4.6s ease-in-out infinite alternate;
+  animation-delay: inherit;
+}
+@keyframes queueFluidFlow {
+  0% { background-position: 6% 50%; }
+  45% { background-position: 54% 50%; }
+  100% { background-position: 94% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .videoRevealFrame > video { transition-duration: 100ms; }
+  .queueMeter > span.running::before, .queueMeter > span.running::after { animation: none; background-position: 50% 50%; }
+}
+@media (max-width: 700px) {
+  .queueJob { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The local comparison page keeps all three studies easy to scan. */
+.galleryFeedbackPreview { overflow-anchor: none; }
+.galleryFeedbackPreview > .queueBox { min-height: 190px; }
+.galleryPreviewControls { position: sticky; top: 8px; z-index: 100; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; padding: 8px; background: #101619; border: 1px solid var(--line); border-radius: 6px; }
+.galleryPreviewControls select { width: auto; }
+.galleryFeedbackPreview > .queueBox .queueList { grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; }
+.galleryFeedbackPreview > .queueBox .queueJob { grid-template-columns: minmax(0, 1fr); }
+.galleryFeedbackPreview .assetGrid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important; }
+@media (max-width: 520px) {
+  .galleryFeedbackPreview > .queueBox .queueList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 360px) {
+  .galleryFeedbackPreview > .queueBox .queueList { grid-template-columns: minmax(0, 1fr); }
+}

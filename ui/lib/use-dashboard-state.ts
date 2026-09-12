@@ -1,4 +1,5 @@
 "use client";
+import { useAssetRecreation } from "@/lib/dashboard/use-asset-recreation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   buildRunPlanPayload,
@@ -765,6 +766,7 @@ export function useDashboardState() {
           title: item.title,
           payload: {
             ...item.body,
+            referenceCue,
             apiKey: apiKey.trim() || undefined,
             references: activeReferences.map((reference) => reference.value),
             // Lightweight descriptors so the saved output can rebuild reference
@@ -1270,7 +1272,17 @@ export function useDashboardState() {
     setVtoGarmentAssetIds([null, null, null, null]);
   }
 
+  const { recreateAsset, videoRecreation } = useAssetRecreation({
+    assets, setAssets, setWorkspaceMode, setPromptText, setPromptSourceAssetId, setModel, setWidth, setHeight,
+    setSeedValue, setSeedLocked, setPromptUpsampling, setNormalizeReferences, setReferences, setReferenceCue, setReferenceWeight,
+    setBatchMode, setBatchCount, setFlux3SourceMode, setFlux3Keyframes, setFlux3StartVideo, setSourceAssetIdForMode,
+    setVtoGarmentAssetIds, setToolMask, setVtoPromptText, setOutpaintPromptText, setToolDilatePixels, setToolGuidance,
+    setToolSteps, setToolSafetyTolerance, setToolOutputFormat, setOutpaintOffsetX, setOutpaintOffsetY, setOutpaintMode,
+    setOutpaintAutoCrop, setRecoveryMessage
+  });
+
   return {
+    recreateAsset, videoRecreation,
     apiKey,
     setApiKey,
     apiKeyStatus,

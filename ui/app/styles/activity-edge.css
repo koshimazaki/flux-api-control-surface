@@ -1,0 +1,128 @@
+/* Light follows the existing rim. Primary actions soften their fill on hover
+   to let the coloured edge show through. */
+@property --activity-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.activityEdge,
+.runAction {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  --activity-drift: 11s;
+  --activity-phase: 0s;
+}
+
+.activityEdge::before,
+.runAction::before,
+.activityEdge::after,
+.runAction::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(from var(--activity-angle), transparent 0deg 284deg,
+    rgba(112, 159, 230, 0.12) 306deg, rgba(134, 186, 229, 0.6) 324deg,
+    rgba(237, 139, 189, 0.85) 340deg, rgba(214, 199, 138, 0.45) 350deg, transparent 360deg);
+  --edge-opacity: 0.48;
+  animation: activityEdgeOrbit var(--activity-drift) linear infinite, activityEdgeFade 6.5s ease-in-out infinite;
+  animation-delay: var(--activity-phase);
+}
+
+.activityEdge::before,
+.runAction::before {
+  inset: -3px;
+  padding: 3px;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  filter: blur(3px);
+  --edge-opacity: 0.2;
+}
+
+.activityEdge::after,
+.runAction::after {
+  inset: -1px;
+  padding: 1px;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+/* All run actions carry the same continuous invitation, including a faint
+   rim when unavailable. Their existing fill and wording stay with the tool. */
+.runAction { --activity-drift: 12s; }
+.runAction::before,
+.runAction::after {
+  background: conic-gradient(from var(--activity-angle), transparent 0deg 120deg,
+    rgba(112, 159, 230, 0.1) 175deg, rgba(134, 211, 229, 0.65) 225deg,
+    rgba(237, 139, 189, 0.9) 275deg, rgba(224, 204, 142, 0.75) 318deg,
+    rgba(159, 209, 166, 0.4) 345deg, transparent 360deg);
+  animation: activityEdgeOrbit var(--activity-drift) linear infinite;
+  opacity: var(--edge-opacity);
+}
+.runAction::before {
+  inset: -3px; padding: 0; filter: none; --edge-opacity: 0.18;
+  --glow-edge: 3px; --glow-falloff: 11px;
+  /* Feather the mask itself: blurring a masked border leaves a hard inner rim. */
+  mask: linear-gradient(transparent, #000 var(--glow-edge), transparent var(--glow-falloff)),
+    linear-gradient(0deg, transparent, #000 var(--glow-edge), transparent var(--glow-falloff)),
+    linear-gradient(90deg, transparent, #000 var(--glow-edge), transparent var(--glow-falloff)),
+    linear-gradient(270deg, transparent, #000 var(--glow-edge), transparent var(--glow-falloff));
+  mask-composite: add;
+}
+.runAction::after { --edge-opacity: 0.35; }
+.runAction:not(:disabled)::before { --edge-opacity: 0.34; }
+.runAction:not(:disabled)::after { --edge-opacity: 0.7; }
+.runAction[aria-busy="false"]:is(:hover, :focus-visible):not(:disabled)::before { --edge-opacity: 0.48; }
+.runAction[aria-busy="false"]:is(:hover, :focus-visible):not(:disabled)::after { --edge-opacity: 0.95; }
+.runAction[aria-busy="true"] { opacity: 1; --activity-drift: 8.5s; }
+.runAction[aria-busy="true"]::before { inset: -4px; --glow-edge: 4px; --glow-falloff: 14px; --edge-opacity: 0.58; }
+.runAction[aria-busy="true"]::after { --edge-opacity: 1; }
+
+.actionCube { position: relative; display: inline-block; width: 18px; height: 18px; flex: 0 0 18px; overflow: hidden; perspective: 80px; }
+.actionCube i {
+  position: absolute; width: 4px; height: 4px; background: currentColor; border-radius: 0.6px;
+  box-shadow: -18px -18px, 0 -18px, 18px -18px, -18px 0, 18px 0, -18px 18px, 0 18px, 18px 18px;
+  animation: actionCubeShuffle 3.6s linear infinite;
+}
+@keyframes actionCubeShuffle {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  12.5% { transform: translate3d(calc(var(--cube-x) / 2), 0, 1.5px) rotateY(24deg); }
+  25% { transform: translate3d(var(--cube-x), 0, 0); }
+  37.5% { transform: translate3d(var(--cube-x), calc(var(--cube-y) / 2), 1.5px) rotateX(-24deg); }
+  50% { transform: translate3d(var(--cube-x), var(--cube-y), 0); }
+  62.5% { transform: translate3d(calc(var(--cube-x) / 2), var(--cube-y), 1.5px) rotateY(-24deg); }
+  75% { transform: translate3d(0, var(--cube-y), 0); }
+  87.5% { transform: translate3d(0, calc(var(--cube-y) / 2), 1.5px) rotateX(24deg); }
+}
+
+.queueList .activityEdge:nth-child(3n + 2) { --activity-phase: -2.2s; }
+.queueList .activityEdge:nth-child(3n + 3) { --activity-phase: -4.4s; }
+
+@keyframes activityEdgeOrbit { to { --activity-angle: 360deg; } }
+@keyframes activityEdgeFade {
+  0% { opacity: calc(var(--edge-opacity) * 0.35); }
+  22%, 42% { opacity: var(--edge-opacity); }
+  72%, 92% { opacity: 0; }
+  100% { opacity: calc(var(--edge-opacity) * 0.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activityEdge::before, .activityEdge::after,
+  .runAction::before, .runAction::after {
+    animation: none;
+    --activity-angle: 35deg;
+    opacity: var(--edge-opacity);
+  }
+  .actionCube i { animation: none; }
+}
+
+.dsgn-root :is(.generateButton, .videoScriptEnqueue):is(:hover, :focus-visible):is(:not(:disabled), [aria-busy="true"]) {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 58%, transparent),
+    color-mix(in srgb, var(--accent) 42%, transparent));
+  color: var(--text-primary);
+}

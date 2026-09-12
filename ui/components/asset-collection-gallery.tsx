@@ -10,7 +10,7 @@ import {
   Upload,
   X
 } from "lucide-react";
-import type { DragEvent } from "react";
+import type { CSSProperties, DragEvent } from "react";
 import { collectionCoverAssetIds, collectionMemberCounts } from "@/lib/asset-collections";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import type {
@@ -25,6 +25,7 @@ type AssetCollectionGalleryProps = {
   collections: AssetCollection[];
   searchQuery: string;
   showCollections: boolean;
+  compact?: boolean;
   openedCollection: AssetCollection | null;
   assets: AssetRecord[];
   gridSize: number;
@@ -134,7 +135,7 @@ function CollectionCard({
       }}
       onDrop={handleDrop}
     >
-      <button className="collectionFolderPreview" onClick={onOpen} title="Open collection">
+      <button className="collectionFolderPreview" onClick={onOpen} title="Open collection" aria-label={`Open ${collection.name}`} aria-expanded={isOpen}>
         <span className="collectionBracket top" aria-hidden="true" />
         <span className="collectionBracket bottom" aria-hidden="true" />
         <span className="collectionCoverGrid">
@@ -155,7 +156,7 @@ function CollectionCard({
         </span>
       </button>
       <div className="collectionCardMeta">
-        <strong>{collection.name}</strong>
+        <strong title={collection.name}>{collection.name}</strong>
         <span>
           {collection.members.length} item{collection.members.length === 1 ? "" : "s"} · {counts.inputs} input
           {counts.inputs === 1 ? "" : "s"} · {counts.generations} generation{counts.generations === 1 ? "" : "s"}
@@ -292,8 +293,9 @@ export function AssetCollectionGallery(props: AssetCollectionGalleryProps) {
   const openedGenerationMembers = props.openedCollection?.members.filter((member) => member.kind === "generation") || [];
   const openedMembers = props.openedCollection?.members || [];
   const assetGridStyle = {
-    gridTemplateColumns: `repeat(${props.gridSize}, minmax(0, 1fr))`
-  };
+    "--collection-columns": props.gridSize,
+    "--collection-compact-columns": props.gridSize * 2
+  } as CSSProperties;
 
   if (!props.showCollections) return null;
 
@@ -305,7 +307,7 @@ export function AssetCollectionGallery(props: AssetCollectionGalleryProps) {
             <strong>Collections</strong>
             <span>{visibleCollections.length} folder{visibleCollections.length === 1 ? "" : "s"}</span>
           </div>
-          <div className="collectionShelf" style={assetGridStyle}>
+          <div className={`collectionShelf${props.compact ? " collectionShelfCompact" : ""}`} style={assetGridStyle}>
             {visibleCollections.map((collection) => (
               <CollectionCard
                 collection={collection}

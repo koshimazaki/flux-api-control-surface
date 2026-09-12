@@ -9,9 +9,11 @@ import { ScriptPanel } from "@/components/script-panel";
 import { TrainingCollectionsPanel } from "@/components/training-collections-panel";
 import { stripAssetForStorage } from "@/lib/asset-storage";
 import { downloadText } from "@/lib/prompt-utils";
+import { useGalleryGenerations } from "@/lib/dashboard/use-gallery-generations";
 import type { DashboardState } from "@/lib/use-dashboard-state";
 
 export function DashboardPanels({ state }: { state: DashboardState }) {
+  const gallery = useGalleryGenerations(state.generationQueue, state.assets);
   return (
     <DashboardTabs
       activeTab={state.activeTab}
@@ -58,6 +60,8 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
       }
       assets={
         <AssetLibrary
+          generations={gallery.generations}
+          onGenerationRevealed={gallery.markRevealed}
           assets={state.assets}
           filteredAssets={state.filteredAssets}
           searchQuery={state.searchQuery}
@@ -88,6 +92,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onRecover={state.recoverStoredAssets}
           onImportImages={(files) => void state.importImageAssetFiles(files)}
           onToggleFavorite={state.toggleFavorite}
+          onRecreate={(asset) => void state.recreateAsset(asset)}
           onSendToPrompt={state.sendAssetToPrompt}
           onSendToWorkspace={state.sendAssetToWorkspace}
           onSendToVtoGarment={state.sendAssetToNextVtoGarment}

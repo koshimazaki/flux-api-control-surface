@@ -1,5 +1,6 @@
 import {
   BookmarkPlus,
+  RotateCcw,
   Check,
   Clipboard,
   Download,
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-badge";
+import { canRecreateAsset } from "@/lib/generation-recipe";
 import { copyText } from "@/lib/clipboard";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
@@ -48,6 +50,7 @@ type AssetCardProps = {
   badges: AssetBadge[];
   isSelected: boolean;
   metadataOpen: boolean;
+  eagerPreview?: boolean;
   onToggleSelected: (id: string) => void;
   onToggleMetadata: (id: string) => void;
   onOpen: (asset: AssetRecord) => void;
@@ -55,6 +58,7 @@ type AssetCardProps = {
   onRevealAsset?: (asset: AssetRecord) => void;
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
+  onRecreate?: (asset: AssetRecord) => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToVtoGarment: (asset: AssetRecord) => void;
@@ -227,7 +231,7 @@ export function AssetCard(props: AssetCardProps) {
               src={mediaSource}
               muted
               playsInline
-              preload="metadata"
+              preload={props.eagerPreview ? "auto" : "metadata"}
               aria-label={asset.title || asset.id}
               className={mediaLoaded ? "assetMediaReady" : undefined}
               {...hoverPreview}
@@ -236,8 +240,8 @@ export function AssetCard(props: AssetCardProps) {
                 if (video.videoWidth && video.videoHeight) {
                   setMeasuredRatio({ width: video.videoWidth, height: video.videoHeight });
                 }
-                setMediaLoaded(true);
               }}
+              onLoadedData={() => setMediaLoaded(true)}
               onError={markMediaUnavailable}
             />
             <span className="assetVideoPlay" aria-hidden="true"><Play size={18} fill="currentColor" /></span>
@@ -327,6 +331,8 @@ export function AssetCard(props: AssetCardProps) {
       </div>
       <div className="assetButtons">
         <div className="assetButtonGroup">
+          {props.onRecreate && canRecreateAsset(asset) && <button type="button" className="assetRecreateButton"
+            onClick={() => props.onRecreate?.(asset)} title={`Recreate ${isVideo ? "video" : "image"} — load saved inputs and settings`}><RotateCcw size={15} /></button>}
           <button onClick={() => props.onSendToPrompt(asset)} title={isVideo ? "Send prompt to FLUX 3 video" : "Send prompt to Generate"}>
             <Send size={15} />
           </button>

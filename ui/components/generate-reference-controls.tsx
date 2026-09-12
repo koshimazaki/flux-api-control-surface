@@ -1,5 +1,7 @@
-import { Database, ImagePlus, Images, Mountain, Move, Palette, UserRound, X } from "lucide-react";
-import { useState, type DragEvent as ReactDragEvent } from "react";
+import { ChevronRight, Database, ImagePlus, X } from "lucide-react";
+import { useId, useState, type DragEvent as ReactDragEvent, type ReactNode } from "react";
+import { addReferenceAssignments } from "@/lib/reference-assignments";
+import { ReferenceTargetCard } from "@/components/reference-target-card";
 import { IconButton } from "@/components/ui/icon-button";
 import {
   type ReferenceDropTarget,
@@ -24,15 +26,8 @@ const REFERENCE_WEIGHT_STEPS = [
   { label: "Anchor", value: 100 }
 ];
 
-const roleIcons: Record<ReferenceRole, typeof UserRound> = {
-  character: UserRound,
-  style: Palette,
-  environment: Mountain,
-  pose: Move,
-  loose: Images
-};
-
 type GenerateReferenceControlsProps = {
+  children?: ReactNode;
   references: ReferenceImage[];
   maxReferences: number;
   primaryReferenceUrl: string;
@@ -52,7 +47,10 @@ type GenerateReferenceControlsProps = {
 };
 
 export function GenerateReferenceControls(props: GenerateReferenceControlsProps) {
+  const [expanded, setExpanded] = useState(false);
+  const bodyId = useId();
   const [dragTargetId, setDragTargetId] = useState("");
+  const [dropNotice, setDropNotice] = useState("");
   const activeReferenceCount = props.references.filter((reference) => Boolean(reference.value)).length;
   const referencesWithIndex = props.references.map((reference, index) => ({ reference, index }));
   const targetReferences = new Map<string, typeof referencesWithIndex>();
@@ -92,14 +90,15 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
 
   function removeReference(id: string) {
     props.onReferencesChange(props.references.filter((reference) => reference.id !== id));
+    setDropNotice("");
   }
 
-  function updateReferenceTarget(id: string, target: ReferenceDropTarget) {
-    props.onReferencesChange(
-      props.references.map((reference) =>
-        reference.id === id ? { ...reference, role: target.role, targetId: target.id } : reference
-      )
-    );
+  function copyReferenceToTarget(id: string, target: ReferenceDropTarget) {
+    const source = props.references.find((reference) => reference.id === id);
+    if (!source) return;
+    const result = addReferenceAssignments(props.references, [source], props.maxReferences, target);
+    props.onReferencesChange(result.references);
+    setDropNotice(result.limited ? `All ${props.maxReferences} reference slots are in use. Remove one to add another role.` : "");
   }
 
   function referenceDragClass(targetId: string, hasReferences: boolean) {
@@ -122,12 +121,14 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
 
   function handleReferenceDrop(event: ReactDragEvent, target?: ReferenceDropTarget) {
     event.preventDefault();
+    event.stopPropagation();
     setDragTargetId("");
+    setDropNotice("");
     const referencePayload = event.dataTransfer.getData(BFL_REFERENCE_MIME);
     if (referencePayload && target) {
       const draggedReference = parseReferenceDragPayload(referencePayload);
       if (draggedReference?.id && props.references.some((reference) => reference.id === draggedReference.id)) {
-        updateReferenceTarget(draggedReference.id, target);
+        copyReferenceToTarget(draggedReference.id, target);
         return;
       }
     }
@@ -147,10 +148,12 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
   return (
     <section className="generateReferenceControls" aria-label="Generate references">
       <div className="referenceHeader generateReferenceHeader">
-        <div>
+        <button type="button" className="referenceDisclosure" aria-expanded={expanded} aria-controls={bodyId}
+          onClick={() => setExpanded((open) => !open)}>
+          <ChevronRight size={14} />
           <strong>References</strong>
           <span>{activeReferenceCount}/{props.maxReferences} connected to this prompt</span>
-        </div>
+        </button>
         {(props.primaryReferencePreview || props.primaryReferenceUrl) && (
           <IconButton title="Clear primary reference" onClick={props.onClearPrimaryReference}>
             <X size={14} />
@@ -158,72 +161,21 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
         )}
       </div>
 
+      <div id={bodyId} className="generateReferenceBody" hidden={!expanded}>
       <div className="referenceRoleGrid generateReferenceRoleGrid">
-        {referenceDropTargets.map((target) => {
-          const role = referenceRoleConfig(target.role);
-          const references = targetReferences.get(target.id) || [];
-          const RoleIcon = roleIcons[target.role];
-          return (
-            <div
-              className={referenceDragClass(target.id, Boolean(references.length))}
-              key={target.id}
-              onDragOver={(event) => handleReferenceDragOver(event, target.id)}
-              onDragLeave={(event) => handleReferenceDragLeave(event, target.id)}
-              onDrop={(event) => handleReferenceDrop(event, target)}
-              title={role.cue}
-            >
-              <div className="referenceRoleTitle">
-                <span>
-                  <RoleIcon size={14} />
-                  <strong>{target.label}</strong>
-                </span>
-              </div>
-              <div className="referenceRoleMeta">
-                <small>{target.hint}</small>
-                <code>{target.token}</code>
-              </div>
-              <div className={references.length ? "referenceRoleThumbs" : "referenceRoleThumbs empty"}>
-                {references.length ? (
-                  references.slice(0, 4).map(({ reference, index }) => {
-                    const preview = referencePreviewSrc(reference);
-                    return (
-                      <div className="referenceRoleThumb" key={reference.id}>
-                        {preview ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={preview}
-                            alt={referenceDisplayName(reference, index)}
-                            draggable
-                            onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
-                          />
-                        ) : (
-                          <span
-                            draggable
-                            onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
-                          >
-                            {referenceToken(index)}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          className="referenceThumbRemove"
-                          title={`Remove ${referenceToken(index)}`}
-                          onClick={() => removeReference(reference.id)}
-                        >
-                          <X size={12} />
-                        </button>
-                        <em>{referenceToken(index)}</em>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <span className="referenceRoleEmpty">{target.emptyLabel}</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {referenceDropTargets.map((target) => (
+          <ReferenceTargetCard key={target.id} target={target}
+            references={targetReferences.get(target.id) || []}
+            className={referenceDragClass(target.id, Boolean(targetReferences.get(target.id)?.length))}
+            onDragOver={(event) => handleReferenceDragOver(event, target.id)}
+            onDragLeave={(event) => handleReferenceDragLeave(event, target.id)}
+            onDrop={(event) => handleReferenceDrop(event, target)}
+            onFiles={(files) => props.onReferenceFiles(files, target.role, target.id)}
+            onRemove={removeReference} />
+        ))}
       </div>
+
+      {dropNotice && <p role="status">{dropNotice}</p>}
 
       <div className="generateReferenceUtilityRow">
         <div
@@ -244,6 +196,7 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
           }}
           onDrop={(event) => {
             event.preventDefault();
+            event.stopPropagation();
             setDragTargetId("");
             props.onPrimaryReferenceFiles(
               Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"))
@@ -375,6 +328,8 @@ export function GenerateReferenceControls(props: GenerateReferenceControlsProps)
           </label>
         </div>
       </details>
+      {props.children}
+      </div>
     </section>
   );
 }

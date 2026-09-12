@@ -1,3 +1,4 @@
+import { flux3Recreation, type RecreationSeed } from "@/lib/asset-recreation";
 import { Download, Film, PencilLine, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Flux3MediaDropzone, type Flux3InputMedia } from "@/components/flux3-media-dropzone";
@@ -5,6 +6,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import { CubeLoader } from "@/components/ui/cube-loader";
 import type { VideoEditSourceInput } from "@/lib/video-edit";
 import { usePauseHiddenMedia } from "@/lib/use-pause-hidden-media";
 import { videoAspectFromEvent, videoStageStyle, type VideoStageAspect } from "@/lib/video-stage";
@@ -27,6 +29,7 @@ import type { AssetRecord } from "@/lib/types";
 type Flux3VideoWorkspaceProps = {
   /** False while another video tool is on screen: this one stays mounted but hidden. */
   active: boolean;
+  recreation?: RecreationSeed | null;
   apiKey: string;
   assets: AssetRecord[];
   mode: Flux3SourceMode;
@@ -109,11 +112,21 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
     if (props.promptSeed?.text.trim()) setPrompt(props.promptSeed.text);
   }, [props.promptSeed]);
 
+  useEffect(() => {
+    if (!props.recreation || ["video-edit", "video-upscale"].includes(props.recreation.recipe.operation)) return;
+    const restored = flux3Recreation(props.recreation.recipe);
+    setPrompt(restored.prompt); setAspectRatio(restored.aspectRatio); setDuration(restored.duration);
+    setResolution(restored.resolution); setGenerateAudio(restored.generateAudio);
+    setSafetyTolerance(restored.safetyTolerance); setDraft(restored.draft); setError("");
+  }, [props.recreation]);
+
   const requestInput = useMemo<Flux3VideoRequest>(
     () => ({
       mode,
       prompt,
       keyframes: keyframes.map((item) => item.source),
+      timedKeyframes: keyframes.length && keyframes.every(item => typeof item.seconds === "number")
+        ? keyframes.map(item => [item.seconds!, item.source]) : undefined,
       startVideo: startVideo?.source,
       aspectRatio,
       duration,
@@ -124,7 +137,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
     }),
     [aspectRatio, draft, duration, generateAudio, keyframes, mode, prompt, resolution, safetyTolerance, startVideo]
   );
-  const blocker = flux3RequestBlocker(requestInput);
+  const blocker = mode === "i2v" && keyframes.some(frame => !frame.source) ? "Replace the missing saved keyframe before generating." : flux3RequestBlocker(requestInput);
   const estimatedUsd = estimateFlux3VideoUsd(requestInput);
 
   useEffect(() => {
@@ -230,7 +243,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       const response = await fetch("/api/bfl/flux3-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...input, apiKey: props.apiKey || undefined, title })
+        body: JSON.stringify({ ...input, keyframeAssetIds: keyframes.map(item => item.assetId || ""), startVideoAssetId: startVideo?.assetId, apiKey: props.apiKey || undefined, title })
       });
       const data = await response.json();
       if (!response.ok) {
@@ -330,7 +343,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
           )}
           {(isRunning || pendingQueueJobId) && (
             <div className="flux3RenderOverlay">
-              <Sparkles className="spin" size={24} />
+              <CubeLoader />
               <strong>{pendingQueueJobId ? "Still rendering on the server queue" : runLabel}</strong>
               <span>
                 {pendingQueueJobId

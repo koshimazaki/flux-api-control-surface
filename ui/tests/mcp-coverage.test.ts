@@ -28,6 +28,7 @@ const allRoutes = readdirSync(apiDir, { recursive: true })
 const DISCOVERY_ONLY = ["/api/mcp/guide", "/api/mcp/status", "/api/bfl_dashboard/v1/manifest"];
 const INTERNAL_ONLY = [
   "/api/outputs/[id]/image",
+  "/api/outputs/recreate/media/[file]",
   // Opens the local file manager on the machine running the dashboard; only
   // meaningful for the human at that machine, never for agents.
   "/api/outputs/reveal",
@@ -44,6 +45,8 @@ const INTERNAL_ONLY = [
 ];
 const KNOWN_AUDIO_GAP = ["/api/audio/guide", "/api/audio/slice"];
 const KNOWN_COLLECTIONS_GAP = ["/api/collections"];
+// Draft restoration currently fills the browser editors; no MCP recipe reader yet.
+const KNOWN_RECREATE_GAP = ["/api/outputs/recreate/[id]"];
 
 describe("local MCP tool registry", () => {
   it("registers exactly the documented tool set (no drift between code and the manifest list)", () => {
@@ -154,11 +157,12 @@ describe("MCP coverage gaps stay explicit", () => {
     );
     // If this fails because a new route appeared, either add an MCP tool for it
     // or classify it (discovery/internal/known-gap) — that is the whole point.
-    expect(uncovered.sort()).toEqual([...KNOWN_AUDIO_GAP, ...KNOWN_COLLECTIONS_GAP].sort());
+    expect(uncovered.sort()).toEqual([...KNOWN_AUDIO_GAP, ...KNOWN_COLLECTIONS_GAP, ...KNOWN_RECREATE_GAP].sort());
   });
 
   it("documents the audio/binary and collection HTTP-only gaps honestly in the parity notes", () => {
     expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("audio");
     expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("collection");
+    expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("recreate");
   });
 });

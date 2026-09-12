@@ -537,7 +537,10 @@ body::before {
 
 .dsgn-root .keyBox {
   border-color: var(--border-default);
-  background: rgba(19, 22, 26, 0.74);
+  border-color: var(--border-strong);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  box-shadow: none;
 }
 
 .dsgn-root .keyDisclosure {
@@ -620,17 +623,20 @@ body::before {
 
 .dsgn-root .generateReferenceControls {
   border-color: var(--border-strong);
-  background: rgba(14, 18, 22, 0.74);
+  background: color-mix(in srgb, var(--surface-base) 82%, transparent);
   box-shadow: var(--inset-1), var(--rim-top);
   backdrop-filter: blur(16px) saturate(1.1);
 }
 
 .dsgn-root .generateReferenceRoleGrid .referenceRoleDrop {
   border-radius: var(--radius-sm);
-  background: rgba(19, 22, 26, 0.74);
+  border-color: var(--border-strong);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  box-shadow: none;
 }
 
-.dsgn-root .generateReferenceRoleGrid .referenceRoleDrop.active {
+.dsgn-root .generateReferenceRoleGrid .referenceRoleDrop:is(.active, .dragOver) {
   border-color: var(--acc-intel-dim);
   background: var(--acc-intel-ghost);
 }
@@ -644,8 +650,18 @@ body::before {
 .dsgn-root .promptReferenceStrip {
   border-color: var(--border-strong);
   border-radius: var(--radius-sm);
-  background: rgba(14, 17, 21, 0.76);
+  background: var(--surface-sunken);
   box-shadow: var(--inset-1);
+}
+
+.dsgn-root .generateReferenceBody .promptReferenceStrip {
+  margin-top: 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 10px 0 0;
 }
 
 .dsgn-root .promptItem {
@@ -712,22 +728,32 @@ body::before {
 .dsgn-root .queueBox {
   border-color: var(--border-strong);
   border-radius: var(--radius-sm);
-  background: rgba(14, 18, 22, 0.74);
+  background: color-mix(in srgb, var(--surface-inset) 74%, transparent);
   box-shadow: var(--inset-1);
 }
 
-.dsgn-root .queueMeter span.running,
+.dsgn-root .queueJob,
+.dsgn-root .queueEmpty {
+  border-color: var(--border-default);
+  background: color-mix(in srgb, var(--surface-sunken) 82%, transparent);
+}
+
+.dsgn-root .queueMeter span { background: color-mix(in srgb, var(--text-primary) 12%, transparent); }
+.dsgn-root .queueMeter span.running {
+  background: var(--acc-intel-ghost);
+  box-shadow: 0 0 10px -4px var(--acc-intel);
+}
+
 .dsgn-root .queueJob.running,
 .dsgn-root .queueJob.submitting,
 .dsgn-root .queueJob.downloading {
   border-color: var(--acc-intel-dim);
-  background: var(--acc-intel-ghost);
+  background: linear-gradient(var(--acc-intel-ghost), var(--acc-intel-ghost)), var(--surface-sunken);
   box-shadow: 0 0 10px -4px var(--acc-intel);
 }
 
 .dsgn-root .queueEmpty {
   border-radius: var(--radius-sm);
-  background: rgba(10, 13, 16, 0.72);
 }
 
 .dsgn-root .flux3ModePicker > button {
