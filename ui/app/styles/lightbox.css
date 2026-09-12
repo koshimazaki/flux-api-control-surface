@@ -1,3 +1,31 @@
+/* Step through the open list without returning to the grid. */
+.lightboxStep {
+  position: fixed;
+  z-index: 2;
+  top: 50%;
+  width: 44px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 1px solid rgba(243, 241, 230, 0.16);
+  border-radius: 10px;
+  background: rgba(8, 10, 12, 0.72);
+  backdrop-filter: blur(10px);
+  color: var(--cream, #f3f1e6);
+  cursor: pointer;
+}
+
+.lightboxStep:hover { border-color: rgba(243, 241, 230, 0.4); }
+.lightboxStep.previous { left: 18px; }
+.lightboxStep.next { right: 18px; }
+
+@media (max-width: 760px) {
+  .lightboxStep { width: 36px; height: 52px; }
+  .lightboxStep.previous { left: 8px; }
+  .lightboxStep.next { right: 8px; }
+}
+
 .lightbox {
   position: fixed;
   inset: 0;

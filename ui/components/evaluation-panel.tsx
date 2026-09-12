@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CircleSlash, Download, RefreshCw, Save, Sparkles } from "lucide-react";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { savePromptLibraryRecord } from "@/lib/dashboard-prompts";
 import { canPromoteGeneration, videoPromptRecordFromEvaluation } from "@/lib/prompt-media";
 import { downloadText } from "@/lib/prompt-utils";
+import { useHoverPreview } from "@/lib/use-hover-preview";
 import { evaluationPreviewMedia } from "@/lib/generation-evaluation";
 import type { EvaluationVerdict, GenerationEvaluationRecord } from "@/lib/generation-evaluation";
 import type { PromptRecord } from "@/lib/types";
@@ -28,6 +29,10 @@ function formatCredits(record: GenerationEvaluationRecord) {
 
 function EvaluationMedia({ record }: { record: GenerationEvaluationRecord }) {
   const media = evaluationPreviewMedia(record);
+  // The media's own shape, so the box matches it instead of cropping to fit.
+  const [aspect, setAspect] = useState<string | null>(null);
+  const hoverPreview = useHoverPreview();
+
   if (media.kind === "empty") {
     return (
       <div className="evaluationMedia evaluationMediaEmpty">
@@ -38,13 +43,30 @@ function EvaluationMedia({ record }: { record: GenerationEvaluationRecord }) {
     );
   }
   return (
-    <div className="evaluationMedia">
+    <div className="evaluationMedia" style={aspect ? ({ "--evaluation-aspect": aspect } as CSSProperties) : undefined}>
       {media.kind === "video" ? (
-        <video src={media.src} controls preload="metadata" />
+        <video
+          src={media.src}
+          controls
+          preload="metadata"
+          onLoadedMetadata={(event) => {
+            const video = event.currentTarget;
+            if (video.videoWidth && video.videoHeight) setAspect(`${video.videoWidth} / ${video.videoHeight}`);
+          }}
+          {...hoverPreview}
+        />
       ) : (
         // Saved output routes are local and stable; metadata is shown beside the preview.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={media.src} alt={record.title} loading="lazy" />
+        <img
+          src={media.src}
+          alt={record.title}
+          loading="lazy"
+          onLoad={(event) => {
+            const image = event.currentTarget;
+            if (image.naturalWidth && image.naturalHeight) setAspect(`${image.naturalWidth} / ${image.naturalHeight}`);
+          }}
+        />
       )}
     </div>
   );

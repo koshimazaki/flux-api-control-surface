@@ -1,4 +1,5 @@
-import { Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, PencilLine, ScanLine, Send, Shirt, Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, PencilLine, ScanLine, Send, Shirt, Video } from "lucide-react";
+import { useEffect } from "react";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { referenceDropTargets } from "@/lib/reference-roles";
 import type { AssetRecord, ImageWorkspaceMode, ReferenceRole } from "@/lib/types";
@@ -7,6 +8,9 @@ type ImageToolMode = ImageWorkspaceMode;
 
 type LightboxProps = {
   asset: AssetRecord | null;
+  /** The list the open asset belongs to, so the viewer can step through it. */
+  assets?: AssetRecord[];
+  onNavigate?: (asset: AssetRecord) => void;
   onClose: () => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
@@ -17,7 +21,27 @@ type LightboxProps = {
   onDownload: (asset: AssetRecord) => void;
 };
 
-export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onSendToFlux3Continue, onSendToEdit, onSendToUpscale, onDownload }: LightboxProps) {
+export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onSendToFlux3Continue, onSendToEdit, onSendToUpscale, onDownload }: LightboxProps) {
+  const list = assets || [];
+  const index = asset ? list.findIndex((item) => item.id === asset.id) : -1;
+  const previous = index > 0 ? list[index - 1] : null;
+  const next = index >= 0 && index < list.length - 1 ? list[index + 1] : null;
+
+  // Arrow keys step through the list and Escape closes, so a set can be
+  // reviewed without going back to the grid between each one.
+  useEffect(() => {
+    if (!asset) return;
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft" && previous) onNavigate?.(previous);
+      if (event.key === "ArrowRight" && next) onNavigate?.(next);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   if (!asset) return null;
   const isVideo = asset.mediaType === "video";
   const mediaSource = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
@@ -29,6 +53,34 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, on
 
   return (
     <div className="lightbox" onClick={onClose}>
+      {onNavigate && previous && (
+        <button
+          type="button"
+          className="lightboxStep previous"
+          title="Previous (left arrow)"
+          aria-label="Previous asset"
+          onClick={(event) => {
+            event.stopPropagation();
+            onNavigate(previous);
+          }}
+        >
+          <ChevronLeft size={26} />
+        </button>
+      )}
+      {onNavigate && next && (
+        <button
+          type="button"
+          className="lightboxStep next"
+          title="Next (right arrow)"
+          aria-label="Next asset"
+          onClick={(event) => {
+            event.stopPropagation();
+            onNavigate(next);
+          }}
+        >
+          <ChevronRight size={26} />
+        </button>
+      )}
       <div className={innerClassName} onClick={(event) => event.stopPropagation()}>
         {isVideo ? (
           <video src={mediaSource} controls autoPlay playsInline />

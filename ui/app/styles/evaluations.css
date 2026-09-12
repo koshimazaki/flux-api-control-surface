@@ -40,16 +40,23 @@
   background: rgba(0, 0, 0, 0.48);
 }
 
+/* The box follows the media's own shape and the frame is shown whole. It used
+   to fill the card's full height and crop to fit, which turned a 16:9 render
+   into a vertical slice — the one thing an evaluation view must not do. */
 .evaluationMedia {
-  min-height: 230px;
+  align-self: start;
+  aspect-ratio: var(--evaluation-aspect, 16 / 9);
+  min-height: 0;
+  overflow: hidden;
   background: #050505;
 }
 
 .evaluationMedia img,
 .evaluationMedia video {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 /* A failed or cancelled attempt has no file to show. */

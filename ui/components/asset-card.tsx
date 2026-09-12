@@ -33,6 +33,7 @@ import { copyText } from "@/lib/clipboard";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import { referenceDropTargets, referencePreviewSrc } from "@/lib/reference-roles";
+import { useHoverPreview } from "@/lib/use-hover-preview";
 import type { AssetBadge, AssetRecord, AspectRatio, ImageWorkspaceMode, ReferenceImage, ReferenceRole } from "@/lib/types";
 
 type ImageToolMode = ImageWorkspaceMode;
@@ -147,6 +148,7 @@ export function AssetCard(props: AssetCardProps) {
   // the truth instead of every card resizing as its picture arrives.
   const [measuredRatio, setMeasuredRatio] = useState<{ width: number; height: number } | null>(null);
   const [mediaLoaded, setMediaLoaded] = useState(false);
+  const hoverPreview = useHoverPreview();
   const origin = assetOrigin(asset);
   const OriginIcon = origin.icon;
   const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
@@ -228,6 +230,7 @@ export function AssetCard(props: AssetCardProps) {
               preload="metadata"
               aria-label={asset.title || asset.id}
               className={mediaLoaded ? "assetMediaReady" : undefined}
+              {...hoverPreview}
               onLoadedMetadata={(event) => {
                 const video = event.currentTarget;
                 if (video.videoWidth && video.videoHeight) {

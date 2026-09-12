@@ -82,6 +82,8 @@ export default function Home() {
         <DashboardPanels state={state} />
         <Lightbox
           asset={state.selectedAsset}
+          assets={state.filteredAssets}
+          onNavigate={state.setSelectedAsset}
           onClose={() => state.setSelectedAsset(null)}
           onSendToPrompt={state.sendAssetToPrompt}
           onSendToWorkspace={state.sendAssetToWorkspace}
