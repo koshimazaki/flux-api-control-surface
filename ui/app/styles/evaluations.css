@@ -167,6 +167,12 @@
   justify-self: end;
 }
 
+/* Marked while edits are outstanding, so it is obvious there is something to write. */
+.evaluationSaveAll.pending {
+  border-color: var(--accent);
+  color: var(--accent-strong, var(--accent));
+}
+
 .evaluationLoadMore {
   display: flex;
   margin: 14px auto 0;

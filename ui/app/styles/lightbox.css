@@ -13,32 +13,32 @@
   backdrop-filter: none;
 }
 
+/* An invisible strip down each edge — nothing of the button shows, only the
+   glyph centred in it, and the whole strip is the target. */
 .lightboxStep {
   position: fixed;
   z-index: 2;
-  top: 50%;
-  width: 64px;
-  height: 112px;
+  top: 0;
+  bottom: 0;
+  width: 84px;
   min-height: 0;
   display: grid;
   place-items: center;
-  transform: translateY(-50%);
   padding: 0;
   color: rgba(243, 241, 230, 0.45);
   cursor: pointer;
   transition: color 160ms ease;
 }
 
-.lightboxStep.previous { left: 4px; }
-.lightboxStep.next { right: 4px; }
+.lightboxStep.previous { left: 0; }
+.lightboxStep.next { right: 0; }
 
 .dsgn-root .lightboxStep:hover { color: var(--cream, #f3f1e6); }
-.lightboxStep:active { transform: translateY(-50%); }
+/* The global button rule nudges on press; an edge strip must not shift. */
+.lightboxStep:active { transform: none; }
 
 @media (max-width: 760px) {
-  .lightboxStep { width: 44px; height: 84px; }
-  .lightboxStep.previous { left: 0; }
-  .lightboxStep.next { right: 0; }
+  .lightboxStep { width: 52px; }
 }
 
 /* Paging slides the next one in rather than swapping it under the cursor. */

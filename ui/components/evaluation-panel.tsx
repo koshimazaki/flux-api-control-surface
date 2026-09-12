@@ -77,6 +77,8 @@ export function EvaluationPanel(props: { onPromoted?: (record: PromptRecord) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [unsavedIds, setUnsavedIds] = useState<string[]>([]);
+  const [savingAll, setSavingAll] = useState(false);
   const [promotingId, setPromotingId] = useState<string | null>(null);
   const [promoted, setPromoted] = useState<Record<string, string>>({});
   const [mediaType, setMediaType] = useState("all");
@@ -124,11 +126,13 @@ export function EvaluationPanel(props: { onPromoted?: (record: PromptRecord) => 
     setRecords((current) => current.map((record) => record.id === id
       ? { ...record, annotation: { ...record.annotation, ...patch } }
       : record));
+    // Edits live in local state until saved, so the panel tracks what is
+    // outstanding and can write the lot in one go.
+    setUnsavedIds((current) => (current.includes(id) ? current : [...current, id]));
   }
 
-  async function save(record: GenerationEvaluationRecord) {
-    setSavingId(record.id);
-    setError("");
+  /** Writes one record's annotation; returns the error text, or null when it saved. */
+  async function writeAnnotation(record: GenerationEvaluationRecord) {
     try {
       const response = await fetch(`/api/evaluations?id=${encodeURIComponent(record.id)}`, {
         method: "PATCH",
@@ -138,11 +142,39 @@ export function EvaluationPanel(props: { onPromoted?: (record: PromptRecord) => 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not save evaluation.");
       setRecords((current) => current.map((item) => item.id === record.id ? data.record : item));
+      setUnsavedIds((current) => current.filter((id) => id !== record.id));
+      return null;
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save evaluation.");
-    } finally {
-      setSavingId(null);
+      return caught instanceof Error ? caught.message : "Could not save evaluation.";
     }
+  }
+
+  async function save(record: GenerationEvaluationRecord) {
+    setSavingId(record.id);
+    setError("");
+    const failure = await writeAnnotation(record);
+    if (failure) setError(failure);
+    setSavingId(null);
+  }
+
+  /**
+   * Saves every record with outstanding edits. They go one at a time so a
+   * failure stops the run with the rest still marked unsaved, rather than
+   * leaving a partial write the panel has forgotten about.
+   */
+  async function saveAll() {
+    const pending = records.filter((record) => unsavedIds.includes(record.id));
+    if (!pending.length) return;
+    setSavingAll(true);
+    setError("");
+    for (const record of pending) {
+      const failure = await writeAnnotation(record);
+      if (failure) {
+        setError(`${failure} Stopped with ${pending.length - pending.indexOf(record)} still unsaved.`);
+        break;
+      }
+    }
+    setSavingAll(false);
   }
 
   /**
@@ -168,6 +200,16 @@ export function EvaluationPanel(props: { onPromoted?: (record: PromptRecord) => 
     <section className="assetsPanel evaluationPanel">
       <PanelHeader title="Model Evaluation" subtitle={`${filtered.length} of ${records.length} captured generations`}>
         <div className="assetActions">
+          {/* One write for everything edited since the last save. */}
+          <button
+            className={unsavedIds.length ? "evaluationSaveAll pending" : "evaluationSaveAll"}
+            onClick={() => void saveAll()}
+            disabled={!unsavedIds.length || savingAll}
+            title={unsavedIds.length ? `Save ${unsavedIds.length} edited evaluation${unsavedIds.length === 1 ? "" : "s"}` : "No unsaved evaluations"}
+          >
+            <Save size={16} className={savingAll ? "spin" : undefined} />
+            {savingAll ? "Saving…" : unsavedIds.length ? `Save all (${unsavedIds.length})` : "Save all"}
+          </button>
           <button onClick={() => downloadText("bfl-evaluations.json", JSON.stringify(filtered, null, 2))} disabled={!filtered.length}>
             <Download size={16} />
             JSON
