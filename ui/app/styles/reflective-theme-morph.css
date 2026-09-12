@@ -268,7 +268,6 @@
 .dsgn-root[data-surface-theme="rams-lite"] .videoUpscaleTarget,
 .dsgn-root[data-surface-theme="rams-lite"] .videoUpscaleCost,
 .dsgn-root[data-surface-theme="rams-lite"] .videoEditSourceSlot,
-.dsgn-root[data-surface-theme="rams-lite"] .videoEditOutput,
 .dsgn-root[data-surface-theme="rams-lite"] .videoEditCost {
   background: rgba(244, 245, 245, 0.72);
   color: var(--text-primary);

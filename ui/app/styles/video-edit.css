@@ -389,7 +389,6 @@
   color: var(--text-primary);
 }
 
-.videoEditOutput,
 .videoEditCost {
   display: grid;
   gap: 3px;
@@ -398,11 +397,8 @@
   background: color-mix(in srgb, var(--surface-inset) 76%, transparent);
   padding: 10px;
 }
-.videoEditOutput span,
-.videoEditOutput small,
 .videoEditCost span,
 .videoEditCost small { color: var(--text-muted); font-size: 10px; }
-.videoEditOutput strong,
 .videoEditCost strong { font-size: 14px; }
 
 @media (max-width: 1160px) {

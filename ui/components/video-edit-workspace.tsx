@@ -611,11 +611,8 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
             two rows of height. */}
         <VideoEditStarters prompt={prompt} onToggle={toggleStarter} />
         <label>Safety<select value={safetyTolerance} onChange={(event) => setSafetyTolerance(Number(event.target.value))}>{[0, 1, 2, 3, 4].map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
-        <div className="videoEditOutput">
-          <span>Output</span>
-          <strong>{source?.duration ? `${source.duration.toFixed(1)} s · same aspect ratio` : "Follows the source"}</strong>
-          <small>Same length, aspect ratio, and audio as the source · 24 fps · above 720p is downscaled to 720p</small>
-        </div>
+        {/* The output constraints are already stated on the dropzone, so the
+            rail does not repeat them back. */}
         <div className="videoEditCost">
           <span>Estimate</span>
           <strong>{estimatedUsd === null ? "After source metadata" : `$${estimatedUsd.toFixed(2)}`}</strong>
