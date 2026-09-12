@@ -35,13 +35,13 @@
   margin-bottom: 0;
 }
 
-.tabBar.workspaceModeBar-image {
-  grid-template-columns: repeat(6, minmax(88px, 1fr));
-}
-
-/* One equal column per video tool: Text, Frames, Continue, Edit, Upscale. */
+/* Both domains lay their tools on the same six-track rail, so a button is the
+   same size and sits in the same place whether there are six image tools or
+   five video ones. Sizing each rail to its own count made the buttons resize
+   and shift as you moved between sections. */
+.tabBar.workspaceModeBar-image,
 .tabBar.workspaceModeBar-video {
-  grid-template-columns: repeat(5, minmax(88px, 1fr));
+  grid-template-columns: repeat(6, minmax(88px, 1fr));
 }
 
 .workspaceModeBar .tabButton {
