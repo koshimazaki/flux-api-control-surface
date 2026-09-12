@@ -1,6 +1,7 @@
 .workspace.videoUpscaleMode {
   grid-template-columns: 310px minmax(520px, 1fr) 340px;
-  grid-template-rows: auto minmax(620px, auto);
+  /* Row 2 takes the free space, matching the image domain and FLUX 3. */
+  grid-template-rows: auto minmax(620px, 1fr);
   grid-template-areas:
     "library modes modes"
     "library main main";

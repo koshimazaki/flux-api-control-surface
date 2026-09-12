@@ -1,6 +1,9 @@
 .workspace.flux3Mode {
   grid-template-columns: 310px minmax(520px, 1fr) 340px;
-  grid-template-rows: auto minmax(620px, auto);
+  /* Row 2 takes the free space, as the image domain's does. With both rows
+     intrinsic, the workspace min-height spilled into the rail's row, so the
+     gap under the rail grew whenever the panel below was short. */
+  grid-template-rows: auto minmax(620px, 1fr);
   grid-template-areas:
     "library modes modes"
     "library main  main";
