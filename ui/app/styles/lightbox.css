@@ -1,36 +1,44 @@
 /* Step through the open list without returning to the grid. Just the glyph on
    a dark edge — no chrome to compete with the picture. */
+/* Nothing but the glyph, out at the edges of the screen rather than against the
+   picture. The global button rule paints a border, a fill and an inset
+   highlight — the pale band that crossed these — and the theme adds a hover
+   wash, so all of it is cleared here, hover included. */
+.lightboxStep,
+.dsgn-root .lightboxStep,
+.dsgn-root .lightboxStep:hover {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
 .lightboxStep {
   position: fixed;
   z-index: 2;
-  top: 0;
-  bottom: 0;
-  width: 84px;
+  top: 50%;
+  width: 64px;
+  height: 112px;
+  min-height: 0;
   display: grid;
   place-items: center;
-  border: 0;
+  transform: translateY(-50%);
   padding: 0;
-  color: rgba(243, 241, 230, 0.55);
+  color: rgba(243, 241, 230, 0.45);
   cursor: pointer;
-  transition: color 160ms ease, background 160ms ease;
+  transition: color 160ms ease;
 }
 
-.lightboxStep.previous {
-  left: 0;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.55), transparent);
-}
+.lightboxStep.previous { left: 4px; }
+.lightboxStep.next { right: 4px; }
 
-.lightboxStep.next {
-  right: 0;
-  background: linear-gradient(to left, rgba(0, 0, 0, 0.55), transparent);
-}
-
-.lightboxStep:hover { color: var(--cream, #f3f1e6); }
-.lightboxStep.previous:hover { background: linear-gradient(to right, rgba(0, 0, 0, 0.75), transparent); }
-.lightboxStep.next:hover { background: linear-gradient(to left, rgba(0, 0, 0, 0.75), transparent); }
+.dsgn-root .lightboxStep:hover { color: var(--cream, #f3f1e6); }
+.lightboxStep:active { transform: translateY(-50%); }
 
 @media (max-width: 760px) {
-  .lightboxStep { width: 52px; }
+  .lightboxStep { width: 44px; height: 84px; }
+  .lightboxStep.previous { left: 0; }
+  .lightboxStep.next { right: 0; }
 }
 
 /* Paging slides the next one in rather than swapping it under the cursor. */

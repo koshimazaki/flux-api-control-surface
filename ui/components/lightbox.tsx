@@ -77,7 +77,7 @@ export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, o
             step(previous, "previous");
           }}
         >
-          <ChevronLeft size={30} />
+          <ChevronLeft size={38} />
         </button>
       )}
       {onNavigate && next && (
@@ -91,7 +91,7 @@ export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, o
             step(next, "next");
           }}
         >
-          <ChevronRight size={30} />
+          <ChevronRight size={38} />
         </button>
       )}
       {/* Keyed on the asset so the slide replays for each step. */}
