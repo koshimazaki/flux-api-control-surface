@@ -1,0 +1,238 @@
+/*
+ * FLUX 3 Image workspace. Shares the FLUX 3 layout grid and the Erase mask
+ * canvas; imported after the theme layers, so selectors carry .dsgn-root.
+ */
+
+.workspace.flux3Mode > .flux3ImageWorkspace {
+  grid-area: main;
+}
+
+.flux3ImageWorkspace {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-5, 14px);
+}
+
+/* The panel sizes to its content, so a long prompt library never stretches the canvas. */
+.dsgn-root .flux3ImageStage {
+  align-self: start;
+}
+
+.dsgn-root .flux3ImageStage .imageToolCanvas {
+  height: clamp(460px, calc(100vh - 300px), 860px);
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
+.dsgn-root .flux3ImageStage.dropReady .imageToolCanvas {
+  border-color: var(--acc-intel);
+  box-shadow: inset 0 0 0 1px var(--acc-intel-dim), 0 0 0 1px var(--acc-intel-ghost);
+}
+
+.flux3ImageSource {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.flux3ImageSource img {
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 24px);
+}
+
+.dsgn-root .flux3ImagePending {
+  border: 1px solid var(--acc-armament-dim);
+  border-radius: var(--radius-pill);
+  background: var(--acc-armament-ghost);
+  padding: 3px 8px;
+  color: var(--acc-armament-strong);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--t-micro-ls);
+  text-transform: uppercase;
+}
+
+.dsgn-root .flux3ImageSelection {
+  grid-template-columns: 1fr 1fr;
+}
+
+.dsgn-root .flux3ImageSelection > button,
+.dsgn-root .flux3ImagePixelTools > button {
+  gap: 6px;
+}
+
+.dsgn-root .flux3ImagePixelTools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.dsgn-root .flux3ImagePixelTools > button.active {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+  color: var(--acc-intel-strong);
+}
+
+/* Region boxes over the source image. The layer passes pointer events through. */
+.regionBoxLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.dsgn-root .regionBox {
+  position: absolute;
+  border: 1.5px solid var(--acc-intel);
+  background: color-mix(in srgb, var(--acc-intel) 9%, transparent);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+.dsgn-root .regionBox.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.dsgn-root .regionBoxFuzz {
+  position: absolute;
+  inset: calc(-1 * var(--fuzz-y)) calc(-1 * var(--fuzz-x));
+  border: 1px dashed color-mix(in srgb, var(--acc-intel) 70%, transparent);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.dsgn-root .regionBoxTag {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: max(160px, calc(100% - 8px));
+  max-width: 280px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid var(--border-machined);
+  border-radius: var(--radius-sm);
+  background: rgba(10, 12, 14, 0.86);
+  padding: 3px;
+  pointer-events: auto;
+  backdrop-filter: blur(8px);
+}
+
+.dsgn-root .regionBoxTag input {
+  min-width: 0;
+  height: 24px;
+  flex: 1 1 auto;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.dsgn-root .regionBoxTag button {
+  width: 24px;
+  min-height: 24px;
+  flex: 0 0 auto;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.dsgn-root .regionBox.tagEnd .regionBoxTag {
+  right: 4px;
+  left: auto;
+}
+
+.dsgn-root .regionBox.active .regionBoxIndex {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.dsgn-root .maskDraftBox {
+  position: absolute;
+  border: 1.5px dashed var(--acc-intel);
+  background: color-mix(in srgb, var(--acc-intel) 12%, transparent);
+  pointer-events: none;
+}
+
+.maskLassoPath {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.dsgn-root .maskLassoPath polyline {
+  fill: color-mix(in srgb, var(--acc-intel) 18%, transparent);
+  stroke: var(--acc-intel);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.dsgn-root .regionBoxList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dsgn-root .regionBoxList li {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  padding: 8px;
+}
+
+.dsgn-root .regionBoxList li.active {
+  border-color: var(--acc-intel);
+}
+
+.dsgn-root .regionBoxListHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dsgn-root .regionBoxListHeader span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .regionBoxListHeader button {
+  width: 26px;
+  min-height: 26px;
+  margin-left: auto;
+  padding: 0;
+}
+
+.assetBadge-flux3_image {
+  color: #e6b98c;
+  border-color: rgba(230, 185, 140, 0.62);
+}
+
+@media (max-width: 1160px) {
+  .flux3ImageWorkspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .flux3ImageControls {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 900px) {
+  .dsgn-root .flux3ImageStage .imageToolCanvas {
+    height: min(72vw, 520px);
+    min-height: 280px;
+  }
+}

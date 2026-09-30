@@ -63,6 +63,7 @@ import type {
   DashboardTab,
   ImageWorkspaceMode,
   ReferenceImage,
+  SourceImageMode,
   ReferenceRole,
   WorkspaceMode,
   ApiKeyStatus
@@ -239,11 +240,11 @@ export function useDashboardState() {
   function sourceAssetIdForMode(mode: WorkspaceMode) {
     if (mode === "vto") return vtoSourceAssetId;
     if (mode === "glyphs") return glyphSourceAssetId;
-    if (mode === "erase" || mode === "outpaint" || mode === "deblur") return toolSourceAssetId;
+    if (mode === "erase" || mode === "outpaint" || mode === "deblur" || mode === "flux3_image") return toolSourceAssetId;
     return null;
   }
 
-  function setSourceAssetIdForMode(mode: ImageWorkspaceMode, id: string | null) {
+  function setSourceAssetIdForMode(mode: SourceImageMode, id: string | null) {
     if (mode === "vto") {
       setVtoSourceAssetId(id);
       return;
@@ -564,7 +565,10 @@ export function useDashboardState() {
         });
       });
     });
-    if (toolSourceAssetId && (workspaceMode === "erase" || workspaceMode === "outpaint" || workspaceMode === "deblur")) {
+    if (
+      toolSourceAssetId &&
+      (workspaceMode === "erase" || workspaceMode === "outpaint" || workspaceMode === "deblur" || workspaceMode === "flux3_image")
+    ) {
       (badges[toolSourceAssetId] ||= []).push({
         label: workspaceModeLabels[workspaceMode],
         kind: workspaceMode,
@@ -1101,6 +1105,10 @@ export function useDashboardState() {
     }
     if (workspaceMode === "upscale") {
       setError("Use the Video Upscale controls in the upscale workspace.");
+      return;
+    }
+    if (workspaceMode === "flux3_image") {
+      setError("Use the FLUX 3 Image controls in its workspace.");
       return;
     }
     if (!toolSourceAsset) {

@@ -2,9 +2,10 @@ import { persistAssetImage } from "@/lib/dashboard-assets";
 import type { ImportImageAssetOptions } from "@/lib/dashboard/use-asset-library";
 import { assetFromImageSource } from "@/lib/image-asset-import";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
-import type { AssetRecord, ImageWorkspaceMode, WorkspaceMode } from "@/lib/types";
+import type { AssetRecord, ImageWorkspaceMode, SourceImageMode, WorkspaceMode } from "@/lib/types";
 
 export const workspaceModeLabels: Record<Exclude<WorkspaceMode, "prompt">, string> = {
+  flux3_image: "FLUX 3 Image",
   erase: "Erase",
   vto: "VTO",
   outpaint: "Outpaint",
@@ -19,7 +20,7 @@ type UseToolSourceDeps = {
   workspaceMode: WorkspaceMode;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
   setAssets: (updater: (current: AssetRecord[]) => AssetRecord[]) => void;
-  setSourceAssetIdForMode: (mode: ImageWorkspaceMode, id: string | null) => void;
+  setSourceAssetIdForMode: (mode: SourceImageMode, id: string | null) => void;
   setSelectedAsset: (asset: AssetRecord | null) => void;
   setError: (value: string) => void;
   setRecoveryMessage: (value: string) => void;
