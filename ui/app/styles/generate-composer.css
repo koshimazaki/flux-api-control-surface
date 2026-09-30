@@ -42,7 +42,7 @@
 
 .generateReferenceRoleGrid .referenceRoleDrop {
   min-height: 98px;
-  grid-template-rows: auto auto 42px;
+  grid-template-rows: auto auto 56px;
   gap: 5px;
   border-radius: 5px;
   padding: 7px;
@@ -64,17 +64,27 @@
 .generateReferenceRoleGrid .referenceRoleThumbs,
 .generateReferenceRoleGrid .referenceRoleThumbs.empty,
 .generateReferenceRoleGrid .referenceRoleEmpty {
-  min-height: 42px;
+  min-height: 56px;
 }
 
 .generateReferenceRoleGrid .referenceRoleThumbs {
-  grid-template-columns: repeat(auto-fill, 36px);
+  grid-template-columns: repeat(auto-fill, 52px);
   gap: 5px;
 }
 
+/* An empty role is one drop area across the whole cell, not a thumbnail-sized box. */
+.generateReferenceRoleGrid .referenceRoleThumbs.empty {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.generateReferenceRoleGrid .referenceRoleEmpty {
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
 .generateReferenceRoleGrid .referenceRoleThumb {
-  width: 36px;
-  height: 36px;
+  width: 52px;
+  height: 52px;
 }
 
 .generateReferenceUtilityRow {
