@@ -1,0 +1,475 @@
+/*
+ * Camera language for FLUX 3 text-to-video, ported from FLUX Studio Lite and
+ * restyled with this surface's tokens. Imported after the theme layers, so the
+ * selectors carry .dsgn-root to outrank its element rules.
+ */
+
+.dsgn-root .cameraPanel,
+.dsgn-root .cameraClauseStrip,
+.dsgn-root .cameraDialog {
+  --camera-shot: var(--acc-green);
+  --camera-angle: var(--acc-intel);
+  --camera-movement: var(--accent);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .cameraPanel,
+.dsgn-root[data-surface-theme="rams-lite"] .cameraClauseStrip,
+.dsgn-root[data-surface-theme="rams-lite"] .cameraDialog {
+  --camera-shot: var(--acc-green-strong);
+  --camera-angle: var(--acc-intel-strong);
+  --camera-movement: var(--accent-strong);
+}
+
+/* The prompt field and its camera clauses read as one field. */
+.flux3PromptBlock {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.dsgn-root .flux3PromptBlock.withCameraClauses textarea {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.dsgn-root .cameraClauseStrip {
+  width: 100%;
+  min-height: 0;
+  display: grid;
+  gap: 4px;
+  justify-content: stretch;
+  justify-items: start;
+  border: 1px solid var(--border-default);
+  border-top: 1px dashed var(--border-default);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: var(--surface-inset);
+  box-shadow: var(--inset-1);
+  padding: 8px 12px 9px;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .cameraClauseStrip {
+  background: rgba(244, 245, 245, 0.72);
+}
+
+.dsgn-root .cameraClauseStrip:hover {
+  border-color: var(--border-machined);
+}
+
+.dsgn-root .cameraClauseStrip span {
+  color: var(--section-color);
+}
+
+.dsgn-root .cameraPanel {
+  min-width: 0;
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  box-shadow: var(--inset-1);
+}
+
+.dsgn-root .cameraPanelHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+}
+
+.dsgn-root .cameraPanelToggle {
+  min-width: 0;
+  min-height: 32px;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 6px;
+  color: var(--text-primary);
+}
+
+.dsgn-root .cameraPanelToggle:hover {
+  border-color: var(--border-default);
+}
+
+.dsgn-root .cameraPanelTitle,
+.dsgn-root .cameraTabText small,
+.dsgn-root .cameraDialogEyebrow,
+.dsgn-root .cameraClauseHeader label {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--t-micro-ls);
+  text-transform: uppercase;
+}
+
+.dsgn-root .cameraPanelTitle {
+  color: var(--text-secondary);
+}
+
+.dsgn-root .cameraPanelSummary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .cameraPanelChevron {
+  margin-left: auto;
+  flex: 0 0 auto;
+  transition: transform var(--motion-fast, 120ms) ease;
+}
+
+.dsgn-root .cameraPanel.open .cameraPanelChevron {
+  transform: rotate(180deg);
+}
+
+.dsgn-root .cameraSwitch {
+  min-height: 28px;
+  flex: 0 0 auto;
+  gap: 7px;
+  padding: 0 7px 0 9px;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+}
+
+.dsgn-root .cameraSwitch i {
+  position: relative;
+  width: 24px;
+  height: 12px;
+  border: 1px solid var(--border-machined);
+  border-radius: var(--radius-pill);
+  background: var(--surface-inset);
+}
+
+.dsgn-root .cameraSwitch i::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform var(--motion-fast, 120ms) ease, background var(--motion-fast, 120ms) ease;
+}
+
+.dsgn-root .cameraSwitch.on i::after {
+  background: var(--acc-intel);
+  box-shadow: 0 0 6px var(--acc-intel);
+  transform: translateX(12px);
+}
+
+.dsgn-root .cameraPanelHeader .iconButton {
+  width: 30px;
+  min-height: 28px;
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.dsgn-root .cameraPanelBody {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--border-default);
+  padding: 10px;
+  animation: holodeck-disclose var(--motion-base, 180ms) ease;
+}
+
+.dsgn-root .cameraTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.dsgn-root .cameraTab {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 4px 6px;
+  color: var(--text-secondary);
+}
+
+.dsgn-root .cameraTab.active {
+  border-color: var(--section-color);
+  box-shadow: var(--rim-top), inset 0 -2px 0 var(--section-color);
+  color: var(--text-primary);
+}
+
+.dsgn-root .cameraTabText {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  gap: 1px;
+  text-align: left;
+}
+
+.dsgn-root .cameraTabText small {
+  color: var(--section-color);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.dsgn-root .cameraTabText strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .cameraTabPanel {
+  display: grid;
+  gap: 10px;
+}
+
+.dsgn-root .cameraPresetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 5px;
+}
+
+.dsgn-root .cameraPreset {
+  min-width: 0;
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.dsgn-root .cameraPreset > span:last-child {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.dsgn-root .cameraPreset .cameraGlyph {
+  color: var(--section-color);
+  font-size: 13px;
+}
+
+.dsgn-root .cameraPreset.selected {
+  border-color: var(--section-color);
+  background: color-mix(in srgb, var(--section-color) 16%, transparent);
+  box-shadow: var(--rim-top), 0 0 10px -5px var(--section-color);
+  color: var(--text-primary);
+}
+
+.dsgn-root .cameraPresetDash {
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 25px;
+}
+
+.dsgn-root .cameraClauseField {
+  display: grid;
+  gap: 5px;
+  border-left: 2px solid var(--section-color);
+  padding-left: 9px;
+}
+
+.dsgn-root .cameraClauseHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dsgn-root .cameraClauseHeader label {
+  display: block;
+  color: var(--section-color);
+}
+
+.dsgn-root .cameraClauseHeader button {
+  min-height: 24px;
+  gap: 4px;
+  padding: 0 7px;
+  font-size: 10px;
+}
+
+.dsgn-root .cameraClauseField small,
+.dsgn-root .cameraHint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.dsgn-root .cameraClauseField textarea {
+  min-height: 0;
+  padding: 7px 9px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dsgn-root .cameraGuideLink,
+.dsgn-root .cameraDialogEyebrow a,
+.dsgn-root .cameraDialogActions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.dsgn-root .cameraGuideLink:hover,
+.dsgn-root .cameraDialogEyebrow a:hover,
+.dsgn-root .cameraDialogActions a:hover {
+  color: var(--section-color, var(--acc-intel));
+}
+
+.dsgn-root .flux3ResultCamera {
+  color: var(--text-secondary);
+}
+
+/* Expanded view: every section at once, in the top layer. */
+.dsgn-root .cameraDialog {
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  border: 1px solid var(--border-machined);
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-raised);
+  box-shadow: var(--elev-4);
+  padding: 0;
+  color: var(--text-primary);
+}
+
+.dsgn-root .cameraDialog::backdrop {
+  background: rgba(5, 8, 10, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.dsgn-root .cameraDialogInner {
+  max-height: calc(100vh - 34px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.dsgn-root .cameraDialogHeader,
+.dsgn-root .cameraDialogActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.dsgn-root .cameraDialogHeader {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.dsgn-root .cameraDialogHeader h2 {
+  margin: 0;
+  font-family: var(--font-tech, var(--font-sans));
+  font-size: 16px;
+}
+
+.dsgn-root .cameraDialogHeader p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.dsgn-root .cameraDialogBody {
+  display: grid;
+  gap: 16px;
+  overflow: auto;
+  padding: 14px 16px;
+}
+
+.dsgn-root .cameraDialogSection {
+  display: grid;
+  gap: 8px;
+}
+
+.dsgn-root .cameraDialogEyebrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-muted);
+}
+
+.dsgn-root .cameraDialogEyebrow a {
+  color: var(--section-color);
+  font-size: var(--t-micro);
+}
+
+.dsgn-root .cameraDialogSection .cameraPresetGrid {
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+}
+
+.dsgn-root .cameraDialogClauses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  border-top: 1px solid var(--border-default);
+  padding-top: 14px;
+}
+
+.dsgn-root .cameraDialogActions {
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-default);
+}
+
+.dsgn-root .cameraDialogActions strong {
+  min-width: 0;
+  flex: 1 1 160px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .cameraDialogDone {
+  border-color: var(--accent-strong);
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .dsgn-root .cameraDialogHeader,
+  .dsgn-root .cameraDialogActions,
+  .dsgn-root .cameraDialogBody {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .dsgn-root .cameraDialogActions strong,
+  .dsgn-root .cameraDialogActions a {
+    flex-basis: 100%;
+    text-align: left;
+  }
+
+  .dsgn-root .cameraDialogActions strong {
+    order: -1;
+  }
+
+  .dsgn-root .cameraDialogActions button:first-of-type {
+    margin-left: auto;
+  }
+}

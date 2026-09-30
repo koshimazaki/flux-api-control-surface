@@ -152,7 +152,10 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
 - **FLUX 3 Video** (`flux-3-video`): generate from text or one to ten ordered
   keyframes, continue an MP4, and optionally render a draft before enhancing it
   deterministically to 1080p. Generated videos are downloaded immediately and
-  kept in the same local asset library as images.
+  kept in the same local asset library as images. Text-to-video has a camera
+  panel (shot sizes, angles and movements, eight terms each, from
+  [BFL's camera guide](https://docs.bfl.ai/guides/prompting_video_camera_terms)):
+  the chosen clauses follow the scene in the prompt and are saved with the render.
 - **Video Upscale** (`flux-tools/video-upscale-v1`): upscale an MP4 at 1.5×–3×
   in precise or creative mode, preserve audio, and save both source and result
   for the workspace's before/after fader. The surface identifies the capability
@@ -261,7 +264,9 @@ The UI is also an agent/MCP-facing local API:
 - `POST /api/bfl/tools` runs erase/vto/outpaint/deblur on an existing image with the
   same output persistence and provenance as generations.
 - `GET/POST /api/bfl/flux3-video` lists saved FLUX 3 videos or submits text-to-video,
-  image-to-video, video continuation, and draft-enhancement jobs.
+  image-to-video, video continuation, and draft-enhancement jobs. Text-to-video
+  accepts an optional `camera` choice (`{ selection, edits }`); the server appends
+  its clauses to the prompt once and records the terms with the render.
 - `GET /api/bfl/flux3-video/:id` serves a saved video or draft cache for local
   playback and download.
 - `GET/POST /api/bfl/video-upscale` lists or submits FLUX 3 Video Upscale jobs;
