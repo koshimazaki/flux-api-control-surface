@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { patchOutputMetadataFile, resolveImageInput } from "@/lib/bfl-server";
+import { applyCameraChoice } from "@/lib/camera-language";
 import {
   buildFlux3VideoPayload,
   flux3TimedKeyframes,
@@ -39,6 +40,10 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
   const body = rawBody as Flux3RouteBody;
   let draftSource: Awaited<ReturnType<typeof findFlux3VideoOutput>> = null;
   const prepared: Flux3VideoRequest = { ...body };
+  // Camera clauses join text-to-video prompts exactly once, whether the
+  // dashboard already appended them or an agent sent the scene plus a choice.
+  const directed = body.mode === "t2v" ? applyCameraChoice(body.prompt || "", body.camera) : null;
+  if (directed?.camera) prepared.prompt = directed.prompt;
   try {
     if (body.mode === "i2v") {
       // Timed rows resolve the image half of each `[seconds, image]` pair and
@@ -82,7 +87,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
   }
 
   const prompt =
-    body.prompt?.trim() ||
+    prepared.prompt?.trim() ||
     (typeof draftSource?.metadata.prompt === "string" ? draftSource.metadata.prompt : "[FLUX 3 draft enhancement]");
   const title =
     body.title?.trim() ||
@@ -100,6 +105,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
     sourceAssetIds: [...stringList(body.keyframeAssetIds), ...(body.draftCacheId ? [body.draftCacheId] : [])],
     context: {
       mode: body.mode,
+      camera: directed?.camera ?? null,
       sourceDraftId: body.draftCacheId || null,
       keyframeAssetIds: stringList(body.keyframeAssetIds),
       // Video Script provenance: batch, row, prompts, collections, and the
@@ -141,6 +147,7 @@ async function finalize(input: OperationFinalizeInput) {
     title: prepared.title,
     prompt: prepared.prompt,
     mode: context.mode,
+    camera: context.camera,
     model: "flux-3-video" as const,
     createdAt,
     endpointName: "flux-3-video",
