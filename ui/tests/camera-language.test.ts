@@ -21,21 +21,46 @@ import {
   type CameraSelection
 } from "@/lib/camera-language";
 
-const FULL: CameraSelection = { "shot-sizes": "close-up", angles: "low-angle", movements: "orbit" };
+const FULL: CameraSelection = { ...emptyCameraSelection, "shot-sizes": "close-up", angles: "low-angle", movements: "orbit" };
 const SCENE = "A chrome chair stands on a circular plinth in a quiet gallery.";
 const FULL_CLAUSES = "Close-up of the subject.\n\nLow angle looking up at the subject.\n\nSlow orbit around the subject.";
 
 describe("camera registry", () => {
-  it("exposes three guide sections with eight terms each, linked to the BFL guide", () => {
-    expect(cameraSections.map((section) => section.id)).toEqual(["shot-sizes", "angles", "movements"]);
+  it("covers all fourteen guide sections in guide order, each linked to its section", () => {
+    expect(cameraSections.map((section) => section.id)).toEqual([
+      "shot-sizes",
+      "angles",
+      "composition",
+      "movements",
+      "focus",
+      "lenses",
+      "shutter",
+      "lighting",
+      "transitions",
+      "pov",
+      "format",
+      "vfx",
+      "art-direction",
+      "animation"
+    ]);
     for (const section of cameraSections) {
-      expect(section.terms).toHaveLength(8);
+      expect(section.terms.length).toBeGreaterThanOrEqual(6);
       expect(section.anchor).toMatch(/^[a-z-]+$/);
     }
     expect(CAMERA_GUIDE_URL).toBe("https://docs.bfl.ai/guides/prompting_video_camera_terms");
-    expect(new Set(cameraTerms.map((term) => term.id)).size).toBe(24);
+    expect(new Set(cameraTerms.map((term) => term.id)).size).toBe(cameraTerms.length);
     expect(cameraTerms.every((term) => term.clause.endsWith(".") && term.description && term.label)).toBe(true);
   });
+
+  it("keeps Studio Lite's three sections exactly as ported", () => {
+    expect(cameraSections.slice(0, 2).concat(cameraSections[3]).map((section) => section.terms.length)).toEqual([8, 8, 8]);
+    expect(cameraClauses(FULL).map(({ text }) => text)).toEqual([
+      "Close-up of the subject.",
+      "Low angle looking up at the subject.",
+      "Slow orbit around the subject."
+    ]);
+  });
+
 
   it("starts with no camera direction, so existing prompts are unchanged", () => {
     expect(defaultCameraDirection.selection).toEqual(emptyCameraSelection);
@@ -46,7 +71,7 @@ describe("camera registry", () => {
 
 describe("composing camera clauses", () => {
   it("orders clauses shot size, angle, movement whatever the selection order", () => {
-    const shuffled = { movements: "orbit", angles: "low-angle", "shot-sizes": "close-up" } as CameraSelection;
+    const shuffled = { ...emptyCameraSelection, movements: "orbit", angles: "low-angle", "shot-sizes": "close-up" } as CameraSelection;
     expect(composeCameraClauses(shuffled)).toBe(FULL_CLAUSES);
     expect(cameraLabel(shuffled)).toBe("Close-up · Low angle · Orbit");
   });
@@ -91,10 +116,10 @@ describe("per-term clause edits", () => {
 
 describe("validating camera input", () => {
   it("keeps only term ids that belong to their own section", () => {
-    expect(normalizeCameraSelection({ "shot-sizes": "orbit", angles: "dutch", movements: 7 })).toEqual({
-      "shot-sizes": null,
+    expect(normalizeCameraSelection({ "shot-sizes": "orbit", angles: "dutch", movements: 7, lighting: "neon" })).toEqual({
+      ...emptyCameraSelection,
       angles: "dutch",
-      movements: null
+      lighting: "neon"
     });
     expect(normalizeCameraSelection("close-up")).toEqual(emptyCameraSelection);
   });
@@ -116,6 +141,7 @@ describe("validating camera input", () => {
 });
 
 describe("request choice and saved record", () => {
+
   it("sends the exact clause for each chosen term, and nothing when switched off", () => {
     const direction = { enabled: true, selection: FULL, edits: { orbit: "Fast orbit.", pan: "Unused pan." } };
     expect(cameraChoice(direction)).toEqual({

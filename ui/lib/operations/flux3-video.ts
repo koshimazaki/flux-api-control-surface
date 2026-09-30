@@ -40,9 +40,10 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
   const body = rawBody as Flux3RouteBody;
   let draftSource: Awaited<ReturnType<typeof findFlux3VideoOutput>> = null;
   const prepared: Flux3VideoRequest = { ...body };
-  // Camera clauses join text-to-video prompts exactly once, whether the
-  // dashboard already appended them or an agent sent the scene plus a choice.
-  const directed = body.mode === "t2v" ? applyCameraChoice(body.prompt || "", body.camera) : null;
+  // Direction clauses join the prompt exactly once, whether the dashboard
+  // already appended them or an agent sent the scene plus a choice. Draft
+  // enhancement re-renders an existing draft, so it takes none.
+  const directed = body.mode !== "draft_enhance" ? applyCameraChoice(body.prompt || "", body.camera) : null;
   if (directed?.camera) prepared.prompt = directed.prompt;
   try {
     if (body.mode === "i2v") {

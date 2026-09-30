@@ -74,8 +74,8 @@ export type Flux3VideoRequest = {
   safetyTolerance?: number;
   draft?: boolean;
   /**
-   * Text-to-video camera direction. Recorded with the render and used to append
-   * the camera clauses once; never forwarded to the BFL payload.
+   * Direction (camera, look, effects). Recorded with the render and used to
+   * append its clauses once; never forwarded to the BFL payload.
    */
   camera?: CameraChoice;
 };
