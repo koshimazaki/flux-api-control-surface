@@ -1,24 +1,59 @@
 "use client";
 
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CanvasZoomControls } from "@/components/ui/canvas-zoom-controls";
-import { displaySize, fitScale, maxPan } from "@/lib/canvas-geometry";
+import { displaySize, fitScale, maxPan, type Size } from "@/lib/canvas-geometry";
+import { hardenMaskPixels } from "@/lib/flux3-image";
 import { useCanvasViewport } from "@/lib/use-canvas-viewport";
 import { useElementSize } from "@/lib/use-element-size";
 import { isPanGesture } from "@/lib/use-zoom-pan";
+
+export type MaskCanvasTool = "brush" | "lasso" | "box";
+
+type Point = { x: number; y: number };
 
 type MaskCanvasProps = {
   imageSrc: string;
   brushSize: number;
   mask: string;
   onMaskChange: (mask: string) => void;
+  /** Brush paints (the default), lasso fills a freehand outline, box reports a dragged rectangle. */
+  tool?: MaskCanvasTool;
+  /** Export every pixel fully in or out of the mask, with no antialiased edge. */
+  hardEdges?: boolean;
+  /** Box tool: the drag's start and end in image pixels. */
+  onBoxDraw?: (start: Point, end: Point, size: Size) => void;
+  /** Drawn over the image in its own coordinate space, e.g. region boxes. */
+  renderOverlay?: (size: Size) => ReactNode;
 };
 
-type Point = { x: number; y: number };
+const toolHints: Record<MaskCanvasTool, string> = {
+  brush: "paint = mask · shift-drag = unpaint · scroll = zoom · space/hand-drag = pan",
+  lasso: "drag = lasso fill · shift-drag = remove · scroll = zoom · space/hand-drag = pan",
+  box: "drag = draw a box · scroll = zoom · space/hand-drag = pan"
+};
+
+function percentBox(start: Point, end: Point, size: Size) {
+  return {
+    left: `${(Math.min(start.x, end.x) / size.width) * 100}%`,
+    top: `${(Math.min(start.y, end.y) / size.height) * 100}%`,
+    width: `${(Math.abs(end.x - start.x) / size.width) * 100}%`,
+    height: `${(Math.abs(end.y - start.y) / size.height) * 100}%`
+  };
+}
 type PanDrag = { id: number; startX: number; startY: number; baseX: number; baseY: number };
 
-export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanvasProps) {
+export function MaskCanvas({
+  imageSrc,
+  brushSize,
+  mask,
+  onMaskChange,
+  tool = "brush",
+  hardEdges = false,
+  onBoxDraw,
+  renderOverlay
+}: MaskCanvasProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawing = useRef(false);
@@ -27,6 +62,8 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
   const panDrag = useRef<PanDrag | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
+  const [boxDrag, setBoxDrag] = useState<{ start: Point; end: Point } | null>(null);
+  const [lasso, setLasso] = useState<Point[]>([]);
 
   const viewport = useElementSize(viewportRef);
   const fit = naturalSize ? fitScale(naturalSize, viewport) : 0;
@@ -147,7 +184,27 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     context.fillStyle = "#000000";
     context.fillRect(0, 0, output.width, output.height);
     context.drawImage(canvas, 0, 0);
+    if (hardEdges) {
+      const pixels = context.getImageData(0, 0, output.width, output.height);
+      hardenMaskPixels(pixels.data);
+      context.putImageData(pixels, 0, 0);
+    }
     onMaskChange(output.toDataURL("image/png"));
+  }
+
+  function fillLasso(points: Point[], erase: boolean) {
+    const context = canvasRef.current?.getContext("2d");
+    if (!context || points.length < 3) return false;
+    context.globalCompositeOperation = erase ? "destination-out" : "source-over";
+    context.fillStyle = "#ffffff";
+    context.beginPath();
+    context.moveTo(points[0].x, points[0].y);
+    points.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+    context.closePath();
+    context.fill();
+    context.globalCompositeOperation = "source-over";
+    hasStrokes.current = true;
+    return true;
   }
 
   function onPointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
@@ -164,7 +221,9 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     if (!point) return;
     isDrawing.current = true;
     lastPoint.current = null;
-    strokeTo(event, point);
+    if (tool === "box") setBoxDrag({ start: point, end: point });
+    else if (tool === "lasso") setLasso([point]);
+    else strokeTo(event, point);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
@@ -176,7 +235,10 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     }
     if (!isDrawing.current) return;
     const point = canvasPoint(event);
-    if (point) strokeTo(event, point);
+    if (!point) return;
+    if (tool === "box") setBoxDrag((current) => (current ? { ...current, end: point } : current));
+    else if (tool === "lasso") setLasso((current) => [...current, point]);
+    else strokeTo(event, point);
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLCanvasElement>) {
@@ -190,6 +252,16 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
     isDrawing.current = false;
     lastPoint.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
+    if (tool === "box") {
+      if (boxDrag && naturalSize) onBoxDraw?.(boxDrag.start, boxDrag.end, naturalSize);
+      setBoxDrag(null);
+      return;
+    }
+    if (tool === "lasso") {
+      const filled = fillLasso(lasso, event.shiftKey);
+      setLasso([]);
+      if (!filled) return;
+    }
     exportMask();
   }
 
@@ -217,6 +289,20 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         />
+        {naturalSize && renderOverlay?.(naturalSize)}
+        {naturalSize && boxDrag && (
+          <span className="maskDraftBox" style={percentBox(boxDrag.start, boxDrag.end, naturalSize)} />
+        )}
+        {naturalSize && lasso.length > 1 && (
+          <svg
+            className="maskLassoPath"
+            viewBox={`0 0 ${naturalSize.width} ${naturalSize.height}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <polyline points={lasso.map((point) => `${point.x},${point.y}`).join(" ")} />
+          </svg>
+        )}
       </div>
       <CanvasZoomControls
         zoom={zoom}
@@ -227,7 +313,7 @@ export function MaskCanvas({ imageSrc, brushSize, mask, onMaskChange }: MaskCanv
         handMode={view.handMode}
         onToggleHand={view.toggleHand}
       />
-      <small className="maskPaintHint">paint = mask · shift-drag = unpaint · scroll = zoom · space/hand-drag = pan</small>
+      <small className="maskPaintHint">{toolHints[tool]}</small>
     </div>
   );
 }
