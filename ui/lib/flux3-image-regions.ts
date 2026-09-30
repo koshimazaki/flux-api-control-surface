@@ -15,7 +15,6 @@ import {
  */
 export type RegionShape = Pick<Flux3ImageRegion, "kind" | "x" | "y" | "width" | "height" | "paths" | "brush">;
 export type RegionHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw" | "move";
-export const REGION_RESIZE_HANDLES: RegionHandle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 type Bounds = { x: number; y: number; width: number; height: number };
 
@@ -111,4 +110,16 @@ export function resizeRegion<T extends RegionShape>(region: T, handle: RegionHan
 
 export function regionKindLabel(kind: Flux3RegionKind) {
   return kind === "box" ? "Box" : kind === "lasso" ? "Lasso" : "Brush";
+}
+
+/**
+ * Where the selected region's card opens: below the region unless it sits in
+ * the lower part of the image, and leftward for regions in the right half, so
+ * the card stays on the image.
+ */
+export function regionCardPlacement(region: RegionShape, size: Size) {
+  return {
+    vertical: region.y + region.height > size.height * 0.62 ? ("above" as const) : ("below" as const),
+    horizontal: region.x + region.width / 2 > size.width / 2 ? ("end" as const) : ("start" as const)
+  };
 }

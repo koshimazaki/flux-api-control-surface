@@ -125,9 +125,10 @@ export function useFlux3ImageDraft(sourceId: string | null) {
     }
   }, [draft, hydrated]);
 
-  // A new source image invalidates regions drawn in the old one's pixels.
+  // A different source image invalidates regions drawn in the old one's
+  // pixels. No source (still loading after a reload, or cleared) keeps them.
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !sourceId) return;
     setDraft((current) =>
       current.regionSourceId === sourceId ? current : { ...current, regions: [], regionSourceId: sourceId }
     );

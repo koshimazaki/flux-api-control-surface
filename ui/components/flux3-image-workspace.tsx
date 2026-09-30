@@ -1,5 +1,6 @@
 import { Brush, Eraser, Images, ImagePlus, Lasso, MessageSquareText, SquareDashed, Target, WandSparkles, X } from "lucide-react";
 import { useState, type DragEvent as ReactDragEvent } from "react";
+import { Flux3ImageDock } from "@/components/flux3-image-dock";
 import { Flux3ImageReferenceSlots } from "@/components/flux3-image-references";
 import { RegionLayer, RegionList } from "@/components/flux3-image-regions";
 import { BrushSizeField, ToolPicker, type ToolOption } from "@/components/flux3-image-tools";
@@ -129,13 +130,17 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
       return;
     }
     const drawn = regionFromShape(kind, [shape.points], size, shape.brush);
-    if (!drawn) return;
+    if (!drawn) {
+      // A click on the image rather than a drag closes the open region card.
+      setActiveRegionId(null);
+      return;
+    }
     const id = `region-${Date.now().toString(36)}`;
     const region: Flux3ImageRegion = { id, ...drawn, fuzz: FLUX3_IMAGE_DEFAULT_FUZZ, prompt: "", referenceId: null };
     setDraft((current) => ({ ...current, regions: [...current.regions, region], regionSourceId: sourceAsset?.id ?? null }));
     setActiveRegionId(id);
     // The edit is typed straight into the new region.
-    window.requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-region-id="${id}"] input`)?.focus());
+    window.requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(`[data-region-id="${id}"] .regionCard textarea`)?.focus());
   }
 
   function submit() {
@@ -203,6 +208,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     activeId: activeRegionId,
     referenceFor: (region: Flux3ImageRegion) => assetById(region.referenceId),
     onSelect: setActiveRegionId,
+    onDeselect: () => setActiveRegionId(null),
     onChange: updateRegion,
     onRemove: removeRegion,
     onReference: (id: string, payload: string, files: File[]) => void setRegionReference(id, payload, files)
@@ -419,6 +425,22 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
         </RunButton>
         {blocker && <p className="flux3Blocker">{blocker}</p>}
       </aside>
+
+      <Flux3ImageDock
+        mode={draft.mode}
+        regions={draft.regions}
+        referenceFor={regionCallbacks.referenceFor}
+        onRegionReference={regionCallbacks.onReference}
+        onClearRegionReference={(id) =>
+          setDraft((current) => ({
+            ...current,
+            regions: current.regions.map((region) => (region.id === id ? { ...region, referenceId: null } : region))
+          }))
+        }
+        referenceSlots={referenceAssets}
+        onSlotReference={(index, payload, files) => void addReferences(index, payload, files)}
+        onClearSlot={(index) => update({ references: draft.references.map((id, slot) => (slot === index ? null : id)) })}
+      />
     </>
   );
 }

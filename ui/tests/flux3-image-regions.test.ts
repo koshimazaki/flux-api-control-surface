@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FLUX3_IMAGE_MIN_BOX } from "@/lib/flux3-image";
-import { addPathToRegion, regionFromShape, regionPaths, resizeRegion } from "@/lib/flux3-image-regions";
+import { addPathToRegion, regionCardPlacement, regionFromShape, regionPaths, resizeRegion } from "@/lib/flux3-image-regions";
 
 const size = { width: 400, height: 300 };
 const square = [
@@ -65,5 +65,14 @@ describe("precise-edit regions", () => {
     const grown = addPathToRegion(paint, [{ x: 150, y: 120 }], size);
     expect(grown.paths).toHaveLength(2);
     expect(grown).toMatchObject({ x: 45, y: 45, width: 110, height: 80, brush: 10 });
+  });
+});
+
+describe("region card placement", () => {
+  it("opens below regions in the upper image and above those near the bottom, facing inward", () => {
+    const top = regionFromShape("box", [[{ x: 20, y: 20 }, { x: 120, y: 90 }]], size)!;
+    const bottomRight = regionFromShape("box", [[{ x: 300, y: 200 }, { x: 390, y: 290 }]], size)!;
+    expect(regionCardPlacement(top, size)).toEqual({ vertical: "below", horizontal: "start" });
+    expect(regionCardPlacement(bottomRight, size)).toEqual({ vertical: "above", horizontal: "end" });
   });
 });

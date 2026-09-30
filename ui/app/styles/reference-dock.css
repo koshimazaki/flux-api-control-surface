@@ -1,0 +1,104 @@
+/*
+ * A lighter reference dock for every mode (Generate, VTO, FLUX 3 Image): a
+ * more transparent panel, one soft border per slot instead of nested boxes,
+ * and less height. Imported after the theme layers, so selectors carry
+ * .dsgn-root.
+ */
+
+.dsgn-root .referenceDock {
+  gap: 8px;
+  border-color: color-mix(in srgb, var(--border-machined) 55%, transparent);
+  background: color-mix(in srgb, var(--surface-base, #14171b) 64%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  padding: 8px 10px 10px;
+}
+
+.dsgn-root .referenceDockHeader span {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.dsgn-root .referenceDockHeader .iconButton {
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dsgn-root .referenceDockSlot {
+  min-height: 0;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--border-default) 65%, transparent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  padding: 6px 7px 7px;
+}
+
+.dsgn-root .referenceDockSlot.active {
+  border-color: color-mix(in srgb, var(--acc-intel) 45%, transparent);
+  background: color-mix(in srgb, var(--acc-intel) 5%, transparent);
+}
+
+.dsgn-root .referenceDockSlot.dragOver {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+  box-shadow: none;
+  transform: none;
+}
+
+.dsgn-root .referenceDockSlotTop strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dsgn-root .referenceDockSlotTop code {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  font-size: 8.5px;
+}
+
+.dsgn-root .referenceDockEmpty {
+  min-height: 36px;
+  display: flex;
+  justify-content: flex-start;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+  text-align: left;
+}
+
+.dsgn-root .referenceDockThumb,
+.dsgn-root .referenceDockAssetThumb {
+  height: 44px;
+}
+
+.dsgn-root .referenceDockThumb {
+  width: 44px;
+  flex-basis: 44px;
+}
+
+.dsgn-root .referenceDockThumb img,
+.dsgn-root .referenceDockAssetThumb img {
+  border-color: transparent;
+}
+
+.dsgn-root .referenceDockMore {
+  height: 44px;
+}
+
+/* FLUX 3 Image: one slot per region or reference, as many as there are. */
+.dsgn-root .referenceDock.mode-flux3-image .referenceDockSlots {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  min-width: 0;
+}
+
+.dsgn-root .referenceDockNote {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
