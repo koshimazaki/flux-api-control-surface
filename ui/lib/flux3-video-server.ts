@@ -2,6 +2,7 @@ import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { slugify } from "@/lib/bfl-server";
 import { toWorkspaceRelativePath } from "@/lib/local-paths";
+import { normalizeCameraRecord, type CameraRecord } from "@/lib/camera-language";
 import type { Flux3VideoMode, Flux3VideoResult } from "@/lib/flux3-video";
 
 export const FLUX3_VIDEO_OUTPUT_ROOT = path.resolve(
@@ -17,6 +18,7 @@ type SavedFlux3Metadata = {
   title: string;
   prompt: string;
   mode: Flux3VideoMode;
+  camera?: CameraRecord | null;
   model: "flux-3-video";
   createdAt: string;
   payload: Record<string, unknown>;
@@ -70,7 +72,8 @@ function resultFromMetadata(metadata: SavedFlux3Metadata): Flux3VideoResult {
     generateAudio: metadata.payload.generate_audio !== false,
     costCredits: metadata.submit?.cost ?? null,
     creditsAfter: metadata.submit?.creditsAfter ?? null,
-    outputFiles: metadata.outputFiles
+    outputFiles: metadata.outputFiles,
+    camera: normalizeCameraRecord(metadata.camera)
   };
 }
 

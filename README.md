@@ -41,6 +41,9 @@ npm run build
 - Generate FLUX 3 Video: text-to-video, one to ten ordered or explicitly timed
   keyframes, video continuation, synchronized audio, and deterministic
   draft-to-1080p enhancement.
+- Direct FLUX 3 text-to-video with camera language: shot size, angle and
+  movement terms from BFL's camera guide, appended to the prompt as editable
+  clauses and recorded with each render.
 - Plan Video Script batches: collection-driven keyframe permutations, prompt
   assignment modes, batch timing templates imported from audio markers, and a
   live job-count/cost preview before any paid run.
