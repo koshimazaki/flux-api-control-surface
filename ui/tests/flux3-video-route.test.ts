@@ -117,7 +117,7 @@ describe("FLUX 3 video route", () => {
     expect(saved.metadata.camera).toMatchObject({ terms: ["Close-up", "Orbit"], scene: "fox at dawn" });
   });
 
-  it("ignores camera direction outside text-to-video", async () => {
+  it("applies direction to image-to-video renders too", async () => {
     mockSuccess();
     mocks.resolveImageInput.mockResolvedValue("data:image/png;base64,prepared-frame");
     await POST(
@@ -135,9 +135,9 @@ describe("FLUX 3 video route", () => {
     );
 
     const upstream = mocks.bflJson.mock.calls.find(([method]) => method === "POST")?.[3] as Record<string, unknown>;
-    expect(upstream.prompt).toBe("animate");
+    expect(upstream.prompt).toBe("animate\n\nSlow orbit around the subject.");
     const saved = mocks.saveFlux3VideoOutput.mock.calls[0][0] as { metadata: Record<string, any> };
-    expect(saved.metadata.camera).toBeNull();
+    expect(saved.metadata.camera).toMatchObject({ terms: ["Orbit"], scene: "animate" });
   });
 
   it("resolves dashboard image URLs before sending image keyframes", async () => {

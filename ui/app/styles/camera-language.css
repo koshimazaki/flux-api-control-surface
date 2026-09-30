@@ -10,6 +10,10 @@
   --camera-shot: var(--acc-green);
   --camera-angle: var(--acc-intel);
   --camera-movement: var(--accent);
+  --camera-optics: #e9a15b;
+  --camera-light: #f0cf72;
+  --camera-look: #c89bf0;
+  --camera-effects: #6fd3b8;
 }
 
 .dsgn-root[data-surface-theme="rams-lite"] .cameraPanel,
@@ -18,6 +22,10 @@
   --camera-shot: var(--acc-green-strong);
   --camera-angle: var(--acc-intel-strong);
   --camera-movement: var(--accent-strong);
+  --camera-optics: #b25d16;
+  --camera-light: #8f7010;
+  --camera-look: #7442ad;
+  --camera-effects: #1c8067;
 }
 
 /* The prompt field and its camera clauses read as one field. */
@@ -45,11 +53,10 @@
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   background: var(--surface-inset);
   box-shadow: var(--inset-1);
-  padding: 8px 12px 9px;
+  padding: 7px 8px 8px 12px;
   font-size: 12px;
   line-height: 1.45;
   text-align: left;
-  cursor: pointer;
 }
 
 .dsgn-root[data-surface-theme="rams-lite"] .cameraClauseStrip {
@@ -60,8 +67,71 @@
   border-color: var(--border-machined);
 }
 
-.dsgn-root .cameraClauseStrip span {
+/* Each chosen term is a line of editable text in its section colour; it turns white while typed in. */
+.dsgn-root .cameraClauseStrip {
+  justify-items: stretch;
+}
+
+.dsgn-root .directionClause {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px;
+}
+
+.dsgn-root .directionClause textarea {
+  min-height: 0;
+  field-sizing: content;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 1px 0;
   color: var(--section-color);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.dsgn-root .directionClause textarea:focus {
+  border: 0;
+  box-shadow: none;
+  color: var(--text-primary);
+  outline: none;
+  text-decoration: underline dotted color-mix(in srgb, var(--section-color) 60%, transparent);
+  text-underline-offset: 3px;
+}
+
+.dsgn-root .directionClause textarea::placeholder {
+  color: color-mix(in srgb, var(--section-color) 55%, transparent);
+  font-style: italic;
+}
+
+.dsgn-root .directionClauseActions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--motion-fast, 120ms) ease;
+}
+
+.dsgn-root .directionClause:hover .directionClauseActions,
+.dsgn-root .directionClause:focus-within .directionClauseActions {
+  opacity: 1;
+}
+
+.dsgn-root .directionClauseActions button {
+  width: 20px;
+  min-height: 20px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.dsgn-root .directionClauseActions button:hover {
+  color: var(--text-primary);
 }
 
 .dsgn-root .cameraPanel {
@@ -104,8 +174,7 @@
 
 .dsgn-root .cameraPanelTitle,
 .dsgn-root .cameraTabText small,
-.dsgn-root .cameraDialogEyebrow,
-.dsgn-root .cameraClauseHeader label {
+.dsgn-root .cameraDialogEyebrow {
   font-family: var(--font-mono);
   font-size: var(--t-micro);
   letter-spacing: var(--t-micro-ls);
@@ -280,44 +349,13 @@
   line-height: 25px;
 }
 
-.dsgn-root .cameraClauseField {
-  display: grid;
-  gap: 5px;
-  border-left: 2px solid var(--section-color);
-  padding-left: 9px;
-}
-
-.dsgn-root .cameraClauseHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.dsgn-root .cameraClauseHeader label {
-  display: block;
-  color: var(--section-color);
-}
-
-.dsgn-root .cameraClauseHeader button {
-  min-height: 24px;
-  gap: 4px;
-  padding: 0 7px;
-  font-size: 10px;
-}
-
-.dsgn-root .cameraClauseField small,
 .dsgn-root .cameraHint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
   margin: 0;
   color: var(--text-muted);
   font-size: 11px;
-  line-height: 1.4;
-}
-
-.dsgn-root .cameraClauseField textarea {
-  min-height: 0;
-  padding: 7px 9px;
-  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -344,7 +382,7 @@
 
 /* Expanded view: every section at once, in the top layer. */
 .dsgn-root .cameraDialog {
-  width: min(980px, calc(100vw - 32px));
+  width: min(1280px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   border: 1px solid var(--border-machined);
   border-radius: var(--radius-md, 8px);
@@ -421,10 +459,14 @@
 
 .dsgn-root .cameraDialogClauses {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  gap: 6px;
   border-top: 1px solid var(--border-default);
   padding-top: 14px;
+}
+
+.dsgn-root .cameraDialogClauses .cameraClauseStrip {
+  border-top-style: solid;
+  border-radius: var(--radius-sm);
 }
 
 .dsgn-root .cameraDialogActions {

@@ -1,15 +1,14 @@
 import { ArrowUpRight, Camera, ChevronDown, Maximize2 } from "lucide-react";
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { CameraDialog } from "@/components/camera-dialog";
-import { CameraClauseField, CameraPresetGrid, sectionColor } from "@/components/camera-presets";
+import { CameraPresetGrid, SectionMark, sectionColor } from "@/components/camera-presets";
+import { DirectionClauses } from "@/components/direction-clauses";
 import { IconButton } from "@/components/ui/icon-button";
 import {
   CAMERA_GUIDE_URL,
-  cameraClauses,
   cameraLabel,
   cameraSections,
   sectionTerms,
-  withClauseEdit,
   type CameraDirection,
   type CameraSection,
   type CameraTermId
@@ -21,10 +20,11 @@ type CameraPanelProps = {
 };
 
 /**
- * Camera language for the FLUX 3 text-to-video prompt, ported from FLUX Studio
- * Lite. The chosen clauses read as the tail of the prompt field; the panel
- * below is collapsed by default, and the expand button opens every section at
- * once in a dialog.
+ * Direction for the FLUX 3 video prompt, ported from FLUX Studio Lite and grown
+ * to every section of BFL's camera guide. The chosen clauses read as the tail
+ * of the prompt field and are edited in place there; the panel below is
+ * collapsed by default, and the expand button opens every section at once in
+ * a dialog with the 3D preview.
  */
 export function CameraPanel({ direction, onChange }: CameraPanelProps) {
   const [open, setOpen] = useState(false);
@@ -34,9 +34,6 @@ export function CameraPanel({ direction, onChange }: CameraPanelProps) {
   const bodyId = useId();
   const section = cameraSections[activeIndex];
   const activeTerm = sectionTerms(section).find((item) => item.id === direction.selection[section.id]);
-  const shownClauses = direction.enabled
-    ? cameraClauses(direction.selection, direction.edits).filter(({ text }) => text.trim())
-    : [];
 
   function select(target: CameraSection, id: CameraTermId | null) {
     // Picking a term is a request for camera direction, so it switches the panel on.
@@ -60,21 +57,7 @@ export function CameraPanel({ direction, onChange }: CameraPanelProps) {
 
   return (
     <>
-      {shownClauses.length > 0 && (
-        <button
-          type="button"
-          className="cameraClauseStrip"
-          onClick={() => setDialogOpen(true)}
-          aria-label="Edit camera direction"
-          title="Camera clauses appended to the prompt"
-        >
-          {shownClauses.map(({ section: item, term, text }) => (
-            <span key={term.id} style={sectionColor(item)}>
-              {text.trim()}
-            </span>
-          ))}
-        </button>
-      )}
+      <DirectionClauses direction={direction} onChange={onChange} />
       <section className={open ? "cameraPanel open" : "cameraPanel"} aria-label="Camera direction">
         <div className="cameraPanelHeader">
           <button
@@ -147,14 +130,10 @@ export function CameraPanel({ direction, onChange }: CameraPanelProps) {
                 onSelect={(id) => select(section, id)}
               />
               {activeTerm ? (
-                <CameraClauseField
-                  section={section}
-                  term={activeTerm}
-                  value={direction.edits[activeTerm.id] ?? activeTerm.clause}
-                  onChange={(text) =>
-                    onChange({ ...direction, edits: withClauseEdit(direction.edits, activeTerm.id, text) })
-                  }
-                />
+                <p className="cameraHint">
+                  <SectionMark section={section} termId={activeTerm.id} />
+                  {activeTerm.description} Edit its wording in the lines under the prompt.
+                </p>
               ) : (
                 <p className="cameraHint">None adds no {section.label.toLowerCase()} clause to the prompt.</p>
               )}

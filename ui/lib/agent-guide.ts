@@ -79,9 +79,9 @@ export const agentWorkflowGuide = {
       ]
     },
     {
-      name: "Direct the camera in a FLUX 3 text-to-video render",
+      name: "Direct a FLUX 3 video: camera, look and effects",
       steps: [
-        `POST ${agentRouteMap.flux3Video} with mode t2v, the scene as prompt, and camera.selection naming at most one term per section (null for none)`,
+        `POST ${agentRouteMap.flux3Video} (t2v, i2v or v2v) with the scene as prompt and camera.selection naming at most one term per section (null for none)`,
         "Optional camera.edits rewrites a chosen term's clause; the server appends the clauses after the scene exactly once",
         `GET ${agentRouteMap.flux3Video} or ${agentRouteMap.outputs}: each render records camera.terms and the scene`
       ]
@@ -150,7 +150,7 @@ export const agentWorkflowGuide = {
   ],
   cameraLanguage: {
     guide: CAMERA_GUIDE_URL,
-    appliesTo: "FLUX 3 text-to-video (mode t2v)",
+    appliesTo: "FLUX 3 video modes t2v, i2v and v2v (not draft_enhance)",
     sections: cameraSections.map((section) => ({ id: section.id, terms: section.terms.map((term) => term.id) }))
   },
   currentGaps: [

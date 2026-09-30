@@ -1,14 +1,15 @@
-import { ArrowUpRight, Check, X } from "lucide-react";
+import { ArrowUpRight, Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { CameraClauseField, CameraPresetGrid, sectionColor } from "@/components/camera-presets";
+import { CameraPresetGrid, sectionColor } from "@/components/camera-presets";
+import { CameraPreview } from "@/components/camera-preview";
+import { DirectionClauses } from "@/components/direction-clauses";
+import { DirectionRenders } from "@/components/direction-renders";
 import { IconButton } from "@/components/ui/icon-button";
 import {
   CAMERA_GUIDE_SECTION_COUNT,
   CAMERA_GUIDE_URL,
-  cameraClauses,
   cameraLabel,
   cameraSections,
-  withClauseEdit,
   type CameraDirection
 } from "@/lib/camera-language";
 
@@ -19,14 +20,16 @@ type CameraDialogProps = {
 };
 
 /**
- * The expanded camera view: every section at once plus the clause for each
- * chosen term. Works on a draft, so Cancel leaves the prompt untouched.
+ * The expanded view, as in Studio Lite: every section at once, one choice per
+ * section, the chosen clauses as editable lines, and a side drawer with the
+ * combined 3D preview and your renders that used these terms. Works on a
+ * draft, so Cancel leaves the prompt untouched.
  */
 export function CameraDialog({ direction, onApply, onClose }: CameraDialogProps) {
   const [draft, setDraft] = useState(direction);
+  const [drawerOpen, setDrawerOpen] = useState(true);
   const dialog = useRef<HTMLDialogElement>(null);
   const headingId = useId();
-  const clauses = cameraClauses(draft.selection, draft.edits);
 
   useEffect(() => {
     const element = dialog.current;
@@ -61,40 +64,50 @@ export function CameraDialog({ direction, onApply, onClose }: CameraDialogProps)
             <X size={16} />
           </IconButton>
         </header>
-        <div className="cameraDialogBody">
-          {cameraSections.map((section) => (
-            <section key={section.id} className="cameraDialogSection" style={sectionColor(section)}>
-              <div className="cameraDialogEyebrow">
-                <a href={`${CAMERA_GUIDE_URL}#${section.anchor}`} target="_blank" rel="noopener noreferrer">
-                  {section.heading}
-                  <ArrowUpRight size={12} />
-                </a>
-                <span>{section.terms.length} terms · choose one</span>
-              </div>
-              <CameraPresetGrid
-                section={section}
-                selected={draft.selection[section.id]}
-                onSelect={(id) => setDraft({ ...draft, selection: { ...draft.selection, [section.id]: id } })}
-              />
-            </section>
-          ))}
-          {clauses.length > 0 && (
-            <div className="cameraDialogClauses" role="group" aria-label="Camera prompt clauses">
-              {clauses.map(({ section, term, text }) => (
-                <CameraClauseField
-                  key={term.id}
+        <div className={drawerOpen ? "cameraDialogMain withDrawer" : "cameraDialogMain"}>
+          <div className="cameraDialogBody">
+            {cameraSections.map((section) => (
+              <section key={section.id} className="cameraDialogSection" style={sectionColor(section)}>
+                <div className="cameraDialogEyebrow">
+                  <a href={`${CAMERA_GUIDE_URL}#${section.anchor}`} target="_blank" rel="noopener noreferrer">
+                    {section.heading}
+                    <ArrowUpRight size={12} />
+                  </a>
+                  <span>{section.terms.length} terms · choose one</span>
+                </div>
+                <CameraPresetGrid
                   section={section}
-                  term={term}
-                  value={text}
-                  onChange={(value) => setDraft({ ...draft, edits: withClauseEdit(draft.edits, term.id, value) })}
+                  selected={draft.selection[section.id]}
+                  onSelect={(id) => setDraft({ ...draft, selection: { ...draft.selection, [section.id]: id } })}
                 />
-              ))}
-            </div>
-          )}
+              </section>
+            ))}
+            <section className="cameraDialogClauses">
+              <span className="cameraDialogEyebrow">Added to the prompt · type to fine-tune</span>
+              <DirectionClauses direction={{ ...draft, enabled: true }} onChange={setDraft} />
+            </section>
+          </div>
+          <aside className={drawerOpen ? "directionDrawer open" : "directionDrawer"}>
+            <button
+              type="button"
+              className="directionDrawerToggle"
+              aria-expanded={drawerOpen}
+              title={drawerOpen ? "Fold away the preview" : "Show the 3D preview"}
+              onClick={() => setDrawerOpen((open) => !open)}
+            >
+              {drawerOpen ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+            </button>
+            {drawerOpen && (
+              <div className="directionDrawerBody">
+                <CameraPreview selection={draft.selection} />
+                <DirectionRenders selection={draft.selection} />
+              </div>
+            )}
+          </aside>
         </div>
         <footer className="cameraDialogActions">
           <a href={CAMERA_GUIDE_URL} target="_blank" rel="noopener noreferrer">
-            {cameraSections.length} of {CAMERA_GUIDE_SECTION_COUNT} sections from the BFL guide
+            All {CAMERA_GUIDE_SECTION_COUNT} sections of the BFL camera guide
             <ArrowUpRight size={12} />
           </a>
           <strong>{cameraLabel(draft.selection)}</strong>

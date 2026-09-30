@@ -1,0 +1,218 @@
+/*
+ * The direction dialog's side drawer: the combined 3D preview (ported from
+ * FLUX Studio Lite) and your renders that used the chosen terms. Imported
+ * after the theme layers, so selectors carry .dsgn-root.
+ */
+
+/* Sections on the left; the 3D preview in a drawer on the right that folds away. */
+.dsgn-root .cameraDialogMain {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+}
+
+.dsgn-root .cameraDialogMain.withDrawer {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+}
+
+.dsgn-root .directionDrawer {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border-left: 1px solid var(--border-default);
+  background: color-mix(in srgb, var(--surface-sunken) 70%, transparent);
+}
+
+.dsgn-root .directionDrawerToggle {
+  width: 28px;
+  min-height: 28px;
+  justify-self: start;
+  margin: 8px 6px;
+  padding: 0;
+}
+
+.dsgn-root .directionDrawerBody {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  overflow: auto;
+  padding: 0 14px 14px;
+}
+
+.dsgn-root .cameraPreview {
+  --scene-sky: #dfeeee;
+  --scene-ground: var(--surface-sunken);
+  --scene-light: #ffffff;
+  --scene-subject: var(--text-secondary);
+  --scene-accent: var(--accent);
+  --scene-dark: var(--border-strong);
+  --scene-grid-major: var(--border-machined);
+  --scene-grid-minor: var(--border-default);
+  --scene-glass: var(--surface-sunken);
+  --scene-emissive: var(--acc-intel);
+  display: grid;
+  gap: 6px;
+}
+
+.dsgn-root .cameraPreviewStage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--acc-intel) 10%, transparent), transparent 60%), var(--surface-inset);
+}
+
+.dsgn-root .cameraPreviewStage canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.dsgn-root .cameraPreviewFallback {
+  margin: 0;
+  padding: 4em 1.5em;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.dsgn-root .cameraPreviewCaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dsgn-root .cameraPreviewCaption div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.dsgn-root .cameraPreviewCaption span,
+.dsgn-root .directionRendersTitle {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--t-micro-ls);
+  text-transform: uppercase;
+}
+
+.dsgn-root .cameraPreviewCaption strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .cameraPreviewCaption .iconButton {
+  width: 28px;
+  min-height: 28px;
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.dsgn-root .cameraPreviewNote {
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+
+/* Looks are filters over the canvas; fades are an overlay timed to the shot. */
+.cameraPreview.look-noir canvas { filter: grayscale(1) contrast(1.35); }
+.cameraPreview.look-mono canvas { filter: grayscale(0.92) contrast(1.1); }
+.cameraPreview.look-pastel canvas { filter: saturate(0.55) brightness(1.15); }
+.cameraPreview.look-teal-orange canvas { filter: sepia(0.3) saturate(1.6) hue-rotate(-14deg); }
+.cameraPreview.look-film canvas { filter: sepia(0.28) contrast(1.08) saturate(0.9); }
+.cameraPreview.look-vhs canvas { filter: saturate(1.5) contrast(1.1) blur(0.5px); }
+.cameraPreview.look-pixel canvas { image-rendering: pixelated; }
+
+.cameraPreview.look-vhs .cameraPreviewStage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+
+.cameraPreview[data-transition="fade-black"] .cameraPreviewStage::before,
+.cameraPreview[data-transition="dissolve"] .cameraPreviewStage::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  animation: directionFade var(--shot-ms, 2300ms) linear infinite;
+}
+
+.cameraPreview[data-transition="dissolve"] .cameraPreviewStage::before {
+  background: var(--surface-inset);
+  animation-name: directionDissolve;
+}
+
+@keyframes directionFade {
+  0%, 55% { opacity: 0; }
+  70%, 100% { opacity: 1; }
+}
+
+@keyframes directionDissolve {
+  0%, 40% { opacity: 0; }
+  50% { opacity: 0.75; }
+  60%, 100% { opacity: 0; }
+}
+
+.dsgn-root .directionRenders {
+  display: grid;
+  gap: 8px;
+}
+
+.dsgn-root .directionRenders p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.dsgn-root .directionRendersGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dsgn-root .directionRendersGrid figure {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.dsgn-root .directionRendersGrid video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  background: #020504;
+  object-fit: cover;
+}
+
+.dsgn-root .directionRendersGrid figcaption {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .dsgn-root .cameraDialogMain,
+  .dsgn-root .cameraDialogMain.withDrawer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dsgn-root .directionDrawer {
+    border-top: 1px solid var(--border-default);
+    border-left: 0;
+  }
+}

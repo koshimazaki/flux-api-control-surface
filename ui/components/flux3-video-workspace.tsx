@@ -92,9 +92,9 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   const [pendingQueueJobId, setPendingQueueJobId] = useState<string | null>(null);
   const selected = results.find((item) => item.id === selectedId) || results[0] || null;
   const maxDuration = flux3MaxDuration(mode);
-  // Camera language applies to text-to-video only: the clauses follow the
-  // scene in the prompt the API receives, and the choice is saved with the render.
-  const camera = useMemo(() => (mode === "t2v" ? cameraChoice(cameraDirection) : null), [cameraDirection, mode]);
+  // Direction applies to every source mode: its clauses follow the scene in the
+  // prompt the API receives, and the choice is saved with the render.
+  const camera = useMemo(() => cameraChoice(cameraDirection), [cameraDirection]);
   const cameraTail = camera ? composeCameraClauses(camera.selection, camera.edits) : "";
   const directedPrompt = camera ? withCameraClauses(prompt, cameraTail) : prompt;
 
@@ -367,7 +367,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
             </button>
           ))}
         </div>
-        <div className={cameraTail ? "flux3PromptBlock withCameraClauses" : "flux3PromptBlock"}>
+        <div className={camera ? "flux3PromptBlock withCameraClauses" : "flux3PromptBlock"}>
           <label>
             Video prompt
             <textarea
@@ -377,7 +377,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
               placeholder={mode === "v2v" ? "Describe the next beat, camera motion, dialogue, sound, and ambience…" : "Describe action, camera, dialogue, sound, and scene changes…"}
             />
           </label>
-          {mode === "t2v" && <CameraPanel direction={cameraDirection} onChange={setCameraDirection} />}
+          <CameraPanel direction={cameraDirection} onChange={setCameraDirection} />
         </div>
         <div className="flux3SettingsGrid">
           <label>
