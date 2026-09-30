@@ -12,12 +12,13 @@ import {
   hardenMaskPixels,
   placeReferenceIds,
   type Flux3ImageApi,
-  type Flux3ImageBox
+  type Flux3ImageRequestRegion
 } from "@/lib/flux3-image";
 
 const SOURCE = "data:image/png;base64,AAAA";
-const box = (patch: Partial<Flux3ImageBox> = {}): Flux3ImageBox => ({
-  id: "box-a",
+const region = (patch: Partial<Flux3ImageRequestRegion> = {}): Flux3ImageRequestRegion => ({
+  id: "region-a",
+  kind: "box",
   x: 10,
   y: 20,
   width: 100,
@@ -29,7 +30,7 @@ const box = (patch: Partial<Flux3ImageBox> = {}): Flux3ImageBox => ({
 // Stands in for the real API in tests only; the shipped module keeps it null.
 const testApi: Flux3ImageApi = {
   endpoint: "test-endpoint",
-  toPayload: (request) => ({ mode: request.mode, boxes: request.boxes?.length ?? 0 }),
+  toPayload: (request) => ({ mode: request.mode, regions: request.regions?.length ?? 0 }),
   estimateUsd: () => 0.05
 };
 
@@ -51,22 +52,24 @@ describe("FLUX 3 Image request blocker", () => {
     ).toBe(`FLUX 3 Image takes up to ${FLUX3_IMAGE_MAX_REFERENCES} references here.`);
     expect(flux3ImageRequestBlocker({ mode: "edit", prompt: "sunset" })).toBe("Load a source image to edit.");
     expect(flux3ImageRequestBlocker({ mode: "edit", source: SOURCE })).toBe("Describe the edit.");
-    expect(flux3ImageRequestBlocker({ mode: "precise", source: SOURCE, selection: "boxes", boxes: [] })).toBe(
-      "Draw a box around the area to change."
+    expect(flux3ImageRequestBlocker({ mode: "edit", source: SOURCE, mask: SOURCE })).toBe(
+      "Describe the edit for the painted area."
+    );
+    expect(flux3ImageRequestBlocker({ mode: "precise", source: SOURCE, regions: [] })).toBe(
+      "Draw a region: a box, a brush stroke or a lasso."
     );
     expect(
-      flux3ImageRequestBlocker({ mode: "precise", source: SOURCE, selection: "boxes", boxes: [box(), box({ id: "b", prompt: "" })] })
-    ).toBe("Type the edit into box 2.");
-    expect(flux3ImageRequestBlocker({ mode: "precise", source: SOURCE, selection: "pixels", prompt: "x" })).toBe(
-      "Paint the pixels to change."
-    );
-    expect(flux3ImageRequestBlocker({ mode: "precise", source: SOURCE, selection: "pixels", mask: SOURCE })).toBe(
-      "Describe the edit for the painted pixels."
-    );
+      flux3ImageRequestBlocker({ mode: "precise", source: SOURCE, regions: [region(), region({ id: "b", prompt: "" })] })
+    ).toBe("Type the edit into region 2.");
+  });
+
+  it("edits the whole image without a mask, and a region needs no reference", () => {
+    expect(flux3ImageRequestBlocker({ mode: "edit", source: SOURCE, prompt: "dusk light" }, testApi)).toBeNull();
+    expect(flux3ImageRequestBlocker({ mode: "precise", source: SOURCE, regions: [region()] }, testApi)).toBeNull();
   });
 
   it("blocks complete requests until the API is published, and never guesses a payload", () => {
-    const complete = { mode: "precise" as const, source: SOURCE, selection: "boxes" as const, boxes: [box()] };
+    const complete = { mode: "precise" as const, source: SOURCE, regions: [region({ reference: SOURCE })] };
     expect(FLUX3_IMAGE_API).toBeNull();
     expect(flux3ImageRequestBlocker(complete)).toBe(FLUX3_IMAGE_API_PENDING);
     expect(estimateFlux3ImageUsd(complete)).toBeNull();
@@ -74,12 +77,12 @@ describe("FLUX 3 Image request blocker", () => {
   });
 
   it("builds through the API interface once one is supplied", () => {
-    const complete = { mode: "precise" as const, source: SOURCE, selection: "boxes" as const, boxes: [box()] };
+    const complete = { mode: "precise" as const, source: SOURCE, regions: [region({ reference: SOURCE })] };
     expect(flux3ImageRequestBlocker(complete, testApi)).toBeNull();
     expect(estimateFlux3ImageUsd(complete, testApi)).toBe(0.05);
     expect(buildFlux3ImagePayload(complete, testApi)).toEqual({
       endpoint: "test-endpoint",
-      payload: { mode: "precise", boxes: 1 }
+      payload: { mode: "precise", regions: 1 }
     });
   });
 });

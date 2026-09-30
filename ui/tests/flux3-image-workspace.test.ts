@@ -1,39 +1,42 @@
 import { describe, expect, it } from "vitest";
 import { normalizeFlux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
 import { normalizeToolWorkspaceCache } from "@/lib/dashboard/workspace-cache";
-import type { Flux3ImageBox } from "@/lib/flux3-image";
 import { imageWorkspaceModes, workspaceModesForMedia } from "@/lib/workspace-media";
 
-const box = (patch: Partial<Flux3ImageBox> = {}): Flux3ImageBox => ({
-  id: "box-a",
-  x: 10,
-  y: 20,
-  width: 100,
-  height: 80,
-  fuzz: 8,
-  prompt: "make the scarf red",
-  ...patch
-});
+const legacyBox = { id: "box-a", x: 10, y: 20, width: 100, height: 80, fuzz: 8, prompt: "make the scarf red" };
 
 describe("FLUX 3 Image workspace state", () => {
   it("reads a stored draft defensively", () => {
     const draft = normalizeFlux3ImageDraft({
       mode: "precise",
-      selection: "pixels",
-      pixelTool: "lasso",
+      editTool: "eraser",
+      regionTool: "lasso",
       prompts: { t2i: "fox", edit: 4 },
-      boxes: [box(), { id: "bad", x: -1, y: 0, width: 5, height: 5 }, "junk"],
-      boxSourceId: "asset-1"
+      regions: [
+        { id: "r1", kind: "lasso", x: 5, y: 5, width: 50, height: 40, paths: [[[0, 0], [1, 0], [1, 1]]], fuzz: 999, prompt: "sky", referenceId: "asset-9" },
+        { id: "r2", kind: "paint", x: 0, y: 0, width: 10, height: 10, paths: [], fuzz: 4, prompt: "" },
+        { id: "bad", x: -1, y: 0, width: 5, height: 5 },
+        "junk"
+      ],
+      regionSourceId: "asset-1"
     });
-    expect(draft).toMatchObject({ mode: "precise", selection: "pixels", pixelTool: "lasso", boxSourceId: "asset-1" });
-    expect(draft.prompts).toEqual({ t2i: "fox", i2i: "", edit: "", pixels: "" });
+    expect(draft).toMatchObject({ mode: "precise", editTool: "eraser", regionTool: "lasso", regionSourceId: "asset-1" });
+    expect(draft.prompts).toEqual({ t2i: "fox", i2i: "", edit: "" });
     expect(draft.references).toEqual([null, null, null, null]);
-    expect(draft.boxes).toEqual([box()]);
+    // A painted region with no strokes is dropped; fuzz is clamped to the slider.
+    expect(draft.regions).toHaveLength(1);
+    expect(draft.regions[0]).toMatchObject({ id: "r1", kind: "lasso", fuzz: 64, referenceId: "asset-9" });
     expect(normalizeFlux3ImageDraft("nope").mode).toBe("t2i");
     expect(normalizeFlux3ImageDraft({ mode: "i2i", references: ["asset-1", 7, "", "asset-4", "extra"] })).toMatchObject({
       mode: "i2i",
       references: ["asset-1", null, null, "asset-4"]
     });
+  });
+
+  it("carries boxes from drafts saved before regions over as box regions", () => {
+    const draft = normalizeFlux3ImageDraft({ boxes: [legacyBox], boxSourceId: "asset-1" });
+    expect(draft.regions).toEqual([{ ...legacyBox, kind: "box", referenceId: null }]);
+    expect(draft.regionSourceId).toBe("asset-1");
   });
 
   it("leads the image rail only when the flag is on", () => {

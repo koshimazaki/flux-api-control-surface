@@ -9,29 +9,48 @@ import { useCanvasViewport } from "@/lib/use-canvas-viewport";
 import { useElementSize } from "@/lib/use-element-size";
 import { isPanGesture } from "@/lib/use-zoom-pan";
 
-export type MaskCanvasTool = "brush" | "lasso" | "box";
+export type MaskCanvasTool = "brush" | "eraser" | "lasso" | "box";
 
 type Point = { x: number; y: number };
+
+/** A finished gesture in image pixels, reported instead of painting when shapes are on. */
+export type CanvasShape = {
+  tool: MaskCanvasTool;
+  /** Box: drag start and end. Brush and lasso: the traced path. */
+  points: Point[];
+  /** Brush diameter in image pixels. */
+  brush: number;
+  /** Shift was held: add to the current selection rather than start a new one. */
+  additive: boolean;
+};
 
 type MaskCanvasProps = {
   imageSrc: string;
   brushSize: number;
   mask: string;
   onMaskChange: (mask: string) => void;
-  /** Brush paints (the default), lasso fills a freehand outline, box reports a dragged rectangle. */
+  /** Brush paints (the default), eraser unpaints, lasso fills a freehand outline. */
   tool?: MaskCanvasTool;
   /** Export every pixel fully in or out of the mask, with no antialiased edge. */
   hardEdges?: boolean;
-  /** Box tool: the drag's start and end in image pixels. */
-  onBoxDraw?: (start: Point, end: Point, size: Size) => void;
-  /** Drawn over the image in its own coordinate space, e.g. region boxes. */
+  /** Shape mode: gestures are reported as shapes (e.g. regions) and the mask is left alone. */
+  onShape?: (shape: CanvasShape, size: Size) => void;
+  /** Drawn over the image in its own coordinate space, e.g. regions. */
   renderOverlay?: (size: Size) => ReactNode;
 };
 
-const toolHints: Record<MaskCanvasTool, string> = {
-  brush: "paint = mask · shift-drag = unpaint · scroll = zoom · space/hand-drag = pan",
-  lasso: "drag = lasso fill · shift-drag = remove · scroll = zoom · space/hand-drag = pan",
-  box: "drag = draw a box · scroll = zoom · space/hand-drag = pan"
+const navHint = "scroll = zoom · space/hand-drag = pan";
+const maskHints: Record<MaskCanvasTool, string> = {
+  brush: `paint = mask · shift-drag = unpaint · ${navHint}`,
+  eraser: `drag = erase the mask · ${navHint}`,
+  lasso: `drag = lasso fill · shift-drag = remove · ${navHint}`,
+  box: navHint
+};
+const shapeHints: Record<MaskCanvasTool, string> = {
+  brush: `paint = new region · shift = add to the selected one · ${navHint}`,
+  eraser: navHint,
+  lasso: `lasso = new region · shift = add to the selected one · ${navHint}`,
+  box: `drag = new box region · ${navHint}`
 };
 
 function percentBox(start: Point, end: Point, size: Size) {
@@ -51,7 +70,7 @@ export function MaskCanvas({
   onMaskChange,
   tool = "brush",
   hardEdges = false,
-  onBoxDraw,
+  onShape,
   renderOverlay
 }: MaskCanvasProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -63,7 +82,10 @@ export function MaskCanvas({
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [boxDrag, setBoxDrag] = useState<{ start: Point; end: Point } | null>(null);
-  const [lasso, setLasso] = useState<Point[]>([]);
+  // The live lasso outline, or the live brush stroke in shape mode.
+  const [trace, setTrace] = useState<Point[]>([]);
+  const brushPx = useRef(1);
+  const shapes = Boolean(onShape);
 
   const viewport = useElementSize(viewportRef);
   const fit = naturalSize ? fitScale(naturalSize, viewport) : 0;
@@ -153,7 +175,7 @@ export function MaskCanvas({
     if (!canvas || !context) return;
     const rect = canvas.getBoundingClientRect();
     const scale = canvas.width / Math.max(1, rect.width);
-    context.globalCompositeOperation = event.shiftKey ? "destination-out" : "source-over";
+    context.globalCompositeOperation = event.shiftKey || tool === "eraser" ? "destination-out" : "source-over";
     context.strokeStyle = "#ffffff";
     context.fillStyle = "#ffffff";
     context.lineWidth = Math.max(2, brushSize * scale);
@@ -219,12 +241,24 @@ export function MaskCanvas({
     }
     const point = canvasPoint(event);
     if (!point) return;
+    if (shapes && tool === "eraser") return;
     isDrawing.current = true;
     lastPoint.current = null;
+    const rect = event.currentTarget.getBoundingClientRect();
+    brushPx.current = Math.max(2, brushSize * (event.currentTarget.width / Math.max(1, rect.width)));
     if (tool === "box") setBoxDrag({ start: point, end: point });
-    else if (tool === "lasso") setLasso([point]);
+    else if (tool === "lasso" || shapes) setTrace([point]);
     else strokeTo(event, point);
     event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function extendTrace(point: Point) {
+    // Thin the path: close points add size, not shape.
+    const spacing = tool === "brush" ? Math.max(2, brushPx.current / 4) : 2;
+    setTrace((current) => {
+      const last = current[current.length - 1];
+      return last && Math.hypot(point.x - last.x, point.y - last.y) < spacing ? current : [...current, point];
+    });
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLCanvasElement>) {
@@ -237,7 +271,7 @@ export function MaskCanvas({
     const point = canvasPoint(event);
     if (!point) return;
     if (tool === "box") setBoxDrag((current) => (current ? { ...current, end: point } : current));
-    else if (tool === "lasso") setLasso((current) => [...current, point]);
+    else if (tool === "lasso" || shapes) extendTrace(point);
     else strokeTo(event, point);
   }
 
@@ -252,14 +286,22 @@ export function MaskCanvas({
     isDrawing.current = false;
     lastPoint.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
+    if (shapes) {
+      const points = tool === "box" ? (boxDrag ? [boxDrag.start, boxDrag.end] : []) : trace;
+      if (points.length && naturalSize) {
+        onShape?.({ tool, points, brush: brushPx.current, additive: event.shiftKey }, naturalSize);
+      }
+      setBoxDrag(null);
+      setTrace([]);
+      return;
+    }
     if (tool === "box") {
-      if (boxDrag && naturalSize) onBoxDraw?.(boxDrag.start, boxDrag.end, naturalSize);
       setBoxDrag(null);
       return;
     }
     if (tool === "lasso") {
-      const filled = fillLasso(lasso, event.shiftKey);
-      setLasso([]);
+      const filled = fillLasso(trace, event.shiftKey);
+      setTrace([]);
       if (!filled) return;
     }
     exportMask();
@@ -293,14 +335,17 @@ export function MaskCanvas({
         {naturalSize && boxDrag && (
           <span className="maskDraftBox" style={percentBox(boxDrag.start, boxDrag.end, naturalSize)} />
         )}
-        {naturalSize && lasso.length > 1 && (
+        {naturalSize && trace.length > 0 && (
           <svg
-            className="maskLassoPath"
+            className={tool === "lasso" ? "maskLassoPath" : "maskLassoPath maskBrushPath"}
             viewBox={`0 0 ${naturalSize.width} ${naturalSize.height}`}
             preserveAspectRatio="none"
             aria-hidden="true"
           >
-            <polyline points={lasso.map((point) => `${point.x},${point.y}`).join(" ")} />
+            <polyline
+              points={trace.map((point) => `${point.x},${point.y}`).join(" ")}
+              style={tool === "lasso" ? undefined : { strokeWidth: brushPx.current }}
+            />
           </svg>
         )}
       </div>
@@ -313,7 +358,7 @@ export function MaskCanvas({
         handMode={view.handMode}
         onToggleHand={view.toggleHand}
       />
-      <small className="maskPaintHint">{toolHints[tool]}</small>
+      <small className="maskPaintHint">{(shapes ? shapeHints : maskHints)[tool]}</small>
     </div>
   );
 }
