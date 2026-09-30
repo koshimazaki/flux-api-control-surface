@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  FLUX3_IMAGE_MAX_REFERENCES,
   clampFuzz,
   type Flux3ImageBox,
   type Flux3ImageMode,
@@ -13,7 +14,9 @@ export type Flux3ImageDraft = {
   selection: Flux3ImageSelection;
   /** Pixel selections paint with a brush or fill a lasso outline. */
   pixelTool: "brush" | "lasso";
-  prompts: Record<"t2i" | "edit" | "pixels", string>;
+  prompts: Record<"t2i" | "i2i" | "edit" | "pixels", string>;
+  /** Image to image: asset ids per reference slot, null when empty. */
+  references: (string | null)[];
   /** Boxes are in source pixels, so they belong to one source image. */
   boxes: Flux3ImageBox[];
   boxSourceId: string | null;
@@ -23,7 +26,8 @@ export const defaultFlux3ImageDraft: Flux3ImageDraft = {
   mode: "t2i",
   selection: "boxes",
   pixelTool: "brush",
-  prompts: { t2i: "", edit: "", pixels: "" },
+  prompts: { t2i: "", i2i: "", edit: "", pixels: "" },
+  references: Array.from({ length: FLUX3_IMAGE_MAX_REFERENCES }, () => null),
   boxes: [],
   boxSourceId: null
 };
@@ -48,10 +52,19 @@ export function normalizeFlux3ImageDraft(value: unknown): Flux3ImageDraft {
   const record = asRecord(value);
   const prompts = asRecord(record.prompts);
   return {
-    mode: record.mode === "edit" || record.mode === "precise" ? record.mode : "t2i",
+    mode: record.mode === "i2i" || record.mode === "edit" || record.mode === "precise" ? record.mode : "t2i",
     selection: record.selection === "pixels" ? "pixels" : "boxes",
     pixelTool: record.pixelTool === "lasso" ? "lasso" : "brush",
-    prompts: { t2i: asText(prompts.t2i), edit: asText(prompts.edit), pixels: asText(prompts.pixels) },
+    prompts: {
+      t2i: asText(prompts.t2i),
+      i2i: asText(prompts.i2i),
+      edit: asText(prompts.edit),
+      pixels: asText(prompts.pixels)
+    },
+    references: Array.from({ length: FLUX3_IMAGE_MAX_REFERENCES }, (_, index) => {
+      const id = Array.isArray(record.references) ? record.references[index] : null;
+      return typeof id === "string" && id ? id : null;
+    }),
     boxes: Array.isArray(record.boxes) ? record.boxes.map(normalizeBox).filter((box): box is Flux3ImageBox => !!box) : [],
     boxSourceId: typeof record.boxSourceId === "string" ? record.boxSourceId : null
   };

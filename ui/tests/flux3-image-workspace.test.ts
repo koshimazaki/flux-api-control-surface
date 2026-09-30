@@ -26,9 +26,14 @@ describe("FLUX 3 Image workspace state", () => {
       boxSourceId: "asset-1"
     });
     expect(draft).toMatchObject({ mode: "precise", selection: "pixels", pixelTool: "lasso", boxSourceId: "asset-1" });
-    expect(draft.prompts).toEqual({ t2i: "fox", edit: "", pixels: "" });
+    expect(draft.prompts).toEqual({ t2i: "fox", i2i: "", edit: "", pixels: "" });
+    expect(draft.references).toEqual([null, null, null, null]);
     expect(draft.boxes).toEqual([box()]);
     expect(normalizeFlux3ImageDraft("nope").mode).toBe("t2i");
+    expect(normalizeFlux3ImageDraft({ mode: "i2i", references: ["asset-1", 7, "", "asset-4", "extra"] })).toMatchObject({
+      mode: "i2i",
+      references: ["asset-1", null, null, "asset-4"]
+    });
   });
 
   it("leads the image rail only when the flag is on", () => {

@@ -1,6 +1,7 @@
-import { Brush, ImagePlus, Lasso, MessageSquareText, SquareDashed, Target, WandSparkles, X } from "lucide-react";
+import { Brush, Images, ImagePlus, Lasso, MessageSquareText, SquareDashed, Target, WandSparkles, X } from "lucide-react";
 import { useState, type DragEvent as ReactDragEvent } from "react";
 import { MaskCanvas } from "@/components/mask-canvas";
+import { Flux3ImageReferenceSlots } from "@/components/flux3-image-references";
 import { RegionBoxLayer, RegionBoxList } from "@/components/flux3-image-regions";
 import { CanvasSurface } from "@/components/ui/canvas-surface";
 import { IconButton } from "@/components/ui/icon-button";
@@ -13,20 +14,27 @@ import { assetImageSource } from "@/lib/dashboard-tools";
 import { useFlux3ImageDraft, type Flux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
 import {
   FLUX3_IMAGE_DEFAULT_FUZZ,
+  FLUX3_IMAGE_MAX_REFERENCES,
   boxFromDrag,
   estimateFlux3ImageUsd,
   flux3ImageRequestBlocker,
+  placeReferenceIds,
   type Flux3ImageBox,
   type Flux3ImageMode,
   type Flux3ImageRequest,
   type ImagePoint
 } from "@/lib/flux3-image";
+import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import { dragPayloadFromTransfer, imageFilesFromTransfer, isSourceDrag } from "@/lib/source-drop";
 import type { AssetRecord } from "@/lib/types";
 
 type Flux3ImageWorkspaceProps = {
   /** The shared tool source, the same image Erase, Outpaint and Deblur use. */
   sourceAsset: AssetRecord | null;
+  /** The asset library, for resolving reference slots by asset id. */
+  assets: AssetRecord[];
+  /** Imports dropped or chosen files as library assets so references persist by id. */
+  onImportFiles: (files: File[]) => Promise<AssetRecord[]>;
   mask: string;
   onMaskChange: (mask: string) => void;
   brushSize: number;
@@ -38,18 +46,28 @@ type Flux3ImageWorkspaceProps = {
 
 const modeOptions: Array<{ id: Flux3ImageMode; label: string; detail: string; icon: typeof WandSparkles }> = [
   { id: "t2i", label: "Text", detail: "Prompt → image", icon: MessageSquareText },
+  { id: "i2i", label: "Image", detail: `1–${FLUX3_IMAGE_MAX_REFERENCES} references`, icon: Images },
   { id: "edit", label: "Edit", detail: "Whole image", icon: WandSparkles },
   { id: "precise", label: "Precise", detail: "Boxes or pixels", icon: Target }
 ];
 
 const modeTitles: Record<Flux3ImageMode, string> = {
   t2i: "Text to image",
+  i2i: "Image to image",
   edit: "Image edit",
   precise: "Precise edit"
 };
 
-function requestFor(draft: Flux3ImageDraft, source: string | undefined, mask: string): Flux3ImageRequest {
+function requestFor(
+  draft: Flux3ImageDraft,
+  source: string | undefined,
+  mask: string,
+  references: (string | null)[]
+): Flux3ImageRequest {
   if (draft.mode === "t2i") return { mode: "t2i", prompt: draft.prompts.t2i };
+  if (draft.mode === "i2i") {
+    return { mode: "i2i", prompt: draft.prompts.i2i, references: references.filter((item): item is string => !!item) };
+  }
   if (draft.mode === "edit") return { mode: "edit", source, prompt: draft.prompts.edit };
   if (draft.selection === "pixels") {
     return { mode: "precise", source, selection: "pixels", mask: mask || undefined, prompt: draft.prompts.pixels };
@@ -58,22 +76,29 @@ function requestFor(draft: Flux3ImageDraft, source: string | undefined, mask: st
 }
 
 /**
- * FLUX 3 Image, prepared ahead of its API: text to image, whole-image edits,
+ * FLUX 3 Image, prepared ahead of its API: text to image, image to image from
+ * up to four references, whole-image edits,
  * and precise edits confined to bounding boxes (with a fuzz radius) or to
  * painted pixels. Precise edits reuse the Erase mask canvas and its source
  * image. Nothing is submitted until the endpoint is published.
  */
 export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
   const { sourceAsset } = props;
-  const { draft, update } = useFlux3ImageDraft(sourceAsset?.id ?? null);
+  const { draft, update, setDraft } = useFlux3ImageDraft(sourceAsset?.id ?? null);
   const [activeBoxId, setActiveBoxId] = useState<string | null>(null);
   const [isDropActive, setIsDropActive] = useState(false);
   const [notice, setNotice] = useState("");
   const source = sourceAsset ? assetImageSource(sourceAsset) : undefined;
-  const request = requestFor(draft, source, props.mask);
+  const referenceAssets = draft.references.map((id) => (id ? props.assets.find((asset) => asset.id === id) ?? null : null));
+  const request = requestFor(
+    draft,
+    source,
+    props.mask,
+    referenceAssets.map((asset) => (asset ? assetImageSource(asset) : null))
+  );
   const blocker = flux3ImageRequestBlocker(request);
   const estimate = estimateFlux3ImageUsd(request);
-  const promptKey = draft.mode === "t2i" ? "t2i" : draft.mode === "edit" ? "edit" : "pixels";
+  const promptKey = draft.mode === "precise" ? "pixels" : draft.mode;
 
   function setPrompt(value: string) {
     update({ prompts: { ...draft.prompts, [promptKey]: value } });
@@ -105,12 +130,48 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     setNotice(blocker || "The FLUX 3 Image route is added together with the published API schema.");
   }
 
+  /** Resolves a drop or file choice to library assets: known ids directly, the rest imported. */
+  async function referenceAssetsFrom(payload: string, files: File[]) {
+    if (!payload) return props.onImportFiles(files);
+    const dragged = parseReferenceDragPayload(payload);
+    const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : dragged?.assetId;
+    const known = assetId ? props.assets.find((asset) => asset.id === assetId) : undefined;
+    if (known) return [known];
+    if (!dragged?.value) return [];
+    const blob = await (await fetch(dragged.value)).blob();
+    return props.onImportFiles([new File([blob], `${dragged.name || "reference"}.png`, { type: blob.type || "image/png" })]);
+  }
+
+  async function addReferences(index: number, payload: string, files: File[]) {
+    try {
+      const added = await referenceAssetsFrom(payload, files.slice(0, FLUX3_IMAGE_MAX_REFERENCES));
+      if (!added.length) return;
+      setDraft((current) => ({
+        ...current,
+        references: placeReferenceIds(current.references, added.map((asset) => asset.id), index)
+      }));
+      setNotice("");
+    } catch {
+      setNotice("That image could not be added as a reference.");
+    }
+  }
+
+  function removeReference(index: number) {
+    update({ references: draft.references.map((id, slot) => (slot === index ? null : id)) });
+  }
+
   function handleDrop(event: ReactDragEvent) {
     const payload = dragPayloadFromTransfer(event);
     const files = imageFilesFromTransfer(event);
     setIsDropActive(false);
     if (!payload && !files.length) return;
     event.preventDefault();
+    if (draft.mode === "i2i") {
+      // Outside a slot, a drop goes to the first empty reference.
+      const free = draft.references.findIndex((id) => !id);
+      void addReferences(free === -1 ? draft.references.length - 1 : free, payload, files);
+      return;
+    }
     if (payload) props.onSourceDropPayload(payload);
     else props.onSourceFiles(files);
   }
@@ -121,7 +182,25 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
         <div className="imageToolEmpty">
           <WandSparkles size={34} />
           <strong>Your FLUX 3 Image result will appear here</strong>
-          <span>Text to image needs no source. Edit and Precise use the image loaded here or in Erase.</span>
+          <span>Text to image needs no source. Image uses up to {FLUX3_IMAGE_MAX_REFERENCES} references; Edit and Precise use the image loaded here or in Erase.</span>
+        </div>
+      );
+    }
+    if (draft.mode === "i2i") {
+      const sourceIsReference = sourceAsset ? draft.references.includes(sourceAsset.id) : true;
+      return (
+        <div className="flux3ReferenceStage">
+          <Flux3ImageReferenceSlots slots={referenceAssets} onAdd={(index, payload, files) => void addReferences(index, payload, files)} onRemove={removeReference} />
+          {sourceAsset && !sourceIsReference && (
+            <button
+              type="button"
+              className="flux3ReferenceUseSource"
+              onClick={() => void addReferences(Math.max(0, draft.references.findIndex((id) => !id)), `asset:${sourceAsset.id}`, [])}
+            >
+              <ImagePlus size={14} />
+              Add the loaded source ({sourceAsset.title || sourceAsset.id})
+            </button>
+          )}
         </div>
       );
     }
@@ -172,8 +251,11 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     );
   }
 
+  const referenceCount = referenceAssets.filter(Boolean).length;
   const selectionLabel =
-    draft.mode !== "precise"
+    draft.mode === "i2i"
+      ? `${referenceCount}/${FLUX3_IMAGE_MAX_REFERENCES} references`
+      : draft.mode !== "precise"
       ? draft.mode === "edit"
         ? "whole image"
         : "none"
@@ -203,7 +285,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
         <PanelHeader title="FLUX 3 Image" subtitle={modeTitles[draft.mode]}>
           <div className="workspaceHeaderActions">
             <span className="flux3ImagePending">API pending</span>
-            {sourceAsset && draft.mode !== "t2i" && (
+            {sourceAsset && (draft.mode === "edit" || draft.mode === "precise") && (
               <IconButton onClick={props.onClearSource} title="Clear source">
                 <X size={14} />
               </IconButton>
@@ -215,13 +297,18 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
         </CanvasSurface>
         <div className="imageToolMeta">
           <MetaBox label="Mode" value={modeTitles[draft.mode]} />
-          <MetaBox label="Source" value={draft.mode === "t2i" ? "not needed" : sourceAsset?.title || sourceAsset?.id || "None"} />
+          <MetaBox
+            label="Source"
+            value={
+              draft.mode === "t2i" || draft.mode === "i2i" ? "not needed" : sourceAsset?.title || sourceAsset?.id || "None"
+            }
+          />
           <MetaBox label="Selection" value={selectionLabel} />
         </div>
       </div>
 
       <aside className="flux3Controls panel controls flux3ImageControls">
-        <PanelHeader title="Create image" subtitle="Text, edit, or a precise edit">
+        <PanelHeader title="Create image" subtitle="Text, references, edit, or a precise edit">
           <WandSparkles size={18} aria-label="FLUX 3 Image" />
         </PanelHeader>
         <div className="flux3ModePicker">
@@ -301,15 +388,31 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
                 </div>
               </>
             )}
+            {draft.mode === "i2i" && (
+              <p className="toolStubNote">
+                Drop up to {FLUX3_IMAGE_MAX_REFERENCES} references on the numbered slots and name them in the prompt as
+                image 1, image 2 and so on.
+              </p>
+            )}
             <label>
-              {draft.mode === "t2i" ? "Image prompt" : draft.mode === "edit" ? "Edit instruction" : "Edit for the painted pixels"}
+              {draft.mode === "t2i"
+                ? "Image prompt"
+                : draft.mode === "i2i"
+                  ? "Prompt using the references"
+                  : draft.mode === "edit"
+                    ? "Edit instruction"
+                    : "Edit for the painted pixels"}
               <textarea
                 className="toolPrompt"
                 rows={5}
                 value={draft.prompts[promptKey]}
                 onChange={(event) => setPrompt(event.target.value)}
                 placeholder={
-                  draft.mode === "t2i" ? "Describe the image…" : "Describe what should change, and what should stay…"
+                  draft.mode === "t2i"
+                    ? "Describe the image…"
+                    : draft.mode === "i2i"
+                      ? "The character from image 1 in the jacket from image 2, lit like image 3…"
+                      : "Describe what should change, and what should stay…"
                 }
               />
             </label>
@@ -329,7 +432,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
         </div>
         {notice && <p className="flux3Warning">{notice}</p>}
         <RunButton isRunning={false} onClick={submit} disabled={Boolean(blocker)} icon={WandSparkles}>
-          {draft.mode === "t2i" ? "Generate image" : "Apply edit"}
+          {draft.mode === "t2i" || draft.mode === "i2i" ? "Generate image" : "Apply edit"}
         </RunButton>
         {blocker && <p className="flux3Blocker">{blocker}</p>}
       </aside>

@@ -3,12 +3,14 @@ import {
   FLUX3_IMAGE_API,
   FLUX3_IMAGE_API_PENDING,
   FLUX3_IMAGE_FUZZ_MAX,
+  FLUX3_IMAGE_MAX_REFERENCES,
   boxFromDrag,
   buildFlux3ImagePayload,
   clampFuzz,
   estimateFlux3ImageUsd,
   flux3ImageRequestBlocker,
   hardenMaskPixels,
+  placeReferenceIds,
   type Flux3ImageApi,
   type Flux3ImageBox
 } from "@/lib/flux3-image";
@@ -34,6 +36,19 @@ const testApi: Flux3ImageApi = {
 describe("FLUX 3 Image request blocker", () => {
   it("names the missing input for each mode before anything else", () => {
     expect(flux3ImageRequestBlocker({ mode: "t2i", prompt: " " })).toBe("Describe the image you want.");
+    expect(flux3ImageRequestBlocker({ mode: "i2i", prompt: "the fox from image 1", references: [] })).toBe(
+      "Add at least one reference image."
+    );
+    expect(flux3ImageRequestBlocker({ mode: "i2i", references: [SOURCE] })).toBe(
+      "Describe the image to make from the references."
+    );
+    expect(
+      flux3ImageRequestBlocker({
+        mode: "i2i",
+        prompt: "x",
+        references: Array.from({ length: FLUX3_IMAGE_MAX_REFERENCES + 1 }, () => SOURCE)
+      })
+    ).toBe(`FLUX 3 Image takes up to ${FLUX3_IMAGE_MAX_REFERENCES} references here.`);
     expect(flux3ImageRequestBlocker({ mode: "edit", prompt: "sunset" })).toBe("Load a source image to edit.");
     expect(flux3ImageRequestBlocker({ mode: "edit", source: SOURCE })).toBe("Describe the edit.");
     expect(flux3ImageRequestBlocker({ mode: "precise", source: SOURCE, selection: "boxes", boxes: [] })).toBe(
@@ -66,6 +81,18 @@ describe("FLUX 3 Image request blocker", () => {
       endpoint: "test-endpoint",
       payload: { mode: "precise", boxes: 1 }
     });
+  });
+});
+
+describe("reference slots", () => {
+  it("supports at least four references", () => {
+    expect(FLUX3_IMAGE_MAX_REFERENCES).toBeGreaterThanOrEqual(4);
+  });
+
+  it("puts the first id in the target slot and the rest in empty slots, dropping overflow", () => {
+    expect(placeReferenceIds([null, "a", null, null], ["x"], 3)).toEqual([null, "a", null, "x"]);
+    expect(placeReferenceIds([null, "a", null, null], ["x", "y", "z"], 1)).toEqual(["y", "x", "z", null]);
+    expect(placeReferenceIds(["a", "b", "c", "d"], ["x", "y"], 0)).toEqual(["x", "b", "c", "d"]);
   });
 });
 

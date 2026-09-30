@@ -1,13 +1,13 @@
 import { clampValue, type Size } from "@/lib/canvas-geometry";
 
 /**
- * FLUX 3 Image: text to image, whole-image edits, and precise edits limited to
- * boxes or painted pixels. The model's API is not published yet, so this module
+ * FLUX 3 Image: text to image, image to image from reference images,
+ * whole-image edits, and precise edits limited to boxes or painted pixels. The model's API is not published yet, so this module
  * holds only the client-side request shape, the blocker and the region
  * geometry. `FLUX3_IMAGE_API` stays null until BFL publishes the endpoint and
  * schema; nothing can be submitted before then, and no payload is guessed.
  */
-export type Flux3ImageMode = "t2i" | "edit" | "precise";
+export type Flux3ImageMode = "t2i" | "i2i" | "edit" | "precise";
 /** Precise edits limit the change to bounding boxes or to painted pixels. */
 export type Flux3ImageSelection = "boxes" | "pixels";
 
@@ -27,11 +27,15 @@ export type Flux3ImageBox = {
 export const FLUX3_IMAGE_FUZZ_MAX = 64;
 export const FLUX3_IMAGE_DEFAULT_FUZZ = 8;
 export const FLUX3_IMAGE_MIN_BOX = 8;
+/** At least four references are supported; raise this once the API states its limit. */
+export const FLUX3_IMAGE_MAX_REFERENCES = 4;
 
 export type Flux3ImageRequest = {
   mode: Flux3ImageMode;
-  /** The prompt for text to image, a whole-image edit, or a pixel selection. */
+  /** The prompt for text to image, image to image, a whole-image edit, or a pixel selection. */
   prompt?: string;
+  /** Image to image: reference images in slot order, referred to as image 1, image 2… */
+  references?: string[];
   /** Source image for edit and precise modes (data URL or dashboard URL). */
   source?: string;
   selection?: Flux3ImageSelection;
@@ -54,6 +58,12 @@ export const FLUX3_IMAGE_API_PENDING =
 
 export function flux3ImageInputBlocker(input: Flux3ImageRequest) {
   if (input.mode === "t2i") return input.prompt?.trim() ? null : "Describe the image you want.";
+  if (input.mode === "i2i") {
+    const count = input.references?.filter(Boolean).length ?? 0;
+    if (!count) return "Add at least one reference image.";
+    if (count > FLUX3_IMAGE_MAX_REFERENCES) return `FLUX 3 Image takes up to ${FLUX3_IMAGE_MAX_REFERENCES} references here.`;
+    return input.prompt?.trim() ? null : "Describe the image to make from the references.";
+  }
   if (!input.source) return "Load a source image to edit.";
   if (input.mode === "edit") return input.prompt?.trim() ? null : "Describe the edit.";
   if (input.selection === "pixels") {
@@ -79,6 +89,23 @@ export function buildFlux3ImagePayload(input: Flux3ImageRequest, api: Flux3Image
   const blocker = flux3ImageRequestBlocker(input, api);
   if (blocker || !api) throw new Error(blocker || FLUX3_IMAGE_API_PENDING);
   return { endpoint: api.endpoint, payload: api.toPayload(input) };
+}
+
+/**
+ * Places reference ids into fixed slots: the first replaces the target slot,
+ * the rest fill empty slots in order. Ids that do not fit are dropped.
+ */
+export function placeReferenceIds(slots: (string | null)[], ids: string[], start: number) {
+  const next = [...slots];
+  ids.forEach((id, index) => {
+    if (index === 0 && start >= 0 && start < next.length) {
+      next[start] = id;
+      return;
+    }
+    const free = next.findIndex((value) => !value);
+    if (free !== -1) next[free] = id;
+  });
+  return next;
 }
 
 export type ImagePoint = { x: number; y: number };

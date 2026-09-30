@@ -84,6 +84,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
         {promptLibrary}
         <Flux3ImageWorkspace
           sourceAsset={state.toolSourceAsset}
+          assets={state.assets}
+          onImportFiles={(files) => state.importImageAssetFiles(files, { assetKind: "reference", focusAssetsTab: false })}
           mask={state.toolMask}
           onMaskChange={state.setToolMask}
           brushSize={state.toolBrushSize}
