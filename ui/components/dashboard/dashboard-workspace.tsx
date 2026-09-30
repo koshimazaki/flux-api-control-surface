@@ -77,9 +77,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
 
   if (isFlux3ImageMode) {
     return (
-      <section
-        className={["workspace", "flux3Mode", "flux3ImageMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}
-      >
+      <section className={["workspace", "flux3ImageMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
         <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
         {promptLibrary}
         <Flux3ImageWorkspace

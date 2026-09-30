@@ -5,7 +5,7 @@ import { workspaceMediaKindForMode, workspaceModesForMedia } from "@/lib/workspa
 
 const modes: TabButtonItem<WorkspaceMode>[] = [
   { id: "flux3_image", label: "FLUX 3 Image", icon: WandSparkles },
-  { id: "prompt", label: "Generate", icon: Sparkles },
+  { id: "prompt", label: "FLUX 2", icon: Sparkles },
   { id: "erase", label: "Erase", icon: Eraser },
   { id: "outpaint", label: "Outpaint", icon: Maximize2 },
   { id: "deblur", label: "Deblur", icon: Focus },

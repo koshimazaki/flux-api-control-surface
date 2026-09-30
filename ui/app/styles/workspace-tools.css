@@ -39,6 +39,15 @@
   grid-template-columns: repeat(6, minmax(88px, 1fr));
 }
 
+/* Above phone widths every image tool sits on one row, however many there are. */
+@media (min-width: 901px) {
+  .tabBar.workspaceModeBar-image {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+}
+
 .tabBar.workspaceModeBar-video {
   grid-template-columns: repeat(6, minmax(88px, 1fr));
 }
@@ -46,9 +55,10 @@
 .workspaceModeBar .tabButton {
   min-width: 0;
   min-height: 50px;
-  padding: 0 11px;
+  padding: 0 8px;
+  overflow: hidden;
   white-space: nowrap;
-  gap: 8px;
+  gap: 6px;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;

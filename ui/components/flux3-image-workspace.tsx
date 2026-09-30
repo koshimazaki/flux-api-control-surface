@@ -265,49 +265,53 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
           ? "pixels painted"
           : "no pixels";
 
+  // Same grid cells as Erase and the other image tools: the stage in the main
+  // cell, the controls in the right-hand run column.
   return (
-    <section className="flux3ImageWorkspace">
-      <div
-        className={`flux3PreviewPanel panel flux3ImageStage${isDropActive ? " dropReady" : ""}`}
-        onDragEnter={(event) => {
-          if (isSourceDrag(event)) setIsDropActive(true);
-        }}
-        onDragLeave={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsDropActive(false);
-        }}
-        onDragOver={(event) => {
-          if (!isSourceDrag(event)) return;
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "copy";
-        }}
-        onDrop={handleDrop}
-      >
-        <PanelHeader title="FLUX 3 Image" subtitle={modeTitles[draft.mode]}>
-          <div className="workspaceHeaderActions">
-            <span className="flux3ImagePending">API pending</span>
-            {sourceAsset && (draft.mode === "edit" || draft.mode === "precise") && (
-              <IconButton onClick={props.onClearSource} title="Clear source">
-                <X size={14} />
-              </IconButton>
-            )}
+    <>
+      <div className="workspaceMain">
+        <section
+          className={`panel editor imageToolWorkspace flux3ImageStage${isDropActive ? " dropReady" : ""}`}
+          onDragEnter={(event) => {
+            if (isSourceDrag(event)) setIsDropActive(true);
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsDropActive(false);
+          }}
+          onDragOver={(event) => {
+            if (!isSourceDrag(event)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+          }}
+          onDrop={handleDrop}
+        >
+          <PanelHeader title="FLUX 3 Image" subtitle={modeTitles[draft.mode]}>
+            <div className="workspaceHeaderActions">
+              <span className="flux3ImagePending">API pending</span>
+              {sourceAsset && (draft.mode === "edit" || draft.mode === "precise") && (
+                <IconButton onClick={props.onClearSource} title="Clear source">
+                  <X size={14} />
+                </IconButton>
+              )}
+            </div>
+          </PanelHeader>
+          <CanvasSurface className="imageToolCanvas" variant="tool">
+            {renderStage()}
+          </CanvasSurface>
+          <div className="imageToolMeta">
+            <MetaBox label="Mode" value={modeTitles[draft.mode]} />
+            <MetaBox
+              label="Source"
+              value={
+                draft.mode === "t2i" || draft.mode === "i2i" ? "not needed" : sourceAsset?.title || sourceAsset?.id || "None"
+              }
+            />
+            <MetaBox label="Selection" value={selectionLabel} />
           </div>
-        </PanelHeader>
-        <CanvasSurface className="imageToolCanvas" variant="tool">
-          {renderStage()}
-        </CanvasSurface>
-        <div className="imageToolMeta">
-          <MetaBox label="Mode" value={modeTitles[draft.mode]} />
-          <MetaBox
-            label="Source"
-            value={
-              draft.mode === "t2i" || draft.mode === "i2i" ? "not needed" : sourceAsset?.title || sourceAsset?.id || "None"
-            }
-          />
-          <MetaBox label="Selection" value={selectionLabel} />
-        </div>
+        </section>
       </div>
 
-      <aside className="flux3Controls panel controls flux3ImageControls">
+      <aside className="panel controls toolControls flux3ImageControls">
         <PanelHeader title="Create image" subtitle="Text, references, edit, or a precise edit">
           <WandSparkles size={18} aria-label="FLUX 3 Image" />
         </PanelHeader>
@@ -436,6 +440,6 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
         </RunButton>
         {blocker && <p className="flux3Blocker">{blocker}</p>}
       </aside>
-    </section>
+    </>
   );
 }
