@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Flux3ImageWorkspace } from "@/components/flux3-image-workspace";
 import { Flux3VideoWorkspace } from "@/components/flux3-video-workspace";
 import { GenerateReferenceControls } from "@/components/generate-reference-controls";
 import { ImageToolWorkspace } from "@/components/image-tool-workspace";
@@ -17,11 +18,15 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
   const isFlux3Mode = state.workspaceMode === "flux3";
   const isUpscaleMode = state.workspaceMode === "upscale";
   const isVideoMode = isFlux3Mode || isUpscaleMode;
+  const isFlux3ImageMode = state.workspaceMode === "flux3_image";
   const imageToolMode: ImageWorkspaceMode | null =
-    state.workspaceMode === "prompt" || state.workspaceMode === "flux3" || state.workspaceMode === "upscale"
+    state.workspaceMode === "prompt" ||
+    state.workspaceMode === "flux3" ||
+    state.workspaceMode === "upscale" ||
+    state.workspaceMode === "flux3_image"
       ? null
       : state.workspaceMode;
-  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isVideoMode);
+  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isVideoMode || isFlux3ImageMode);
   const toolPromptText =
     imageToolMode === "vto" ? state.vtoPromptText : imageToolMode === "outpaint" ? state.outpaintPromptText : "";
   const setToolPromptText =
@@ -69,6 +74,29 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
     compactQuery.addEventListener("change", syncCollapsedState);
     return () => compactQuery.removeEventListener("change", syncCollapsedState);
   }, []);
+
+  if (isFlux3ImageMode) {
+    return (
+      <section
+        className={["workspace", "flux3Mode", "flux3ImageMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}
+      >
+        <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+        {promptLibrary}
+        <Flux3ImageWorkspace
+          sourceAsset={state.toolSourceAsset}
+          assets={state.assets}
+          onImportFiles={(files) => state.importImageAssetFiles(files, { assetKind: "reference", focusAssetsTab: false })}
+          mask={state.toolMask}
+          onMaskChange={state.setToolMask}
+          brushSize={state.toolBrushSize}
+          onBrushSizeChange={state.setToolBrushSize}
+          onClearSource={state.clearToolSourceAsset}
+          onSourceDropPayload={(payload) => void state.loadToolSourceFromDropPayload(payload)}
+          onSourceFiles={(files) => void state.importToolSourceFiles(files)}
+        />
+      </section>
+    );
+  }
 
   if (isFlux3Mode) {
     return (

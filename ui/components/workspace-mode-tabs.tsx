@@ -1,9 +1,10 @@
-import { Eraser, Fingerprint, Film, Focus, Maximize2, ScanLine, Shirt, Sparkles } from "lucide-react";
+import { Eraser, Fingerprint, Film, Focus, Maximize2, ScanLine, Shirt, Sparkles, WandSparkles } from "lucide-react";
 import { TabButtonBar, type TabButtonItem } from "@/components/ui/tab-button-bar";
 import type { WorkspaceMode } from "@/lib/types";
 import { workspaceMediaKindForMode, workspaceModesForMedia } from "@/lib/workspace-media";
 
 const modes: TabButtonItem<WorkspaceMode>[] = [
+  { id: "flux3_image", label: "FLUX 3 Image", icon: WandSparkles },
   { id: "prompt", label: "Generate", icon: Sparkles },
   { id: "erase", label: "Erase", icon: Eraser },
   { id: "outpaint", label: "Outpaint", icon: Maximize2 },
