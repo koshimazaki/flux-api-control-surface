@@ -2,34 +2,35 @@ import { useEffect, useState } from "react";
 import {
   FLUX3_IMAGE_MAX_REFERENCES,
   clampFuzz,
-  type Flux3ImageBox,
   type Flux3ImageMode,
-  type Flux3ImageSelection
+  type Flux3ImageRegion,
+  type RegionPoint
 } from "@/lib/flux3-image";
 
 export const FLUX3_IMAGE_DRAFT_KEY = "bfl-flux3-image-draft";
 
 export type Flux3ImageDraft = {
   mode: Flux3ImageMode;
-  selection: Flux3ImageSelection;
-  /** Pixel selections paint with a brush or fill a lasso outline. */
-  pixelTool: "brush" | "lasso";
-  prompts: Record<"t2i" | "i2i" | "edit" | "pixels", string>;
+  /** Edit paints an inpaint mask with a brush, a lasso or the eraser. */
+  editTool: "brush" | "lasso" | "eraser";
+  /** Precise draws each region as a box, a brush stroke or a lasso. */
+  regionTool: "box" | "brush" | "lasso";
+  prompts: Record<"t2i" | "i2i" | "edit", string>;
   /** Image to image: asset ids per reference slot, null when empty. */
   references: (string | null)[];
-  /** Boxes are in source pixels, so they belong to one source image. */
-  boxes: Flux3ImageBox[];
-  boxSourceId: string | null;
+  /** Regions are in source pixels, so they belong to one source image. */
+  regions: Flux3ImageRegion[];
+  regionSourceId: string | null;
 };
 
 export const defaultFlux3ImageDraft: Flux3ImageDraft = {
   mode: "t2i",
-  selection: "boxes",
-  pixelTool: "brush",
-  prompts: { t2i: "", i2i: "", edit: "", pixels: "" },
+  editTool: "brush",
+  regionTool: "box",
+  prompts: { t2i: "", i2i: "", edit: "" },
   references: Array.from({ length: FLUX3_IMAGE_MAX_REFERENCES }, () => null),
-  boxes: [],
-  boxSourceId: null
+  regions: [],
+  regionSourceId: null
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -40,33 +41,64 @@ function asText(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function normalizeBox(value: unknown): Flux3ImageBox | null {
-  const box = asRecord(value);
-  const numbers = [box.x, box.y, box.width, box.height].map(Number);
-  if (typeof box.id !== "string" || numbers.some((entry) => !Number.isFinite(entry) || entry < 0)) return null;
+function normalizePaths(value: unknown): RegionPoint[][] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const paths = value
+    .filter(Array.isArray)
+    .map((path) =>
+      (path as unknown[]).filter(
+        (point): point is RegionPoint =>
+          Array.isArray(point) && point.length === 2 && point.every((entry) => Number.isFinite(entry))
+      )
+    )
+    .filter((path) => path.length);
+  return paths.length ? paths : undefined;
+}
+
+function normalizeRegion(value: unknown): Flux3ImageRegion | null {
+  const region = asRecord(value);
+  const numbers = [region.x, region.y, region.width, region.height].map(Number);
+  if (typeof region.id !== "string" || numbers.some((entry) => !Number.isFinite(entry) || entry < 0)) return null;
   const [x, y, width, height] = numbers.map(Math.round);
-  return { id: box.id, x, y, width, height, fuzz: clampFuzz(Number(box.fuzz)), prompt: asText(box.prompt) };
+  const kind = region.kind === "lasso" || region.kind === "paint" ? region.kind : "box";
+  const paths = kind === "box" ? undefined : normalizePaths(region.paths);
+  if (kind !== "box" && !paths) return null;
+  return {
+    id: region.id,
+    kind,
+    x,
+    y,
+    width,
+    height,
+    ...(paths ? { paths } : {}),
+    ...(kind === "paint" ? { brush: Math.max(1, Math.round(Number(region.brush) || 1)) } : {}),
+    fuzz: clampFuzz(Number(region.fuzz)),
+    prompt: asText(region.prompt),
+    referenceId: typeof region.referenceId === "string" && region.referenceId ? region.referenceId : null
+  };
 }
 
 export function normalizeFlux3ImageDraft(value: unknown): Flux3ImageDraft {
   const record = asRecord(value);
   const prompts = asRecord(record.prompts);
+  // Drafts saved before regions held `boxes`; they carry over as box regions.
+  const regions = Array.isArray(record.regions) ? record.regions : Array.isArray(record.boxes) ? record.boxes : [];
   return {
     mode: record.mode === "i2i" || record.mode === "edit" || record.mode === "precise" ? record.mode : "t2i",
-    selection: record.selection === "pixels" ? "pixels" : "boxes",
-    pixelTool: record.pixelTool === "lasso" ? "lasso" : "brush",
-    prompts: {
-      t2i: asText(prompts.t2i),
-      i2i: asText(prompts.i2i),
-      edit: asText(prompts.edit),
-      pixels: asText(prompts.pixels)
-    },
+    editTool: record.editTool === "lasso" || record.editTool === "eraser" ? record.editTool : "brush",
+    regionTool: record.regionTool === "brush" || record.regionTool === "lasso" ? record.regionTool : "box",
+    prompts: { t2i: asText(prompts.t2i), i2i: asText(prompts.i2i), edit: asText(prompts.edit) },
     references: Array.from({ length: FLUX3_IMAGE_MAX_REFERENCES }, (_, index) => {
       const id = Array.isArray(record.references) ? record.references[index] : null;
       return typeof id === "string" && id ? id : null;
     }),
-    boxes: Array.isArray(record.boxes) ? record.boxes.map(normalizeBox).filter((box): box is Flux3ImageBox => !!box) : [],
-    boxSourceId: typeof record.boxSourceId === "string" ? record.boxSourceId : null
+    regions: regions.map(normalizeRegion).filter((region): region is Flux3ImageRegion => !!region),
+    regionSourceId:
+      typeof record.regionSourceId === "string"
+        ? record.regionSourceId
+        : typeof record.boxSourceId === "string"
+          ? record.boxSourceId
+          : null
   };
 }
 
@@ -93,11 +125,11 @@ export function useFlux3ImageDraft(sourceId: string | null) {
     }
   }, [draft, hydrated]);
 
-  // A new source image invalidates boxes drawn in the old one's pixels.
+  // A new source image invalidates regions drawn in the old one's pixels.
   useEffect(() => {
     if (!hydrated) return;
     setDraft((current) =>
-      current.boxSourceId === sourceId ? current : { ...current, boxes: [], boxSourceId: sourceId }
+      current.regionSourceId === sourceId ? current : { ...current, regions: [], regionSourceId: sourceId }
     );
   }, [hydrated, sourceId]);
 

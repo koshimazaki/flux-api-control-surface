@@ -139,98 +139,24 @@
   font-size: 12px;
 }
 
-.dsgn-root .flux3ImageSelection {
-  grid-template-columns: 1fr 1fr;
-}
-
-.dsgn-root .flux3ImageSelection > button,
-.dsgn-root .flux3ImagePixelTools > button {
-  gap: 6px;
-}
-
-.dsgn-root .flux3ImagePixelTools {
+.dsgn-root .flux3ImageTools {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 6px;
 }
 
-.dsgn-root .flux3ImagePixelTools > button.active {
+.dsgn-root .flux3ImageTools > button {
+  gap: 6px;
+}
+
+.dsgn-root .flux3ImageTools > button.active {
   border-color: var(--acc-intel);
   background: var(--acc-intel-ghost);
   color: var(--acc-intel-strong);
 }
 
-/* Region boxes over the source image. The layer passes pointer events through. */
-.regionBoxLayer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.dsgn-root .regionBox {
-  position: absolute;
-  border: 1.5px solid var(--acc-intel);
-  background: color-mix(in srgb, var(--acc-intel) 9%, transparent);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
-}
-
-.dsgn-root .regionBox.active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-}
-
-.dsgn-root .regionBoxFuzz {
-  position: absolute;
-  inset: calc(-1 * var(--fuzz-y)) calc(-1 * var(--fuzz-x));
-  border: 1px dashed color-mix(in srgb, var(--acc-intel) 70%, transparent);
-  border-radius: 6px;
-  pointer-events: none;
-}
-
-.dsgn-root .regionBoxTag {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: max(160px, calc(100% - 8px));
-  max-width: 280px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  border: 1px solid var(--border-machined);
-  border-radius: var(--radius-sm);
-  background: rgba(10, 12, 14, 0.86);
-  padding: 3px;
-  pointer-events: auto;
-  backdrop-filter: blur(8px);
-}
-
-.dsgn-root .regionBoxTag input {
-  min-width: 0;
-  height: 24px;
-  flex: 1 1 auto;
-  padding: 0 6px;
-  font-size: 11px;
-}
-
-.dsgn-root .regionBoxTag button {
-  width: 24px;
-  min-height: 24px;
-  flex: 0 0 auto;
-  padding: 0;
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
-
-.dsgn-root .regionBox.tagEnd .regionBoxTag {
-  right: 4px;
-  left: auto;
-}
-
-.dsgn-root .regionBox.active .regionBoxIndex {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
+/* Live gestures on the mask canvas: box, lasso outline, brush stroke. */
 .dsgn-root .maskDraftBox {
   position: absolute;
   border: 1.5px dashed var(--acc-intel);
@@ -254,7 +180,196 @@
   vector-effect: non-scaling-stroke;
 }
 
-.dsgn-root .regionBoxList {
+.dsgn-root .maskLassoPath.maskBrushPath polyline {
+  fill: none;
+  stroke: color-mix(in srgb, var(--acc-intel) 55%, transparent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: none;
+}
+
+/* Precise regions. The layer passes pointer events through except on handles and tags. */
+.regionLayer,
+.regionShapes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.regionShapes {
+  overflow: visible;
+}
+
+.dsgn-root .regionShape {
+  fill: color-mix(in srgb, var(--acc-intel) 16%, transparent);
+  stroke: var(--acc-intel);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.dsgn-root .regionShape.active {
+  fill: color-mix(in srgb, var(--accent) 16%, transparent);
+  stroke: var(--accent);
+}
+
+.dsgn-root .regionShape.regionStroke {
+  fill: none;
+  stroke: color-mix(in srgb, var(--acc-intel) 45%, transparent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: none;
+}
+
+.dsgn-root .regionShape.regionStroke.active {
+  stroke: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.dsgn-root .regionFrame {
+  position: absolute;
+  outline: 1px dashed color-mix(in srgb, var(--acc-intel) 60%, transparent);
+}
+
+/* A box's shape is its frame, so only brush and lasso frames stay faint. */
+.dsgn-root .regionFrame.box {
+  outline: none;
+}
+
+.dsgn-root .regionFrame.active {
+  outline: 1px solid var(--accent);
+}
+
+.dsgn-root .regionFuzz {
+  position: absolute;
+  inset: calc(-1 * var(--fuzz-y)) calc(-1 * var(--fuzz-x));
+  border: 1px dashed color-mix(in srgb, var(--acc-intel) 60%, transparent);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.dsgn-root .regionHandle {
+  position: absolute;
+  z-index: 2;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border: 1.5px solid var(--accent);
+  border-radius: 2px;
+  background: var(--surface-raised);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.regionHandle-nw { top: 0; left: 0; cursor: nwse-resize; }
+.regionHandle-n { top: 0; left: 50%; cursor: ns-resize; }
+.regionHandle-ne { top: 0; left: 100%; cursor: nesw-resize; }
+.regionHandle-e { top: 50%; left: 100%; cursor: ew-resize; }
+.regionHandle-se { top: 100%; left: 100%; cursor: nwse-resize; }
+.regionHandle-s { top: 100%; left: 50%; cursor: ns-resize; }
+.regionHandle-sw { top: 100%; left: 0; cursor: nesw-resize; }
+.regionHandle-w { top: 50%; left: 0; cursor: ew-resize; }
+
+.dsgn-root .regionTag {
+  position: absolute;
+  z-index: 3;
+  top: 6px;
+  left: 6px;
+  width: max(210px, calc(100% - 12px));
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid var(--border-machined);
+  border-radius: var(--radius-sm);
+  background: rgba(10, 12, 14, 0.86);
+  padding: 3px;
+  pointer-events: auto;
+  backdrop-filter: blur(8px);
+}
+
+.dsgn-root .regionFrame.tagEnd .regionTag {
+  right: 6px;
+  left: auto;
+}
+
+.dsgn-root .regionTag input {
+  min-width: 0;
+  height: 26px;
+  flex: 1 1 auto;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.dsgn-root .regionTag > button {
+  width: 26px;
+  min-height: 26px;
+  flex: 0 0 auto;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.dsgn-root .regionIndex {
+  cursor: move;
+  touch-action: none;
+}
+
+.dsgn-root .regionFrame.active .regionIndex {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* A region's reference image: a small drop slot in its tag and list row. */
+.dsgn-root .regionReference {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px dashed var(--border-machined);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.dsgn-root .regionReference.filled {
+  border-style: solid;
+  border-color: var(--acc-intel);
+}
+
+.dsgn-root .regionReference label {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.dsgn-root .regionReference img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dsgn-root .regionReference button {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 14px;
+  min-height: 14px;
+  padding: 0;
+  border-radius: 3px;
+  background: rgba(10, 12, 14, 0.8);
+  opacity: 0;
+}
+
+.dsgn-root .regionReference:hover button,
+.dsgn-root .regionReference button:focus-visible {
+  opacity: 1;
+}
+
+.dsgn-root .regionList {
   display: grid;
   gap: 8px;
   margin: 0;
@@ -262,7 +377,7 @@
   list-style: none;
 }
 
-.dsgn-root .regionBoxList li {
+.dsgn-root .regionList li {
   display: grid;
   gap: 6px;
   border: 1px solid var(--border-default);
@@ -271,17 +386,17 @@
   padding: 8px;
 }
 
-.dsgn-root .regionBoxList li.active {
-  border-color: var(--acc-intel);
+.dsgn-root .regionList li.active {
+  border-color: var(--accent);
 }
 
-.dsgn-root .regionBoxListHeader {
+.dsgn-root .regionListHeader {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.dsgn-root .regionBoxListHeader span {
+.dsgn-root .regionListHeader span {
   min-width: 0;
   overflow: hidden;
   color: var(--text-muted);
@@ -291,11 +406,23 @@
   white-space: nowrap;
 }
 
-.dsgn-root .regionBoxListHeader button {
+.dsgn-root .regionListHeader button {
   width: 26px;
   min-height: 26px;
   margin-left: auto;
   padding: 0;
+}
+
+.dsgn-root .regionListControls {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.dsgn-root .regionListControls .regionReference {
+  width: 52px;
+  height: 52px;
 }
 
 .assetBadge-flux3_image {

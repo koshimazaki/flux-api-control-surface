@@ -1,29 +1,28 @@
-import { Brush, Images, ImagePlus, Lasso, MessageSquareText, SquareDashed, Target, WandSparkles, X } from "lucide-react";
+import { Brush, Eraser, Images, ImagePlus, Lasso, MessageSquareText, SquareDashed, Target, WandSparkles, X } from "lucide-react";
 import { useState, type DragEvent as ReactDragEvent } from "react";
-import { MaskCanvas } from "@/components/mask-canvas";
 import { Flux3ImageReferenceSlots } from "@/components/flux3-image-references";
-import { RegionBoxLayer, RegionBoxList } from "@/components/flux3-image-regions";
+import { RegionLayer, RegionList } from "@/components/flux3-image-regions";
+import { BrushSizeField, ToolPicker, type ToolOption } from "@/components/flux3-image-tools";
+import { MaskCanvas, type CanvasShape } from "@/components/mask-canvas";
 import { CanvasSurface } from "@/components/ui/canvas-surface";
 import { IconButton } from "@/components/ui/icon-button";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
-import { SelectorGroup, SelectorOption } from "@/components/ui/selector-group";
 import type { Size } from "@/lib/canvas-geometry";
 import { assetImageSource } from "@/lib/dashboard-tools";
 import { useFlux3ImageDraft, type Flux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
 import {
   FLUX3_IMAGE_DEFAULT_FUZZ,
   FLUX3_IMAGE_MAX_REFERENCES,
-  boxFromDrag,
   estimateFlux3ImageUsd,
   flux3ImageRequestBlocker,
   placeReferenceIds,
-  type Flux3ImageBox,
   type Flux3ImageMode,
-  type Flux3ImageRequest,
-  type ImagePoint
+  type Flux3ImageRegion,
+  type Flux3ImageRequest
 } from "@/lib/flux3-image";
+import { addPathToRegion, regionFromShape } from "@/lib/flux3-image-regions";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import { dragPayloadFromTransfer, imageFilesFromTransfer, isSourceDrag } from "@/lib/source-drop";
 import type { AssetRecord } from "@/lib/types";
@@ -31,10 +30,11 @@ import type { AssetRecord } from "@/lib/types";
 type Flux3ImageWorkspaceProps = {
   /** The shared tool source, the same image Erase, Outpaint and Deblur use. */
   sourceAsset: AssetRecord | null;
-  /** The asset library, for resolving reference slots by asset id. */
+  /** The asset library, for resolving references by asset id. */
   assets: AssetRecord[];
   /** Imports dropped or chosen files as library assets so references persist by id. */
   onImportFiles: (files: File[]) => Promise<AssetRecord[]>;
+  /** The shared tool mask: Edit paints its inpaint area here, as Erase does. */
   mask: string;
   onMaskChange: (mask: string) => void;
   brushSize: number;
@@ -47,8 +47,8 @@ type Flux3ImageWorkspaceProps = {
 const modeOptions: Array<{ id: Flux3ImageMode; label: string; detail: string; icon: typeof WandSparkles }> = [
   { id: "t2i", label: "Text", detail: "Prompt → image", icon: MessageSquareText },
   { id: "i2i", label: "Image", detail: `1–${FLUX3_IMAGE_MAX_REFERENCES} references`, icon: Images },
-  { id: "edit", label: "Edit", detail: "Whole image", icon: WandSparkles },
-  { id: "precise", label: "Precise", detail: "Boxes or pixels", icon: Target }
+  { id: "edit", label: "Edit", detail: "Whole image or inpaint", icon: WandSparkles },
+  { id: "precise", label: "Precise", detail: "Regions + references", icon: Target }
 ];
 
 const modeTitles: Record<Flux3ImageMode, string> = {
@@ -58,71 +58,84 @@ const modeTitles: Record<Flux3ImageMode, string> = {
   precise: "Precise edit"
 };
 
+const editTools: ToolOption<Flux3ImageDraft["editTool"]>[] = [
+  { id: "brush", label: "Brush", icon: Brush },
+  { id: "lasso", label: "Lasso", icon: Lasso },
+  { id: "eraser", label: "Eraser", icon: Eraser }
+];
+
+const regionTools: ToolOption<Flux3ImageDraft["regionTool"]>[] = [
+  { id: "box", label: "Box", icon: SquareDashed },
+  { id: "brush", label: "Brush", icon: Brush },
+  { id: "lasso", label: "Lasso", icon: Lasso }
+];
+
 function requestFor(
   draft: Flux3ImageDraft,
   source: string | undefined,
   mask: string,
-  references: (string | null)[]
+  sourceOf: (id: string | null | undefined) => string | undefined
 ): Flux3ImageRequest {
   if (draft.mode === "t2i") return { mode: "t2i", prompt: draft.prompts.t2i };
   if (draft.mode === "i2i") {
-    return { mode: "i2i", prompt: draft.prompts.i2i, references: references.filter((item): item is string => !!item) };
+    const references = draft.references.map(sourceOf).filter((item): item is string => !!item);
+    return { mode: "i2i", prompt: draft.prompts.i2i, references };
   }
-  if (draft.mode === "edit") return { mode: "edit", source, prompt: draft.prompts.edit };
-  if (draft.selection === "pixels") {
-    return { mode: "precise", source, selection: "pixels", mask: mask || undefined, prompt: draft.prompts.pixels };
-  }
-  return { mode: "precise", source, selection: "boxes", boxes: draft.boxes };
+  if (draft.mode === "edit") return { mode: "edit", source, prompt: draft.prompts.edit, mask: mask || undefined };
+  const regions = draft.regions.map(({ referenceId, ...region }) => ({ ...region, reference: sourceOf(referenceId) }));
+  return { mode: "precise", source, regions };
 }
 
 /**
  * FLUX 3 Image, prepared ahead of its API: text to image, image to image from
- * up to four references, whole-image edits,
- * and precise edits confined to bounding boxes (with a fuzz radius) or to
- * painted pixels. Precise edits reuse the Erase mask canvas and its source
- * image. Nothing is submitted until the endpoint is published.
+ * up to four references, edits of the whole image or an inpainted area, and
+ * precise edits made of regions (box, brush or lasso), each with its own
+ * edit, fuzz radius and reference image. Edit and Precise reuse the Erase
+ * canvas and its source image. Nothing is submitted until the endpoint exists.
  */
 export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
   const { sourceAsset } = props;
   const { draft, update, setDraft } = useFlux3ImageDraft(sourceAsset?.id ?? null);
-  const [activeBoxId, setActiveBoxId] = useState<string | null>(null);
+  const [activeRegionId, setActiveRegionId] = useState<string | null>(null);
   const [isDropActive, setIsDropActive] = useState(false);
   const [notice, setNotice] = useState("");
   const source = sourceAsset ? assetImageSource(sourceAsset) : undefined;
-  const referenceAssets = draft.references.map((id) => (id ? props.assets.find((asset) => asset.id === id) ?? null : null));
-  const request = requestFor(
-    draft,
-    source,
-    props.mask,
-    referenceAssets.map((asset) => (asset ? assetImageSource(asset) : null))
-  );
+  const assetById = (id: string | null | undefined) => (id ? props.assets.find((asset) => asset.id === id) ?? null : null);
+  const sourceOf = (id: string | null | undefined) => {
+    const asset = assetById(id);
+    return asset ? assetImageSource(asset) : undefined;
+  };
+  const referenceAssets = draft.references.map(assetById);
+  const request = requestFor(draft, source, props.mask, sourceOf);
   const blocker = flux3ImageRequestBlocker(request);
   const estimate = estimateFlux3ImageUsd(request);
-  const promptKey = draft.mode === "precise" ? "pixels" : draft.mode;
+  const promptKey = draft.mode === "precise" ? null : draft.mode;
 
-  function setPrompt(value: string) {
-    update({ prompts: { ...draft.prompts, [promptKey]: value } });
+  function updateRegion(region: Flux3ImageRegion) {
+    setDraft((current) => ({ ...current, regions: current.regions.map((item) => (item.id === region.id ? region : item)) }));
   }
 
-  function changeBox(id: string, patch: Partial<Flux3ImageBox>) {
-    update({ boxes: draft.boxes.map((box) => (box.id === id ? { ...box, ...patch } : box)) });
+  function removeRegion(id: string) {
+    setDraft((current) => ({ ...current, regions: current.regions.filter((region) => region.id !== id) }));
+    if (activeRegionId === id) setActiveRegionId(null);
   }
 
-  function removeBox(id: string) {
-    update({ boxes: draft.boxes.filter((box) => box.id !== id) });
-    if (activeBoxId === id) setActiveBoxId(null);
-  }
-
-  function addBox(start: ImagePoint, end: ImagePoint, size: Size) {
-    const rect = boxFromDrag(start, end, size);
-    if (!rect) return;
-    const box = { id: `box-${Date.now().toString(36)}`, ...rect, fuzz: FLUX3_IMAGE_DEFAULT_FUZZ, prompt: "" };
-    update({ boxes: [...draft.boxes, box], boxSourceId: sourceAsset?.id ?? null });
-    setActiveBoxId(box.id);
-    // The edit is typed straight into the new box.
-    window.requestAnimationFrame(() =>
-      document.querySelector<HTMLInputElement>(`[data-box-id="${box.id}"] input`)?.focus()
-    );
+  /** Every box, brush stroke or lasso makes a region; with Shift, it adds to the selected one. */
+  function handleShape(shape: CanvasShape, size: Size) {
+    const kind = shape.tool === "box" ? "box" : shape.tool === "lasso" ? "lasso" : "paint";
+    const active = draft.regions.find((region) => region.id === activeRegionId);
+    if (shape.additive && active && active.kind === kind && kind !== "box") {
+      updateRegion(addPathToRegion(active, shape.points, size));
+      return;
+    }
+    const drawn = regionFromShape(kind, [shape.points], size, shape.brush);
+    if (!drawn) return;
+    const id = `region-${Date.now().toString(36)}`;
+    const region: Flux3ImageRegion = { id, ...drawn, fuzz: FLUX3_IMAGE_DEFAULT_FUZZ, prompt: "", referenceId: null };
+    setDraft((current) => ({ ...current, regions: [...current.regions, region], regionSourceId: sourceAsset?.id ?? null }));
+    setActiveRegionId(id);
+    // The edit is typed straight into the new region.
+    window.requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-region-id="${id}"] input`)?.focus());
   }
 
   function submit() {
@@ -135,7 +148,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     if (!payload) return props.onImportFiles(files);
     const dragged = parseReferenceDragPayload(payload);
     const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : dragged?.assetId;
-    const known = assetId ? props.assets.find((asset) => asset.id === assetId) : undefined;
+    const known = assetById(assetId);
     if (known) return [known];
     if (!dragged?.value) return [];
     const blob = await (await fetch(dragged.value)).blob();
@@ -156,8 +169,18 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     }
   }
 
-  function removeReference(index: number) {
-    update({ references: draft.references.map((id, slot) => (slot === index ? null : id)) });
+  async function setRegionReference(id: string, payload: string, files: File[]) {
+    try {
+      const [asset] = await referenceAssetsFrom(payload, files.slice(0, 1));
+      if (!asset) return;
+      setDraft((current) => ({
+        ...current,
+        regions: current.regions.map((region) => (region.id === id ? { ...region, referenceId: asset.id } : region))
+      }));
+      setNotice("");
+    } catch {
+      setNotice("That image could not be added as the region's reference.");
+    }
   }
 
   function handleDrop(event: ReactDragEvent) {
@@ -176,13 +199,25 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     else props.onSourceFiles(files);
   }
 
+  const regionCallbacks = {
+    activeId: activeRegionId,
+    referenceFor: (region: Flux3ImageRegion) => assetById(region.referenceId),
+    onSelect: setActiveRegionId,
+    onChange: updateRegion,
+    onRemove: removeRegion,
+    onReference: (id: string, payload: string, files: File[]) => void setRegionReference(id, payload, files)
+  };
+
   function renderStage() {
     if (draft.mode === "t2i") {
       return (
         <div className="imageToolEmpty">
           <WandSparkles size={34} />
           <strong>Your FLUX 3 Image result will appear here</strong>
-          <span>Text to image needs no source. Image uses up to {FLUX3_IMAGE_MAX_REFERENCES} references; Edit and Precise use the image loaded here or in Erase.</span>
+          <span>
+            Text to image needs no source. Image uses up to {FLUX3_IMAGE_MAX_REFERENCES} references; Edit and Precise use
+            the image loaded here or in Erase.
+          </span>
         </div>
       );
     }
@@ -190,7 +225,11 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
       const sourceIsReference = sourceAsset ? draft.references.includes(sourceAsset.id) : true;
       return (
         <div className="flux3ReferenceStage">
-          <Flux3ImageReferenceSlots slots={referenceAssets} onAdd={(index, payload, files) => void addReferences(index, payload, files)} onRemove={removeReference} />
+          <Flux3ImageReferenceSlots
+            slots={referenceAssets}
+            onAdd={(index, payload, files) => void addReferences(index, payload, files)}
+            onRemove={(index) => update({ references: draft.references.map((id, slot) => (slot === index ? null : id)) })}
+          />
           {sourceAsset && !sourceIsReference && (
             <button
               type="button"
@@ -215,38 +254,26 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     }
     if (draft.mode === "edit") {
       return (
-        <div className="flux3ImageSource">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={source} alt={sourceAsset.title || sourceAsset.id} />
-          <small className="maskPaintHint">whole-image edit · describe the change in the prompt</small>
-        </div>
+        <MaskCanvas
+          key={`${sourceAsset.id}-edit`}
+          imageSrc={source}
+          brushSize={props.brushSize}
+          mask={props.mask}
+          onMaskChange={props.onMaskChange}
+          tool={draft.editTool}
+        />
       );
     }
-    const boxes = draft.selection === "boxes";
     return (
       <MaskCanvas
-        key={`${sourceAsset.id}-${draft.selection}`}
+        key={`${sourceAsset.id}-regions`}
         imageSrc={source}
         brushSize={props.brushSize}
-        mask={boxes ? "" : props.mask}
+        mask=""
         onMaskChange={props.onMaskChange}
-        tool={boxes ? "box" : draft.pixelTool}
-        hardEdges
-        onBoxDraw={addBox}
-        renderOverlay={
-          boxes
-            ? (size) => (
-                <RegionBoxLayer
-                  boxes={draft.boxes}
-                  size={size}
-                  activeId={activeBoxId}
-                  onSelect={setActiveBoxId}
-                  onChange={changeBox}
-                  onRemove={removeBox}
-                />
-              )
-            : undefined
-        }
+        tool={draft.regionTool}
+        onShape={handleShape}
+        renderOverlay={(size) => <RegionLayer regions={draft.regions} size={size} {...regionCallbacks} />}
       />
     );
   }
@@ -255,15 +282,13 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
   const selectionLabel =
     draft.mode === "i2i"
       ? `${referenceCount}/${FLUX3_IMAGE_MAX_REFERENCES} references`
-      : draft.mode !== "precise"
-      ? draft.mode === "edit"
-        ? "whole image"
-        : "none"
-      : draft.selection === "boxes"
-        ? `${draft.boxes.length} box${draft.boxes.length === 1 ? "" : "es"}`
-        : props.mask
-          ? "pixels painted"
-          : "no pixels";
+      : draft.mode === "edit"
+        ? props.mask
+          ? "painted area"
+          : "whole image"
+        : draft.mode === "precise"
+          ? `${draft.regions.length} region${draft.regions.length === 1 ? "" : "s"}`
+          : "none";
 
   // Same grid cells as Erase and the other image tools: the stage in the main
   // cell, the controls in the right-hand run column.
@@ -302,9 +327,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
             <MetaBox label="Mode" value={modeTitles[draft.mode]} />
             <MetaBox
               label="Source"
-              value={
-                draft.mode === "t2i" || draft.mode === "i2i" ? "not needed" : sourceAsset?.title || sourceAsset?.id || "None"
-              }
+              value={draft.mode === "t2i" || draft.mode === "i2i" ? "not needed" : sourceAsset?.title || sourceAsset?.id || "None"}
             />
             <MetaBox label="Selection" value={selectionLabel} />
           </div>
@@ -312,7 +335,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
       </div>
 
       <aside className="panel controls toolControls flux3ImageControls">
-        <PanelHeader title="Create image" subtitle="Text, references, edit, or a precise edit">
+        <PanelHeader title="Create image" subtitle="Text, references, edit, regions">
           <WandSparkles size={18} aria-label="FLUX 3 Image" />
         </PanelHeader>
         <div className="flux3ModePicker">
@@ -327,71 +350,33 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
           ))}
         </div>
 
-        {draft.mode === "precise" && (
-          <SelectorGroup variant="segmented" className="flux3ImageSelection" aria-label="Precise selection">
-            <SelectorOption variant="segmented" selected={draft.selection === "boxes"} onClick={() => update({ selection: "boxes" })}>
-              <SquareDashed size={14} />
-              Boxes
-            </SelectorOption>
-            <SelectorOption variant="segmented" selected={draft.selection === "pixels"} onClick={() => update({ selection: "pixels" })}>
-              <Brush size={14} />
-              Pixels
-            </SelectorOption>
-          </SelectorGroup>
+        {draft.mode === "edit" && (
+          <>
+            <ToolPicker label="Inpaint tools" options={editTools} value={draft.editTool} onChange={(editTool) => update({ editTool })} />
+            {draft.editTool !== "lasso" && <BrushSizeField value={props.brushSize} onChange={props.onBrushSizeChange} />}
+            <div className="maskStatusRow">
+              <span>{props.mask ? "Inpaint area painted" : "No mask: the whole image is edited"}</span>
+              <button type="button" onClick={() => props.onMaskChange("")} disabled={!props.mask}>
+                Clear mask
+              </button>
+            </div>
+          </>
         )}
 
-        {draft.mode === "precise" && draft.selection === "boxes" ? (
-          <RegionBoxList
-            boxes={draft.boxes}
-            activeId={activeBoxId}
-            onSelect={setActiveBoxId}
-            onChange={changeBox}
-            onRemove={removeBox}
-          />
-        ) : (
+        {draft.mode === "precise" && (
           <>
-            {draft.mode === "precise" && (
-              <>
-                <div className="flux3ImagePixelTools">
-                  <button
-                    type="button"
-                    className={draft.pixelTool === "brush" ? "active" : ""}
-                    aria-pressed={draft.pixelTool === "brush"}
-                    onClick={() => update({ pixelTool: "brush" })}
-                  >
-                    <Brush size={14} />
-                    Brush
-                  </button>
-                  <button
-                    type="button"
-                    className={draft.pixelTool === "lasso" ? "active" : ""}
-                    aria-pressed={draft.pixelTool === "lasso"}
-                    onClick={() => update({ pixelTool: "lasso" })}
-                  >
-                    <Lasso size={14} />
-                    Lasso
-                  </button>
-                </div>
-                {draft.pixelTool === "brush" && (
-                  <label>
-                    Brush size · {props.brushSize}px
-                    <input
-                      type="range"
-                      min={4}
-                      max={160}
-                      value={props.brushSize}
-                      onChange={(event) => props.onBrushSizeChange(Number(event.target.value))}
-                    />
-                  </label>
-                )}
-                <div className="maskStatusRow">
-                  <span>{props.mask ? "Pixels selected · hard edges" : "Paint the exact pixels to change"}</span>
-                  <button type="button" onClick={() => props.onMaskChange("")} disabled={!props.mask}>
-                    Clear mask
-                  </button>
-                </div>
-              </>
-            )}
+            <ToolPicker label="Region tools" options={regionTools} value={draft.regionTool} onChange={(regionTool) => update({ regionTool })} />
+            {draft.regionTool === "brush" && <BrushSizeField value={props.brushSize} onChange={props.onBrushSizeChange} />}
+            <p className="toolStubNote">
+              Each box, stroke or lasso makes a region. Hold Shift to add a stroke or lasso to the selected region; drag
+              its edges to resize it and its number to move it.
+            </p>
+            <RegionList regions={draft.regions} {...regionCallbacks} />
+          </>
+        )}
+
+        {promptKey && (
+          <>
             {draft.mode === "i2i" && (
               <p className="toolStubNote">
                 Drop up to {FLUX3_IMAGE_MAX_REFERENCES} references on the numbered slots and name them in the prompt as
@@ -399,24 +384,18 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
               </p>
             )}
             <label>
-              {draft.mode === "t2i"
-                ? "Image prompt"
-                : draft.mode === "i2i"
-                  ? "Prompt using the references"
-                  : draft.mode === "edit"
-                    ? "Edit instruction"
-                    : "Edit for the painted pixels"}
+              {draft.mode === "t2i" ? "Image prompt" : draft.mode === "i2i" ? "Prompt using the references" : "Edit instruction"}
               <textarea
                 className="toolPrompt"
                 rows={5}
                 value={draft.prompts[promptKey]}
-                onChange={(event) => setPrompt(event.target.value)}
+                onChange={(event) => update({ prompts: { ...draft.prompts, [promptKey]: event.target.value } })}
                 placeholder={
                   draft.mode === "t2i"
                     ? "Describe the image…"
                     : draft.mode === "i2i"
                       ? "The character from image 1 in the jacket from image 2, lit like image 3…"
-                      : "Describe what should change, and what should stay…"
+                      : "Describe what should change in the painted area, or the whole image…"
                 }
               />
             </label>
