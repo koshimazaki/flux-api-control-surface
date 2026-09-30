@@ -3,8 +3,9 @@ import { useRef, type CSSProperties, type DragEvent as ReactDragEvent, type Poin
 import type { Size } from "@/lib/canvas-geometry";
 import { assetImageSource } from "@/lib/dashboard-tools";
 import { FLUX3_IMAGE_FUZZ_MAX, clampFuzz, type Flux3ImageRegion } from "@/lib/flux3-image";
+import { RegionCard } from "@/components/flux3-image-region-card";
 import {
-  REGION_RESIZE_HANDLES,
+  regionCardPlacement,
   regionKindLabel,
   regionPaths,
   resizeRegion,
@@ -17,6 +18,7 @@ type RegionCallbacks = {
   activeId: string | null;
   referenceFor: (region: Flux3ImageRegion) => AssetRecord | null;
   onSelect: (id: string) => void;
+  onDeselect: () => void;
   onChange: (region: Flux3ImageRegion) => void;
   onRemove: (id: string) => void;
   onReference: (id: string, payload: string, files: File[]) => void;
@@ -108,11 +110,15 @@ function RegionShapes({ regions, activeId }: { regions: Flux3ImageRegion[]; acti
   );
 }
 
+const CORNER_HANDLES: RegionHandle[] = ["nw", "ne", "se", "sw"];
+const EDGE_HANDLES: RegionHandle[] = ["n", "e", "s", "w"];
+
 /**
- * Precise-edit regions over the source image. Shapes show what each region
- * covers; the selected region gets edge and corner handles for resizing, and
- * its number drags it. Each tag carries the region's edit and reference image.
- * The layer lets pointer events through elsewhere, so drawing continues on top.
+ * Precise-edit regions over the source image, kept light: a dashed frame and
+ * a small label chip per region. The selected region gets corner handles
+ * (its edges resize too) and a card with its edit, reference and fuzz. Its
+ * number drags it. Elsewhere the layer lets pointer events through, so drawing
+ * continues on top.
  */
 export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & { regions: Flux3ImageRegion[]; size: Size }) {
   const layerRef = useRef<HTMLDivElement | null>(null);
@@ -151,6 +157,7 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
       </svg>
       {regions.map((region, index) => {
         const active = region.id === callbacks.activeId;
+        const reference = callbacks.referenceFor(region);
         const style = {
           left: percent(region.x, size.width),
           top: percent(region.y, size.height),
@@ -159,25 +166,24 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
           "--fuzz-x": percent(region.fuzz, region.width),
           "--fuzz-y": percent(region.fuzz, region.height)
         } as CSSProperties;
-        const tagEnd = region.x + region.width / 2 > size.width / 2;
         return (
           <div
             key={region.id}
             data-region-id={region.id}
-            className={["regionFrame", region.kind, active ? "active" : "", tagEnd ? "tagEnd" : ""].filter(Boolean).join(" ")}
+            className={["regionFrame", region.kind, active ? "active" : ""].filter(Boolean).join(" ")}
             style={style}
           >
-            <span className="regionFuzz" aria-hidden="true" />
+            {active && <span className="regionFuzz" aria-hidden="true" />}
             {active &&
-              REGION_RESIZE_HANDLES.map((handle) => (
+              [...EDGE_HANDLES, ...CORNER_HANDLES].map((handle) => (
                 <span
                   key={handle}
-                  className={`regionHandle regionHandle-${handle}`}
+                  className={`regionHandle regionHandle-${handle}${handle.length === 1 ? " edge" : ""}`}
                   onPointerDown={(event) => startDrag(event, region, handle)}
                   {...dragHandlers}
                 />
               ))}
-            <div className="regionTag" onPointerDown={(event) => event.stopPropagation()}>
+            <div className="regionChip" onPointerDown={(event) => event.stopPropagation()}>
               <button
                 type="button"
                 className="regionIndex"
@@ -187,23 +193,26 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
               >
                 {index + 1}
               </button>
-              <input
-                value={region.prompt}
-                placeholder="Type the edit…"
-                aria-label={`Edit for region ${index + 1}`}
-                onFocus={() => callbacks.onSelect(region.id)}
-                onChange={(event) => callbacks.onChange({ ...region, prompt: event.target.value })}
-              />
-              <RegionReference
-                asset={callbacks.referenceFor(region)}
-                label={`Reference for region ${index + 1}`}
-                onAdd={(payload, files) => callbacks.onReference(region.id, payload, files)}
-                onClear={() => callbacks.onChange({ ...region, referenceId: null })}
-              />
-              <button type="button" onClick={() => callbacks.onRemove(region.id)} title={`Remove region ${index + 1}`}>
-                <X size={12} />
+              <button type="button" className="regionChipText" onClick={() => callbacks.onSelect(region.id)}>
+                {region.prompt.trim() || "No instruction yet"}
               </button>
+              {reference && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="regionChipThumb" src={assetImageSource(reference)} alt="" />
+              )}
             </div>
+            {active && (
+              <RegionCard
+                region={region}
+                index={index}
+                reference={reference}
+                placement={regionCardPlacement(region, size)}
+                onChange={callbacks.onChange}
+                onReference={(payload, files) => callbacks.onReference(region.id, payload, files)}
+                onDone={callbacks.onDeselect}
+                onRemove={() => callbacks.onRemove(region.id)}
+              />
+            )}
           </div>
         );
       })}

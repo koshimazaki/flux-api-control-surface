@@ -188,7 +188,7 @@
   vector-effect: none;
 }
 
-/* Precise regions. The layer passes pointer events through except on handles and tags. */
+/* Precise regions. The layer passes pointer events through except on handles, chips and cards. */
 .regionLayer,
 .regionShapes {
   position: absolute;
@@ -226,24 +226,24 @@
   stroke: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
+/* Frames stay quiet: a dashed outline and a label chip; the selected one gets handles and a card. */
 .dsgn-root .regionFrame {
   position: absolute;
-  outline: 1px dashed color-mix(in srgb, var(--acc-intel) 60%, transparent);
+  outline: 1px dashed color-mix(in srgb, var(--acc-intel) 55%, transparent);
 }
 
-/* A box's shape is its frame, so only brush and lasso frames stay faint. */
 .dsgn-root .regionFrame.box {
-  outline: none;
+  outline-color: color-mix(in srgb, var(--acc-intel) 85%, transparent);
 }
 
 .dsgn-root .regionFrame.active {
-  outline: 1px solid var(--accent);
+  outline: 1.5px dashed var(--accent);
 }
 
 .dsgn-root .regionFuzz {
   position: absolute;
   inset: calc(-1 * var(--fuzz-y)) calc(-1 * var(--fuzz-x));
-  border: 1px dashed color-mix(in srgb, var(--acc-intel) 60%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 6px;
   pointer-events: none;
 }
@@ -251,73 +251,286 @@
 .dsgn-root .regionHandle {
   position: absolute;
   z-index: 2;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border: 1.5px solid var(--accent);
-  border-radius: 2px;
-  background: var(--surface-raised);
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, #000);
+  border-radius: 1.5px;
+  background: #f4f4f4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   pointer-events: auto;
   touch-action: none;
 }
 
-.regionHandle-nw { top: 0; left: 0; cursor: nwse-resize; }
-.regionHandle-n { top: 0; left: 50%; cursor: ns-resize; }
-.regionHandle-ne { top: 0; left: 100%; cursor: nesw-resize; }
-.regionHandle-e { top: 50%; left: 100%; cursor: ew-resize; }
-.regionHandle-se { top: 100%; left: 100%; cursor: nwse-resize; }
-.regionHandle-s { top: 100%; left: 50%; cursor: ns-resize; }
-.regionHandle-sw { top: 100%; left: 0; cursor: nesw-resize; }
-.regionHandle-w { top: 50%; left: 0; cursor: ew-resize; }
+/* Edges resize too, through invisible strips along each side. */
+.dsgn-root .regionHandle.edge {
+  width: auto;
+  height: auto;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
 
-.dsgn-root .regionTag {
+.regionHandle-nw { top: 0; left: 0; cursor: nwse-resize; }
+.regionHandle-ne { top: 0; left: 100%; cursor: nesw-resize; }
+.regionHandle-se { top: 100%; left: 100%; cursor: nwse-resize; }
+.regionHandle-sw { top: 100%; left: 0; cursor: nesw-resize; }
+.regionHandle-n { top: -4px; right: 8px; left: 8px; height: 8px !important; cursor: ns-resize; }
+.regionHandle-s { bottom: -4px; right: 8px; left: 8px; height: 8px !important; cursor: ns-resize; }
+.regionHandle-e { top: 8px; right: -4px; bottom: 8px; width: 8px !important; cursor: ew-resize; }
+.regionHandle-w { top: 8px; bottom: 8px; left: -4px; width: 8px !important; cursor: ew-resize; }
+
+.dsgn-root .regionChip {
   position: absolute;
   z-index: 3;
-  top: 6px;
-  left: 6px;
-  width: max(210px, calc(100% - 12px));
-  max-width: 320px;
+  top: 5px;
+  left: 5px;
+  max-width: max(120px, calc(100% - 10px));
   display: flex;
   align-items: center;
-  gap: 3px;
-  border: 1px solid var(--border-machined);
-  border-radius: var(--radius-sm);
-  background: rgba(10, 12, 14, 0.86);
-  padding: 3px;
+  gap: 4px;
   pointer-events: auto;
-  backdrop-filter: blur(8px);
 }
 
-.dsgn-root .regionFrame.tagEnd .regionTag {
-  right: 6px;
-  left: auto;
-}
-
-.dsgn-root .regionTag input {
-  min-width: 0;
-  height: 26px;
-  flex: 1 1 auto;
-  padding: 0 6px;
-  font-size: 11px;
-}
-
-.dsgn-root .regionTag > button {
-  width: 26px;
-  min-height: 26px;
-  flex: 0 0 auto;
-  padding: 0;
-  font-family: var(--font-mono);
-  font-size: 11px;
+.dsgn-root .regionChip button {
+  min-height: 0;
+  border: 0;
+  box-shadow: none;
 }
 
 .dsgn-root .regionIndex {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  padding: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--acc-intel) 80%, #000);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
   cursor: move;
   touch-action: none;
 }
 
 .dsgn-root .regionFrame.active .regionIndex {
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.dsgn-root .regionChipText {
+  min-width: 0;
+  height: 18px;
+  overflow: hidden;
+  padding: 0 7px;
+  border-radius: 4px;
+  background: rgba(10, 12, 14, 0.62);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+.dsgn-root .regionChipThumb {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+/* The selected region's card, below or above it and facing into the image. */
+.dsgn-root .regionCard {
+  position: absolute;
+  z-index: 4;
+  width: 272px;
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(18, 20, 24, 0.8);
+  padding: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+  backdrop-filter: blur(14px) saturate(1.1);
+}
+
+.dsgn-root .regionCard.below { top: calc(100% + 10px); }
+.dsgn-root .regionCard.above { bottom: calc(100% + 10px); }
+.dsgn-root .regionCard.start { left: 0; }
+.dsgn-root .regionCard.end { right: 0; }
+
+.dsgn-root .regionCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.dsgn-root .regionCardHeader span {
+  margin-right: auto;
+  color: color-mix(in srgb, var(--accent) 80%, #fff);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dsgn-root .regionCardHeader button {
+  width: 26px;
+  min-height: 26px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dsgn-root .regionCardHeader button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.dsgn-root .regionCardRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.dsgn-root .regionCard textarea {
+  min-height: 44px;
+  resize: none;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+  padding: 7px 9px;
+  color: #f1f3f5;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dsgn-root .regionCardImage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.dsgn-root .regionCardImage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dsgn-root .regionCardChevron {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  border-radius: 3px;
+  background: rgba(10, 12, 14, 0.7);
+  transition: transform 140ms ease;
+}
+
+.dsgn-root .regionCardImage[aria-expanded="true"] .regionCardChevron {
+  transform: rotate(180deg);
+}
+
+.dsgn-root .regionCardMore {
+  display: grid;
+  gap: 8px;
+  animation: holodeck-disclose 160ms ease;
+}
+
+.dsgn-root .regionDropArea {
+  position: relative;
+  height: 120px;
+  overflow: hidden;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.dsgn-root .regionDropArea.over {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+}
+
+.dsgn-root .regionDropArea.filled {
+  border-style: solid;
+}
+
+.dsgn-root .regionDropArea label {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  padding: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.dsgn-root .regionDropArea img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.dsgn-root .regionDropArea span {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  left: 6px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(10, 12, 14, 0.66);
+  padding: 2px 6px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .regionDropArea label span {
+  position: static;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  white-space: normal;
+}
+
+.dsgn-root .regionDropArea > button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  min-height: 22px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(10, 12, 14, 0.8);
+}
+
+.dsgn-root .regionCardFuzz {
+  display: grid;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
 }
 
 /* A region's reference image: a small drop slot in its tag and list row. */
