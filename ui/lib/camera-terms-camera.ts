@@ -103,7 +103,7 @@ export const composition = {
       "Rule of thirds",
       "Set the subject on a third, not the centre.",
       "The subject sits on the left third of the frame, open space to the right.",
-      { azimuth: -18 }
+      { frame: [-1 / 3, 0] }
     ),
     term("centered", "Centred symmetry", "Balance the frame around the subject.", "Symmetrical composition with the subject dead centre."),
     term(
@@ -123,14 +123,14 @@ export const composition = {
       "Negative space",
       "Leave most of the frame empty.",
       "A small subject surrounded by wide negative space.",
-      { distance: 4.4 }
+      { distance: 4.4, frame: [0.45, -0.32] }
     ),
     term(
       "over-the-shoulder",
       "Over the shoulder",
       "Look past a shoulder in the foreground.",
       "Over-the-shoulder framing with a soft shoulder in the foreground.",
-      { azimuth: 160, distance: 1.6 }
+      { frame: [0.3, 0.04] }
     )
   ]
 } as const;

@@ -43,8 +43,8 @@ npm run build
   draft-to-1080p enhancement.
 - Direct FLUX 3 video with all fourteen sections of BFL's camera guide (shot,
   angle, movement, lens, lighting, style, effects and more): the chosen terms
-  join the prompt as editable lines, a 3D pop-up illustrates them, and each
-  render records them.
+  join the prompt as editable lines, a 3D shot preview illustrates them, and
+  each render records them.
 - Plan Video Script batches: collection-driven keyframe permutations, prompt
   assignment modes, batch timing templates imported from audio markers, and a
   live job-count/cost preview before any paid run.
