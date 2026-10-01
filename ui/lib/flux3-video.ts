@@ -1,3 +1,5 @@
+import type { CameraChoice, CameraRecord } from "@/lib/camera-language";
+
 export type Flux3VideoMode = "t2v" | "i2v" | "v2v" | "draft_enhance";
 export type Flux3SourceMode = Exclude<Flux3VideoMode, "draft_enhance">;
 export type Flux3VideoResolution = "hd" | "fhd";
@@ -71,7 +73,15 @@ export type Flux3VideoRequest = {
   generateAudio?: boolean;
   safetyTolerance?: number;
   draft?: boolean;
+  /**
+   * Direction (camera, look, effects). Recorded with the render and used to
+   * append its clauses once; never forwarded to the BFL payload.
+   */
+  camera?: CameraChoice;
 };
+
+/** Prompt pushed into the FLUX 3 workspace; the nonce re-applies repeat sends. */
+export type Flux3PromptSeed = { text: string; nonce: number; camera?: CameraChoice | null };
 
 export type Flux3VideoResult = {
   id: string;
@@ -89,6 +99,8 @@ export type Flux3VideoResult = {
   costCredits?: number | null;
   creditsAfter?: number | null;
   outputFiles?: Record<string, unknown>;
+  /** Camera terms and scene, when the render used the camera panel. */
+  camera?: CameraRecord | null;
 };
 
 export const FLUX3_ASPECT_RATIOS: Flux3VideoAspectRatio[] = [

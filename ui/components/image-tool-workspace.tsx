@@ -15,7 +15,8 @@ import { useElementSize } from "@/lib/use-element-size";
 import { isPanGesture } from "@/lib/use-zoom-pan";
 import type { AssetRecord, ImageWorkspaceMode } from "@/lib/types";
 import type { GlyphLabDraft, GlyphLabSettings } from "@/lib/glyph-lab-state";
-import { BFL_IMAGE_OPTION_MIME, BFL_REFERENCE_MIME } from "@/lib/reference-drag";
+import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
+import { dragPayloadFromTransfer, imageFilesFromTransfer, isSourceDrag } from "@/lib/source-drop";
 
 type ImageToolMode = ImageWorkspaceMode;
 const VTO_SLOT_COUNT = 4;
@@ -65,18 +66,6 @@ function DeblurPreview({ asset }: { asset: AssetRecord }) {
       <img src={assetImageSource(asset)} alt={asset.title || asset.id} />
       <small className="maskPaintHint">whole-image deblur · no mask or prompt</small>
     </div>
-  );
-}
-
-function imageFilesFromTransfer(event: ReactDragEvent) {
-  return Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
-}
-
-function dragPayloadFromTransfer(event: ReactDragEvent) {
-  return (
-    event.dataTransfer.getData(BFL_IMAGE_OPTION_MIME) ||
-    event.dataTransfer.getData(BFL_REFERENCE_MIME) ||
-    event.dataTransfer.getData("text/plain")
   );
 }
 
@@ -361,15 +350,6 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
   const { mode, sourceAsset } = props;
   const copy = toolCopy[mode];
   const [isDropActive, setIsDropActive] = useState(false);
-
-  function isSourceDrag(event: ReactDragEvent) {
-    const types = Array.from(event.dataTransfer.types);
-    return (
-      types.includes(BFL_IMAGE_OPTION_MIME) ||
-      types.includes(BFL_REFERENCE_MIME) ||
-      types.includes("Files")
-    );
-  }
 
   function handleDragOver(event: ReactDragEvent) {
     if (!isSourceDrag(event)) return;

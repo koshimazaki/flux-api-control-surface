@@ -1,7 +1,9 @@
 import { BFL_API_BASE, bflJson, getCredits, resolveApiKey } from "@/lib/bfl-server";
+import { FLUX3_IMAGE_MODEL } from "@/lib/flux3-image";
 import { measured } from "@/lib/generation-capture";
 import { isBflPollFailureStatus } from "@/lib/provider-registry";
 import { isOperationFailure, operationAdapter } from "@/lib/operations";
+import { pollBodyFromError } from "./failures";
 import { applyJobFailure } from "./job-failure";
 import { findQueueJob, mutateQueueState, readQueueState } from "./store";
 import { claimJobForSubmit, ensurePreparedRuntime, jobIsStillLive, requireRuntime } from "./lifecycle-runtime";
@@ -16,6 +18,8 @@ export const QUEUE_POLL_INTERVAL_MS = 750;
 export const QUEUE_POLL_SLOW_INTERVAL_MS = 2_000;
 export const QUEUE_POLL_FAST_WINDOW_MS = 30_000;
 export const QUEUE_PROVIDER_BUDGET_MS: Record<string, number> = { image: 300_000, tool: 300_000, video: 900_000 };
+/** Models that outlast their lane's budget: FLUX 3 Image at 4k "can take several minutes". */
+export const QUEUE_MODEL_BUDGET_MS: Record<string, number> = { [FLUX3_IMAGE_MODEL]: 900_000 };
 
 export type LifecycleOutcome = {
   ok: boolean;
@@ -156,7 +160,7 @@ export async function pollQueueJobStep(
     return { ok: false, status: "failed", jobId, message, failureClass: "auth" };
   }
 
-  const budget = QUEUE_PROVIDER_BUDGET_MS[job.kind] ?? QUEUE_PROVIDER_BUDGET_MS.image;
+  const budget = QUEUE_MODEL_BUDGET_MS[job.model ?? ""] ?? QUEUE_PROVIDER_BUDGET_MS[job.kind] ?? QUEUE_PROVIDER_BUDGET_MS.image;
   // The manual recovery route exists precisely for jobs the scheduler gave up
   // on, so it must reach the provider instead of re-failing on the same budget.
   // A Retry that resumes an accepted job restarts the window via
@@ -174,7 +178,7 @@ export async function pollQueueJobStep(
   }
 
   try {
-    const result = await bflJson("GET", job.pollingUrl, apiKey);
+    const result = await bflJson("GET", job.pollingUrl, apiKey).catch(pollBodyFromError);
     if (result.status === "Ready") {
       // Rebuild the prepared request if this process never submitted the job
       // (restart or HMR); otherwise a paid, finished render could not be saved.

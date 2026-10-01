@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Flux3ImageWorkspace } from "@/components/flux3-image-workspace";
 import { Flux3VideoWorkspace } from "@/components/flux3-video-workspace";
 import { GenerateReferenceControls } from "@/components/generate-reference-controls";
 import { ImageToolWorkspace } from "@/components/image-tool-workspace";
@@ -19,8 +20,9 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
   const isEditMode = state.workspaceMode === "edit";
   const isUpscaleMode = state.workspaceMode === "upscale";
   const isVideoMode = state.workspaceMediaKind === "video";
+  const isFlux3ImageMode = state.workspaceMode === "flux3_image";
   const imageToolMode = isImageWorkspaceMode(state.workspaceMode) ? state.workspaceMode : null;
-  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isVideoMode);
+  const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isVideoMode || isFlux3ImageMode);
   const modeTabs = (
     <WorkspaceModeTabs
       value={state.workspaceMode}
@@ -91,6 +93,25 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
     compactQuery.addEventListener("change", syncCollapsedState);
     return () => compactQuery.removeEventListener("change", syncCollapsedState);
   }, []);
+
+  if (isFlux3ImageMode) {
+    return (
+      <section className={["workspace", "flux3ImageMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
+        {modeTabs}
+        {promptLibrary}
+        <Flux3ImageWorkspace
+          sourceAsset={state.toolSourceAsset}
+          assets={state.assets}
+          onImportFiles={(files) => state.importImageAssetFiles(files, { assetKind: "reference", focusAssetsTab: false })}
+          onClearSource={state.clearToolSourceAsset}
+          onSourceDropPayload={(payload) => void state.loadToolSourceFromDropPayload(payload)}
+          onSourceFiles={(files) => void state.importToolSourceFiles(files)}
+          onRun={state.runFlux3Image}
+          isRunning={state.isFlux3ImageRunning}
+        />
+      </section>
+    );
+  }
 
   if (isVideoMode) {
     // All three video tools stay mounted and the inactive ones are hidden.

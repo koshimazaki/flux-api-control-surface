@@ -4,6 +4,7 @@ import { sourceFingerprint } from "./failures";
 import { mutateQueueState } from "./store";
 import { setJobRuntime } from "./runtime";
 import { awaitQueueJob, newQueueJobId, nudgeQueueRunner } from "./runner";
+import { FLUX3_IMAGE_API, FLUX3_IMAGE_MODEL, FLUX3_IMAGE_OPERATION, type Flux3ImageRequest } from "@/lib/flux3-image";
 import { estimateFlux3VideoUsd, type Flux3VideoRequest } from "@/lib/flux3-video";
 import { estimateVideoEditUsd, VIDEO_EDIT_MODEL, VIDEO_EDIT_OPERATION, type VideoEditRequest } from "@/lib/video-edit";
 import { estimateVideoUpscaleUsd, VIDEO_UPSCALE_MODEL, VIDEO_UPSCALE_OPERATION, type VideoUpscaleRequest } from "@/lib/video-upscale";
@@ -51,6 +52,10 @@ function estimateJobCost(options: EnqueueOptions) {
   if (typeof options.estimatedCredits === "number" || typeof options.estimatedUsd === "number") {
     return { credits: options.estimatedCredits, usd: options.estimatedUsd };
   }
+  if (options.operation === FLUX3_IMAGE_OPERATION) {
+    const usd = FLUX3_IMAGE_API?.estimateUsd?.(options.body as Flux3ImageRequest);
+    return typeof usd === "number" ? { credits: Math.round(usd * 100), usd } : {};
+  }
   if (options.kind === "image") {
     const model = typeof options.body.model === "string" ? options.body.model : "pro-preview";
     const hasReferences = Array.isArray(options.body.references) && options.body.references.length > 0;
@@ -66,6 +71,7 @@ function estimateJobCost(options: EnqueueOptions) {
 
 function modelLabel(options: EnqueueOptions) {
   if (typeof options.body.model === "string" && options.body.model.trim()) return options.body.model.trim();
+  if (options.operation === FLUX3_IMAGE_OPERATION) return FLUX3_IMAGE_MODEL;
   if (options.kind === "video") return videoOperationModel(options.operation);
   if (options.kind === "tool") return `flux-tools/${options.operation}`;
   return "pro-preview";

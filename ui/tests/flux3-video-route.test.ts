@@ -91,6 +91,55 @@ describe("FLUX 3 video route", () => {
     await expect(response.json()).resolves.toMatchObject({ id: "flux3-job-1", videoUrl: "/api/bfl/flux3-video/flux3-job-1" });
   });
 
+  it("appends text-to-video camera clauses once and saves the camera terms with the render", async () => {
+    mockSuccess();
+    const response = await POST(
+      new NextRequest("http://localhost/api/bfl/flux3-video", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mode: "t2v",
+          prompt: "fox at dawn",
+          duration: 5,
+          camera: { selection: { "shot-sizes": "close-up", angles: null, movements: "orbit" } }
+        })
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const directed = "fox at dawn\n\nClose-up of the subject.\n\nSlow orbit around the subject.";
+    const upstream = mocks.bflJson.mock.calls.find(([method]) => method === "POST")?.[3] as Record<string, unknown>;
+    expect(upstream.prompt).toBe(directed);
+    // Camera metadata is local provenance; BFL only ever sees the prompt text.
+    expect(upstream).not.toHaveProperty("camera");
+    const saved = mocks.saveFlux3VideoOutput.mock.calls[0][0] as { prompt: string; metadata: Record<string, any> };
+    expect(saved.prompt).toBe(directed);
+    expect(saved.metadata.camera).toMatchObject({ terms: ["Close-up", "Orbit"], scene: "fox at dawn" });
+  });
+
+  it("applies direction to image-to-video renders too", async () => {
+    mockSuccess();
+    mocks.resolveImageInput.mockResolvedValue("data:image/png;base64,prepared-frame");
+    await POST(
+      new NextRequest("http://localhost/api/bfl/flux3-video", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mode: "i2v",
+          prompt: "animate",
+          keyframes: ["/api/outputs/frame/image"],
+          duration: 8,
+          camera: { selection: { "shot-sizes": null, angles: null, movements: "orbit" } }
+        })
+      })
+    );
+
+    const upstream = mocks.bflJson.mock.calls.find(([method]) => method === "POST")?.[3] as Record<string, unknown>;
+    expect(upstream.prompt).toBe("animate\n\nSlow orbit around the subject.");
+    const saved = mocks.saveFlux3VideoOutput.mock.calls[0][0] as { metadata: Record<string, any> };
+    expect(saved.metadata.camera).toMatchObject({ terms: ["Orbit"], scene: "animate" });
+  });
+
   it("resolves dashboard image URLs before sending image keyframes", async () => {
     mockSuccess();
     mocks.resolveImageInput.mockResolvedValue("data:image/png;base64,prepared-frame");

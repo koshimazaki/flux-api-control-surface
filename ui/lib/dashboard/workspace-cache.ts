@@ -1,3 +1,4 @@
+import { FLUX3_IMAGE_ENABLED } from "@/lib/feature-flags";
 import type { WorkspaceMode } from "@/lib/types";
 import {
   defaultFlux3SourceMode,
@@ -50,6 +51,7 @@ function asNullableString(value: unknown) {
 }
 
 function isWorkspaceMode(value: unknown): value is WorkspaceMode {
+  if (value === "flux3_image") return FLUX3_IMAGE_ENABLED;
   return value === "prompt" || value === "erase" || value === "vto" || value === "outpaint" || value === "deblur" || value === "flux3" || value === "edit" || value === "upscale" || value === "glyphs";
 }
 

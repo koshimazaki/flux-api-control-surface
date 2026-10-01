@@ -5,6 +5,7 @@ import {
   localMcpParityNotes,
   nativeFluxMcp
 } from "@/lib/agent-routes";
+import { CAMERA_GUIDE_URL, cameraSections } from "@/lib/camera-language";
 
 export const agentWorkflowGuide = {
   name: "FLUX Control Surface Agent Guide",
@@ -80,6 +81,14 @@ export const agentWorkflowGuide = {
       ]
     },
     {
+      name: "Direct a FLUX 3 video: camera, look and effects",
+      steps: [
+        `POST ${agentRouteMap.flux3Video} (t2v, i2v or v2v) with the scene as prompt and camera.selection naming at most one term per section (null for none)`,
+        "Optional camera.edits rewrites a chosen term's clause; the server appends the clauses after the scene exactly once",
+        `GET ${agentRouteMap.flux3Video} or ${agentRouteMap.outputs}: each render records camera.terms and the scene`
+      ]
+    },
+    {
       name: "Edit a saved clip with one instruction",
       steps: [
         `GET ${agentRouteMap.outputs} or ${agentRouteMap.flux3Video}`,
@@ -151,6 +160,11 @@ export const agentWorkflowGuide = {
       ]
     }
   ],
+  cameraLanguage: {
+    guide: CAMERA_GUIDE_URL,
+    appliesTo: "FLUX 3 video modes t2v, i2v and v2v (not draft_enhance)",
+    sections: cameraSections.map((section) => ({ id: section.id, terms: section.terms.map((term) => term.id) }))
+  },
   currentGaps: [
     {
       capability: "Binary audio export through the stdio MCP wrapper",
@@ -188,6 +202,7 @@ export const agentWorkflowGuide = {
     "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery.",
     "Generate a FLUX 3 video from request.json with the CLI, then list and rate its captured evaluation record.",
     "Upscale a saved FLUX 3 clip at 2× in precise mode, then compare source and result in the Upscale tab.",
+    "Render a FLUX 3 text-to-video shot as a low-angle close-up with a slow orbit, using camera.selection instead of hand-written camera prose.",
     "Edit a saved FLUX 3 clip so the orange bucket is gone, compare before and after in the Edit tab, then upscale the result.",
     "Save a video prompt with save_prompt using mediaType video, a videoCategory, and structured beats, then read it back grouped in the Video prompt library."
   ],

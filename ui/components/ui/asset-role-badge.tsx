@@ -10,7 +10,8 @@ import {
   PencilLine,
   ScanLine,
   Shirt,
-  Send
+  Send,
+  WandSparkles
 } from "lucide-react";
 import type { AssetBadge, WorkspaceMode } from "@/lib/types";
 
@@ -20,6 +21,7 @@ const badgeIcons = {
   prompt: Send,
   collection: FolderOpen,
   erase: Eraser,
+  flux3_image: WandSparkles,
   vto: Shirt,
   outpaint: Maximize2,
   deblur: Focus,
@@ -30,6 +32,7 @@ const badgeIcons = {
 };
 
 const rolePriority: AssetBadge["kind"][] = [
+  "flux3_image",
   "vto",
   "outpaint",
   "deblur",
@@ -54,6 +57,7 @@ export function assetRoleClassName(badges: AssetBadge[]) {
 }
 
 export function workspaceRoleLabel(mode: Exclude<WorkspaceMode, "prompt">) {
+  if (mode === "flux3_image") return "FLUX 3 Image";
   if (mode === "flux3") return "FLUX 3";
   if (mode === "edit") return "Edit";
   if (mode === "upscale") return "Upscale";

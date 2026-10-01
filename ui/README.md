@@ -152,7 +152,16 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
 - **FLUX 3 Video** (`flux-3-video`): generate from text or one to ten ordered
   keyframes, continue an MP4, and optionally render a draft before enhancing it
   deterministically to 1080p. Generated videos are downloaded immediately and
-  kept in the same local asset library as images.
+  kept in the same local asset library as images. Every mode has a Visual
+  direction panel (camera, lighting, style and effects) covering all fourteen
+  sections of
+  [BFL's camera guide](https://docs.bfl.ai/guides/prompting_video_camera_terms)
+  (one term per section): the chosen clauses follow the scene in the prompt as
+  lines you can edit in place, and the choice is saved with the render. A 3D
+  preview (three.js, loaded on demand) opens on a scene diagram of the rig and
+  its path; its shot view shows what the camera sees, with focus, lens, light,
+  grade, format and media looks and the diagram inset. It labels each chosen
+  term as shown, approximate or prompt-only.
 - **Video Upscale** (`flux-tools/video-upscale-v1`): upscale an MP4 at 1.5×–3×
   in precise or creative mode, preserve audio, and save both source and result
   for the workspace's before/after fader. The surface identifies the capability
@@ -286,7 +295,9 @@ The UI is also an agent/MCP-facing local API:
 - `POST /api/bfl/tools` runs erase/vto/outpaint/deblur on an existing image with the
   same output persistence and provenance as generations.
 - `GET/POST /api/bfl/flux3-video` lists saved FLUX 3 videos or submits text-to-video,
-  image-to-video, video continuation, and draft-enhancement jobs.
+  image-to-video, video continuation, and draft-enhancement jobs. Every mode except
+  draft enhancement accepts an optional `camera` choice (`{ selection, edits }`);
+  the server appends its clauses to the prompt once and records the terms with the render.
 - `GET /api/bfl/flux3-video/:id` serves a saved video or draft cache for local
   playback and download.
 - `GET/POST /api/bfl/video-upscale` lists or submits FLUX 3 Video Upscale jobs;

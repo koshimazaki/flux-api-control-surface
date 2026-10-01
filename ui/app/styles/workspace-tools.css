@@ -44,12 +44,22 @@
   grid-template-columns: repeat(6, minmax(88px, 1fr));
 }
 
+/* With FLUX 3 Image there are seven image tools: both rails take seven tracks
+   so every tool stays on one row and the buttons still match. Phone widths
+   keep the narrower rails in responsive.css. */
+@media (min-width: 901px) {
+  .tabBar.workspaceModeBar-seven {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
 .workspaceModeBar .tabButton {
   min-width: 0;
   min-height: 50px;
-  padding: 0 11px;
+  padding: 0 8px;
+  overflow: hidden;
   white-space: nowrap;
-  gap: 8px;
+  gap: 6px;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;

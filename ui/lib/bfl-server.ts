@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { toWorkspaceRelativePath, workspaceRoot } from "./local-paths";
 import { isBflPollFailureStatus } from "./provider-registry";
+import { pollBodyFromError } from "./queue/failures";
 import { fetchRemoteImage } from "./remote-archive";
 import { resolveApiKeyWithSource } from "./server-api-key";
 import { findLocalOutputImage, invalidateLocalOutputImageIndex } from "./server-output-store";
@@ -33,7 +34,8 @@ export async function bflJson(method: "GET" | "POST", url: string, apiKey: strin
   }
 
   if (!response.ok) {
-    throw new Error(`BFL API ${response.status}: ${JSON.stringify(data)}`);
+    // The status and body ride along so a poll can still read a 503's `status`.
+    throw Object.assign(new Error(`BFL API ${response.status}: ${JSON.stringify(data)}`), { status: response.status, data });
   }
   return data as Record<string, any>;
 }
@@ -41,7 +43,7 @@ export async function bflJson(method: "GET" | "POST", url: string, apiKey: strin
 export async function pollResult(pollingUrl: string, apiKey: string) {
   const started = Date.now();
   while (Date.now() - started < 300_000) {
-    const result = await bflJson("GET", pollingUrl, apiKey);
+    const result = await bflJson("GET", pollingUrl, apiKey).catch(pollBodyFromError);
     if (result.status === "Ready") return result;
     if (isBflPollFailureStatus(result.status)) {
       throw new Error(`FLUX generation failed: ${JSON.stringify(result)}`);
@@ -105,12 +107,17 @@ export const REDACTED_IMAGE_PLACEHOLDER = "[image input omitted]";
 // the stored (and later reloaded) prompt would collapse to the placeholder.
 const PRESERVED_TEXT_KEYS = new Set(["prompt"]);
 
+const looksLikeImageData = (value: string) => value.startsWith("data:") || value.length > 2048;
+
 export function redactImagePayload(payload: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(payload).map(([key, value]) => {
+      // FLUX 3 Image sends its inputs as an `images` array; each entry is redacted on its own.
+      if (Array.isArray(value)) {
+        return [key, value.map((item) => (typeof item === "string" && looksLikeImageData(item) ? REDACTED_IMAGE_PLACEHOLDER : item))];
+      }
       if (typeof value !== "string" || PRESERVED_TEXT_KEYS.has(key)) return [key, value];
-      const looksLikeImageData = value.startsWith("data:") || value.length > 2048;
-      return [key, looksLikeImageData ? REDACTED_IMAGE_PLACEHOLDER : value];
+      return [key, looksLikeImageData(value) ? REDACTED_IMAGE_PLACEHOLDER : value];
     })
   );
 }

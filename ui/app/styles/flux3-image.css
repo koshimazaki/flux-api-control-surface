@@ -1,0 +1,277 @@
+/*
+ * FLUX 3 Image workspace. Sits in the same grid cells as Erase and the other
+ * image tools and reuses the Erase mask canvas; imported after the theme
+ * layers, so selectors carry .dsgn-root.
+ */
+
+.flux3ImageSource {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.flux3ImageSource img {
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 24px);
+}
+
+.dsgn-root .flux3ImagePending {
+  border: 1px solid var(--acc-armament-dim);
+  border-radius: var(--radius-pill);
+  background: var(--acc-armament-ghost);
+  padding: 3px 8px;
+  color: var(--acc-armament-strong);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--t-micro-ls);
+  text-transform: uppercase;
+}
+
+/* The sub-mode picker. FLUX 3 video moved its modes onto the tool rail, so
+   its base and themed rules live here now. :where() keeps each rule's weight
+   as it was, so the theme still overrides the base. */
+:where(.flux3ImageControls) .flux3ModePicker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+:where(.flux3ImageControls) .flux3ModePicker > button {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 6px 8px;
+}
+
+:where(.flux3ImageControls) .flux3ModePicker > button.active {
+  border-color: rgba(159, 176, 157, 0.72);
+  background: rgba(85, 102, 89, 0.28);
+  color: var(--cream);
+}
+
+:where(.flux3ImageControls) .flux3ModePicker span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+:where(.flux3ImageControls) .flux3ModePicker strong,
+:where(.flux3ImageControls) .flux3ModePicker small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:where(.flux3ImageControls) .flux3ModePicker small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker > button {
+  min-height: 68px;
+  display: grid;
+  grid-template-rows: 18px auto auto;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 7px 5px;
+  text-align: center;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker > button > svg {
+  grid-row: 1;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker > button > span {
+  display: contents;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker strong {
+  grid-row: 2;
+  font-size: 11px;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker small {
+  grid-row: 3;
+  max-width: 100%;
+  font-size: 8px;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker > button.active {
+  color: var(--acc-intel-strong);
+  box-shadow: var(--rim-top), 0 0 10px -4px var(--acc-intel);
+}
+
+/* Four sub-modes read better as two rows in the 340px column. */
+.dsgn-root .flux3ImageControls .flux3ModePicker {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Image to image: numbered reference slots fill the stage. */
+.flux3ReferenceStage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 12px;
+}
+
+.flux3ReferenceGrid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.dsgn-root .flux3ReferenceSlot {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px dashed var(--border-machined);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-sunken) 82%, transparent);
+}
+
+.dsgn-root .flux3ReferenceSlot.filled {
+  border-style: solid;
+  border-color: var(--border-default);
+}
+
+.dsgn-root .flux3ReferenceSlot:has(.flux3ReferenceEmpty):hover {
+  border-color: var(--acc-intel);
+}
+
+.flux3ReferenceSlot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.dsgn-root .flux3ReferenceIndex,
+.dsgn-root .flux3ReferenceName {
+  position: absolute;
+  z-index: 1;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: rgba(10, 12, 14, 0.78);
+  padding: 2px 8px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  backdrop-filter: blur(8px);
+}
+
+.dsgn-root .flux3ReferenceIndex {
+  top: 6px;
+  left: 6px;
+  color: var(--acc-intel-strong);
+}
+
+.dsgn-root .flux3ReferenceName {
+  right: 40px;
+  bottom: 6px;
+  left: 6px;
+  max-width: max-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .flux3ReferenceRemove {
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+}
+
+.dsgn-root .flux3ReferenceEmpty {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.dsgn-root .flux3ReferenceUseSource {
+  justify-self: start;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.dsgn-root .flux3ImageTools {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.dsgn-root .flux3ImageTools > button {
+  gap: 6px;
+}
+
+.dsgn-root .flux3ImageTools > button.active {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+  color: var(--acc-intel-strong);
+}
+
+/* Live gestures on the mask canvas: box, lasso outline, brush stroke. */
+.dsgn-root .maskDraftBox {
+  position: absolute;
+  border: 1.5px dashed var(--acc-intel);
+  background: color-mix(in srgb, var(--acc-intel) 12%, transparent);
+  pointer-events: none;
+}
+
+.maskLassoPath {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.dsgn-root .maskLassoPath polyline {
+  fill: color-mix(in srgb, var(--acc-intel) 18%, transparent);
+  stroke: var(--acc-intel);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.dsgn-root .maskLassoPath.maskBrushPath polyline {
+  fill: none;
+  stroke: color-mix(in srgb, var(--acc-intel) 55%, transparent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: none;
+}
+
+.assetBadge-flux3_image {
+  color: #e6b98c;
+  border-color: rgba(230, 185, 140, 0.62);
+}
+
+.dsgn-root .flux3SettingsNote {
+  color: var(--text-muted);
+  font-size: 10.5px;
+}

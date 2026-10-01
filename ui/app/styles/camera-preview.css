@@ -1,0 +1,267 @@
+/*
+ * The direction dialog's side drawer: the combined 3D preview (ported from
+ * FLUX Studio Lite) and your renders that used the chosen terms. Looks,
+ * formats and fades are drawn by the scene's look pass, not CSS, so nothing
+ * here animates. Imported after the theme layers, so selectors carry .dsgn-root.
+ */
+
+/* Sections on the left; the 3D preview in a drawer on the right that folds away. */
+.dsgn-root .cameraDialogMain {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+}
+
+.dsgn-root .cameraDialogMain.withDrawer {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+}
+
+.dsgn-root .directionDrawer {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border-left: 1px solid var(--border-default);
+  background: color-mix(in srgb, var(--surface-sunken) 70%, transparent);
+}
+
+.dsgn-root .directionDrawerToggle {
+  width: 28px;
+  min-height: 28px;
+  justify-self: start;
+  margin: 8px 6px;
+  padding: 0;
+}
+
+.dsgn-root .directionDrawerBody {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  overflow: auto;
+  padding: 0 14px 14px;
+}
+
+.dsgn-root .cameraPreview {
+  --scene-sky: #dfeeee;
+  --scene-ground: var(--surface-sunken);
+  --scene-light: #ffffff;
+  --scene-subject: var(--text-secondary);
+  --scene-accent: var(--accent);
+  --scene-dark: var(--border-strong);
+  --scene-grid-major: var(--border-machined);
+  --scene-grid-minor: var(--border-default);
+  --scene-glass: var(--surface-sunken);
+  --scene-emissive: var(--acc-intel);
+  --scene-backdrop-top: var(--surface-raised);
+  --scene-backdrop-bottom: var(--surface-sunken);
+  display: grid;
+  gap: 6px;
+}
+
+/* 16:9 like the shot; the diagram view fills the same stage. */
+.dsgn-root .cameraPreviewStage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--acc-intel) 10%, transparent), transparent 60%), var(--surface-inset);
+}
+
+.dsgn-root .cameraPreviewStage canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* A frame over the diagram the scene draws into the shot's corner; INSET in camera-scene.ts. */
+.dsgn-root .cameraPreviewInset {
+  position: absolute;
+  top: 4.5%;
+  right: 2.5%;
+  width: 30%;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 35%, transparent);
+  border-radius: 3px;
+  background: transparent;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.dsgn-root .cameraPreviewInset.left {
+  right: auto;
+  left: 2.5%;
+}
+
+.dsgn-root .cameraPreviewInset:hover {
+  border-color: var(--text-primary);
+  background: transparent;
+}
+
+.dsgn-root .cameraPreviewFallback {
+  margin: 0;
+  padding: 4em 1.5em;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.dsgn-root .cameraPreviewCaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dsgn-root .cameraPreviewViews {
+  display: inline-flex;
+  gap: 2px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+  padding: 2px;
+}
+
+.dsgn-root .cameraPreviewViews button {
+  min-height: 24px;
+  padding: 0 10px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--t-micro-ls);
+  text-transform: uppercase;
+}
+
+.dsgn-root .cameraPreviewViews button.active {
+  border-color: var(--border-machined);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.dsgn-root .cameraPreviewLabel {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .cameraPreviewCaption .iconButton {
+  width: 28px;
+  min-height: 28px;
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.dsgn-root .directionRendersTitle,
+.dsgn-root .previewCoverageBadge {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--t-micro-ls);
+  text-transform: uppercase;
+}
+
+/* What the preview shows for each chosen term. */
+.dsgn-root .previewCoverage {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.dsgn-root .previewCoverage p,
+.dsgn-root .previewCoverageEmpty {
+  margin: 0;
+}
+
+.dsgn-root .previewCoverageEmpty,
+.dsgn-root .previewCoverageHint {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.dsgn-root .previewCoverage ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dsgn-root .previewCoverage li {
+  border-left: 2px solid var(--section-color, var(--border-default));
+  padding-left: 7px;
+}
+
+.dsgn-root .previewCoverage strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.dsgn-root .previewCoverageBadge {
+  margin-right: 6px;
+  font-size: 9px;
+}
+
+.dsgn-root .cameraPreviewNote {
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+
+.dsgn-root .directionRenders {
+  display: grid;
+  gap: 8px;
+}
+
+.dsgn-root .directionRenders p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.dsgn-root .directionRendersGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dsgn-root .directionRendersGrid figure {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.dsgn-root .directionRendersGrid video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  background: #020504;
+  object-fit: cover;
+}
+
+.dsgn-root .directionRendersGrid figcaption {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .dsgn-root .cameraDialogMain,
+  .dsgn-root .cameraDialogMain.withDrawer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dsgn-root .directionDrawer {
+    border-top: 1px solid var(--border-default);
+    border-left: 0;
+  }
+}
