@@ -13,6 +13,8 @@ import { animation, artDirection, focus, format, lenses, lighting, shutter } fro
 export const CAMERA_GUIDE_URL = "https://docs.bfl.ai/guides/prompting_video_camera_terms";
 /** Sections in the BFL guide; the panel exposes all of them. */
 export const CAMERA_GUIDE_SECTION_COUNT = 14;
+/** The panel's name stays "Visual direction"; this line says what it covers. Internal names stay camera-*. */
+export const DIRECTION_SUBTITLE = "Camera, lighting, style & effects";
 /** Longest clause a single term edit may carry. */
 export const CAMERA_CLAUSE_MAX_LENGTH = 600;
 
@@ -108,7 +110,7 @@ export function cameraTermLabels(selection: CameraSelection) {
 }
 
 export function cameraLabel(selection: CameraSelection) {
-  return cameraTermLabels(selection).join(" · ") || "No camera direction";
+  return cameraTermLabels(selection).join(" · ") || "No direction selected";
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

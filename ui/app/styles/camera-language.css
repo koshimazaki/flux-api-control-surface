@@ -4,28 +4,36 @@
  * selectors carry .dsgn-root to outrank its element rules.
  */
 
+/*
+ * Section colours come from the theme's own signal families, so BFL Stone
+ * stays green, Frozen stays cool and Reflective keeps its violet. Lighting is
+ * the one deliberate warm exception. Semantic groups, never row position.
+ */
 .dsgn-root .cameraPanel,
 .dsgn-root .cameraClauseStrip,
 .dsgn-root .cameraDialog {
   --camera-shot: var(--acc-green);
   --camera-angle: var(--acc-intel);
   --camera-movement: var(--accent);
-  --camera-optics: #e9a15b;
+  --camera-optics: var(--acc-intel);
+  --camera-time: var(--text-secondary);
+  --camera-format: var(--text-secondary);
   --camera-light: #f0cf72;
-  --camera-look: #c89bf0;
-  --camera-effects: #6fd3b8;
+  --camera-look: var(--acc-green);
+  --camera-effects: var(--acc-intel);
 }
 
+/* Rams Lite is pale grey: darker mixes keep small headings and clause text above 4.5:1. */
 .dsgn-root[data-surface-theme="rams-lite"] .cameraPanel,
 .dsgn-root[data-surface-theme="rams-lite"] .cameraClauseStrip,
 .dsgn-root[data-surface-theme="rams-lite"] .cameraDialog {
-  --camera-shot: var(--acc-green-strong);
-  --camera-angle: var(--acc-intel-strong);
-  --camera-movement: var(--accent-strong);
-  --camera-optics: #b25d16;
-  --camera-light: #8f7010;
-  --camera-look: #7442ad;
-  --camera-effects: #1c8067;
+  --camera-shot: color-mix(in srgb, var(--acc-green-strong) 56%, #000);
+  --camera-angle: color-mix(in srgb, var(--acc-intel-strong) 72%, #000);
+  --camera-movement: color-mix(in srgb, var(--accent-strong) 56%, #000);
+  --camera-optics: color-mix(in srgb, var(--acc-intel-strong) 72%, #000);
+  --camera-light: #6e560b;
+  --camera-look: color-mix(in srgb, var(--acc-green-strong) 56%, #000);
+  --camera-effects: color-mix(in srgb, var(--acc-intel-strong) 72%, #000);
 }
 
 /* The prompt field and its camera clauses read as one field. */
@@ -135,6 +143,7 @@
 }
 
 .dsgn-root .cameraPanel {
+  container: visual-direction / inline-size;
   min-width: 0;
   margin-top: 8px;
   display: grid;
@@ -155,7 +164,7 @@
 
 .dsgn-root .cameraPanelToggle {
   min-width: 0;
-  min-height: 32px;
+  min-height: 36px;
   flex: 1 1 auto;
   display: flex;
   align-items: center;
@@ -181,8 +190,34 @@
   text-transform: uppercase;
 }
 
+/* Stable title on top, the current choices as their own summary line underneath. */
+.dsgn-root .cameraPanelHeading {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  text-align: left;
+}
+
 .dsgn-root .cameraPanelTitle {
+  overflow: hidden;
   color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .cameraPanelTitle small {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@container visual-direction (max-width: 360px) {
+  .dsgn-root .cameraPanelTitle small {
+    display: none;
+  }
 }
 
 .dsgn-root .cameraPanelSummary {
@@ -312,6 +347,7 @@
 }
 
 .dsgn-root .cameraPreset {
+  position: relative;
   min-width: 0;
   min-height: 58px;
   display: flex;
@@ -326,21 +362,52 @@
   text-align: center;
 }
 
-.dsgn-root .cameraPreset > span:last-child {
+.dsgn-root .cameraPreset > span:not(.cameraPresetDash) {
   max-width: 100%;
   overflow-wrap: anywhere;
 }
 
+/* Marks rest neutral, brighten on hover and focus, and take the section colour only when chosen. */
 .dsgn-root .cameraPreset .cameraGlyph {
-  color: var(--section-color);
+  color: var(--text-secondary);
   font-size: 13px;
+  transition: color var(--motion-fast, 120ms) ease;
 }
 
-.dsgn-root .cameraPreset.selected {
-  border-color: var(--section-color);
-  background: color-mix(in srgb, var(--section-color) 16%, transparent);
-  box-shadow: var(--rim-top), 0 0 10px -5px var(--section-color);
+.dsgn-root .cameraPreset:hover,
+.dsgn-root .cameraPreset:focus-visible,
+.dsgn-root .cameraPreset:hover .cameraGlyph,
+.dsgn-root .cameraPreset:focus-visible .cameraGlyph {
   color: var(--text-primary);
+}
+
+.dsgn-root .cameraPreset.selected:not(.cameraPresetNone) {
+  border-color: var(--section-color);
+  background: color-mix(in srgb, var(--section-color) 12%, transparent);
+  box-shadow: var(--rim-top);
+  color: var(--text-primary);
+}
+
+.dsgn-root .cameraPreset.selected:not(.cameraPresetNone) .cameraGlyph {
+  color: var(--section-color);
+}
+
+/* None is a neutral choice even when it is the active one. */
+.dsgn-root .cameraPresetNone.selected {
+  border-color: var(--border-machined);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+  color: var(--text-primary);
+}
+
+.dsgn-root .cameraPreset.selected:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.dsgn-root .cameraPresetCheck {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: var(--section-color);
 }
 
 .dsgn-root .cameraPresetDash {
@@ -378,140 +445,4 @@
 
 .dsgn-root .flux3ResultCamera {
   color: var(--text-secondary);
-}
-
-/* Expanded view: every section at once, in the top layer. */
-.dsgn-root .cameraDialog {
-  width: min(1280px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
-  border: 1px solid var(--border-machined);
-  border-radius: var(--radius-md, 8px);
-  background: var(--surface-raised);
-  box-shadow: var(--elev-4);
-  padding: 0;
-  color: var(--text-primary);
-}
-
-.dsgn-root .cameraDialog::backdrop {
-  background: rgba(5, 8, 10, 0.72);
-  backdrop-filter: blur(6px);
-}
-
-.dsgn-root .cameraDialogInner {
-  max-height: calc(100vh - 34px);
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-}
-
-.dsgn-root .cameraDialogHeader,
-.dsgn-root .cameraDialogActions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-}
-
-.dsgn-root .cameraDialogHeader {
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-default);
-}
-
-.dsgn-root .cameraDialogHeader h2 {
-  margin: 0;
-  font-family: var(--font-tech, var(--font-sans));
-  font-size: 16px;
-}
-
-.dsgn-root .cameraDialogHeader p {
-  margin: 3px 0 0;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.dsgn-root .cameraDialogBody {
-  display: grid;
-  gap: 16px;
-  overflow: auto;
-  padding: 14px 16px;
-}
-
-.dsgn-root .cameraDialogSection {
-  display: grid;
-  gap: 8px;
-}
-
-.dsgn-root .cameraDialogEyebrow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  color: var(--text-muted);
-}
-
-.dsgn-root .cameraDialogEyebrow a {
-  color: var(--section-color);
-  font-size: var(--t-micro);
-}
-
-.dsgn-root .cameraDialogSection .cameraPresetGrid {
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-}
-
-.dsgn-root .cameraDialogClauses {
-  display: grid;
-  gap: 6px;
-  border-top: 1px solid var(--border-default);
-  padding-top: 14px;
-}
-
-.dsgn-root .cameraDialogClauses .cameraClauseStrip {
-  border-top-style: solid;
-  border-radius: var(--radius-sm);
-}
-
-.dsgn-root .cameraDialogActions {
-  flex-wrap: wrap;
-  border-top: 1px solid var(--border-default);
-}
-
-.dsgn-root .cameraDialogActions strong {
-  min-width: 0;
-  flex: 1 1 160px;
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dsgn-root .cameraDialogDone {
-  border-color: var(--accent-strong);
-  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
-  color: var(--on-accent);
-  font-weight: 700;
-}
-
-@media (max-width: 640px) {
-  .dsgn-root .cameraDialogHeader,
-  .dsgn-root .cameraDialogActions,
-  .dsgn-root .cameraDialogBody {
-    padding-right: 12px;
-    padding-left: 12px;
-  }
-
-  .dsgn-root .cameraDialogActions strong,
-  .dsgn-root .cameraDialogActions a {
-    flex-basis: 100%;
-    text-align: left;
-  }
-
-  .dsgn-root .cameraDialogActions strong {
-    order: -1;
-  }
-
-  .dsgn-root .cameraDialogActions button:first-of-type {
-    margin-left: auto;
-  }
 }

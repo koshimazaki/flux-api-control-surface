@@ -1,4 +1,4 @@
-import { ArrowUpRight, Camera, ChevronDown, Maximize2 } from "lucide-react";
+import { Aperture, ArrowUpRight, ChevronDown, Maximize2 } from "lucide-react";
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { CameraDialog } from "@/components/camera-dialog";
 import { CameraPresetGrid, SectionMark, sectionColor } from "@/components/camera-presets";
@@ -6,6 +6,7 @@ import { DirectionClauses } from "@/components/direction-clauses";
 import { IconButton } from "@/components/ui/icon-button";
 import {
   CAMERA_GUIDE_URL,
+  DIRECTION_SUBTITLE,
   cameraLabel,
   cameraSections,
   sectionTerms,
@@ -20,7 +21,8 @@ type CameraPanelProps = {
 };
 
 /**
- * Direction for the FLUX 3 video prompt, ported from FLUX Studio Lite and grown
+ * Visual direction for the FLUX 3 video prompt (camera, lighting, style and
+ * effects), ported from FLUX Studio Lite's camera panel and grown
  * to every section of BFL's camera guide. The chosen clauses read as the tail
  * of the prompt field and are edited in place there; the panel below is
  * collapsed by default, and the expand button opens every section at once in
@@ -58,7 +60,7 @@ export function CameraPanel({ direction, onChange }: CameraPanelProps) {
   return (
     <>
       <DirectionClauses direction={direction} onChange={onChange} />
-      <section className={open ? "cameraPanel open" : "cameraPanel"} aria-label="Camera direction">
+      <section className={open ? "cameraPanel open" : "cameraPanel"} aria-label="Visual direction">
         <div className="cameraPanelHeader">
           <button
             type="button"
@@ -67,9 +69,13 @@ export function CameraPanel({ direction, onChange }: CameraPanelProps) {
             aria-controls={bodyId}
             onClick={() => setOpen((value) => !value)}
           >
-            <Camera size={15} />
-            <span className="cameraPanelTitle">Camera</span>
-            <span className="cameraPanelSummary">{direction.enabled ? cameraLabel(direction.selection) : "Off"}</span>
+            <Aperture size={15} />
+            <span className="cameraPanelHeading">
+              <span className="cameraPanelTitle">
+                Visual direction <small>{DIRECTION_SUBTITLE}</small>
+              </span>
+              <span className="cameraPanelSummary">{direction.enabled ? cameraLabel(direction.selection) : "Off"}</span>
+            </span>
             <ChevronDown className="cameraPanelChevron" size={14} />
           </button>
           <button
@@ -77,19 +83,19 @@ export function CameraPanel({ direction, onChange }: CameraPanelProps) {
             role="switch"
             aria-checked={direction.enabled}
             className={direction.enabled ? "cameraSwitch on" : "cameraSwitch"}
-            title={direction.enabled ? "Camera clauses are added to the prompt" : "Camera clauses are left out"}
+            title={direction.enabled ? "Direction clauses are added to the prompt" : "Direction clauses are left out"}
             onClick={() => onChange({ ...direction, enabled: !direction.enabled })}
           >
             <span>{direction.enabled ? "On" : "Off"}</span>
             <i aria-hidden="true" />
           </button>
-          <IconButton title="Open all camera controls" aria-haspopup="dialog" onClick={() => setDialogOpen(true)}>
+          <IconButton title="Open every visual direction section" aria-haspopup="dialog" onClick={() => setDialogOpen(true)}>
             <Maximize2 size={14} />
           </IconButton>
         </div>
         {open && (
           <div className="cameraPanelBody" id={bodyId}>
-            <div className="cameraTabs" role="tablist" aria-label="Camera sections">
+            <div className="cameraTabs" role="tablist" aria-label="Visual direction sections">
               {cameraSections.map((item, index) => {
                 const choice = sectionTerms(item).find((entry) => entry.id === direction.selection[item.id]);
                 return (

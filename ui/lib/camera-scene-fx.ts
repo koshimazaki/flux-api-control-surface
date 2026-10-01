@@ -1,11 +1,14 @@
 import * as THREE from "three";
-import type { CameraFx, CameraLook } from "@/lib/camera-term";
+import type { CameraSelection } from "@/lib/camera-language";
+import type { CameraFx } from "@/lib/camera-term";
 
 type Palette = { accent: THREE.Color; intel: THREE.Color; subject: THREE.Color };
 
 /**
  * Same-style stand-ins for visual effects in the 3D preview: a particle field,
- * a double exposure, a hologram and so on, drawn on or around the mannequin.
+ * a hologram, a glitch and so on, drawn on or around the mannequin (double
+ * exposure is a second view screened in by the look pass),
+ * plus the materials of the animation styles and the morph transition.
  * Illustrations of the idea, not predictions of the generated footage.
  */
 export function createSceneFx(scene: THREE.Scene, subject: THREE.Group, palette: Palette) {
@@ -19,6 +22,7 @@ export function createSceneFx(scene: THREE.Scene, subject: THREE.Group, palette:
   let seeds: Float32Array | null = null;
   let base: Float32Array | null = null;
   let ghost: THREE.Group | null = null;
+  let morph: THREE.Mesh | null = null;
   let glitchUntil = 0;
 
   function own<T extends THREE.BufferGeometry | THREE.Material>(item: T) {
@@ -42,6 +46,7 @@ export function createSceneFx(scene: THREE.Scene, subject: THREE.Group, palette:
     seeds = null;
     base = null;
     ghost = null;
+    morph = null;
     subject.position.set(0, 0, 0);
     subject.scale.set(1, 1, 1);
   }
@@ -63,11 +68,38 @@ export function createSceneFx(scene: THREE.Scene, subject: THREE.Group, palette:
     layer.add(points);
   }
 
-  function apply(fx: CameraFx | undefined, look: CameraLook | undefined) {
+  /** A sphere with a cube as its morph target: the morph transition's explicit shape correspondence. */
+  function morphTarget() {
+    const geometry = own(new THREE.SphereGeometry(0.42, 40, 28));
+    const positions = geometry.getAttribute("position");
+    const cube = new Float32Array(positions.count * 3);
+    const point = new THREE.Vector3();
+    for (let index = 0; index < positions.count; index += 1) {
+      point.fromBufferAttribute(positions, index);
+      point.multiplyScalar(0.34 / (Math.max(Math.abs(point.x), Math.abs(point.y), Math.abs(point.z)) || 1));
+      cube.set([point.x, point.y, point.z], index * 3);
+    }
+    const shape = new THREE.BufferGeometry();
+    shape.setAttribute("position", new THREE.BufferAttribute(cube.slice(), 3));
+    shape.setIndex(geometry.getIndex());
+    shape.computeVertexNormals();
+    geometry.morphAttributes.position = [new THREE.Float32BufferAttribute(cube, 3)];
+    geometry.morphAttributes.normal = [shape.getAttribute("normal").clone()];
+    shape.dispose();
+    const mesh = new THREE.Mesh(geometry, own(new THREE.MeshStandardMaterial({ color: palette.accent, roughness: 0.5 })));
+    mesh.position.set(0, 0.9, 0);
+    mesh.castShadow = true;
+    mesh.scale.setScalar(0.001);
+    layer.add(mesh);
+    return mesh;
+  }
+
+  function apply(fx: CameraFx | null | undefined, media: CameraSelection["animation"], morphs: boolean) {
     clear();
-    kind = fx;
-    if (look === "toon") reskin(() => new THREE.MeshToonMaterial({ color: palette.subject }));
-    if (look === "clay") reskin(() => new THREE.MeshStandardMaterial({ color: "#c98f6b", roughness: 1, flatShading: true }));
+    kind = fx ?? undefined;
+    if (media === "anime" || media === "paper-cutout") reskin(() => new THREE.MeshToonMaterial({ color: palette.subject }));
+    if (media === "claymation") reskin(() => new THREE.MeshStandardMaterial({ color: "#c98f6b", roughness: 1, flatShading: true }));
+    if (morphs) morph = morphTarget();
     if (fx === "particles") field(420, [0.35, 2.3], [0, 2.6], 0.035, palette.intel);
     if (fx === "disintegrate") {
       reskin((mesh) => own(((mesh.material as THREE.Material).clone() as THREE.MeshStandardMaterial)));
@@ -76,18 +108,6 @@ export function createSceneFx(scene: THREE.Scene, subject: THREE.Group, palette:
     }
     if (fx === "hologram") {
       reskin(() => new THREE.MeshBasicMaterial({ color: palette.intel, wireframe: true, transparent: true, opacity: 0.7 }));
-    }
-    if (fx === "double") {
-      ghost = subject.clone(true);
-      ghost.traverse((object) => {
-        if (object instanceof THREE.Mesh) {
-          object.material = own(new THREE.MeshBasicMaterial({ color: palette.accent, transparent: true, opacity: 0.28, depthWrite: false }));
-        }
-      });
-      ghost.position.set(0.34, 0.03, -0.3);
-      ghost.rotation.y = 0.4;
-      ghost.scale.setScalar(1.06);
-      layer.add(ghost);
     }
     if (fx === "glitch") {
       ghost = subject.clone(true);
@@ -154,12 +174,24 @@ export function createSceneFx(scene: THREE.Scene, subject: THREE.Group, palette:
       ghost.visible = glitching;
       ghost.position.x = subject.position.x + 0.06;
     }
-    if (kind === "double" && ghost) ghost.rotation.y = 0.4 + progress * 0.5;
     if (kind === "smoke") layer.children.forEach((cloud, index) => cloud.scale.setScalar(0.6 + progress * 1.1 + Math.sin(time / 600 + index) * 0.08));
     if (kind === "growth") layer.children.forEach((piece, index) => piece.scale.set(1, Math.max(0.01, progress * (0.5 + (index % 3) * 0.35)), 1));
     if (kind === "liquid") {
       const melt = Math.sin(Math.PI * progress);
       subject.scale.set(1 + melt * 0.22, 1 - melt * 0.4, 1 + melt * 0.22);
+    }
+    if (morph) {
+      // The subject folds into a sphere at its centre, and the sphere becomes the next shape.
+      const step = (from: number, to: number) => {
+        const t = Math.min(1, Math.max(0, (progress - from) / (to - from)));
+        return t * t * (3 - 2 * t);
+      };
+      const remaining = Math.max(0.001, 1 - step(0.3, 0.5));
+      subject.scale.setScalar(remaining);
+      subject.position.y = 0.9 * (1 - remaining);
+      morph.scale.setScalar(Math.max(0.001, step(0.32, 0.5)));
+      morph.morphTargetInfluences![0] = step(0.5, 0.85);
+      morph.rotation.y = progress * 1.4;
     }
   }
 

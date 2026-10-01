@@ -20,6 +20,12 @@ export type CameraPose = {
   roll?: number;
   motion?: CameraMotion;
   amount?: number;
+  /**
+   * Composition: where the subject's centre sits in the shot, in -1..1 frame
+   * units (x right, y up). The preview shifts the shot camera's view window
+   * (an off-axis projection) rather than orbiting the subject.
+   */
+  frame?: readonly [number, number];
   /** Lens: vertical field of view in degrees, drawn as the camera's frustum. */
   fov?: number;
   /** Lighting: key light direction (degrees) and colour. */
