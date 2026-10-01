@@ -44,6 +44,14 @@ export function resizeRegion(region: Flux3ImageRegion, part: BoxPart, handle: Re
   return resizeBox(region, handle, dx, dy, size);
 }
 
+/** A box drag in progress: what is dragged, where the pointer started, and the box as it was. */
+export type BoxDrag = { part: BoxPart; handle: RegionHandle; x: number; y: number; scale: number; origin: Flux3ImageRegion };
+
+/** The box after a drag from its start to this pointer position; screen pixels are scaled to the frame. */
+export function dragResult(drag: BoxDrag, clientX: number, clientY: number, size: Size) {
+  return resizeRegion(drag.origin, drag.part, drag.handle, (clientX - drag.x) * drag.scale, (clientY - drag.y) * drag.scale, size);
+}
+
 /** Where a move starts out going: the same size, shifted a fifth of the frame sideways, inside the frame. */
 export function defaultMoveTarget(box: Flux3Box, size: Size): Flux3Box {
   const shift = Math.round(size.width / 5);

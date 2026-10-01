@@ -432,13 +432,12 @@ export function useDashboardState() {
   const { balance, setBalance, isCheckingBalance, checkBalance } = useBalance(apiKey);
   const { runFlux3Image, isFlux3ImageRunning } = useFlux3ImageRun({
     apiKey,
-    balance,
     setAssets,
     setRunLog,
-    setBalance,
     setSelectedAsset,
     setError,
-    setRecoveryMessage
+    setRecoveryMessage,
+    checkBalance
   });
   const serverQueue = useServerQueue({ onError: setError });
   const generationQueue = serverQueue.queue as GenerationQueueJob[];

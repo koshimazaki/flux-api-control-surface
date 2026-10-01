@@ -233,7 +233,46 @@ export function placeReferenceIds(slots: (string | null)[], ids: string[], start
     const free = next.findIndex((value) => !value);
     if (free !== -1) next[free] = id;
   });
-  return next;
+  return compactReferenceIds(next);
+}
+
+/**
+ * Reference slots without gaps, filled ones first in order. The request sends
+ * only filled slots, so this keeps "image N" on screen the Nth image sent.
+ */
+export function compactReferenceIds(slots: (string | null)[]) {
+  const filled = slots.filter((id): id is string => Boolean(id));
+  return [...filled, ...Array.from({ length: Math.max(0, slots.length - filled.length) }, () => null)];
+}
+
+/** "image 3", "Image #3": how prompts name references. */
+const IMAGE_MENTION = /\b(image\s*#?\s*)(\d+)\b/gi;
+
+/**
+ * Removes reference `index` and moves the later ones up one. Mentions of the
+ * moved images in the prompt are renumbered to match, unless the prompt names
+ * the removed image: then nothing is renamed, since its number now belongs to
+ * the next image, and `namesRemoved` asks the caller to have the user check.
+ */
+export function removeReference(slots: (string | null)[], index: number, prompt: string) {
+  const references = compactReferenceIds(slots.map((id, slot) => (slot === index ? null : id)));
+  const moved = slots.slice(index + 1).filter(Boolean).length;
+  const removed = index + 1;
+  const numbers = [...prompt.matchAll(IMAGE_MENTION)].map((match) => Number(match[2]));
+  const namesRemoved = moved > 0 && numbers.includes(removed);
+  const renumber = moved > 0 && !namesRemoved && numbers.some((number) => number > removed && number <= removed + moved);
+  return {
+    references,
+    moved,
+    namesRemoved,
+    prompt: renumber
+      ? prompt.replace(IMAGE_MENTION, (match, label: string, digits: string) => {
+          const number = Number(digits);
+          return number > removed && number <= removed + moved ? `${label}${number - 1}` : match;
+        })
+      : prompt,
+    renumbered: renumber
+  };
 }
 
 export type ImagePoint = { x: number; y: number };

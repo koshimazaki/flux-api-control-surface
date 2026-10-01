@@ -19,6 +19,7 @@ import {
   estimateFlux3ImageUsd,
   flux3ImageRequestBlocker,
   placeReferenceIds,
+  removeReference,
   type Flux3ImageMode,
   type Flux3ImageRegion,
   type Flux3ImageRequest,
@@ -197,6 +198,17 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     return props.onImportFiles([new File([blob], `${dragged.name || "reference"}.png`, { type: blob.type || "image/png" })]);
   }
 
+  /** Removes a reference; later ones move up, and the prompt's image numbers follow them. */
+  function removeReferenceAt(index: number) {
+    const result = removeReference(draft.references, index, draft.prompts.i2i);
+    setDraft((current) => ({ ...current, references: result.references, prompts: { ...current.prompts, i2i: result.prompt } }));
+    const moved = result.moved === 1 ? `Image ${index + 2} is now image ${index + 1}` : `Images ${index + 2}–${index + result.moved + 1} moved up one`;
+    if (!result.moved) setNotice("");
+    else if (result.namesRemoved) setNotice(`${moved}. The prompt still names image ${index + 1}, which you removed; check its image numbers.`);
+    else if (result.renumbered) setNotice(`${moved}, and the prompt's image numbers were updated to match.`);
+    else setNotice(`${moved}.`);
+  }
+
   async function addReferences(index: number, payload: string, files: File[]) {
     try {
       const added = await referenceAssetsFrom(payload, files.slice(0, FLUX3_IMAGE_MAX_REFERENCES));
@@ -290,7 +302,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
           <Flux3ImageReferenceSlots
             slots={referenceAssets}
             onAdd={(index, payload, files) => void addReferences(index, payload, files)}
-            onRemove={(index) => update({ references: draft.references.map((id, slot) => (slot === index ? null : id)) })}
+            onRemove={removeReferenceAt}
           />
           {sourceAsset && !sourceIsReference && (
             <button
@@ -472,7 +484,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
         }
         referenceSlots={referenceAssets}
         onSlotReference={(index, payload, files) => void addReferences(index, payload, files)}
-        onClearSlot={(index) => update({ references: draft.references.map((id, slot) => (slot === index ? null : id)) })}
+        onClearSlot={removeReferenceAt}
       />
     </>
   );

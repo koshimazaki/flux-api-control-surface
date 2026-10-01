@@ -10,6 +10,7 @@ import {
   flux3ImageRequestBlocker,
   hardenMaskPixels,
   placeReferenceIds,
+  removeReference,
   type Flux3ImageApi,
   type Flux3ImageRequestRegion
 } from "@/lib/flux3-image";
@@ -151,10 +152,29 @@ describe("reference slots", () => {
     expect(FLUX3_IMAGE_MAX_REFERENCES).toBe(10);
   });
 
-  it("puts the first id in the target slot and the rest in empty slots, dropping overflow", () => {
-    expect(placeReferenceIds([null, "a", null, null], ["x"], 3)).toEqual([null, "a", null, "x"]);
+  it("puts the first id in the target slot and the rest in empty slots, dropping overflow, with no gaps", () => {
+    // Dropped on slot 4 with slots 1 and 3 empty: it becomes image 2, the second image sent.
+    expect(placeReferenceIds([null, "a", null, null], ["x"], 3)).toEqual(["a", "x", null, null]);
     expect(placeReferenceIds([null, "a", null, null], ["x", "y", "z"], 1)).toEqual(["y", "x", "z", null]);
     expect(placeReferenceIds(["a", "b", "c", "d"], ["x", "y"], 0)).toEqual(["x", "b", "c", "d"]);
+  });
+
+  it("moves later images up on removal and renumbers the prompt to match", () => {
+    const removed = removeReference(["fox", "hat", "coat", null], 0, "Put the coat from Image 3 on the fox, with the hat from image #2.");
+    expect(removed.references).toEqual(["hat", "coat", null, null]);
+    expect(removed).toMatchObject({ moved: 2, renumbered: true, namesRemoved: false });
+    expect(removed.prompt).toBe("Put the coat from Image 2 on the fox, with the hat from image #1.");
+  });
+
+  it("leaves the prompt alone when it names the removed image, and says so", () => {
+    const removed = removeReference(["fox", "hat", "coat"], 1, "The fox from image 1 wears the hat from image 2 and coat from image 3.");
+    expect(removed).toMatchObject({ references: ["fox", "coat", null], moved: 1, namesRemoved: true, renumbered: false });
+    expect(removed.prompt).toBe("The fox from image 1 wears the hat from image 2 and coat from image 3.");
+  });
+
+  it("renumbers nothing when the last image goes, or when the prompt names none of the moved ones", () => {
+    expect(removeReference(["fox", "hat"], 1, "the fox from image 1")).toMatchObject({ references: ["fox", null], moved: 0, renumbered: false });
+    expect(removeReference(["fox", "hat"], 0, "a fox in a hat")).toMatchObject({ references: ["hat", null], moved: 1, renumbered: false, prompt: "a fox in a hat" });
   });
 });
 

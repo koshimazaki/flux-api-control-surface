@@ -1,4 +1,4 @@
-import { normalizeImageInput, patchOutputMetadataFile, resolveImageInput } from "@/lib/bfl-server";
+import { normalizeImageInput, resolveImageInput } from "@/lib/bfl-server";
 import {
   FLUX3_IMAGE_MODEL,
   FLUX3_IMAGE_OPERATION,
@@ -89,6 +89,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
   }
 
   const prompt = String(built.payload.prompt);
+  const sourceAssetIds = stringList(body.sourceAssetIds);
   return {
     kind: "image" as const,
     operation: FLUX3_IMAGE_OPERATION,
@@ -96,9 +97,9 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
     prompt,
     endpoint: built.endpoint,
     payload: built.payload,
-    sourceAssetIds: [
-      ...new Set([...stringList(body.sourceAssetIds), ...(body.referenceMeta || []).map((meta) => meta?.assetId)])
-    ].filter((value): value is string => Boolean(value)),
+    sourceAssetIds: [...new Set([...sourceAssetIds, ...(body.referenceMeta || []).map((meta) => meta?.assetId)])].filter(
+      (value): value is string => Boolean(value)
+    ),
     // The FLUX.2 finalizer saves the result; these are the fields it reads.
     context: {
       model: FLUX3_IMAGE_MODEL,
@@ -115,24 +116,30 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
         imageCount: images.length,
         boxes: request.mode === "precise" ? request.regions?.length ?? 0 : request.layout?.length ?? 0,
         frame: request.frame ?? null
+      },
+      // Provenance the output reader maps back onto the asset: what was edited, and how.
+      metadataExtra: {
+        operation: `${FLUX3_IMAGE_OPERATION}:${request.mode}`,
+        sourceAssetId: request.mode === "edit" || request.mode === "precise" ? sourceAssetIds[0] ?? null : null
       }
     }
   } satisfies PreparedOperation;
 }
 
 /**
- * Saves like any FLUX image, then records the mode and settings the payload
- * alone does not name, and the prompt BFL expanded the request into, which
- * includes any boxes the model added for named elements.
+ * Saves like any FLUX image, with the mode and settings the payload alone does
+ * not name, and the prompt BFL expanded the request into (including any boxes
+ * the model added), in `runSettings.flux3Image`. They go in before the save, so
+ * the sidecar, the PNG text chunk, the remote copy and a reloaded asset agree.
  */
 async function finalize(input: OperationFinalizeInput) {
-  const outcome = await imageGenerateAdapter.finalize(input);
   const expandedPrompt = input.result?.result?.prompt;
   const flux3Image = {
     ...input.prepared.context.flux3Image,
     ...(typeof expandedPrompt === "string" && expandedPrompt ? { expandedPrompt } : {})
   };
-  if (outcome.result.metadataPath) await patchOutputMetadataFile(outcome.result.metadataPath, { flux3Image });
+  const context = { ...input.prepared.context, runSettingsExtra: { flux3Image } };
+  const outcome = await imageGenerateAdapter.finalize({ ...input, prepared: { ...input.prepared, context } });
   return { ...outcome, response: { ...outcome.response, flux3Image } };
 }
 

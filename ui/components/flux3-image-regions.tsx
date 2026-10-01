@@ -6,8 +6,9 @@ import { assetImageSource } from "@/lib/dashboard-tools";
 import { FLUX3_BOX_ACTIONS, boxActionLabels, type Flux3Box, type Flux3BoxAction, type Flux3ImageRegion } from "@/lib/flux3-image-boxes";
 import {
   defaultMoveTarget,
+  dragResult,
   regionCardPlacement,
-  resizeRegion,
+  type BoxDrag,
   type BoxPart,
   type RegionHandle
 } from "@/lib/flux3-image-regions";
@@ -132,7 +133,7 @@ const EDGE_HANDLES: RegionHandle[] = ["n", "e", "s", "w"];
  */
 export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & { regions: Flux3ImageRegion[]; size: Size }) {
   const layerRef = useRef<HTMLDivElement | null>(null);
-  const drag = useRef<{ part: BoxPart; handle: RegionHandle; x: number; y: number; scale: number; origin: Flux3ImageRegion } | null>(null);
+  const drag = useRef<BoxDrag | null>(null);
 
   function startDrag(event: ReactPointerEvent<HTMLElement>, region: Flux3ImageRegion, part: BoxPart, handle: RegionHandle) {
     const rect = layerRef.current?.getBoundingClientRect();
@@ -147,18 +148,28 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
   function moveDrag(event: ReactPointerEvent<HTMLElement>) {
     const current = drag.current;
     if (!current) return;
-    const dx = (event.clientX - current.x) * current.scale;
-    const dy = (event.clientY - current.y) * current.scale;
-    callbacks.onChange(resizeRegion(current.origin, current.part, current.handle, dx, dy, size));
+    callbacks.onChange(dragResult(current, event.clientX, event.clientY, size));
   }
 
+  /** The box ends where the pointer lifts, even if no move was delivered there. */
   function endDrag(event: ReactPointerEvent<HTMLElement>) {
-    if (!drag.current) return;
+    const current = drag.current;
+    if (!current) return;
     drag.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
+    callbacks.onChange(dragResult(current, event.clientX, event.clientY, size));
   }
 
-  const dragHandlers = { onPointerMove: moveDrag, onPointerUp: endDrag, onPointerCancel: endDrag };
+  /** A cancelled gesture (the browser took the pointer) puts the box back where it started. */
+  function cancelDrag(event: ReactPointerEvent<HTMLElement>) {
+    const current = drag.current;
+    if (!current) return;
+    drag.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    callbacks.onChange(current.origin);
+  }
+
+  const dragHandlers = { onPointerMove: moveDrag, onPointerUp: endDrag, onPointerCancel: cancelDrag };
   const handles = (region: Flux3ImageRegion, part: BoxPart) =>
     [...EDGE_HANDLES, ...CORNER_HANDLES].map((handle) => (
       <span

@@ -89,7 +89,12 @@ describe("FLUX 3 Image route", () => {
     ]);
     expect(mocks.saveOutputFiles).toHaveBeenCalledWith(expect.objectContaining({ title: "glass fox", prompt: "a glass fox at dawn" }));
     expect(body.flux3Image).toMatchObject({ mode: "t2i", imageCount: 0, settings: { resolution: "2k" } });
-    expect(mocks.patchOutputMetadataFile).toHaveBeenCalledWith("outputs/f3i-1.json", { flux3Image: body.flux3Image });
+    // Saved with the rest of the metadata, not patched in afterwards.
+    expect(mocks.saveOutputFiles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ runSettings: expect.objectContaining({ flux3Image: body.flux3Image }), operation: "flux3-image:t2i" })
+      })
+    );
   });
 
   it("queues as flux-3-image at the tier's price, not as a FLUX.2 job", async () => {

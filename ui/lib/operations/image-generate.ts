@@ -226,18 +226,23 @@ async function finalize(input: OperationFinalizeInput) {
   marks.downloadedAt = Date.now();
 
   const safePayload = redactImagePayload(prepared.payload);
-  const runSettings = buildRunSettings({
-    title: prepared.title,
-    model: context.model,
-    endpointName: context.endpointName,
-    payload: safePayload,
-    referenceCount: context.referenceCount,
-    referenceWeight: context.referenceWeight,
-    promptUpsampling: context.shouldUpsample,
-    finetuneId: context.finetune?.finetuneId ?? null,
-    finetuneStrength: context.finetune?.finetuneStrength ?? null,
-    submitted
-  });
+  const runSettings = {
+    ...buildRunSettings({
+      title: prepared.title,
+      model: context.model,
+      endpointName: context.endpointName,
+      payload: safePayload,
+      referenceCount: context.referenceCount,
+      referenceWeight: context.referenceWeight,
+      promptUpsampling: context.shouldUpsample,
+      finetuneId: context.finetune?.finetuneId ?? null,
+      finetuneStrength: context.finetune?.finetuneStrength ?? null,
+      submitted
+    }),
+    // Settings another operation adds (FLUX 3 Image's mode and tier), saved before the
+    // sidecar, the PNG text chunk and the remote copy are written, so all three agree.
+    ...(context.runSettingsExtra || {})
+  };
   const metadata: Record<string, any> = {
     id: submitted.id,
     pollingUrl: input.pollingUrl,
@@ -264,7 +269,9 @@ async function finalize(input: OperationFinalizeInput) {
           ? input.creditsBefore - input.creditsAfter
           : null
     },
-    result
+    result,
+    // Top-level fields the output reader maps, such as sourceAssetId and operation.
+    ...(context.metadataExtra || {})
   };
   const extension = outputExtension(context.outputFormat, downloaded.contentType);
   const imageBuffer = extension === "png" ? embedPngMetadata(downloaded.buffer, metadata) : downloaded.buffer;

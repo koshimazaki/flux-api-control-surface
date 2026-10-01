@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FLUX3_IMAGE_MIN_BOX } from "@/lib/flux3-image";
 import type { Flux3ImageRegion } from "@/lib/flux3-image-boxes";
-import { boxFromPoints, defaultMoveTarget, regionCardPlacement, resizeBox, resizeRegion } from "@/lib/flux3-image-regions";
+import { boxFromPoints, defaultMoveTarget, dragResult, regionCardPlacement, resizeBox, resizeRegion } from "@/lib/flux3-image-regions";
 
 const size = { width: 400, height: 300 };
 const region = (patch: Partial<Flux3ImageRegion> = {}): Flux3ImageRegion => ({
@@ -35,6 +35,15 @@ describe("FLUX 3 Image box geometry", () => {
     const moved = resizeRegion(moving, "target", "move", -40, 20, size);
     expect(moved).toMatchObject({ x: 100, y: 100, target: { x: 210, y: 120 } });
     expect(resizeRegion(moving, "source", "move", 10, 0, size)).toMatchObject({ x: 110, target: { x: 250 } });
+  });
+
+  it("places a dragged box where the pointer is, measured from where the drag began", () => {
+    // Started at screen x 0 over a frame drawn at half size; the last move came at 25, the release at 80.
+    const drag = { part: "source" as const, handle: "move" as const, x: 0, y: 0, scale: 2, origin: region() };
+    expect(dragResult(drag, 25, 0, size)).toMatchObject({ x: 150 });
+    expect(dragResult(drag, 80, 0, size)).toMatchObject({ x: 260 });
+    const target = { ...drag, part: "target" as const, origin: region({ action: "move", target: { x: 0, y: 0, width: 100, height: 80 } }) };
+    expect(dragResult(target, 10, 20, size)).toMatchObject({ x: 100, target: { x: 20, y: 40 } });
   });
 
   it("starts a move a fifth of the frame sideways, leftward when there is no room", () => {

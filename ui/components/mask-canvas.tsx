@@ -287,8 +287,11 @@ export function MaskCanvas({
     lastPoint.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
     if (shapes) {
-      // A fast drag can lift before React renders its last move, so the box ends where the pointer did.
-      const points = tool === "box" ? (boxDrag ? [boxDrag.start, canvasPoint(event) ?? boxDrag.end] : []) : trace;
+      // A cancelled gesture (the browser took the pointer) draws nothing: its
+      // coordinates are not an end point. A fast drag can lift before React
+      // renders its last move, so a lifted box ends where the pointer did.
+      const cancelled = event.type === "pointercancel";
+      const points = cancelled ? [] : tool === "box" ? (boxDrag ? [boxDrag.start, canvasPoint(event) ?? boxDrag.end] : []) : trace;
       if (points.length && naturalSize) {
         onShape?.({ tool, points, brush: brushPx.current, additive: event.shiftKey }, naturalSize);
       }

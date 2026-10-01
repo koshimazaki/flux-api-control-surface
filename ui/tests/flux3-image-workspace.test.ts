@@ -35,7 +35,8 @@ describe("FLUX 3 Image workspace state", () => {
     expect(normalizeFlux3ImageDraft("nope").mode).toBe("t2i");
     expect(normalizeFlux3ImageDraft({ mode: "i2i", references: ["asset-1", 7, "", "asset-4", "extra"] })).toMatchObject({
       mode: "i2i",
-      references: ["asset-1", null, null, "asset-4", "extra", null, null, null, null, null]
+      // Gaps close up, so slot numbers match the images sent.
+      references: ["asset-1", "asset-4", "extra", null, null, null, null, null, null, null]
     });
     expect(normalizeFlux3ImageDraft({ settings: { resolution: "4k", grounding: false } }).settings).toMatchObject({
       resolution: "4k",

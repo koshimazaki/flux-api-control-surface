@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Size } from "@/lib/canvas-geometry";
 import {
   FLUX3_IMAGE_MAX_REFERENCES,
+  compactReferenceIds,
   defaultFlux3ImageSettings,
   normalizeFlux3ImageSettings,
   type Flux3ImageMode,
@@ -72,10 +73,13 @@ export function normalizeFlux3ImageDraft(value: unknown): Flux3ImageDraft {
   return {
     mode,
     prompts: { t2i: asText(prompts.t2i), i2i: asText(prompts.i2i), edit: asText(prompts.edit), precise: asText(prompts.precise) },
-    references: Array.from({ length: FLUX3_IMAGE_MAX_REFERENCES }, (_, index) => {
-      const id = Array.isArray(record.references) ? record.references[index] : null;
-      return typeof id === "string" && id ? id : null;
-    }),
+    // Saved drafts could have gaps; numbers on screen must match the images sent.
+    references: compactReferenceIds(
+      Array.from({ length: FLUX3_IMAGE_MAX_REFERENCES }, (_, index) => {
+        const id = Array.isArray(record.references) ? record.references[index] : null;
+        return typeof id === "string" && id ? id : null;
+      })
+    ),
     regions: boxes(Array.isArray(record.regions) ? record.regions : record.boxes),
     regionSourceId:
       typeof record.regionSourceId === "string"
