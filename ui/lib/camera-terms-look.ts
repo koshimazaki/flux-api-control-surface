@@ -61,7 +61,7 @@ export const shutter = {
   label: "Shutter & time",
   heading: "Shutter and time",
   anchor: "shutter-and-time",
-  color: "--camera-optics",
+  color: "--camera-time",
   glyph: "icon",
   terms: [
     term("slow-motion", "Slow motion", "Stretch a moment out.", "Slow motion, the action stretched out.", { speed: 0.35 }),
@@ -115,7 +115,7 @@ export const format = {
   label: "Format",
   heading: "Aspect and format",
   anchor: "aspect-and-format",
-  color: "--camera-optics",
+  color: "--camera-format",
   glyph: "icon",
   terms: [
     term("letterbox", "Letterboxed", "Cinematic bars top and bottom.", "Letterboxed widescreen with black bars top and bottom."),

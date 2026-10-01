@@ -8,6 +8,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import {
   CAMERA_GUIDE_SECTION_COUNT,
   CAMERA_GUIDE_URL,
+  DIRECTION_SUBTITLE,
   cameraLabel,
   cameraSections,
   type CameraDirection
@@ -57,10 +58,10 @@ export function CameraDialog({ direction, onApply, onClose }: CameraDialogProps)
       <div className="cameraDialogInner">
         <header className="cameraDialogHeader">
           <div>
-            <h2 id={headingId}>Camera controls</h2>
-            <p>Choose any combination. Leave the rest at None.</p>
+            <h2 id={headingId}>Visual direction</h2>
+            <p>{DIRECTION_SUBTITLE}. Choose any combination; leave the rest at None.</p>
           </div>
-          <IconButton title="Cancel camera changes" onClick={onClose}>
+          <IconButton title="Cancel direction changes" onClick={onClose}>
             <X size={16} />
           </IconButton>
         </header>

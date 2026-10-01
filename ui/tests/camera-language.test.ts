@@ -65,7 +65,7 @@ describe("camera registry", () => {
   it("starts with no camera direction, so existing prompts are unchanged", () => {
     expect(defaultCameraDirection.selection).toEqual(emptyCameraSelection);
     expect(cameraChoice(defaultCameraDirection)).toBeNull();
-    expect(cameraLabel(emptyCameraSelection)).toBe("No camera direction");
+    expect(cameraLabel(emptyCameraSelection)).toBe("No direction selected");
   });
 });
 
