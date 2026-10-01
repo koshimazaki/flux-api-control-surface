@@ -1,11 +1,11 @@
 import type { GenerationJobKind } from "@/lib/generation-queue";
 import { videoAdapter } from "./video";
-import { imageGenerateAdapter } from "./image-generate";
+import { imageAdapter } from "./image";
 import { imageToolAdapter } from "./image-tool";
 import type { OperationAdapter } from "./types";
 
 const adapters: Record<GenerationJobKind, OperationAdapter> = {
-  image: imageGenerateAdapter,
+  image: imageAdapter,
   tool: imageToolAdapter,
   video: videoAdapter
 };

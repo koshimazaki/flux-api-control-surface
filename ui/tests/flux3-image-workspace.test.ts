@@ -6,7 +6,7 @@ import { imageWorkspaceModes, workspaceModesForMedia } from "@/lib/workspace-med
 const legacyBox = { id: "box-a", x: 10, y: 20, width: 100, height: 80, fuzz: 8, prompt: "make the scarf red" };
 
 describe("FLUX 3 Image workspace state", () => {
-  it("reads a stored draft defensively", () => {
+  it("reads a stored draft defensively, turning mask-era regions into boxes", () => {
     const draft = normalizeFlux3ImageDraft({
       mode: "precise",
       editTool: "eraser",
@@ -20,22 +20,36 @@ describe("FLUX 3 Image workspace state", () => {
       ],
       regionSourceId: "asset-1"
     });
-    expect(draft).toMatchObject({ mode: "precise", editTool: "eraser", regionTool: "lasso", regionSourceId: "asset-1" });
-    expect(draft.prompts).toEqual({ t2i: "fox", i2i: "", edit: "" });
-    expect(draft.references).toEqual([null, null, null, null]);
-    // A painted region with no strokes is dropped; fuzz is clamped to the slider.
-    expect(draft.regions).toHaveLength(1);
-    expect(draft.regions[0]).toMatchObject({ id: "r1", kind: "lasso", fuzz: 64, referenceId: "asset-9" });
+    expect(draft).toMatchObject({ mode: "precise", regionSourceId: "asset-1", regionFrame: null, layoutEnabled: false, layoutRegions: [] });
+    // The painting tools are gone with the masks.
+    expect(draft).not.toHaveProperty("editTool");
+    expect(draft).not.toHaveProperty("regionTool");
+    expect(draft.prompts).toEqual({ t2i: "fox", i2i: "", edit: "", precise: "" });
+    expect(draft.references).toEqual(Array.from({ length: 10 }, () => null));
+    expect(draft.settings).toEqual({ aspectRatio: "auto", resolution: "1k", grounding: true, safetyTolerance: 2 });
+    // Lasso and brush regions keep their bounds as change boxes; outlines and fuzz are dropped.
+    expect(draft.regions).toEqual([
+      { id: "r1", x: 5, y: 5, width: 50, height: 40, action: "change", prompt: "sky", referenceId: "asset-9" },
+      { id: "r2", x: 0, y: 0, width: 10, height: 10, action: "change", prompt: "", referenceId: null }
+    ]);
     expect(normalizeFlux3ImageDraft("nope").mode).toBe("t2i");
     expect(normalizeFlux3ImageDraft({ mode: "i2i", references: ["asset-1", 7, "", "asset-4", "extra"] })).toMatchObject({
       mode: "i2i",
-      references: ["asset-1", null, null, "asset-4"]
+      references: ["asset-1", null, null, "asset-4", "extra", null, null, null, null, null]
     });
+    expect(normalizeFlux3ImageDraft({ settings: { resolution: "4k", grounding: false } }).settings).toMatchObject({
+      resolution: "4k",
+      grounding: false
+    });
+    expect(
+      normalizeFlux3ImageDraft({ regionFrame: { width: 1360, height: 768 }, layoutEnabled: true, layoutRegions: [{ id: "l1", x: 0, y: 0, width: 500, height: 500, prompt: "sky" }] })
+    ).toMatchObject({ regionFrame: { width: 1360, height: 768 }, layoutEnabled: true, layoutRegions: [{ id: "l1", action: "change" }] });
   });
 
   it("carries boxes from drafts saved before regions over as box regions", () => {
     const draft = normalizeFlux3ImageDraft({ boxes: [legacyBox], boxSourceId: "asset-1" });
-    expect(draft.regions).toEqual([{ ...legacyBox, kind: "box", referenceId: null }]);
+    const { fuzz: _fuzz, ...bounds } = legacyBox;
+    expect(draft.regions).toEqual([{ ...bounds, action: "change", referenceId: null }]);
     expect(draft.regionSourceId).toBe("asset-1");
   });
 

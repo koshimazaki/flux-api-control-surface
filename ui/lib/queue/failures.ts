@@ -20,6 +20,16 @@ export function providerStatusFromMessage(message: string) {
   return match ? Number(match[1]) : undefined;
 }
 
+/**
+ * BFL may answer a poll with HTTP 503 and a regular result body, and its
+ * `status` still decides the job; any other failed poll is rethrown.
+ */
+export function pollBodyFromError(error: unknown): Record<string, any> {
+  const { status, data } = (error ?? {}) as { status?: unknown; data?: Record<string, unknown> };
+  if (status === 503 && data && typeof data.status === "string") return data;
+  throw error;
+}
+
 export function classifyProviderFailure(input: {
   message?: string;
   status?: number;

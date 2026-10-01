@@ -84,13 +84,11 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           sourceAsset={state.toolSourceAsset}
           assets={state.assets}
           onImportFiles={(files) => state.importImageAssetFiles(files, { assetKind: "reference", focusAssetsTab: false })}
-          mask={state.toolMask}
-          onMaskChange={state.setToolMask}
-          brushSize={state.toolBrushSize}
-          onBrushSizeChange={state.setToolBrushSize}
           onClearSource={state.clearToolSourceAsset}
           onSourceDropPayload={(payload) => void state.loadToolSourceFromDropPayload(payload)}
           onSourceFiles={(files) => void state.importToolSourceFiles(files)}
+          onRun={state.runFlux3Image}
+          isRunning={state.isFlux3ImageRunning}
         />
       </section>
     );

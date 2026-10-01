@@ -287,7 +287,8 @@ export function MaskCanvas({
     lastPoint.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
     if (shapes) {
-      const points = tool === "box" ? (boxDrag ? [boxDrag.start, boxDrag.end] : []) : trace;
+      // A fast drag can lift before React renders its last move, so the box ends where the pointer did.
+      const points = tool === "box" ? (boxDrag ? [boxDrag.start, canvasPoint(event) ?? boxDrag.end] : []) : trace;
       if (points.length && naturalSize) {
         onShape?.({ tool, points, brush: brushPx.current, additive: event.shiftKey }, naturalSize);
       }

@@ -438,6 +438,23 @@ server.registerTool(
 );
 
 server.registerTool(
+  "generate_flux3_image",
+  {
+    title: "Generate FLUX 3 Image",
+    description:
+      "Generate and locally save a FLUX 3 image. Modes: t2i (prompt; optional layout boxes with frame), i2i (up to ten references), edit (whole-image edit of a source), precise (an edit with boxes on the source: each box {x, y, width, height, action: change|keep|move|remove, prompt, reference?, target? for move} in source pixels, plus frame {width, height}). Boxes are converted to BFL's [top, left, bottom, right] 0-1000 rows in the prompt. Settings: aspectRatio, resolution (768sq, 1k, 2k, 4k), grounding, safetyTolerance. There is no mask.",
+    inputSchema: {
+      payload: z.record(z.string(), z.unknown())
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async ({ payload }) => result(await post("/api/bfl/flux3-image", payload))
+);
+
+server.registerTool(
   "generate_flux3_video",
   {
     title: "Generate FLUX 3 Video",

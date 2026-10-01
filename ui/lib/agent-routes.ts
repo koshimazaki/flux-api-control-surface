@@ -46,6 +46,7 @@ export const agentRouteMap = {
   queue: "/api/dashboard/queue",
   generate: "/api/bfl/generate",
   flux3Video: "/api/bfl/flux3-video",
+  flux3Image: "/api/bfl/flux3-image",
   videoUpscale: "/api/bfl/video-upscale",
   tools: "/api/bfl/tools",
   providerJobs: "/api/bfl/jobs",
@@ -266,6 +267,27 @@ export const dashboardAgentRoutes: AgentRoute[] = [
       verdict: "unreviewed | keep | maybe | reject",
       tags: "optional string[]",
       notes: "optional string"
+    }
+  },
+  {
+    method: "POST",
+    path: agentRouteMap.flux3Image,
+    purpose:
+      "Generate a FLUX 3 image (POST /v1/flux-3-image): text to image (optionally laid out with boxes), image to image from up to ten references, a whole-image edit, or an edit with boxes that change, keep, move or remove parts of the source. Polls, downloads, and saves the image locally like /api/bfl/generate.",
+    sideEffects: true,
+    category: "generation",
+    auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
+    body: {
+      t2i: "mode=t2i, prompt, settings { aspectRatio, resolution (768sq|1k|2k|4k), grounding, safetyTolerance }; optional layout[] boxes { x, y, width, height, prompt } with frame { width, height }",
+      i2i: "mode=i2i, prompt, references[1..10] (URL, data URL, or /api/outputs/<id>/image), settings",
+      edit: "mode=edit, prompt, source (one image), settings",
+      precise:
+        "mode=precise, source, frame { width, height } (source pixels), regions[] { x, y, width, height, action: change|keep|move|remove, prompt, reference? (change), target? { x, y, width, height } (move) }, optional prompt; aspect ratio is sent as auto"
+    },
+    example: {
+      mode: "t2i",
+      prompt: "A glass fox in a misty pine forest at dawn, soft rim light.",
+      settings: { aspectRatio: "16:9", resolution: "2k", grounding: true, safetyTolerance: 2 }
     }
   },
   {
@@ -553,7 +575,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
 
 export const localAgentCoverage = {
   generation:
-    "Image generation is wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate. FLUX 3 generation is wired through /api/bfl/flux3-video; FLUX 3 Video Upscale is wired through /api/bfl/video-upscale with saved before/after media. Every paid entry point uses the server-owned queue, so execution, retry, and recovery are identical from the browser, MCP, and CLI.",
+    "Image generation is wired through /api/dashboard/run-plan, /api/dashboard/batch, and /api/bfl/generate. FLUX 3 generation is wired through /api/bfl/flux3-video and FLUX 3 Image through /api/bfl/flux3-image; FLUX 3 Video Upscale is wired through /api/bfl/video-upscale with saved before/after media. Every paid entry point uses the server-owned queue, so execution, retry, and recovery are identical from the browser, MCP, and CLI.",
   queue:
     "One server-owned, file-backed generation queue runs image, tool, and video lanes with a renewable single-runner lease. Inspect and control it through /api/dashboard/queue; repair individual provider jobs through /api/bfl/jobs.",
   imageTools: "Erase, virtual try-on, outpaint, and deblur are wired through /api/bfl/tools and the image-tool workspace.",
@@ -597,6 +619,7 @@ export const localDashboardMcpTools = [
   "list_evaluations",
   "update_evaluation",
   "generate_flux3_video",
+  "generate_flux3_image",
   "upscale_video",
   "run_image_tool",
   "save_prompt",

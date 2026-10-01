@@ -44,6 +44,7 @@ import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
 import { useAssetCollections } from "@/lib/dashboard/use-asset-collections";
 import { glyphPreviewBackgroundForSvg, type GlyphPreviewBackground } from "@/lib/glyph-svg";
 import { useBalance } from "@/lib/dashboard/use-balance";
+import { useFlux3ImageRun } from "@/lib/dashboard/use-flux3-image-run";
 import { useGlyphLabCache } from "@/lib/dashboard/use-glyph-lab-cache";
 import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
 import { IMAGE_PROMPT_LIBRARY_ID, VIDEO_PROMPT_LIBRARY_ID } from "@/lib/prompt-library-groups";
@@ -425,6 +426,16 @@ export function useDashboardState() {
   });
 
   const { balance, setBalance, isCheckingBalance, checkBalance } = useBalance(apiKey);
+  const { runFlux3Image, isFlux3ImageRunning } = useFlux3ImageRun({
+    apiKey,
+    balance,
+    setAssets,
+    setRunLog,
+    setBalance,
+    setSelectedAsset,
+    setError,
+    setRecoveryMessage
+  });
   const serverQueue = useServerQueue({ onError: setError });
   const generationQueue = serverQueue.queue as GenerationQueueJob[];
   const generationQueueSummary = serverQueue.summary;
@@ -1327,6 +1338,8 @@ export function useDashboardState() {
     clearVtoGarment,
     toolMask,
     setToolMask,
+    runFlux3Image,
+    isFlux3ImageRunning,
     toolBrushSize,
     setToolBrushSize,
     toolDilatePixels,

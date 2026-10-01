@@ -1,48 +1,102 @@
 import { clampValue, type Size } from "@/lib/canvas-geometry";
+import {
+  FLUX3_IMAGE_MIN_BOX,
+  boxesBlocker,
+  composeEditPrompt,
+  composeLayoutPrompt,
+  editImages,
+  type Flux3ImageRegion,
+  type Flux3ImageRequestRegion
+} from "@/lib/flux3-image-boxes";
+
+export { FLUX3_IMAGE_MIN_BOX };
+export type { Flux3Box, Flux3BoxAction, Flux3ImageRegion, Flux3ImageRequestRegion } from "@/lib/flux3-image-boxes";
 
 /**
- * FLUX 3 Image: text to image, image to image from reference images, edits
- * (whole image or an inpainted area), and precise edits split into regions,
- * each with its own prompt and optional reference image. The model's API is not published yet, so this module
- * holds only the client-side request shape, the blocker and the region
- * geometry. `FLUX3_IMAGE_API` stays null until BFL publishes the endpoint and
- * schema; nothing can be submitted before then, and no payload is guessed.
+ * FLUX 3 Image on `POST /v1/flux-3-image` (published 1 October 2026): a
+ * prompt, one to ten `images`, `aspect_ratio`, `resolution`, `grounding`,
+ * `safety_tolerance` and `version`, and nothing else. Four ways in:
+ *
+ * - t2i: text to image, optionally laid out with boxes (layout rows)
+ * - i2i: image to image from up to ten references named "image 1", "image 2"…
+ * - edit: a whole-image edit of one source, from an instruction
+ * - precise: an edit with boxes, each changing, keeping, moving or removing
+ *   what is there (edit rows; see `flux3-image-boxes.ts`)
+ *
+ * There is no mask: boxes in the prompt place each change.
  */
 export type Flux3ImageMode = "t2i" | "i2i" | "edit" | "precise";
 
-/** How a precise-edit region was drawn. */
-export type Flux3RegionKind = "box" | "lasso" | "paint";
-/** A point inside a region's bounds, 0–1 on each axis, so resizing scales the shape. */
-export type RegionPoint = [number, number];
+/** Queue operation name for `POST /v1/flux-3-image`, alongside the FLUX.2 "generate" operation. */
+export const FLUX3_IMAGE_OPERATION = "flux3-image";
+/** The model label the queue shows and budgets by; BFL: 4k "can take several minutes". */
+export const FLUX3_IMAGE_MODEL = "flux-3-image";
 
-/** One precise-edit region: bounds in source pixels, its shape, its edit and reference. */
-export type Flux3ImageRegion = {
-  id: string;
-  kind: Flux3RegionKind;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  /** Lasso outlines or brush strokes, relative to the bounds. Boxes have none. */
-  paths?: RegionPoint[][];
-  /** Brush diameter in source pixels, for painted regions. */
-  brush?: number;
-  /** Soft-edge radius in source pixels, for edges such as hair. */
-  fuzz: number;
-  prompt: string;
-  /** Asset id of the region's reference image. */
-  referenceId?: string | null;
+/** `images`: "one to 10 total", references or the edit source alike. */
+export const FLUX3_IMAGE_MAX_REFERENCES = 10;
+
+/** `aspect_ratio`: `auto` follows the first image in `images`, or makes 1:1 without one. */
+export const FLUX3_IMAGE_ASPECT_RATIOS = [
+  "auto",
+  "21:9",
+  "2:1",
+  "16:9",
+  "3:2",
+  "7:5",
+  "4:3",
+  "5:4",
+  "1:1",
+  "4:5",
+  "3:4",
+  "5:7",
+  "2:3",
+  "9:16",
+  "1:2",
+  "9:21"
+] as const;
+/** `resolution`: the four documented, priced tiers; `1k` is the API's default. */
+export const FLUX3_IMAGE_RESOLUTIONS = ["768sq", "1k", "2k", "4k"] as const;
+/** Price per image by resolution, from BFL's pricing page (1 October 2026). */
+export const FLUX3_IMAGE_PRICE_USD: Record<(typeof FLUX3_IMAGE_RESOLUTIONS)[number], number> = {
+  "768sq": 0.041,
+  "1k": 0.048,
+  "2k": 0.1,
+  "4k": 0.607
+};
+export type Flux3ImageAspectRatio = (typeof FLUX3_IMAGE_ASPECT_RATIOS)[number];
+export type Flux3ImageResolution = (typeof FLUX3_IMAGE_RESOLUTIONS)[number];
+
+/** The published settings, with the API's own defaults. */
+export type Flux3ImageSettings = {
+  aspectRatio: Flux3ImageAspectRatio;
+  resolution: Flux3ImageResolution;
+  /** Lets the prompt be grounded in web and image search; on by default. */
+  grounding: boolean;
+  /** Moderation tolerance, 0 (strictest) to 4. */
+  safetyTolerance: number;
 };
 
-/** A region as sent: its reference resolved to an image source. */
-export type Flux3ImageRequestRegion = Omit<Flux3ImageRegion, "referenceId"> & { reference?: string };
+export const defaultFlux3ImageSettings: Flux3ImageSettings = {
+  aspectRatio: "auto",
+  resolution: "1k",
+  grounding: true,
+  safetyTolerance: 2
+};
 
-/** Provisional UI limits until the API documents its own. */
-export const FLUX3_IMAGE_FUZZ_MAX = 64;
-export const FLUX3_IMAGE_DEFAULT_FUZZ = 8;
-export const FLUX3_IMAGE_MIN_BOX = 8;
-/** At least four references are supported; raise this once the API states its limit. */
-export const FLUX3_IMAGE_MAX_REFERENCES = 4;
+export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings {
+  const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const aspectRatio = FLUX3_IMAGE_ASPECT_RATIOS.find((ratio) => ratio === record.aspectRatio);
+  const resolution = FLUX3_IMAGE_RESOLUTIONS.find((tier) => tier === record.resolution);
+  const tolerance = Number(record.safetyTolerance);
+  return {
+    aspectRatio: aspectRatio ?? defaultFlux3ImageSettings.aspectRatio,
+    resolution: resolution ?? defaultFlux3ImageSettings.resolution,
+    grounding: typeof record.grounding === "boolean" ? record.grounding : defaultFlux3ImageSettings.grounding,
+    safetyTolerance: Number.isFinite(tolerance)
+      ? Math.round(clampValue(tolerance, 0, 4))
+      : defaultFlux3ImageSettings.safetyTolerance
+  };
+}
 
 export type Flux3ImageRequest = {
   mode: Flux3ImageMode;
@@ -52,26 +106,89 @@ export type Flux3ImageRequest = {
   references?: string[];
   /** Source image for edit and precise modes (data URL or dashboard URL). */
   source?: string;
-  /** Edit: white-on-black inpaint mask at the source resolution; none edits the whole image. */
+  /** Not in the API: an agent that sends one is told to use boxes instead. */
   mask?: string;
-  /** Precise: the regions, each with its own prompt. */
+  /** Precise: the boxes, each with its action, description and optional reference. */
   regions?: Flux3ImageRequestRegion[];
+  /** Text to image: layout boxes, each with what goes in it. */
+  layout?: Flux3ImageRequestRegion[];
+  /** The pixel size the boxes were drawn in: the source for precise, the layout frame for t2i. */
+  frame?: Size;
+  /** Published settings; missing ones take the API defaults. */
+  settings?: Partial<Flux3ImageSettings>;
 };
 
-/** The published API, wired in once BFL documents it. */
+/** The published API: its endpoint, the request mapping and, once BFL lists a price, an estimate. */
 export type Flux3ImageApi = {
   endpoint: string;
   toPayload: (request: Flux3ImageRequest) => Record<string, unknown>;
   estimateUsd?: (request: Flux3ImageRequest) => number | null;
 };
 
-export const FLUX3_IMAGE_API: Flux3ImageApi | null = null;
+/**
+ * The images a request sends, in order: the references for image to image;
+ * the source for an edit; the source then each distinct box reference for a
+ * precise edit, so `ref_image_N` matches its position.
+ */
+export function flux3ImageInputs(request: Flux3ImageRequest) {
+  if (request.mode === "i2i") return (request.references ?? []).filter(Boolean);
+  if (request.mode === "edit") return request.source ? [request.source] : [];
+  if (request.mode === "precise") return editImages(request.source, request.regions ?? []);
+  return [];
+}
+
+/** Layout boxes with nothing in them are left out; an empty layout is plain text to image. */
+function usedLayout(request: Flux3ImageRequest) {
+  return request.mode === "t2i" ? (request.layout ?? []).filter((box) => box.prompt.trim()) : [];
+}
+
+function toPayload(request: Flux3ImageRequest): Record<string, unknown> {
+  const settings = normalizeFlux3ImageSettings({ ...defaultFlux3ImageSettings, ...request.settings });
+  const images = flux3ImageInputs(request);
+  const layout = usedLayout(request);
+  let prompt = (request.prompt ?? "").trim();
+  let aspectRatio: Flux3ImageAspectRatio = settings.aspectRatio;
+  if (request.mode === "precise" && request.frame) {
+    prompt = composeEditPrompt(request.prompt, request.regions ?? [], request.frame, images);
+    // Boxes are drawn on the source frame; auto keeps it, so they land where they were drawn.
+    aspectRatio = "auto";
+  } else if (layout.length && request.frame) {
+    prompt = composeLayoutPrompt(request.prompt, layout, request.frame);
+    // The frame the boxes were designed on; without a reference, auto would be square anyway.
+    if (aspectRatio === "auto") aspectRatio = "1:1";
+  }
+  return {
+    prompt,
+    ...(images.length ? { images } : {}),
+    aspect_ratio: aspectRatio,
+    resolution: settings.resolution,
+    grounding: settings.grounding,
+    safety_tolerance: settings.safetyTolerance
+  };
+}
+
+/** `POST /v1/flux-3-image`, published 1 October 2026, priced per image by resolution. */
+export const FLUX3_IMAGE_API: Flux3ImageApi | null = {
+  endpoint: "flux-3-image",
+  toPayload,
+  estimateUsd: (request) => FLUX3_IMAGE_PRICE_USD[normalizeFlux3ImageSettings(request.settings).resolution]
+};
 
 export const FLUX3_IMAGE_API_PENDING =
   "FLUX 3 Image is not in the API yet. This request is ready to wire once the endpoint is published.";
 
+/** What the published API cannot take at all: a mask. Boxes in Precise do that job. */
+export function flux3ImageScopeBlocker(input: Flux3ImageRequest) {
+  if (input.mask) return "FLUX 3 Image takes no mask. Use Precise and draw a box around the area instead.";
+  return null;
+}
+
 export function flux3ImageInputBlocker(input: Flux3ImageRequest) {
-  if (input.mode === "t2i") return input.prompt?.trim() ? null : "Describe the image you want.";
+  if (input.mode === "t2i") {
+    const layout = input.layout ?? [];
+    if (!input.prompt?.trim() && !layout.some((box) => box.prompt.trim())) return "Describe the image you want.";
+    return layout.length ? boxesBlocker(usedLayout(input), input.frame, true) : null;
+  }
   if (input.mode === "i2i") {
     const count = input.references?.filter(Boolean).length ?? 0;
     if (!count) return "Add at least one reference image.";
@@ -79,19 +196,17 @@ export function flux3ImageInputBlocker(input: Flux3ImageRequest) {
     return input.prompt?.trim() ? null : "Describe the image to make from the references.";
   }
   if (!input.source) return "Load a source image to edit.";
-  if (input.mode === "edit") {
-    if (input.prompt?.trim()) return null;
-    return input.mask ? "Describe the edit for the painted area." : "Describe the edit.";
+  if (input.mode === "edit") return input.prompt?.trim() ? null : "Describe the edit.";
+  const images = flux3ImageInputs(input);
+  if (images.length > FLUX3_IMAGE_MAX_REFERENCES) {
+    return `The source and box references come to ${images.length} images; FLUX 3 Image takes up to ${FLUX3_IMAGE_MAX_REFERENCES}.`;
   }
-  const regions = input.regions ?? [];
-  if (!regions.length) return "Draw a region: a box, a brush stroke or a lasso.";
-  const empty = regions.findIndex((region) => !region.prompt.trim());
-  return empty === -1 ? null : `Type the edit into region ${empty + 1}.`;
+  return boxesBlocker(input.regions ?? [], input.frame);
 }
 
-/** The input problem first, then the missing API; null only when a request could be sent. */
+/** The input problem first, then what the API cannot take yet; null only when a request could be sent. */
 export function flux3ImageRequestBlocker(input: Flux3ImageRequest, api: Flux3ImageApi | null = FLUX3_IMAGE_API) {
-  return flux3ImageInputBlocker(input) ?? (api ? null : FLUX3_IMAGE_API_PENDING);
+  return flux3ImageInputBlocker(input) ?? (api ? flux3ImageScopeBlocker(input) : FLUX3_IMAGE_API_PENDING);
 }
 
 export function estimateFlux3ImageUsd(input: Flux3ImageRequest, api: Flux3ImageApi | null = FLUX3_IMAGE_API) {
@@ -136,10 +251,6 @@ export function boxFromDrag(start: ImagePoint, end: ImagePoint, size: Size) {
     height: Math.round(bottom - top)
   };
   return box.width >= FLUX3_IMAGE_MIN_BOX && box.height >= FLUX3_IMAGE_MIN_BOX ? box : null;
-}
-
-export function clampFuzz(value: number) {
-  return Number.isFinite(value) ? Math.round(clampValue(value, 0, FLUX3_IMAGE_FUZZ_MAX)) : FLUX3_IMAGE_DEFAULT_FUZZ;
 }
 
 /**

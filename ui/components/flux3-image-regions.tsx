@@ -1,20 +1,24 @@
 import { ImagePlus, X } from "lucide-react";
 import { useRef, type CSSProperties, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { RegionCard, type BoxVariant } from "@/components/flux3-image-region-card";
 import type { Size } from "@/lib/canvas-geometry";
 import { assetImageSource } from "@/lib/dashboard-tools";
-import { FLUX3_IMAGE_FUZZ_MAX, clampFuzz, type Flux3ImageRegion } from "@/lib/flux3-image";
-import { RegionCard } from "@/components/flux3-image-region-card";
+import { FLUX3_BOX_ACTIONS, boxActionLabels, type Flux3Box, type Flux3BoxAction, type Flux3ImageRegion } from "@/lib/flux3-image-boxes";
 import {
+  defaultMoveTarget,
   regionCardPlacement,
-  regionKindLabel,
-  regionPaths,
   resizeRegion,
+  type BoxPart,
   type RegionHandle
 } from "@/lib/flux3-image-regions";
 import { dragPayloadFromTransfer, imageFilesFromTransfer, isSourceDrag } from "@/lib/source-drop";
 import type { AssetRecord } from "@/lib/types";
 
 type RegionCallbacks = {
+  /** Edit boxes have actions and references; layout boxes only a description. */
+  variant: BoxVariant;
+  /** The output tier, for the small-box warning. */
+  resolution: string;
   activeId: string | null;
   referenceFor: (region: Flux3ImageRegion) => AssetRecord | null;
   onSelect: (id: string) => void;
@@ -84,28 +88,34 @@ function percent(value: number, total: number) {
   return `${(value / Math.max(1, total)) * 100}%`;
 }
 
-function RegionShapes({ regions, activeId }: { regions: Flux3ImageRegion[]; activeId: string | null }) {
+function frameStyle(box: Flux3Box, size: Size) {
+  return {
+    left: percent(box.x, size.width),
+    top: percent(box.y, size.height),
+    width: percent(box.width, size.width),
+    height: percent(box.height, size.height)
+  } as CSSProperties;
+}
+
+/** Dashed lines from each moving box to its target, under the frames. */
+function MoveLines({ regions }: { regions: Flux3ImageRegion[] }) {
   return (
     <>
-      {regions.map((region) => {
-        const className = region.id === activeId ? "regionShape active" : "regionShape";
-        if (region.kind === "box") {
-          return <rect key={region.id} className={className} x={region.x} y={region.y} width={region.width} height={region.height} />;
-        }
-        return regionPaths(region).map((path, index) => {
-          const points = path.map((point) => `${point.x},${point.y}`).join(" ");
-          return region.kind === "lasso" ? (
-            <polygon key={`${region.id}-${index}`} className={className} points={points} />
-          ) : (
-            <polyline
-              key={`${region.id}-${index}`}
-              className={`${className} regionStroke`}
-              points={path.length === 1 ? `${points} ${points}` : points}
-              style={{ strokeWidth: region.brush }}
+      {regions
+        .filter((region) => region.action === "move" && region.target)
+        .map((region) => {
+          const target = region.target!;
+          return (
+            <line
+              key={region.id}
+              className="regionMoveLine"
+              x1={region.x + region.width / 2}
+              y1={region.y + region.height / 2}
+              x2={target.x + target.width / 2}
+              y2={target.y + target.height / 2}
             />
           );
-        });
-      })}
+        })}
     </>
   );
 }
@@ -114,22 +124,22 @@ const CORNER_HANDLES: RegionHandle[] = ["nw", "ne", "se", "sw"];
 const EDGE_HANDLES: RegionHandle[] = ["n", "e", "s", "w"];
 
 /**
- * Precise-edit regions over the source image, kept light: a dashed frame and
- * a small label chip per region. The selected region gets corner handles
- * (its edges resize too) and a card with its edit, reference and fuzz. Its
- * number drags it. Elsewhere the layer lets pointer events through, so drawing
- * continues on top.
+ * FLUX 3 Image boxes over the frame they are drawn on, kept light: a frame
+ * tinted by its action and a small chip per box. The selected box gets edge
+ * and corner handles and its card; a move also shows its dashed target box,
+ * which has handles of its own. A box's number drags it. Elsewhere the layer
+ * lets pointer events through, so drawing continues on top.
  */
 export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & { regions: Flux3ImageRegion[]; size: Size }) {
   const layerRef = useRef<HTMLDivElement | null>(null);
-  const drag = useRef<{ handle: RegionHandle; x: number; y: number; scale: number; origin: Flux3ImageRegion } | null>(null);
+  const drag = useRef<{ part: BoxPart; handle: RegionHandle; x: number; y: number; scale: number; origin: Flux3ImageRegion } | null>(null);
 
-  function startDrag(event: ReactPointerEvent<HTMLElement>, region: Flux3ImageRegion, handle: RegionHandle) {
+  function startDrag(event: ReactPointerEvent<HTMLElement>, region: Flux3ImageRegion, part: BoxPart, handle: RegionHandle) {
     const rect = layerRef.current?.getBoundingClientRect();
     if (!rect?.width) return;
     event.preventDefault();
     event.stopPropagation();
-    drag.current = { handle, x: event.clientX, y: event.clientY, scale: size.width / rect.width, origin: region };
+    drag.current = { part, handle, x: event.clientX, y: event.clientY, scale: size.width / rect.width, origin: region };
     event.currentTarget.setPointerCapture(event.pointerId);
     callbacks.onSelect(region.id);
   }
@@ -139,7 +149,7 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
     if (!current) return;
     const dx = (event.clientX - current.x) * current.scale;
     const dy = (event.clientY - current.y) * current.scale;
-    callbacks.onChange(resizeRegion(current.origin, current.handle, dx, dy, size));
+    callbacks.onChange(resizeRegion(current.origin, current.part, current.handle, dx, dy, size));
   }
 
   function endDrag(event: ReactPointerEvent<HTMLElement>) {
@@ -149,70 +159,82 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
   }
 
   const dragHandlers = { onPointerMove: moveDrag, onPointerUp: endDrag, onPointerCancel: endDrag };
+  const handles = (region: Flux3ImageRegion, part: BoxPart) =>
+    [...EDGE_HANDLES, ...CORNER_HANDLES].map((handle) => (
+      <span
+        key={handle}
+        className={`regionHandle regionHandle-${handle}${handle.length === 1 ? " edge" : ""}`}
+        onPointerDown={(event) => startDrag(event, region, part, handle)}
+        {...dragHandlers}
+      />
+    ));
 
   return (
     <div className="regionLayer" ref={layerRef}>
       <svg className="regionShapes" viewBox={`0 0 ${size.width} ${size.height}`} preserveAspectRatio="none" aria-hidden="true">
-        <RegionShapes regions={regions} activeId={callbacks.activeId} />
+        <MoveLines regions={regions} />
       </svg>
       {regions.map((region, index) => {
         const active = region.id === callbacks.activeId;
         const reference = callbacks.referenceFor(region);
-        const style = {
-          left: percent(region.x, size.width),
-          top: percent(region.y, size.height),
-          width: percent(region.width, size.width),
-          height: percent(region.height, size.height),
-          "--fuzz-x": percent(region.fuzz, region.width),
-          "--fuzz-y": percent(region.fuzz, region.height)
-        } as CSSProperties;
+        const action = callbacks.variant === "layout" ? "change" : region.action;
         return (
-          <div
-            key={region.id}
-            data-region-id={region.id}
-            className={["regionFrame", region.kind, active ? "active" : ""].filter(Boolean).join(" ")}
-            style={style}
-          >
-            {active && <span className="regionFuzz" aria-hidden="true" />}
-            {active &&
-              [...EDGE_HANDLES, ...CORNER_HANDLES].map((handle) => (
-                <span
-                  key={handle}
-                  className={`regionHandle regionHandle-${handle}${handle.length === 1 ? " edge" : ""}`}
-                  onPointerDown={(event) => startDrag(event, region, handle)}
-                  {...dragHandlers}
-                />
-              ))}
-            <div className="regionChip" onPointerDown={(event) => event.stopPropagation()}>
-              <button
-                type="button"
-                className="regionIndex"
-                title="Select, or drag to move"
-                onPointerDown={(event) => startDrag(event, region, "move")}
+          <div key={region.id} className="regionPair">
+            {action === "move" && region.target && (
+              <div
+                className={["regionFrame", "regionTarget", active ? "active" : ""].filter(Boolean).join(" ")}
+                style={frameStyle(region.target, size)}
+                title={`Where box ${index + 1} moves to`}
+                onPointerDown={(event) => startDrag(event, region, "target", "move")}
                 {...dragHandlers}
               >
-                {index + 1}
-              </button>
-              <button type="button" className="regionChipText" onClick={() => callbacks.onSelect(region.id)}>
-                {region.prompt.trim() || "No instruction yet"}
-              </button>
-              {reference && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className="regionChipThumb" src={assetImageSource(reference)} alt="" />
+                {active && handles(region, "target")}
+                <span className="regionTargetLabel">{index + 1} →</span>
+              </div>
+            )}
+            <div
+              data-region-id={region.id}
+              className={["regionFrame", `action-${action}`, active ? "active" : ""].filter(Boolean).join(" ")}
+              style={frameStyle(region, size)}
+            >
+              {active && handles(region, "source")}
+              <div className="regionChip" onPointerDown={(event) => event.stopPropagation()}>
+                <button
+                  type="button"
+                  className="regionIndex"
+                  title="Select, or drag to move"
+                  onPointerDown={(event) => startDrag(event, region, "source", "move")}
+                  {...dragHandlers}
+                >
+                  {index + 1}
+                </button>
+                <button type="button" className="regionChipText" onClick={() => callbacks.onSelect(region.id)}>
+                  <span>
+                    {callbacks.variant === "edit" ? `${boxActionLabels[action]}: ` : ""}
+                    {region.prompt.trim() || (action === "keep" ? "kept as is" : "no description yet")}
+                  </span>
+                </button>
+                {reference && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="regionChipThumb" src={assetImageSource(reference)} alt="" />
+                )}
+              </div>
+              {active && (
+                <RegionCard
+                  region={region}
+                  index={index}
+                  variant={callbacks.variant}
+                  frame={size}
+                  resolution={callbacks.resolution}
+                  reference={reference}
+                  placement={regionCardPlacement(region, size)}
+                  onChange={callbacks.onChange}
+                  onReference={(payload, files) => callbacks.onReference(region.id, payload, files)}
+                  onDone={callbacks.onDeselect}
+                  onRemove={() => callbacks.onRemove(region.id)}
+                />
               )}
             </div>
-            {active && (
-              <RegionCard
-                region={region}
-                index={index}
-                reference={reference}
-                placement={regionCardPlacement(region, size)}
-                onChange={callbacks.onChange}
-                onReference={(payload, files) => callbacks.onReference(region.id, payload, files)}
-                onDone={callbacks.onDeselect}
-                onRemove={() => callbacks.onRemove(region.id)}
-              />
-            )}
           </div>
         );
       })}
@@ -220,15 +242,20 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
   );
 }
 
-/** The regions as a list in the controls: edit, reference image and fuzz per region. */
-export function RegionList({ regions, ...callbacks }: RegionCallbacks & { regions: Flux3ImageRegion[] }) {
+/** The boxes as a list in the controls: action, description and reference per box. */
+export function RegionList({ regions, frame, ...callbacks }: RegionCallbacks & { regions: Flux3ImageRegion[]; frame: Size | null }) {
   if (!regions.length) {
     return (
       <p className="toolStubNote">
-        Draw a region on the image with the box, brush or lasso, then type its edit and drop a reference on it if you
-        want one.
+        {callbacks.variant === "layout"
+          ? "Drag boxes on the frame to place each element, then say what goes in each."
+          : "Drag a box on the image for each thing to change, keep, move or remove, then describe it."}
       </p>
     );
+  }
+  function setAction(region: Flux3ImageRegion, action: Flux3BoxAction) {
+    const target = action === "move" ? region.target ?? (frame ? defaultMoveTarget(region, frame) : null) : null;
+    callbacks.onChange({ ...region, action, target, referenceId: action === "change" ? region.referenceId : null });
   }
   return (
     <ol className="regionList">
@@ -240,38 +267,44 @@ export function RegionList({ regions, ...callbacks }: RegionCallbacks & { region
           onClick={() => callbacks.onSelect(region.id)}
         >
           <div className="regionListHeader">
-            <strong>Region {index + 1}</strong>
+            <strong>Box {index + 1}</strong>
             <span>
-              {regionKindLabel(region.kind)} · {region.width}×{region.height} at {region.x},{region.y}
+              {region.width}×{region.height} at {region.x},{region.y}
             </span>
-            <button type="button" onClick={() => callbacks.onRemove(region.id)} title={`Remove region ${index + 1}`}>
+            <button type="button" onClick={() => callbacks.onRemove(region.id)} title={`Remove box ${index + 1}`}>
               <X size={12} />
             </button>
           </div>
+          {callbacks.variant === "edit" && (
+            <select
+              value={region.action}
+              aria-label={`What box ${index + 1} does`}
+              onChange={(event) => setAction(region, event.target.value as Flux3BoxAction)}
+            >
+              {FLUX3_BOX_ACTIONS.map((action) => (
+                <option key={action} value={action}>
+                  {boxActionLabels[action]}
+                </option>
+              ))}
+            </select>
+          )}
           <input
             value={region.prompt}
-            placeholder="Type the edit…"
-            aria-label={`Edit for region ${index + 1}`}
+            placeholder={callbacks.variant === "layout" ? "What goes here…" : "Describe it…"}
+            aria-label={`Description for box ${index + 1}`}
             onChange={(event) => callbacks.onChange({ ...region, prompt: event.target.value })}
           />
-          <div className="regionListControls">
-            <RegionReference
-              asset={callbacks.referenceFor(region)}
-              label={`Reference for region ${index + 1}`}
-              onAdd={(payload, files) => callbacks.onReference(region.id, payload, files)}
-              onClear={() => callbacks.onChange({ ...region, referenceId: null })}
-            />
-            <label>
-              Fuzz · {region.fuzz}px
-              <input
-                type="range"
-                min={0}
-                max={FLUX3_IMAGE_FUZZ_MAX}
-                value={region.fuzz}
-                onChange={(event) => callbacks.onChange({ ...region, fuzz: clampFuzz(Number(event.target.value)) })}
+          {callbacks.variant === "edit" && region.action === "change" && (
+            <div className="regionListControls">
+              <RegionReference
+                asset={callbacks.referenceFor(region)}
+                label={`Reference for box ${index + 1}`}
+                onAdd={(payload, files) => callbacks.onReference(region.id, payload, files)}
+                onClear={() => callbacks.onChange({ ...region, referenceId: null })}
               />
-            </label>
-          </div>
+              <span className="regionListHint">Optional: take the element from this image</span>
+            </div>
+          )}
         </li>
       ))}
     </ol>

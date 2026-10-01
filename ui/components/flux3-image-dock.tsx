@@ -3,7 +3,7 @@ import { useState, type DragEvent as ReactDragEvent } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 import { assetImageSource } from "@/lib/dashboard-tools";
 import type { Flux3ImageMode, Flux3ImageRegion } from "@/lib/flux3-image";
-import { regionKindLabel } from "@/lib/flux3-image-regions";
+import { boxActionLabels } from "@/lib/flux3-image-boxes";
 import { dragPayloadFromTransfer, imageFilesFromTransfer } from "@/lib/source-drop";
 import type { AssetRecord } from "@/lib/types";
 import { useDockVisibility } from "@/lib/use-dock-visibility";
@@ -45,9 +45,9 @@ export function Flux3ImageDock(props: Flux3ImageDockProps) {
     props.mode === "precise"
       ? props.regions.map((region, index) => ({
           key: region.id,
-          label: `Region ${index + 1}`,
-          token: regionKindLabel(region.kind).toLowerCase(),
-          hint: region.prompt.trim() || "No instruction yet",
+          label: `Box ${index + 1}`,
+          token: boxActionLabels[region.action].toLowerCase(),
+          hint: region.prompt.trim() || "No description yet",
           asset: props.referenceFor(region),
           onDrop: (payload, files) => props.onRegionReference(region.id, payload, files),
           onClear: () => props.onClearRegionReference(region.id)
