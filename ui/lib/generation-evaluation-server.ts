@@ -12,6 +12,8 @@ import type { GenerationTiming } from "@/lib/generation-capture";
 import { toWorkspaceRelativePath } from "@/lib/local-paths";
 import { unsuccessfulQueueEvaluations } from "@/lib/queue/evaluation";
 import { OUTPUT_ROOT } from "@/lib/server-output-store";
+import { VIDEO_EDIT_MODEL } from "@/lib/video-edit";
+import { VIDEO_UPSCALE_MODEL } from "@/lib/video-upscale";
 
 const LEGACY_OUTPUT_ROOT = path.resolve(process.cwd(), "..", "outputs", "bfl-api-dashboard");
 const OUTPUT_ROOTS = [OUTPUT_ROOT, LEGACY_OUTPUT_ROOT];
@@ -154,6 +156,14 @@ export function readKeyframes(metadata: Record<string, any>) {
   }));
 }
 
+/** Each video tool serves its saved result from its own route. */
+function videoPreviewUrl(model: string, id: string) {
+  const encoded = encodeURIComponent(id);
+  if (model === VIDEO_UPSCALE_MODEL) return `/api/bfl/video-upscale/${encoded}`;
+  if (model === VIDEO_EDIT_MODEL) return `/api/bfl/video-edit/${encoded}`;
+  return `/api/bfl/flux3-video/${encoded}`;
+}
+
 function timingFor(value: unknown): GenerationTiming | undefined {
   if (!value || typeof value !== "object") return undefined;
   const timing = value as GenerationTiming;
@@ -232,11 +242,7 @@ async function toEvaluationRecord(
       rowIndex: numberValue(metadata.rowIndex) ?? numberValue(metadata.batchIndex)
     },
     output: {
-      previewUrl: mediaType === "video"
-        ? model === "flux-tools-video-upscale-v1"
-          ? `/api/bfl/video-upscale/${encodeURIComponent(id)}`
-          : `/api/bfl/flux3-video/${encodeURIComponent(id)}`
-        : `/api/outputs/${encodeURIComponent(id)}/image`,
+      previewUrl: mediaType === "video" ? videoPreviewUrl(model, id) : `/api/outputs/${encodeURIComponent(id)}/image`,
       localPath,
       metadataPath: toWorkspaceRelativePath(candidate.metadataPath)
     },

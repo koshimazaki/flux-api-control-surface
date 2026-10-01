@@ -1,3 +1,65 @@
+/* Step through the open list without returning to the grid. Just the glyph on
+   a dark edge — no chrome to compete with the picture. */
+/* Nothing but the glyph, out at the edges of the screen rather than against the
+   picture. The global button rule paints a border, a fill and an inset
+   highlight — the pale band that crossed these — and the theme adds a hover
+   wash, so all of it is cleared here, hover included. */
+.lightboxStep,
+.dsgn-root .lightboxStep,
+.dsgn-root .lightboxStep:hover {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* An invisible strip down each edge — nothing of the button shows, only the
+   glyph centred in it, and the whole strip is the target. */
+.lightboxStep {
+  position: fixed;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  width: 84px;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: rgba(243, 241, 230, 0.45);
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.lightboxStep.previous { left: 0; }
+.lightboxStep.next { right: 0; }
+
+.dsgn-root .lightboxStep:hover { color: var(--cream, #f3f1e6); }
+/* The global button rule nudges on press; an edge strip must not shift. */
+.lightboxStep:active { transform: none; }
+
+@media (max-width: 760px) {
+  .lightboxStep { width: 52px; }
+}
+
+/* Paging slides the next one in rather than swapping it under the cursor. */
+@keyframes lightbox-step-next {
+  from { opacity: 0; transform: translateX(22px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes lightbox-step-previous {
+  from { opacity: 0; transform: translateX(-22px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.lightboxInner.steppingNext { animation: lightbox-step-next 200ms var(--ease-out, ease) both; }
+.lightboxInner.steppingPrevious { animation: lightbox-step-previous 200ms var(--ease-out, ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lightboxInner.steppingNext,
+  .lightboxInner.steppingPrevious { animation: none; }
+}
+
 .lightbox {
   position: fixed;
   inset: 0;

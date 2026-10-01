@@ -1,11 +1,14 @@
-import { Download, Film, Images, MessageSquareText, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Download, Film, PencilLine, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CameraPanel } from "@/components/camera-panel";
 import { Flux3MediaDropzone, type Flux3InputMedia } from "@/components/flux3-media-dropzone";
 import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import type { VideoEditSourceInput } from "@/lib/video-edit";
+import { usePauseHiddenMedia } from "@/lib/use-pause-hidden-media";
+import { videoAspectFromEvent, videoStageStyle, type VideoStageAspect } from "@/lib/video-stage";
 import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 import { cameraChoice, composeCameraClauses, withCameraClauses } from "@/lib/camera-language";
 import { useCameraDirection } from "@/lib/dashboard/use-camera-direction";
@@ -26,6 +29,8 @@ import {
 import type { AssetRecord } from "@/lib/types";
 
 type Flux3VideoWorkspaceProps = {
+  /** False while another video tool is on screen: this one stays mounted but hidden. */
+  active: boolean;
   apiKey: string;
   assets: AssetRecord[];
   mode: Flux3SourceMode;
@@ -36,6 +41,8 @@ type Flux3VideoWorkspaceProps = {
   onStartVideoChange: (media: Flux3InputMedia | null) => void;
   /** Prompt pushed from a library video card; the nonce re-applies repeat sends. */
   promptSeed?: Flux3PromptSeed | null;
+  /** Sends the selected render to the Video Edit workspace. */
+  onSendToEdit?: (source: VideoEditSourceInput) => void;
   /** Sends the selected render to the Video Upscale workspace. */
   onSendToUpscale?: (source: VideoUpscaleSourceInput) => void;
   onGenerated: () => void;
@@ -50,12 +57,8 @@ type Flux3VideoWorkspaceProps = {
   libraryPrompt?: string;
 };
 
-const modeOptions: Array<{ id: Flux3SourceMode; label: string; detail: string; icon: typeof Film }> = [
-  { id: "t2v", label: "Text", detail: "Prompt → video", icon: MessageSquareText },
-  { id: "i2v", label: "Images", detail: "1–10 frames", icon: Images },
-  { id: "v2v", label: "Continue", detail: "MP4 → next clip", icon: Video }
-];
-
+// The source mode (Text / Frames / Continue) is chosen from the video tool rail
+// above the workspace; this panel only names the active one.
 function formatMode(mode: Flux3VideoMode) {
   if (mode === "t2v") return "Text to video";
   if (mode === "i2v") return "Image to video";
@@ -90,6 +93,11 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   // running on the server queue, so this must never read as a failure — that
   // would invite a second paid Generate for work already in flight.
   const [pendingQueueJobId, setPendingQueueJobId] = useState<string | null>(null);
+  // The selected render sizes the stage; an empty stage keeps the 16:9 default.
+  const [stageAspect, setStageAspect] = useState<VideoStageAspect | null>(null);
+  const [viewerLoading, setViewerLoading] = useState(false);
+  const rootRef = useRef<HTMLElement | null>(null);
+  usePauseHiddenMedia(rootRef, props.active);
   const selected = results.find((item) => item.id === selectedId) || results[0] || null;
   const maxDuration = flux3MaxDuration(mode);
   // Direction applies to every source mode: its clauses follow the scene in the
@@ -283,10 +291,18 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   }
 
   return (
-    <section className="flux3VideoWorkspace">
+    <section className="flux3VideoWorkspace" ref={rootRef} hidden={!props.active}>
       <div className="flux3PreviewPanel panel">
         <PanelHeader title="FLUX 3 Video" subtitle="Synchronized picture, speech, effects, and ambience in one request">
           <div className="flux3HeaderTools">
+            {selected && props.onSendToEdit && (
+              <IconButton
+                title="Send this render to Video Edit"
+                onClick={() => props.onSendToEdit?.({ assetId: selected.id, name: selected.title, url: selected.videoUrl })}
+              >
+                <PencilLine size={15} />
+              </IconButton>
+            )}
             {selected && props.onSendToUpscale && (
               <IconButton
                 title="Send this render to Video Upscale"
@@ -300,9 +316,24 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
             </span>
           </div>
         </PanelHeader>
-        <div className="flux3Viewer">
+        <div
+          className="flux3Viewer videoStage"
+          data-loading={selected && viewerLoading ? "true" : undefined}
+          style={videoStageStyle(stageAspect)}
+        >
           {selected ? (
-            <video key={selected.videoUrl} src={selected.videoUrl} controls playsInline preload="metadata" />
+            <video
+              key={selected.videoUrl}
+              src={selected.videoUrl}
+              controls
+              playsInline
+              preload="metadata"
+              onLoadStart={() => setViewerLoading(true)}
+              onLoadedData={() => setViewerLoading(false)}
+              onCanPlay={() => setViewerLoading(false)}
+              onError={() => setViewerLoading(false)}
+              onLoadedMetadata={(event) => setStageAspect(videoAspectFromEvent(event))}
+            />
           ) : (
             <div className="flux3ViewerEmpty">
               <Film size={38} />
@@ -356,17 +387,9 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       </div>
 
       <aside className="flux3Controls panel controls">
-        <PanelHeader title="Create video" subtitle="Choose what the model starts from">
+        <PanelHeader title="Create video" subtitle={`FLUX 3 · ${formatMode(mode)}`}>
           <Film size={18} aria-label="FLUX 3 video creation" />
         </PanelHeader>
-        <div className="flux3ModePicker">
-          {modeOptions.map(({ id, label, detail, icon: Icon }) => (
-            <button type="button" className={mode === id ? "active" : ""} key={id} onClick={() => props.onModeChange(id)}>
-              <Icon size={16} />
-              <span><strong>{label}</strong><small>{detail}</small></span>
-            </button>
-          ))}
-        </div>
         <div className={camera ? "flux3PromptBlock withCameraClauses" : "flux3PromptBlock"}>
           <label>
             Video prompt

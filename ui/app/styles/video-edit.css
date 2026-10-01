@@ -1,0 +1,414 @@
+/* Video Edit shares Video Upscale's anatomy: a preview stage that doubles as a
+   drop target on the left, a controls rail on the right. Class names stay
+   per-feature like the other workspace stylesheets. */
+.workspace.videoEditMode {
+  grid-template-columns: 310px minmax(520px, 1fr) 340px;
+  /* Row 2 takes the free space, matching the image domain and FLUX 3. */
+  grid-template-rows: auto minmax(620px, 1fr);
+  grid-template-areas:
+    "library modes modes"
+    "library main main";
+  height: auto;
+  min-height: clamp(720px, calc(100vh - 132px), 980px);
+}
+
+.workspace.videoEditMode.libraryCollapsed { grid-template-columns: 58px minmax(520px, 1fr) 340px; }
+
+.workspace.videoEditMode > .videoEditWorkspace { grid-area: main; }
+
+.videoEditWorkspace {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-5, 14px);
+}
+
+.videoEditPreview,
+.videoEditControls { min-width: 0; }
+
+.videoEditPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--space-5, 12px);
+}
+
+.videoEditPreview.dropReady {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+}
+
+/* Size comes from `.videoStage`, shared with FLUX 3 and Upscale. */
+.videoEditDrop {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 9px;
+  border-style: dashed;
+  background: color-mix(in srgb, var(--surface-inset) 84%, transparent) !important;
+  color: var(--text-muted);
+}
+
+.videoEditDrop strong { color: var(--text-primary); font-size: 16px; }
+.videoEditDrop span {
+  max-width: 440px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* The clip itself is the stage; the caption sits under it as chrome.
+   `minmax(0, …)` lets the video shrink instead of overflowing the column. */
+.videoEditSourcePreview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  min-width: 0;
+}
+
+.videoEditSourcePreview > div,
+.videoEditResultBar,
+.videoEditResultBar > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.videoEditSourcePreview > div { padding: 9px; }
+/* Sits with the clip's name, under the video, where the cut is being judged.
+   Scoped past `.videoEditSourcePreview button`, which squares every button there. */
+.videoEditSourcePreview .videoEditCutButton {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+.videoEditSourcePreview .videoEditCutButton.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text-primary);
+}
+.videoEditSourcePreview strong { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.videoEditSourcePreview > div > span { color: var(--text-muted); font-family: var(--font-mono); font-size: 10px; white-space: nowrap; }
+.videoEditSourcePreview button { width: 30px; min-height: 30px; padding: 0; }
+
+.videoEditResultBar {
+  justify-content: space-between;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-inset) 76%, transparent);
+  padding: 10px;
+}
+.videoEditResultBar > div:first-child { min-width: 0; display: grid; gap: 2px; }
+.videoEditResultBar strong,
+.videoEditResultBar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.videoEditResultBar span { color: var(--text-muted); font-size: 10px; }
+.videoEditResultBar a,
+.videoEditResultBar button { min-height: 32px; display: inline-flex; align-items: center; gap: 6px; color: var(--text-primary); text-decoration: none; }
+
+/* Cut timeline: a bracket over the clip's whole length, capped at 15 seconds. */
+.videoTrim {
+  display: grid;
+  gap: 7px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-inset) 78%, transparent);
+  padding: 9px 10px;
+}
+
+.videoTrimHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.videoTrimHeader > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+
+.videoTrimTransport { display: inline-flex; align-items: center; gap: 4px; margin-right: auto; margin-left: 4px; }
+.videoTrimTransport button {
+  width: 26px;
+  min-height: 26px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+.videoTrimTransport button.active {
+  border-color: var(--acc-intel);
+  background: var(--acc-intel-ghost);
+  color: var(--acc-intel-strong);
+}
+.videoTrimReadout { text-transform: none; letter-spacing: 0; }
+.videoTrimReadout strong { color: var(--acc-intel-strong, var(--text-primary)); }
+
+.videoTrimTrack {
+  position: relative;
+  height: 46px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm, 6px);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 6px),
+    #0a0d0f;
+  cursor: pointer;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.videoTrimTrack.grabbing { cursor: grabbing; }
+
+.videoTrimTick,
+.videoTrimReach,
+.videoTrimPlayhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  pointer-events: none;
+}
+
+.videoTrimTick { background: rgba(255, 255, 255, 0.14); }
+.videoTrimTick.major { background: rgba(255, 255, 255, 0.3); }
+/* The furthest edge the bracket may reach from its current start. */
+.videoTrimReach {
+  width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.videoTrimPlayhead { width: 2px; background: var(--acc-intel, #62c4e6); box-shadow: 0 0 8px var(--acc-intel, #62c4e6); }
+
+.videoTrimBracket {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 18px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm, 6px);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  cursor: grab;
+  touch-action: none;
+}
+
+.videoTrimBracket:focus-visible { outline: 2px solid var(--acc-intel); outline-offset: 2px; }
+
+.videoTrimBracket > span {
+  flex: 1;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.videoTrimHandle {
+  flex: 0 0 auto;
+  width: 11px;
+  min-height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.videoTrimFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.videoTrimFooter small { color: var(--text-muted); font-size: 10px; line-height: 1.45; }
+
+.videoTrimSave {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 11px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Real ffmpeg progress, filled behind the label. */
+.videoTrimSave[data-cutting="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--cut-percent, 0%);
+  background: color-mix(in srgb, var(--accent) 34%, transparent);
+  transition: width 200ms linear;
+  pointer-events: none;
+}
+
+.videoTrimSave > * { position: relative; }
+
+.videoEditBlockerAction {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.videoEditControls { align-self: stretch; padding: var(--space-5, 12px); }
+.videoEditControls textarea { resize: vertical; line-height: 1.45; }
+
+/* Source slot: the video counterpart of a VTO garment slot. */
+.videoEditSourceSlot {
+  display: grid;
+  gap: 6px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-inset) 76%, transparent);
+  padding: 9px 10px;
+}
+.videoEditSourceSlot.active {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border-strong));
+}
+.videoEditSourceSlot.dropReady {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-inset));
+}
+.videoEditSlotHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.videoEditSlotHeader > span { display: inline-flex; align-items: center; gap: 6px; }
+.videoEditSlotHeader .iconButton { width: 26px; min-height: 26px; padding: 0; }
+.videoEditSlotAction { min-height: 26px; padding: 0 9px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.videoEditSlotBody { display: grid; gap: 2px; min-width: 0; }
+.videoEditSlotBody strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.videoEditSlotBody small { color: var(--text-muted); font-family: var(--font-mono); font-size: 10px; }
+.videoEditSlotEmpty { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; color: var(--text-muted); font-size: 12px; }
+
+.videoEditPromptMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: -4px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+/* One trigger in the rail; the chips live in a grid inside its menu, so eight
+   shortcuts cost one line instead of two rows. */
+.videoEditStarters { position: relative; min-width: 0; }
+
+.videoEditStartersTrigger {
+  width: 100%;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  font-size: 11px;
+}
+
+.videoEditStartersChevron { margin-left: auto; }
+
+.videoEditStartersCount {
+  min-width: 17px;
+  height: 17px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.videoEditStartersMenu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay, rgba(16, 18, 20, 0.98));
+  padding: 8px;
+  box-shadow: var(--elev-2, 0 14px 30px rgba(0, 0, 0, 0.45));
+}
+
+.videoEditStartersMenuLabel {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.videoEditStartersGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.videoEditStartersGrid button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.videoEditStartersGrid button.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--text-primary);
+}
+
+.videoEditCost {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-inset) 76%, transparent);
+  padding: 10px;
+}
+.videoEditCost span,
+.videoEditCost small { color: var(--text-muted); font-size: 10px; }
+.videoEditCost strong { font-size: 14px; }
+
+@media (max-width: 1160px) {
+  .workspace.videoEditMode { grid-template-columns: 240px minmax(360px, 1fr); grid-template-areas: "library modes" "library main"; }
+  .workspace.videoEditMode.libraryCollapsed { grid-template-columns: 58px minmax(360px, 1fr); }
+  .videoEditWorkspace { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .workspace.videoEditMode { grid-template-columns: 1fr; grid-template-areas: "modes" "library" "main"; }
+  .workspace.videoEditMode.libraryCollapsed { grid-template-columns: 1fr; }
+  .videoEditResultBar { align-items: flex-start; flex-direction: column; }
+}

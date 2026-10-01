@@ -16,6 +16,7 @@ import {
   Info,
   Maximize2,
   PackagePlus,
+  PencilLine,
   Play,
   ScanLine,
   Send,
@@ -32,6 +33,7 @@ import { copyText } from "@/lib/clipboard";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import { referenceDropTargets, referencePreviewSrc } from "@/lib/reference-roles";
+import { useHoverPreview } from "@/lib/use-hover-preview";
 import type { AssetBadge, AssetRecord, AspectRatio, ImageWorkspaceMode, ReferenceImage, ReferenceRole } from "@/lib/types";
 
 type ImageToolMode = ImageWorkspaceMode;
@@ -58,13 +60,25 @@ type AssetCardProps = {
   onSendToVtoGarment: (asset: AssetRecord) => void;
   onSendToFlux3Keyframe?: (asset: AssetRecord) => void;
   onSendToFlux3Continue?: (asset: AssetRecord) => void;
+  onSendToEdit?: (asset: AssetRecord) => void;
   onSendToUpscale?: (asset: AssetRecord) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSavePromptToLibrary: (asset: AssetRecord) => void;
 };
 
-function getAspectStyle(ratio: AspectRatio) {
-  return ratio === "free" ? undefined : { aspectRatio: ratio.replace(":", "/") };
+/**
+ * Reserves the card's picture box before the media arrives.
+ *
+ * On a fixed ratio the grid is already stable. On "free" the box used to have
+ * no height until the image or video loaded, so every card resized as it came
+ * in and the library jumped. The asset's own dimensions are used when it
+ * records them, the measured ones once the media reports them, and 16/9 in the
+ * meantime — so a card is never zero-height and settles at most once.
+ */
+function getAspectStyle(ratio: AspectRatio, measured?: { width: number; height: number } | null, asset?: AssetRecord) {
+  if (ratio !== "free") return { aspectRatio: ratio.replace(":", "/") };
+  const known = measured || (asset?.width && asset?.height ? { width: asset.width, height: asset.height } : null);
+  return { aspectRatio: known ? `${known.width} / ${known.height}` : "16 / 9" };
 }
 
 function isFluxAsset(asset: AssetRecord) {
@@ -130,6 +144,11 @@ export function AssetCard(props: AssetCardProps) {
   const [mediaFailed, setMediaFailed] = useState(
     () => !mediaSource || unavailableMediaSources.has(mediaSource)
   );
+  // The media's real shape, once it reports it, so the reserved box settles to
+  // the truth instead of every card resizing as its picture arrives.
+  const [measuredRatio, setMeasuredRatio] = useState<{ width: number; height: number } | null>(null);
+  const [mediaLoaded, setMediaLoaded] = useState(false);
+  const hoverPreview = useHoverPreview();
   const origin = assetOrigin(asset);
   const OriginIcon = origin.icon;
   const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
@@ -188,7 +207,7 @@ export function AssetCard(props: AssetCardProps) {
       <button
         className={imageButtonClass}
         onClick={() => props.onOpen(asset)}
-        style={getAspectStyle(props.aspectRatio)}
+        style={getAspectStyle(props.aspectRatio, measuredRatio, asset)}
         draggable
         onDragStart={(event) => {
           event.dataTransfer.setData(BFL_IMAGE_OPTION_MIME, `asset:${asset.id}`);
@@ -210,6 +229,15 @@ export function AssetCard(props: AssetCardProps) {
               playsInline
               preload="metadata"
               aria-label={asset.title || asset.id}
+              className={mediaLoaded ? "assetMediaReady" : undefined}
+              {...hoverPreview}
+              onLoadedMetadata={(event) => {
+                const video = event.currentTarget;
+                if (video.videoWidth && video.videoHeight) {
+                  setMeasuredRatio({ width: video.videoWidth, height: video.videoHeight });
+                }
+                setMediaLoaded(true);
+              }}
               onError={markMediaUnavailable}
             />
             <span className="assetVideoPlay" aria-hidden="true"><Play size={18} fill="currentColor" /></span>
@@ -221,6 +249,14 @@ export function AssetCard(props: AssetCardProps) {
             alt={asset.title || asset.id}
             loading="lazy"
             decoding="async"
+            className={mediaLoaded ? "assetMediaReady" : undefined}
+            onLoad={(event) => {
+              const image = event.currentTarget;
+              if (image.naturalWidth && image.naturalHeight) {
+                setMeasuredRatio({ width: image.naturalWidth, height: image.naturalHeight });
+              }
+              setMediaLoaded(true);
+            }}
             onError={markMediaUnavailable}
           />
         )}
@@ -297,6 +333,11 @@ export function AssetCard(props: AssetCardProps) {
           {isVideo && props.onSendToFlux3Continue && (
             <button onClick={() => props.onSendToFlux3Continue?.(asset)} title="Continue this video in FLUX 3">
               <Video size={15} />
+            </button>
+          )}
+          {isVideo && props.onSendToEdit && (
+            <button onClick={() => props.onSendToEdit?.(asset)} title="Send to Video Edit">
+              <PencilLine size={15} />
             </button>
           )}
           {isVideo && props.onSendToUpscale && (

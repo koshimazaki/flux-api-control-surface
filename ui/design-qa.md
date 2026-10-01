@@ -446,3 +446,60 @@ passed. Live checks verified Images → Upscale → FLUX 3 retention, Asset send
 Images routing, theme and source-mode recovery after reload, and no browser
 warning or error in the clean preview. No API, MCP, paid inference, credential
 or remote state changed.
+
+## Human follow-up: Video Edit and a flat video tool rail
+
+The operator added FLUX Video Edit as a workspace and chose to promote FLUX 3's
+Text, Frames and Continue into the top video rail beside Edit and Upscale, so
+the Video domain reads like the Image domain: one equal-width tab per tool.
+"Frames" replaces "Images" because those inputs are pinned keyframes on a
+timeline and Images already names the image domain. The three FLUX 3 tabs open
+one shared workspace; switching between them keeps prompt, duration, aspect,
+resolution, audio and draft choices, and the panel header names the active
+mode. The in-panel three-card picker is gone.
+
+Video Edit: a source-clip slot in the controls rail (the video counterpart of
+a VTO garment slot) plus a whole-panel drop stage; a required instruction with
+a 4,096-character counter and starters drawn from BFL's editing guide; safety
+0–4; an output note (source length, aspect and audio, 24 fps, at most 720p)
+and a $0.03-per-second estimate. Results play in the before/after fader,
+"Edit again" chains the result as the next source, and the header hands an
+edit to Upscale. Library cards and the lightbox gain an Edit action for video
+assets, and asset badges recognise the new role.
+
+Verification: TypeScript passed; 75 files / 568 tests passed; lint reports
+zero errors and four inherited warnings. The production build and the live
+browser pass are pending: two dev servers were sharing `.next`, and the
+browser extension was not connected. No API key, paid inference or remote
+state changed.
+
+## Human follow-up: one stage size, and a cut tool inside Edit
+
+Two operator observations, both about the preview window. First, the stage
+changed size between tools and jumped within a tool once a result bar
+appeared, and a 16:9 render sat in a taller box so it played inside black
+bands. The three tools had each declared their own box (min-height 420 / 520 /
+540, a 660px cap on FLUX 3 only, two backgrounds, two border tokens) and let it
+absorb the panel's spare height. There is now one `.videoStage`: shared
+geometry, shared material, sized by the clip's own aspect ratio within a single
+maximum. A portrait clip narrows the box rather than pillarboxing, and the
+empty dropzone is the same box as a 16:9 result, so nothing resizes.
+
+Second, FLUX 3 renders up to 20 seconds while Video Edit accepts 15, which left
+the best renders uneditable. Edit gained a cut tool: a scissors in the panel
+header opens a bracket over the clip's whole length, with second ticks, a
+playhead, and a dashed marker showing how far the bracket may still reach. Drag
+the middle to slide, drag an edge to resize, arrow keys step a frame and shift
+steps a second. Both edges snap to the 24 fps grid the API normalizes to, the
+cut may be as short as 17 frames, and Save replaces the source with the result.
+An over-length clip opens the bracket on load and the blocker offers the cut
+directly. It runs on local ffmpeg — free, no BFL request, no queue, no credits —
+following the same spawn pattern the audio routes already use.
+
+Verification: TypeScript passed; 78 files / 586 tests passed; lint reports zero
+errors and the same four inherited warnings. The shared stage rule and its
+aspect-ratio were confirmed in the compiled stylesheet the dev server serves.
+The cut was exercised against a real render: a 20.04 s, 1920×1088, 58 MiB clip
+came back at exactly 15.000000 s and 360 frames (frame-exact at 24 fps) and
+28.6 MiB, inside every Video Edit limit; the probe artifact was deleted. The
+live browser pass remains pending because the extension was not connected.

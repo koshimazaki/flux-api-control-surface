@@ -52,7 +52,7 @@ export default function Home() {
           workspaceMediaKind={state.workspaceMediaKind}
           onWorkspaceMediaKindChange={state.selectWorkspaceMediaKind}
         />
-        {state.workspaceMode !== "flux3" && state.workspaceMode !== "upscale" && <ReferenceDock
+        {state.workspaceMediaKind === "image" && <ReferenceDock
           mode={state.workspaceMode}
           references={state.references}
           maxReferences={state.activeModelConfig.maxReferences}
@@ -82,11 +82,14 @@ export default function Home() {
         <DashboardPanels state={state} />
         <Lightbox
           asset={state.selectedAsset}
+          assets={state.lightboxAssets}
+          onNavigate={state.setSelectedAsset}
           onClose={() => state.setSelectedAsset(null)}
           onSendToPrompt={state.sendAssetToPrompt}
           onSendToWorkspace={state.sendAssetToWorkspace}
           onSendToReference={state.sendAssetToReference}
           onSendToFlux3Continue={state.sendAssetToFlux3Continue}
+          onSendToEdit={state.sendAssetToEdit}
           onSendToUpscale={state.sendAssetToUpscale}
           onDownload={state.downloadAssetImage}
         />

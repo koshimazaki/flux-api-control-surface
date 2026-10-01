@@ -93,13 +93,14 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onSendToVtoGarment={state.sendAssetToNextVtoGarment}
           onSendToFlux3Keyframe={state.sendAssetToNextFlux3Keyframe}
           onSendToFlux3Continue={state.sendAssetToFlux3Continue}
+          onSendToEdit={state.sendAssetToEdit}
           onSendToUpscale={state.sendAssetToUpscale}
           onRevealAsset={(asset) => void state.revealAssetLocally(asset)}
           onSendToReference={state.sendAssetToReference}
           onSavePromptToLibrary={(asset) => void state.saveAssetPromptToLibrary(asset)}
           onToggleSelected={state.toggleAssetSelection}
           onToggleMetadata={(id) => state.setMetadataAssetId(state.metadataAssetId === id ? null : id)}
-          onOpen={state.setSelectedAsset}
+          onOpen={state.openAsset}
           onDownload={state.downloadAssetImage}
           onDelete={state.deleteAsset}
         />

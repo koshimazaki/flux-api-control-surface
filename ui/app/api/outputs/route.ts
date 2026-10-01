@@ -7,6 +7,10 @@ import type { Flux3VideoResult } from "@/lib/flux3-video";
 import type { AssetRecord } from "@/lib/types";
 import { listVideoUpscaleOutputs } from "@/lib/video-upscale-server";
 import type { VideoUpscaleResult } from "@/lib/video-upscale";
+import { listVideoEditOutputs } from "@/lib/video-edit-server";
+import { VIDEO_EDIT_ENDPOINT, VIDEO_EDIT_MODEL, VIDEO_EDIT_OPERATION, type VideoEditResult } from "@/lib/video-edit";
+import { listVideoTrimOutputs } from "@/lib/video-trim-server";
+import { VIDEO_TRIM_MODEL, VIDEO_TRIM_OPERATION, type VideoTrimResult } from "@/lib/video-trim";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -115,22 +119,105 @@ function upscaleAsset(result: VideoUpscaleResult): AssetRecord {
   };
 }
 
+function editAsset(result: VideoEditResult): AssetRecord {
+  const videoPath = typeof result.outputFiles?.videoPath === "string" ? result.outputFiles.videoPath : null;
+  return {
+    id: result.id,
+    title: result.title,
+    createdAt: result.createdAt,
+    timestamp: new Date(result.createdAt).getTime(),
+    imageDataUrl: "",
+    imageUrl: "",
+    image_url: "",
+    sampleUrl: result.videoUrl,
+    videoUrl: result.videoUrl,
+    mediaType: "video",
+    model: VIDEO_EDIT_MODEL,
+    prompt: result.prompt,
+    status: "complete",
+    provider: "bfl-api",
+    payload: {
+      safety_tolerance: result.safetyTolerance,
+      source_width: result.sourceWidth,
+      source_height: result.sourceHeight,
+      duration_seconds: result.durationSeconds
+    },
+    references: [],
+    runSettings: {
+      provider: "bfl-api",
+      model: VIDEO_EDIT_MODEL,
+      endpointName: VIDEO_EDIT_ENDPOINT
+    },
+    costCredits: result.costCredits,
+    creditsAfter: result.creditsAfter,
+    localVideoPath: videoPath,
+    localPromptPath: typeof result.outputFiles?.promptPath === "string" ? result.outputFiles.promptPath : null,
+    localMetadataPath: typeof result.outputFiles?.metadataPath === "string" ? result.outputFiles.metadataPath : null,
+    sourceAssetId: result.sourceAssetId || null,
+    operation: VIDEO_EDIT_OPERATION,
+    assetKind: "output"
+  };
+}
+
+/** A local ffmpeg cut. No provider, no cost — it exists so an over-length clip can be edited. */
+function trimAsset(result: VideoTrimResult): AssetRecord {
+  const videoPath = typeof result.outputFiles?.videoPath === "string" ? result.outputFiles.videoPath : null;
+  return {
+    id: result.id,
+    title: result.title,
+    createdAt: result.createdAt,
+    timestamp: new Date(result.createdAt).getTime(),
+    imageDataUrl: "",
+    imageUrl: "",
+    image_url: "",
+    sampleUrl: result.videoUrl,
+    videoUrl: result.videoUrl,
+    mediaType: "video",
+    model: VIDEO_TRIM_MODEL,
+    prompt: "",
+    status: "complete",
+    provider: "local-ffmpeg",
+    payload: {
+      start_seconds: result.start,
+      end_seconds: result.end,
+      duration_seconds: result.durationSeconds,
+      source_duration_seconds: result.sourceDurationSeconds
+    },
+    references: [],
+    runSettings: { provider: "local-ffmpeg", model: VIDEO_TRIM_MODEL, endpointName: "local/ffmpeg-trim" },
+    localVideoPath: videoPath,
+    localMetadataPath: typeof result.outputFiles?.metadataPath === "string" ? result.outputFiles.metadataPath : null,
+    sourceAssetId: result.sourceAssetId || null,
+    operation: VIDEO_TRIM_OPERATION,
+    assetKind: "output"
+  };
+}
+
 export async function GET(request: NextRequest) {
   const { limit, offset, includeData } = outputPageFromUrl(request.url);
   // Every source must supply the whole span up to this page, not just one page's
   // worth. Fetching `limit` from each and re-slicing from zero made page 2 repeat
   // the newest videos and push images out of the results entirely.
   const span = offset + limit;
-  const [remoteAssets, localAssets, videoResults, upscaleResults] = await Promise.all([
+  const [remoteAssets, localAssets, videoResults, upscaleResults, editResults, trimResults] = await Promise.all([
     fetchRemoteOutputAssets(span, { includeImageData: includeData }).catch(() => []),
     // The local reader paginates itself, so ask it for the span from the start.
     readLocalOutputAssets({ limit: span, offset: 0, includeImageData: includeData }),
     listFlux3VideoOutputs(span).catch(() => []),
-    listVideoUpscaleOutputs(span).catch(() => [])
+    listVideoUpscaleOutputs(span).catch(() => []),
+    listVideoEditOutputs(span).catch(() => []),
+    listVideoTrimOutputs(span).catch(() => [])
   ]);
 
   return NextResponse.json(
-    uniqueById([...upscaleResults.map(upscaleAsset), ...videoResults.map(videoAsset), ...localAssets, ...remoteAssets])
+    uniqueById([
+      ...trimResults.map(trimAsset),
+      ...editResults.map(editAsset),
+      ...upscaleResults.map(upscaleAsset),
+      ...videoResults.map(videoAsset),
+      ...localAssets,
+      ...remoteAssets
+    ])
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(offset, span)
   );

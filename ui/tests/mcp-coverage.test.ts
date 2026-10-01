@@ -34,6 +34,10 @@ const INTERNAL_ONLY = [
   "/api/bfl/tools/vto-composite",
   "/api/bfl/flux3-video/[id]",
   "/api/bfl/video-upscale/[id]",
+  "/api/bfl/video-edit/[id]",
+  "/api/bfl/video-trim/[id]",
+  // Polled by the cut timeline for an ffmpeg percentage; UI-only progress.
+  "/api/bfl/video-trim/progress",
   // Submit/poll-step/finalize recovery primitives for the server queue. Agents
   // drive work through the queue tools; these exist for diagnostics and repair.
   "/api/bfl/jobs"
@@ -62,6 +66,8 @@ describe("MCP covers every core control-surface function", () => {
       "/api/bfl/generate",
       "/api/bfl/flux3-video",
       "/api/bfl/video-upscale",
+      "/api/bfl/video-edit",
+      "/api/bfl/video-trim",
       "/api/bfl/tools",
       "/api/dashboard/batch",
       "/api/dashboard/run-plan",
@@ -90,6 +96,18 @@ describe("MCP covers every core control-surface function", () => {
     expect(registeredTools).toContain("upscale_video");
     expect(registeredTools).toContain("list_video_upscales");
     expect(mcpCalledRoutes).toContain("/api/bfl/video-upscale");
+  });
+
+  it("wraps FLUX Video Edit, which the hosted FLUX MCP does not expose", () => {
+    expect(registeredTools).toContain("edit_video");
+    expect(registeredTools).toContain("list_video_edits");
+    expect(mcpCalledRoutes).toContain("/api/bfl/video-edit");
+  });
+
+  it("wraps the local cut, so an agent can bring a 20 s render under Video Edit's 15 s limit", () => {
+    expect(registeredTools).toContain("trim_video");
+    expect(registeredTools).toContain("list_video_trims");
+    expect(mcpCalledRoutes).toContain("/api/bfl/video-trim");
   });
 
   it("wraps the FLUX.2 [klein] finetune loop (dataset export, registry, finetuned generation)", () => {

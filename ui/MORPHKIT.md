@@ -369,3 +369,44 @@ clean reload, identical RAMS Erase/Outpaint panel backgrounds, and no warning or
 error entries in the restarted preview. No paid inference, credential change,
 API/MCP mutation, remote push or publication occurred. The branch remains local
 and the broader visual candidate remains at the human promotion gate.
+
+### FLUX Video Edit capability pass and the flat video tool rail
+
+The operator asked for BFL's newly documented FLUX Video Edit [fast] tool as a
+first-class workspace with MCP and CLI parity, then revisited video navigation
+with the real endpoint in hand: the Video rail now mirrors the Image rail with
+one equal tab per tool — Text, Frames, Continue, Edit, Upscale. This
+supersedes the earlier decision to keep Text, Images and Continue as in-panel
+FLUX 3 cards; it is an explicit operator choice made once Edit existed, not a
+pre-allocated decorative tab. Underneath, the three FLUX 3 tabs still open one
+workspace, endpoint, queue, pricing model and saved-result list, so only the
+selector moved up and the three-card picker was retired rather than
+duplicated. "Frames" replaces "Images" because those inputs are pinned
+keyframes on a timeline and Images already names the image domain.
+
+Video Edit is deliberately as narrow as the API: one clip, one instruction,
+safety tolerance. There are no image references, masks, seeds or
+duration/resolution controls; duration, aspect ratio and audio follow the
+source and anything above 720p returns at 720p, at a documented $0.03 per
+output second. The workspace saves the source beside the result for the same
+before/after fader as Upscale, offers "Edit again" for BFL's recommended
+one-change-per-pass chaining, and hands an edit to Upscale in one action. The
+hosted FLUX MCP exposes neither video edit nor video upscale, so the local
+stdio wrapper adds `edit_video` and `list_video_edits` beside the upscale
+tools, and the CLI gains `edit-video`.
+
+| Outcome | Traits |
+|---|---|
+| Survived | FLUX 3 workspace, controls, draft/enhance flow and saved results; Upscale anatomy; server queue and failure taxonomy; Assets/evaluation recovery; equal tab spacing |
+| Partial | FLUX 3's source mode is chosen from the top rail and named in the panel header instead of in-panel cards |
+| Lost | The three-card mode picker inside FLUX 3; the two-tab video rail |
+| Novel | FLUX Video Edit queue adapter and routes; saved source/result pair; prompt starters from BFL's editing guide; edit → upscale handoff; one shared video-input resolver for Upscale and Edit; MCP/CLI parity |
+
+Verification: TypeScript passed; 75 test files / 568 tests passed; lint has
+zero errors and the same four inherited warnings; the MCP and CLI scripts
+parse; the running dev server serves the new list and playback routes and
+lists the route and tools in the manifest and guide. The production build was
+not run because two dev servers were serving the same `.next` directory, and
+the live browser pass is pending because the browser extension was not
+connected. No paid inference, credential change, remote push or publication
+occurred.

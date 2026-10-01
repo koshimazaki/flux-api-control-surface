@@ -36,6 +36,8 @@ export const agentWorkflowGuide = {
       tools: agentRouteMap.tools,
       flux3Video: agentRouteMap.flux3Video,
       videoUpscale: agentRouteMap.videoUpscale,
+      videoEdit: agentRouteMap.videoEdit,
+      videoTrim: agentRouteMap.videoTrim,
       providerJobs: agentRouteMap.providerJobs,
       glyphVectorize: agentRouteMap.glyphVectorize,
       outputs: agentRouteMap.outputs,
@@ -63,7 +65,7 @@ export const agentWorkflowGuide = {
     {
       name: "Capture and evaluate model outputs",
       steps: [
-        `Generate through ${agentRouteMap.generate}, ${agentRouteMap.tools}, ${agentRouteMap.flux3Video}, or ${agentRouteMap.videoUpscale}`,
+        `Generate through ${agentRouteMap.generate}, ${agentRouteMap.tools}, ${agentRouteMap.flux3Video}, ${agentRouteMap.videoEdit}, or ${agentRouteMap.videoUpscale}`,
         `GET ${agentRouteMap.evaluations} or call list_evaluations`,
         `PATCH ${agentRouteMap.evaluations}?id=<generationId> or call update_evaluation`,
         "Export JSON/JSONL from the Runs tab or npm run --silent cli -- evaluations --format jsonl"
@@ -84,6 +86,16 @@ export const agentWorkflowGuide = {
         `POST ${agentRouteMap.flux3Video} (t2v, i2v or v2v) with the scene as prompt and camera.selection naming at most one term per section (null for none)`,
         "Optional camera.edits rewrites a chosen term's clause; the server appends the clauses after the scene exactly once",
         `GET ${agentRouteMap.flux3Video} or ${agentRouteMap.outputs}: each render records camera.terms and the scene`
+      ]
+    },
+    {
+      name: "Edit a saved clip with one instruction",
+      steps: [
+        `GET ${agentRouteMap.outputs} or ${agentRouteMap.flux3Video}`,
+        `Over 15 seconds? POST ${agentRouteMap.videoTrim} first (or call trim_video) — local ffmpeg, free`,
+        `POST ${agentRouteMap.videoEdit} with inputVideo and a prompt that names only the change (or call edit_video)`,
+        `GET ${agentRouteMap.videoEdit} for the saved source/result comparison URLs`,
+        `Chain passes: POST ${agentRouteMap.videoEdit} again with the result URL as inputVideo, or hand it to ${agentRouteMap.videoUpscale}`
       ]
     },
     {
@@ -191,6 +203,7 @@ export const agentWorkflowGuide = {
     "Generate a FLUX 3 video from request.json with the CLI, then list and rate its captured evaluation record.",
     "Upscale a saved FLUX 3 clip at 2× in precise mode, then compare source and result in the Upscale tab.",
     "Render a FLUX 3 text-to-video shot as a low-angle close-up with a slow orbit, using camera.selection instead of hand-written camera prose.",
+    "Edit a saved FLUX 3 clip so the orange bucket is gone, compare before and after in the Edit tab, then upscale the result.",
     "Save a video prompt with save_prompt using mediaType video, a videoCategory, and structured beats, then read it back grouped in the Video prompt library."
   ],
   coverage: localAgentCoverage,

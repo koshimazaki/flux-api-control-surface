@@ -296,6 +296,13 @@ h2 {
   margin-top: 14px;
   align-items: stretch;
   height: clamp(680px, calc(100vh - 132px), 900px);
+  /* The rail collapses and the domains use different column widths, and both
+     snapped. Easing the track sizes turns a jump into a move. */
+  transition: grid-template-columns 260ms var(--ease-out, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace { transition: none; }
 }
 
 .workspace.libraryCollapsed {
@@ -306,8 +313,13 @@ h2 {
   grid-area: library;
 }
 
+/* The prompt library spans both rows, so a tall library grows the `auto` row
+   the rail sits in. With the workspace stretching its items, the rail grew with
+   it and centred the buttons, leaving them floating in a bar whose height
+   changed with the library and the section. It keeps its own height instead. */
 .workspace > .workspaceModeBar {
   grid-area: modes;
+  align-self: start;
 }
 
 .workspace > .workspaceMain {

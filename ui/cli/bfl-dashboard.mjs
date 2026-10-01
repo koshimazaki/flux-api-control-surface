@@ -14,6 +14,8 @@ const COMMANDS = {
   "generate-image": { method: "POST", path: "/api/bfl/generate", payload: true },
   "generate-video": { method: "POST", path: "/api/bfl/flux3-video", payload: true },
   "upscale-video": { method: "POST", path: "/api/bfl/video-upscale", payload: true },
+  "edit-video": { method: "POST", path: "/api/bfl/video-edit", payload: true },
+  "trim-video": { method: "POST", path: "/api/bfl/video-trim", payload: true },
   "run-tool": { method: "POST", path: "/api/bfl/tools", payload: true }
 };
 
@@ -31,6 +33,8 @@ Usage:
   npm run --silent cli -- generate-image --json request.json
   npm run --silent cli -- generate-video --json request.json
   npm run --silent cli -- upscale-video --json request.json
+  npm run --silent cli -- edit-video --json request.json
+  npm run --silent cli -- trim-video --json request.json
   npm run --silent cli -- run-tool --json request.json
 
 Use --json - to read a payload from stdin. Set BFL_DASHBOARD_URL or pass

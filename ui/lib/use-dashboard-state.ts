@@ -38,6 +38,7 @@ import {
 import { normalizeCameraRecord } from "@/lib/camera-language";
 import { getBflModel } from "@/lib/provider-registry";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
+import type { VideoEditSourceInput } from "@/lib/video-edit";
 import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
 import { referenceDropTargets, referenceRoleConfig, referenceRoleToken } from "@/lib/reference-roles";
 import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
@@ -143,6 +144,7 @@ export function useDashboardState() {
   const [upscaleSourceSeed, setUpscaleSourceSeed] = useState<(VideoUpscaleSourceInput & { nonce: number }) | null>(
     null
   );
+  const [editSourceSeed, setEditSourceSeed] = useState<(VideoEditSourceInput & { nonce: number }) | null>(null);
   const [toolMask, setToolMask] = useState("");
   const [toolBrushSize, setToolBrushSize] = useState(48);
   const [toolDilatePixels, setToolDilatePixels] = useState(10);
@@ -271,6 +273,8 @@ export function useDashboardState() {
     setAspectRatio,
     selectedAsset,
     setSelectedAsset,
+    lightboxAssets,
+    openAsset,
     selectedAssetIds,
     setSelectedAssetIds,
     metadataAssetId,
@@ -447,6 +451,7 @@ export function useDashboardState() {
       onResume: () => void serverQueue.resume(),
       onRetry: (id: string) => void serverQueue.retry(id),
       onCancel: (id: string) => void serverQueue.cancel(id),
+      onDismiss: (id: string) => void serverQueue.dismiss(id),
       onPrioritize: (id: string, priority: number) => void serverQueue.prioritize(id, priority),
       onClearSettled: () => void serverQueue.clearSettled()
     }),
@@ -934,6 +939,19 @@ export function useDashboardState() {
     }
     sendVideoToUpscale({ assetId: asset.id, name: asset.title || asset.id, url: asset.videoUrl });
   }
+  function sendVideoToEdit(source: VideoEditSourceInput) {
+    setEditSourceSeed((current) => ({ ...source, nonce: (current?.nonce || 0) + 1 }));
+    setWorkspaceMode("edit");
+    setRecoveryMessage(`Loaded ${source.name} into Video Edit.`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function sendAssetToEdit(asset: AssetRecord) {
+    if (asset.mediaType !== "video" || !asset.videoUrl) {
+      setRecoveryMessage("Video Edit needs a saved video asset.");
+      return;
+    }
+    sendVideoToEdit({ assetId: asset.id, name: asset.title || asset.id, url: asset.videoUrl });
+  }
   function addAssetToPromptReferences(payload: string, role?: ReferenceRole, targetId?: string) {
     const assetId = payload.startsWith("asset:") ? payload.slice("asset:".length) : payload;
     const asset = assets.find((item) => item.id === assetId);
@@ -1112,6 +1130,10 @@ export function useDashboardState() {
     }
     if (workspaceMode === "flux3") {
       setError("Use the FLUX 3 video controls in the video workspace.");
+      return;
+    }
+    if (workspaceMode === "edit") {
+      setError("Use the Video Edit controls in the edit workspace.");
       return;
     }
     if (workspaceMode === "upscale") {
@@ -1373,9 +1395,12 @@ export function useDashboardState() {
     setFlux3StartVideo,
     flux3PromptSeed,
     upscaleSourceSeed,
+    editSourceSeed,
     sendAssetToFlux3Continue,
     sendAssetToUpscale,
     sendVideoToUpscale,
+    sendAssetToEdit,
+    sendVideoToEdit,
     sendAssetToNextFlux3Keyframe,
     revealAssetLocally,
     setAudioAssignments,
@@ -1387,6 +1412,8 @@ export function useDashboardState() {
     setAspectRatio,
     selectedAsset,
     setSelectedAsset,
+    lightboxAssets,
+    openAsset,
     selectedAssetIds,
     assetCollections,
     refreshAssetCollections,

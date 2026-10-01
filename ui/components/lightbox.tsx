@@ -1,4 +1,5 @@
-import { Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, ScanLine, Send, Shirt, Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Eraser, Fingerprint, Focus, ImagePlus, Maximize2, PencilLine, ScanLine, Send, Shirt, Video } from "lucide-react";
+import { useEffect, useState } from "react";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { referenceDropTargets } from "@/lib/reference-roles";
 import type { AssetRecord, ImageWorkspaceMode, ReferenceRole } from "@/lib/types";
@@ -7,28 +8,94 @@ type ImageToolMode = ImageWorkspaceMode;
 
 type LightboxProps = {
   asset: AssetRecord | null;
+  /** The list the open asset belongs to, so the viewer can step through it. */
+  assets?: AssetRecord[];
+  onNavigate?: (asset: AssetRecord) => void;
   onClose: () => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSendToFlux3Continue?: (asset: AssetRecord) => void;
+  onSendToEdit?: (asset: AssetRecord) => void;
   onSendToUpscale?: (asset: AssetRecord) => void;
   onDownload: (asset: AssetRecord) => void;
 };
 
-export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onSendToFlux3Continue, onSendToUpscale, onDownload }: LightboxProps) {
+export function Lightbox({ asset, assets, onNavigate, onClose, onSendToPrompt, onSendToWorkspace, onSendToReference, onSendToFlux3Continue, onSendToEdit, onSendToUpscale, onDownload }: LightboxProps) {
+  const list = assets || [];
+  const index = asset ? list.findIndex((item) => item.id === asset.id) : -1;
+  const previous = index > 0 ? list[index - 1] : null;
+  const next = index >= 0 && index < list.length - 1 ? list[index + 1] : null;
+  // Which way the last step went, so the incoming asset slides in from that side.
+  const [direction, setDirection] = useState<"next" | "previous" | null>(null);
+
+  function step(target: AssetRecord, way: "next" | "previous") {
+    setDirection(way);
+    onNavigate?.(target);
+  }
+
+  // Arrow keys step through the list and Escape closes, so a set can be
+  // reviewed without going back to the grid between each one.
+  useEffect(() => {
+    if (!asset) return;
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft" && previous) step(previous, "previous");
+      if (event.key === "ArrowRight" && next) step(next, "next");
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   if (!asset) return null;
   const isVideo = asset.mediaType === "video";
   const mediaSource = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
   const addImageTarget = referenceDropTargets.find((target) => target.id === "add-image") || referenceDropTargets[0];
   const glyphPreviewBackground = glyphPreviewBackgroundForAsset(asset);
-  const innerClassName = ["lightboxInner", isVideo ? "videoAssetLightbox" : "", glyphPreviewBackground ? "glyphAssetLightbox" : "", glyphPreviewClassName(glyphPreviewBackground)]
+  const innerClassName = [
+    "lightboxInner",
+    direction === "next" ? "steppingNext" : direction === "previous" ? "steppingPrevious" : "",
+    isVideo ? "videoAssetLightbox" : "",
+    glyphPreviewBackground ? "glyphAssetLightbox" : "",
+    glyphPreviewClassName(glyphPreviewBackground)
+  ]
     .filter(Boolean)
     .join(" ");
 
   return (
     <div className="lightbox" onClick={onClose}>
-      <div className={innerClassName} onClick={(event) => event.stopPropagation()}>
+      {onNavigate && previous && (
+        <button
+          type="button"
+          className="lightboxStep previous"
+          title="Previous (left arrow)"
+          aria-label="Previous asset"
+          onClick={(event) => {
+            event.stopPropagation();
+            step(previous, "previous");
+          }}
+        >
+          <ChevronLeft size={34} />
+        </button>
+      )}
+      {onNavigate && next && (
+        <button
+          type="button"
+          className="lightboxStep next"
+          title="Next (right arrow)"
+          aria-label="Next asset"
+          onClick={(event) => {
+            event.stopPropagation();
+            step(next, "next");
+          }}
+        >
+          <ChevronRight size={34} />
+        </button>
+      )}
+      {/* Keyed on the asset so the slide replays for each step. */}
+      <div key={asset.id} className={innerClassName} onClick={(event) => event.stopPropagation()}>
         {isVideo ? (
           <video src={mediaSource} controls autoPlay playsInline />
         ) : (
@@ -57,6 +124,18 @@ export function Lightbox({ asset, onClose, onSendToPrompt, onSendToWorkspace, on
               >
                 <Video size={15} />
                 Continue
+              </button>
+            )}
+            {isVideo && onSendToEdit && (
+              <button
+                onClick={() => {
+                  onSendToEdit(asset);
+                  onClose();
+                }}
+                title="Send to Video Edit"
+              >
+                <PencilLine size={15} />
+                Edit
               </button>
             )}
             {isVideo && onSendToUpscale && (

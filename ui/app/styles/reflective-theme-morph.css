@@ -266,7 +266,9 @@
 .dsgn-root[data-surface-theme="rams-lite"] select,
 .dsgn-root[data-surface-theme="rams-lite"] .queueEmpty,
 .dsgn-root[data-surface-theme="rams-lite"] .videoUpscaleTarget,
-.dsgn-root[data-surface-theme="rams-lite"] .videoUpscaleCost {
+.dsgn-root[data-surface-theme="rams-lite"] .videoUpscaleCost,
+.dsgn-root[data-surface-theme="rams-lite"] .videoEditSourceSlot,
+.dsgn-root[data-surface-theme="rams-lite"] .videoEditCost {
   background: rgba(244, 245, 245, 0.72);
   color: var(--text-primary);
 }
@@ -293,6 +295,7 @@
 
 .dsgn-root .workspaceModeBar .tabButton.active,
 .dsgn-root .workspaceModeBar .tabButton-erase.active,
+.dsgn-root .workspaceModeBar .tabButton-edit.active,
 .dsgn-root .workspaceModeBar .tabButton-upscale.active,
 .dsgn-root[data-surface-theme="rams-lite"] .workspaceModeBar .tabButton.active {
   border-color: color-mix(in srgb, var(--accent) 68%, var(--border-strong));
@@ -566,6 +569,7 @@
 
 .dsgn-root .workspaceMain,
 .dsgn-root .flux3VideoWorkspace,
+.dsgn-root .videoEditWorkspace,
 .dsgn-root .videoUpscaleWorkspace {
   animation: workspace-domain-enter 180ms ease-out both;
 }
@@ -577,6 +581,7 @@
 
   .dsgn-root .workspaceMain,
   .dsgn-root .flux3VideoWorkspace,
+  .dsgn-root .videoEditWorkspace,
   .dsgn-root .videoUpscaleWorkspace {
     animation: none;
   }
@@ -899,36 +904,6 @@
   background: var(--acc-intel-ghost);
   color: var(--acc-intel-strong);
   box-shadow: var(--inset-1), var(--rim-top);
-}
-
-.dsgn-root .flux3ModePicker > button {
-  min-height: 68px;
-  display: grid;
-  grid-template-rows: 18px auto auto;
-  justify-items: center;
-  align-content: center;
-  gap: 3px;
-  padding: 7px 5px;
-  text-align: center;
-}
-
-.dsgn-root .flux3ModePicker > button > svg {
-  grid-row: 1;
-}
-
-.dsgn-root .flux3ModePicker > button > span {
-  display: contents;
-}
-
-.dsgn-root .flux3ModePicker strong {
-  grid-row: 2;
-  font-size: 11px;
-}
-
-.dsgn-root .flux3ModePicker small {
-  grid-row: 3;
-  max-width: 100%;
-  font-size: 8px;
 }
 
 /* Keep the saved-prompt rail from setting the height of the entire workspace

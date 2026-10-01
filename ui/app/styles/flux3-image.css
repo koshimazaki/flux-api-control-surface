@@ -30,6 +30,84 @@
   text-transform: uppercase;
 }
 
+/* The sub-mode picker. FLUX 3 video moved its modes onto the tool rail, so
+   its base and themed rules live here now. :where() keeps each rule's weight
+   as it was, so the theme still overrides the base. */
+:where(.flux3ImageControls) .flux3ModePicker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+:where(.flux3ImageControls) .flux3ModePicker > button {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 6px 8px;
+}
+
+:where(.flux3ImageControls) .flux3ModePicker > button.active {
+  border-color: rgba(159, 176, 157, 0.72);
+  background: rgba(85, 102, 89, 0.28);
+  color: var(--cream);
+}
+
+:where(.flux3ImageControls) .flux3ModePicker span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+:where(.flux3ImageControls) .flux3ModePicker strong,
+:where(.flux3ImageControls) .flux3ModePicker small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:where(.flux3ImageControls) .flux3ModePicker small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker > button {
+  min-height: 68px;
+  display: grid;
+  grid-template-rows: 18px auto auto;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 7px 5px;
+  text-align: center;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker > button > svg {
+  grid-row: 1;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker > button > span {
+  display: contents;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker strong {
+  grid-row: 2;
+  font-size: 11px;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker small {
+  grid-row: 3;
+  max-width: 100%;
+  font-size: 8px;
+}
+
+.dsgn-root :where(.flux3ImageControls) .flux3ModePicker > button.active {
+  color: var(--acc-intel-strong);
+  box-shadow: var(--rim-top), 0 0 10px -4px var(--acc-intel);
+}
+
 /* Four sub-modes read better as two rows in the 340px column. */
 .dsgn-root .flux3ImageControls .flux3ModePicker {
   grid-template-columns: repeat(2, minmax(0, 1fr));

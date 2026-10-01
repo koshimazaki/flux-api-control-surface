@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Flux3ImageWorkspace } from "@/components/flux3-image-workspace";
 import { Flux3VideoWorkspace } from "@/components/flux3-video-workspace";
 import { GenerateReferenceControls } from "@/components/generate-reference-controls";
@@ -7,26 +7,30 @@ import { PromptEditor } from "@/components/prompt-editor";
 import { PromptLibrary } from "@/components/prompt-library";
 import { RunPanel } from "@/components/run-panel";
 import { ToolRunPanel } from "@/components/tool-run-panel";
-import { WorkspaceModeTabs } from "@/components/workspace-mode-tabs";
+import { VideoEditWorkspace } from "@/components/video-edit-workspace";
 import { VideoUpscaleWorkspace } from "@/components/video-upscale-workspace";
+import { WorkspaceModeTabs } from "@/components/workspace-mode-tabs";
 import { clampBatchCount, clampReferenceWeight } from "@/lib/dashboard-generation";
 import { downloadText, formatPrompt } from "@/lib/prompt-utils";
 import type { DashboardState } from "@/lib/use-dashboard-state";
-import type { ImageWorkspaceMode } from "@/lib/types";
+import { isImageWorkspaceMode } from "@/lib/workspace-media";
 
 export function DashboardWorkspace({ state }: { state: DashboardState }) {
   const isFlux3Mode = state.workspaceMode === "flux3";
+  const isEditMode = state.workspaceMode === "edit";
   const isUpscaleMode = state.workspaceMode === "upscale";
-  const isVideoMode = isFlux3Mode || isUpscaleMode;
+  const isVideoMode = state.workspaceMediaKind === "video";
   const isFlux3ImageMode = state.workspaceMode === "flux3_image";
-  const imageToolMode: ImageWorkspaceMode | null =
-    state.workspaceMode === "prompt" ||
-    state.workspaceMode === "flux3" ||
-    state.workspaceMode === "upscale" ||
-    state.workspaceMode === "flux3_image"
-      ? null
-      : state.workspaceMode;
+  const imageToolMode = isImageWorkspaceMode(state.workspaceMode) ? state.workspaceMode : null;
   const [libraryCollapsed, setLibraryCollapsed] = useState(Boolean(imageToolMode) || isVideoMode || isFlux3ImageMode);
+  const modeTabs = (
+    <WorkspaceModeTabs
+      value={state.workspaceMode}
+      flux3SourceMode={state.flux3SourceMode}
+      onChange={state.setWorkspaceMode}
+      onFlux3SourceModeChange={state.setFlux3SourceMode}
+    />
+  );
   const toolPromptText =
     imageToolMode === "vto" ? state.vtoPromptText : imageToolMode === "outpaint" ? state.outpaintPromptText : "";
   const setToolPromptText =
@@ -65,6 +69,21 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
     />
   );
 
+  // The video tools are wide and the prompt rail is not used there, so entering
+  // the Video domain folds it away and leaving restores however it was left.
+  const lastMediaKind = useRef(state.workspaceMediaKind);
+  const collapsedBeforeVideo = useRef(libraryCollapsed);
+  useEffect(() => {
+    if (lastMediaKind.current === state.workspaceMediaKind) return;
+    if (state.workspaceMediaKind === "video") {
+      collapsedBeforeVideo.current = libraryCollapsed;
+      setLibraryCollapsed(true);
+    } else {
+      setLibraryCollapsed(collapsedBeforeVideo.current);
+    }
+    lastMediaKind.current = state.workspaceMediaKind;
+  }, [libraryCollapsed, state.workspaceMediaKind]);
+
   useEffect(() => {
     const compactQuery = window.matchMedia("(max-width: 900px)");
     const syncCollapsedState = () => {
@@ -78,7 +97,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
   if (isFlux3ImageMode) {
     return (
       <section className={["workspace", "flux3ImageMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
-        <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+        {modeTabs}
         {promptLibrary}
         <Flux3ImageWorkspace
           sourceAsset={state.toolSourceAsset}
@@ -94,12 +113,18 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
     );
   }
 
-  if (isFlux3Mode) {
+  if (isVideoMode) {
+    // All three video tools stay mounted and the inactive ones are hidden.
+    // Returning a different tree per tab unmounted the last one, which threw
+    // away its saved-result list, its loaded clip and its buffered video, so
+    // every tab change refetched and reloaded — the jump and the reloading.
+    const videoModeClass = isEditMode ? "videoEditMode" : isUpscaleMode ? "videoUpscaleMode" : "flux3Mode";
     return (
-      <section className={["workspace", "flux3Mode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
-        <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+      <section className={["workspace", videoModeClass, libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
+        {modeTabs}
         {promptLibrary}
         <Flux3VideoWorkspace
+          active={isFlux3Mode}
           apiKey={state.apiKey}
           assets={state.assets}
           mode={state.flux3SourceMode}
@@ -109,6 +134,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           startVideo={state.flux3StartVideo}
           onStartVideoChange={state.setFlux3StartVideo}
           promptSeed={state.flux3PromptSeed}
+          onSendToEdit={state.sendVideoToEdit}
           onSendToUpscale={state.sendVideoToUpscale}
           onGenerated={() => void state.checkBalance()}
           onOpenAssets={() => state.setActiveTab("assets")}
@@ -118,16 +144,21 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           generationQueueControls={state.generationQueueControls}
           libraryPrompt={state.visiblePrompts.find((prompt) => prompt.id === state.activeId)?.prompt}
         />
-      </section>
-    );
-  }
-
-  if (isUpscaleMode) {
-    return (
-      <section className={["workspace", "videoUpscaleMode", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
-        <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
-        {promptLibrary}
+        <VideoEditWorkspace
+          active={isEditMode}
+          apiKey={state.apiKey}
+          assets={state.assets}
+          pendingSource={state.editSourceSeed}
+          onGenerated={() => void state.checkBalance()}
+          onOpenAssets={() => state.setActiveTab("assets")}
+          onSendToUpscale={state.sendVideoToUpscale}
+          generationQueue={state.generationQueue}
+          generationQueueSummary={state.generationQueueSummary}
+          generationQueueConcurrency={state.generationQueueConcurrency}
+          generationQueueControls={state.generationQueueControls}
+        />
         <VideoUpscaleWorkspace
+          active={isUpscaleMode}
           apiKey={state.apiKey}
           assets={state.assets}
           pendingSource={state.upscaleSourceSeed}
@@ -144,7 +175,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
 
   return (
     <section className={["workspace", libraryCollapsed ? "libraryCollapsed" : ""].filter(Boolean).join(" ")}>
-      <WorkspaceModeTabs value={state.workspaceMode} onChange={state.setWorkspaceMode} />
+      {modeTabs}
       {promptLibrary}
       <div className="workspaceMain">
         {imageToolMode ? (

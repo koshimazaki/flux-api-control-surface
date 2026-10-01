@@ -89,10 +89,11 @@ export type WorkspaceMode =
   | "outpaint"
   | "deblur"
   | "flux3"
+  | "edit"
   | "upscale"
   | "glyphs";
 /** Image tools that run through the shared tool panel. */
-export type ImageWorkspaceMode = Exclude<WorkspaceMode, "prompt" | "flux3" | "upscale" | "flux3_image">;
+export type ImageWorkspaceMode = Exclude<WorkspaceMode, "prompt" | "flux3" | "edit" | "upscale" | "flux3_image">;
 /** Modes that work on a loaded source image; FLUX 3 Image shares the tool source. */
 export type SourceImageMode = ImageWorkspaceMode | "flux3_image";
 

@@ -15,6 +15,9 @@ import {
   type VideoUpscaleSourceInput
 } from "@/lib/video-upscale";
 import type { AssetRecord } from "@/lib/types";
+import { usePauseHiddenMedia } from "@/lib/use-pause-hidden-media";
+import { inspectVideo, readFileAsDataUrl } from "@/lib/video-media-client";
+import { videoStageStyle } from "@/lib/video-stage";
 
 type SourceVideo = {
   id: string;
@@ -28,6 +31,8 @@ type SourceVideo = {
 };
 
 type VideoUpscaleWorkspaceProps = {
+  /** False while another video tool is on screen: this one stays mounted but hidden. */
+  active: boolean;
   apiKey: string;
   assets: AssetRecord[];
   /** Video sent from another surface (library card, FLUX 3 header); nonce re-applies repeat sends. */
@@ -40,30 +45,8 @@ type VideoUpscaleWorkspaceProps = {
   generationQueueControls?: JobQueueControls;
 };
 
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error(`Could not read ${file.name}.`));
-    reader.readAsDataURL(file);
-  });
-}
-
-function inspectVideo(source: string) {
-  return new Promise<{ width?: number; height?: number; duration?: number }>((resolve) => {
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.onloadedmetadata = () => resolve({
-      width: video.videoWidth || undefined,
-      height: video.videoHeight || undefined,
-      duration: Number.isFinite(video.duration) ? video.duration : undefined
-    });
-    video.onerror = () => resolve({});
-    video.src = source;
-  });
-}
-
 export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
+  const rootRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [source, setSource] = useState<SourceVideo | null>(null);
   const [isDropActive, setIsDropActive] = useState(false);
@@ -78,6 +61,7 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
   const selected = selectedId ? results.find((item) => item.id === selectedId) || null : null;
+  usePauseHiddenMedia(rootRef, props.active);
   const request = useMemo<VideoUpscaleRequest>(() => ({
     inputVideo: source?.source || "",
     upscaleFactor: factor,
@@ -219,7 +203,7 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
   }
 
   return (
-    <section className="videoUpscaleWorkspace">
+    <section className="videoUpscaleWorkspace" ref={rootRef} hidden={!props.active}>
       {/* The whole preview panel accepts drops: a saved result or current source
           replaces the empty dropzone, and dropping a new clip must still work. */}
       <div
@@ -246,11 +230,18 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
           <VideoComparisonFader beforeUrl={selected.sourceVideoUrl} afterUrl={selected.videoUrl} />
         ) : source ? (
           <div className="videoUpscaleSourcePreview">
-            <video src={source.source} controls playsInline preload="metadata" />
+            <video
+              className="videoStage"
+              style={videoStageStyle(source.width && source.height ? { width: source.width, height: source.height } : null)}
+              src={source.source}
+              controls
+              playsInline
+              preload="metadata"
+            />
             <div><Film size={16} /><strong>{source.name}</strong><button type="button" onClick={() => setSource(null)} title="Remove source"><X size={14} /></button></div>
           </div>
         ) : (
-          <button className="videoUpscaleDrop" type="button" onClick={() => inputRef.current?.click()}>
+          <button className="videoUpscaleDrop videoStage" type="button" onClick={() => inputRef.current?.click()}>
             <Upload size={28} />
             <strong>Drop an MP4 or saved FLUX 3 video</strong>
             <span>Maximum 50 MB · 20 seconds · 2560 × 1440 input</span>

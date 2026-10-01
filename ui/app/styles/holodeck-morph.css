@@ -442,8 +442,7 @@ body::before {
 
 .dsgn-root .seedLockButton.selected,
 .dsgn-root .assetFilterChips button.active,
-.dsgn-root .assetActions .selected,
-.dsgn-root .flux3ModePicker > button.active {
+.dsgn-root .assetActions .selected {
   border-color: var(--acc-intel);
   background: var(--acc-intel-ghost);
   color: var(--acc-intel-strong);
@@ -459,7 +458,8 @@ body::before {
   color: var(--acc-intel-strong);
 }
 
-.dsgn-root .flux3Viewer,
+/* Every video stage (FLUX 3, Edit, Upscale) shares one material, not just one size. */
+.dsgn-root .videoStage,
 .dsgn-root .imageToolCanvas,
 .dsgn-root .maskPaintViewport,
 .dsgn-root .outpaintViewport,

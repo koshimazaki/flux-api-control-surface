@@ -10,7 +10,8 @@ import {
   VIDEO_UPSCALE_MAX_BYTES,
   type VideoUpscaleRequest
 } from "@/lib/video-upscale";
-import { downloadVideoBinary, resolveVideoInput, saveVideoUpscaleOutput } from "@/lib/video-upscale-server";
+import { downloadVideoBinary, resolveVideoInput } from "@/lib/video-input-server";
+import { saveVideoUpscaleOutput } from "@/lib/video-upscale-server";
 import type { OperationAdapter, OperationFinalizeInput, PreparedOperation } from "./types";
 
 export type VideoUpscaleRouteBody = VideoUpscaleRequest & {

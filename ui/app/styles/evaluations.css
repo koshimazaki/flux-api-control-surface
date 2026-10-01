@@ -6,6 +6,8 @@
   gap: 12px;
 }
 
+.evaluationControls { gap: 9px; }
+
 .evaluationFilters {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(130px, auto));
@@ -27,40 +29,93 @@
 }
 
 .evaluationGrid {
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  align-items: start;
 }
 
+/* The render is what is being judged, so it gets the card's full width and the
+   annotation sits beneath it. Side by side, the media was pinned to a third of
+   the card and left a tall empty column under it. */
 .evaluationCard {
   display: grid;
-  grid-template-columns: minmax(130px, 34%) 1fr;
-  min-height: 250px;
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.48);
 }
 
+/* The box follows the media's own shape and the frame is shown whole. It used
+   to fill the card's full height and crop to fit, which turned a 16:9 render
+   into a vertical slice — the one thing an evaluation view must not do. */
 .evaluationMedia {
-  min-height: 230px;
+  align-self: start;
+  aspect-ratio: var(--evaluation-aspect, 16 / 9);
+  min-height: 0;
+  overflow: hidden;
   background: #050505;
 }
 
 .evaluationMedia img,
 .evaluationMedia video {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
+/* A failed or cancelled attempt has no file to show. */
+.evaluationMediaEmpty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  padding: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.evaluationMediaEmpty strong {
+  color: var(--cream);
+  font-size: 12px;
+}
+
+.evaluationMediaEmpty span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+/* The annotation is supporting material under the render: tighter than the
+   picture, and never taller than it needs to be. */
 .evaluationBody {
   align-content: start;
-  padding: 12px;
+  gap: 9px;
+  padding: 10px 11px 11px;
 }
 
 .evaluationTitle {
   display: flex;
   justify-content: space-between;
   gap: 10px;
+}
+
+.evaluationTitle strong {
+  font-size: 13px;
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.evaluationTitle small {
+  flex: 0 0 auto;
+  text-align: right;
 }
 
 .evaluationTitle small,
@@ -83,14 +138,17 @@
   padding: 3px 7px;
 }
 
+/* The prompt is reference, not the subject: three lines, expandable by scroll. */
 .evaluationBody p {
-  max-height: 6.5em;
+  max-height: 4.4em;
   overflow: auto;
   color: var(--soft);
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.45;
   white-space: pre-wrap;
 }
+
+.evaluationControls textarea { min-height: 58px; }
 
 .evaluationControls {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -109,6 +167,12 @@
   justify-self: end;
 }
 
+/* Marked while edits are outstanding, so it is obvious there is something to write. */
+.evaluationSaveAll.pending {
+  border-color: var(--accent);
+  color: var(--accent-strong, var(--accent));
+}
+
 .evaluationLoadMore {
   display: flex;
   margin: 14px auto 0;
@@ -120,9 +184,7 @@
     grid-template-columns: 1fr;
   }
 
-  .evaluationMedia {
-    min-height: 220px;
-  }
+  /* The media already sizes itself from the render's own shape. */
 }
 
 .evaluationActions {

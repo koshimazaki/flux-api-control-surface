@@ -6,6 +6,7 @@ import { setJobRuntime } from "./runtime";
 import { awaitQueueJob, newQueueJobId, nudgeQueueRunner } from "./runner";
 import { FLUX3_IMAGE_API, FLUX3_IMAGE_MODEL, FLUX3_IMAGE_OPERATION, type Flux3ImageRequest } from "@/lib/flux3-image";
 import { estimateFlux3VideoUsd, type Flux3VideoRequest } from "@/lib/flux3-video";
+import { estimateVideoEditUsd, VIDEO_EDIT_MODEL, VIDEO_EDIT_OPERATION, type VideoEditRequest } from "@/lib/video-edit";
 import { estimateVideoUpscaleUsd, VIDEO_UPSCALE_MODEL, VIDEO_UPSCALE_OPERATION, type VideoUpscaleRequest } from "@/lib/video-upscale";
 import { estimateMinimumCost, estimateTokens } from "@/lib/pricing";
 import { takeJobResponse } from "./runtime";
@@ -20,14 +21,30 @@ export type EnqueueOptions = EnqueueJobInput & {
   id?: string;
 };
 
+function videoOperationTitle(operation: string) {
+  if (operation === VIDEO_UPSCALE_OPERATION) return "FLUX 3 Video Upscale";
+  if (operation === VIDEO_EDIT_OPERATION) return "FLUX Video Edit";
+  return `FLUX 3 ${operation}`;
+}
+
+function videoOperationModel(operation: string) {
+  if (operation === VIDEO_UPSCALE_OPERATION) return VIDEO_UPSCALE_MODEL;
+  if (operation === VIDEO_EDIT_OPERATION) return VIDEO_EDIT_MODEL;
+  return "flux-3-video";
+}
+
+function estimateVideoUsd(options: EnqueueOptions) {
+  if (options.operation === VIDEO_UPSCALE_OPERATION) return estimateVideoUpscaleUsd(options.body as VideoUpscaleRequest);
+  if (options.operation === VIDEO_EDIT_OPERATION) return estimateVideoEditUsd(options.body as VideoEditRequest);
+  return estimateFlux3VideoUsd(options.body as Flux3VideoRequest);
+}
+
 function defaultTitle(options: EnqueueOptions) {
   const bodyTitle = typeof options.body.title === "string" ? options.body.title.trim() : "";
   if (options.title?.trim()) return options.title.trim();
   if (bodyTitle) return bodyTitle;
   if (options.kind === "tool") return `${options.operation}-edit`;
-  if (options.kind === "video") {
-    return options.operation === VIDEO_UPSCALE_OPERATION ? "FLUX 3 Video Upscale" : `FLUX 3 ${options.operation}`;
-  }
+  if (options.kind === "video") return videoOperationTitle(options.operation);
   return "bfl-generation";
 }
 
@@ -46,11 +63,7 @@ function estimateJobCost(options: EnqueueOptions) {
     return { credits: estimate.credits, usd: estimate.usd };
   }
   if (options.kind === "video") {
-    if (options.operation === VIDEO_UPSCALE_OPERATION) {
-      const usd = estimateVideoUpscaleUsd(options.body as VideoUpscaleRequest);
-      return typeof usd === "number" ? { credits: Math.round(usd * 100), usd } : {};
-    }
-    const usd = estimateFlux3VideoUsd(options.body as Flux3VideoRequest);
+    const usd = estimateVideoUsd(options);
     return typeof usd === "number" ? { credits: Math.round(usd * 100), usd } : {};
   }
   return {};
@@ -59,7 +72,7 @@ function estimateJobCost(options: EnqueueOptions) {
 function modelLabel(options: EnqueueOptions) {
   if (typeof options.body.model === "string" && options.body.model.trim()) return options.body.model.trim();
   if (options.operation === FLUX3_IMAGE_OPERATION) return FLUX3_IMAGE_MODEL;
-  if (options.kind === "video") return options.operation === VIDEO_UPSCALE_OPERATION ? VIDEO_UPSCALE_MODEL : "flux-3-video";
+  if (options.kind === "video") return videoOperationModel(options.operation);
   if (options.kind === "tool") return `flux-tools/${options.operation}`;
   return "pro-preview";
 }

@@ -19,11 +19,14 @@ vi.mock("@/lib/bfl-server", () => ({
   resolveApiKey: mocks.resolveApiKey
 }));
 
-vi.mock("@/lib/video-upscale-server", () => ({
+vi.mock("@/lib/video-input-server", () => ({
   downloadVideoBinary: mocks.downloadVideoBinary,
+  resolveVideoInput: mocks.resolveVideoInput
+}));
+
+vi.mock("@/lib/video-upscale-server", () => ({
   findVideoUpscaleOutput: vi.fn(),
   listVideoUpscaleOutputs: vi.fn().mockResolvedValue([]),
-  resolveVideoInput: mocks.resolveVideoInput,
   saveVideoUpscaleOutput: mocks.saveVideoUpscaleOutput
 }));
 

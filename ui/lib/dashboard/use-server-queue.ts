@@ -172,6 +172,19 @@ export function useServerQueue(options: { onError?: (message: string) => void } 
     refresh,
     enqueue,
     cancel,
+    /** Removes one settled job from the queue record. Saved outputs are untouched. */
+    dismiss: async (id: string) => {
+      try {
+        await readQueueResponse(
+          await fetch(`/api/dashboard/queue?id=${encodeURIComponent(id)}&remove=true`, { method: "DELETE" })
+        );
+        await refresh();
+        return true;
+      } catch (error) {
+        onErrorRef.current?.(error instanceof Error ? error.message : "Could not remove the job.");
+        return false;
+      }
+    },
     pause: (reason?: string) => control({ action: "pause", reason }),
     resume: () => control({ action: "resume" }),
     retry: (id: string) => control({ action: "retry", id }),

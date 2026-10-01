@@ -12,8 +12,8 @@ env vars or macOS Keychain, and use the optional Cloudflare Worker only as a
 token-protected archive for generated outputs.
 
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/618dcd79-6222-4c1b-ad92-6078c425ea17" width="640" autoplay loop muted></video>
-  <em>FLUX 3 Video Scripts — plan, queue, evaluate from one local control surface</em>
+  <video src="https://github.com/user-attachments/assets/e7c7d7e0-940a-4fd6-983b-cc79165b4aba" width="640" autoplay loop muted></video>
+  <em>FLUX 3 Video Upscale and UI themes </em>
 </div>
 
 ## Quick Start

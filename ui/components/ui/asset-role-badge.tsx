@@ -7,6 +7,7 @@ import {
   ImagePlus,
   Maximize2,
   Music,
+  PencilLine,
   ScanLine,
   Shirt,
   Send,
@@ -25,6 +26,7 @@ const badgeIcons = {
   outpaint: Maximize2,
   deblur: Focus,
   flux3: Film,
+  edit: PencilLine,
   upscale: ScanLine,
   glyphs: Fingerprint
 };
@@ -36,6 +38,7 @@ const rolePriority: AssetBadge["kind"][] = [
   "deblur",
   "erase",
   "flux3",
+  "edit",
   "upscale",
   "glyphs",
   "collection",
@@ -56,6 +59,7 @@ export function assetRoleClassName(badges: AssetBadge[]) {
 export function workspaceRoleLabel(mode: Exclude<WorkspaceMode, "prompt">) {
   if (mode === "flux3_image") return "FLUX 3 Image";
   if (mode === "flux3") return "FLUX 3";
+  if (mode === "edit") return "Edit";
   if (mode === "upscale") return "Upscale";
   if (mode === "vto") return "VTO";
   if (mode === "outpaint") return "Outpaint";

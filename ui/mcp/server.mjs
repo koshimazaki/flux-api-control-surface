@@ -400,6 +400,26 @@ server.registerTool(
 );
 
 server.registerTool(
+  "list_video_edits",
+  {
+    title: "List FLUX Video Edits",
+    description: "List locally saved FLUX Video Edit outputs with source and before/after comparison URLs.",
+    inputSchema: {}
+  },
+  async () => result(await requestJson("/api/bfl/video-edit"))
+);
+
+server.registerTool(
+  "list_video_trims",
+  {
+    title: "List Cut Clips",
+    description: "List locally cut clips with the bracket each was cut from and its playback URL.",
+    inputSchema: {}
+  },
+  async () => result(await requestJson("/api/bfl/video-trim"))
+);
+
+server.registerTool(
   "list_evaluations",
   {
     title: "List Generation Evaluations",
@@ -501,6 +521,62 @@ server.registerTool(
     }
   },
   async (payload) => result(await post("/api/bfl/video-upscale", payload))
+);
+
+server.registerTool(
+  "edit_video",
+  {
+    title: "Edit Video with FLUX",
+    description:
+      "Edit and locally save an MP4 with FLUX Video Edit from one text instruction: remove, add, replace or recolor objects, change signs or dialogue, restyle or relight the scene. Duration, aspect ratio and audio follow the source; above 720p returns at 720p. The documented request is video + prompt + safetyTolerance only — no image references, masks or seeds. Chain passes by sending a result URL back as inputVideo.",
+    inputSchema: {
+      inputVideo: z
+        .string()
+        .min(1)
+        .describe("Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL. MP4 up to 50 MB and 15 seconds."),
+      prompt: z.string().min(1).max(4096).describe("The change to make, and nothing else; everything unmentioned stays as filmed."),
+      safetyTolerance: z.number().int().min(0).max(4).optional(),
+      title: z.string().max(160).optional(),
+      sourceAssetId: z.string().optional(),
+      sourceName: z.string().optional(),
+      sourceWidth: z.number().int().positive().optional(),
+      sourceHeight: z.number().int().positive().optional(),
+      durationSeconds: z
+        .number()
+        .positive()
+        .lt(15.5)
+        .optional()
+        .describe("Measured source seconds. FLUX 3's own 15 s continuations may report slightly over 15 from container metadata; the API rounds to whole seconds.")
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async (payload) => result(await post("/api/bfl/video-edit", payload))
+);
+
+server.registerTool(
+  "trim_video",
+  {
+    title: "Cut a Clip to Length",
+    description:
+      "Cut a clip down to one bracket with local ffmpeg so an over-length render can be edited: FLUX 3 makes up to 20 seconds, FLUX Video Edit accepts at most 15. Local and free — no BFL request, no API key, no queue, no credits. Edges snap to the 24 fps grid the API normalizes to, and the saved result can be passed straight back as inputVideo to edit_video.",
+    inputSchema: {
+      inputVideo: z.string().min(1).describe("Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL."),
+      start: z.number().min(0).describe("Cut start in seconds."),
+      end: z.number().positive().describe("Cut end in seconds; at most 15 s after start, at least 17 frames."),
+      sourceDurationSeconds: z.number().positive().describe("The clip's full duration, so the bracket stays inside it."),
+      title: z.string().max(160).optional(),
+      sourceAssetId: z.string().optional(),
+      sourceName: z.string().optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async (payload) => result(await post("/api/bfl/video-trim", payload))
 );
 
 server.registerTool(
