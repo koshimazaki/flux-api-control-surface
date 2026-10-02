@@ -14,8 +14,12 @@ export type Flux3ImageRunInput = {
   referenceMeta?: Array<Partial<ReferenceImage>>;
 };
 
-/** A queued run the page is following; stored so a reload follows it again instead of resubmitting. */
-export type PendingFlux3ImageRun = { jobId: string; title: string; prompt: string; startedAt: number };
+/**
+ * A run the page is following, stored so a reload follows it again instead of
+ * resubmitting. It is stored before it is sent, with its request key; the job
+ * id arrives with the answer, or is found by that key if the answer was lost.
+ */
+export type PendingFlux3ImageRun = { jobId?: string; requestKey?: string; title: string; prompt: string; startedAt: number };
 
 /** What the workspace shows of its runs: the oldest one still going, how many there are, and the latest result. */
 export type Flux3ImageRunView = {
@@ -67,22 +71,65 @@ export class Flux3ImageJobError extends Error {
   }
 }
 
+/** A fresh key per deliberate run; a resend of the same run reuses it. */
+export function newRequestKey() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 /**
  * Queues the run and returns its job id without waiting for the image. The
  * queue owns the paid job from here, so a slow render or a long queue cannot
- * time the request out and invite a second submit. The one gap left is this
- * first response: if it is lost, the job still runs and shows in the queue
- * panel, but the page has no id to follow it by.
+ * time the request out and invite a second submit. The request carries the
+ * run's key, so when its answer is lost it is sent again with the same key and
+ * the dashboard answers with the job the first send started.
  */
-export async function submitFlux3ImageRun(body: Record<string, unknown>, fetcher: Fetcher = fetch) {
-  const response = await fetcher("/api/bfl/flux3-image", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, wait: false })
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || typeof data.jobId !== "string") throw new Error(data.error || "FLUX 3 Image could not be queued.");
-  return data.jobId as string;
+export async function submitFlux3ImageRun(
+  body: Record<string, unknown>,
+  fetcher: Fetcher = fetch,
+  requestKey = newRequestKey(),
+  { retries = 2, delayMs = 1_000 } = {}
+) {
+  for (let attempt = 0; ; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetcher("/api/bfl/flux3-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": requestKey },
+        body: JSON.stringify({ ...body, wait: false })
+      });
+    } catch (error) {
+      // No answer: it may have arrived, so it goes again under the same key.
+      if (attempt >= retries) throw error;
+      await wait(delayMs * (attempt + 1));
+      continue;
+    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || typeof data.jobId !== "string") throw new Error(data.error || "FLUX 3 Image could not be queued.");
+    return data.jobId as string;
+  }
+}
+
+/**
+ * The job a request key started, after a reload lost the answer that named it.
+ * Asks a few times, since the request may still be arriving; null means it
+ * never reached the dashboard, so nothing was queued or charged.
+ */
+export async function findJobByRequestKey(requestKey: string, { fetcher = fetch as Fetcher, tries = 3, intervalMs = 1_000 } = {}) {
+  for (let attempt = 0; attempt < tries; attempt += 1) {
+    try {
+      const response = await fetcher(`/api/dashboard/queue?requestKey=${encodeURIComponent(requestKey)}`, { cache: "no-store" });
+      if (response.ok) {
+        const id = (await response.json())?.job?.id;
+        if (typeof id === "string") return id;
+      }
+    } catch {
+      // A dropped lookup is asked again.
+    }
+    if (attempt < tries - 1) await wait(intervalMs);
+  }
+  return null;
 }
 
 async function blobToDataUrl(blob: Blob) {
@@ -179,7 +226,10 @@ export async function followFlux3ImageJob(jobId: string, options: FollowOptions 
 /** Stored runs, read defensively. One run saved before runs could stack is read as a list of one. */
 export function normalizePendingRuns(value: unknown): PendingFlux3ImageRun[] {
   const list = Array.isArray(value) ? value : value ? [value] : [];
-  return list.filter((run): run is PendingFlux3ImageRun => Boolean(run) && typeof run === "object" && typeof (run as PendingFlux3ImageRun).jobId === "string");
+  return list.filter((run): run is PendingFlux3ImageRun => {
+    const record = run as PendingFlux3ImageRun;
+    return Boolean(run) && typeof run === "object" && (typeof record.jobId === "string" || typeof record.requestKey === "string");
+  });
 }
 
 function readPending(): PendingFlux3ImageRun[] {
@@ -240,7 +290,10 @@ export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
   const depsRef = useRef(deps);
   depsRef.current = deps;
   const [pending, setPending] = useState<PendingFlux3ImageRun[]>([]);
-  const [submitting, setSubmitting] = useState(0);
+  /** Request keys whose submit this page is still sending. */
+  const sending = useRef(new Set<string>());
+  /** Request keys being looked up after a reload lost their answer. */
+  const resolving = useRef(new Set<string>());
   /** Each pending job's last status from the queue. */
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [result, setResult] = useState<AssetRecord | null>(null);
@@ -272,14 +325,32 @@ export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
 
   useEffect(() => {
     for (const run of pending) {
-      if (followed.current.has(run.jobId)) continue;
+      const key = run.requestKey;
+      if (!run.jobId) {
+        // Stored before it was sent, and the answer naming its job was lost
+        // to a reload: find the job by its key, or learn it was never queued.
+        if (!key || sending.current.has(key) || resolving.current.has(key)) continue;
+        resolving.current.add(key);
+        void findJobByRequestKey(key).then((jobId) => {
+          resolving.current.delete(key);
+          if (jobId) {
+            changePending((runs) => runs.map((item) => (item.requestKey === key ? { ...item, jobId } : item)));
+            return;
+          }
+          changePending((runs) => runs.filter((item) => item.requestKey !== key));
+          depsRef.current.setRecoveryMessage(`FLUX 3 Image "${run.title}" never reached the dashboard, so nothing was charged. Generate it again.`);
+        });
+        continue;
+      }
+      const jobId = run.jobId;
+      if (followed.current.has(jobId)) continue;
       const signal = { cancelled: false };
-      followed.current.set(run.jobId, signal);
+      followed.current.set(jobId, signal);
       const settle = (outcome: { asset?: AssetRecord; error?: string; cancelled?: boolean }) => {
         if (signal.cancelled) return;
-        followed.current.delete(run.jobId);
-        changePending((runs) => runs.filter((item) => item.jobId !== run.jobId));
-        setStatuses(({ [run.jobId]: _settled, ...rest }) => rest);
+        followed.current.delete(jobId);
+        changePending((runs) => runs.filter((item) => item.jobId !== jobId));
+        setStatuses(({ [jobId]: _settled, ...rest }) => rest);
         const current = depsRef.current;
         if (outcome.cancelled) {
           current.setRecoveryMessage(`FLUX 3 Image cancelled: ${run.title}.`);
@@ -291,9 +362,9 @@ export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
       };
       void (async () => {
         try {
-          const asset = await followFlux3ImageJob(run.jobId, {
+          const asset = await followFlux3ImageJob(jobId, {
             signal,
-            onStatus: (status) => setStatuses((all) => (all[run.jobId] === status ? all : { ...all, [run.jobId]: status }))
+            onStatus: (status) => setStatuses((all) => (all[jobId] === status ? all : { ...all, [jobId]: status }))
           });
           if (!asset || signal.cancelled) return;
           await persistAssetImage(asset.id, asset.imageDataUrl);
@@ -316,41 +387,50 @@ export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
     deps.setError("");
     setResult(null);
     setWatching(true);
-    setSubmitting((count) => count + 1);
+    // Each click is its own request: a fresh key, stored before it is sent, so
+    // a reload mid-send finds the job rather than losing or repeating it.
+    const requestKey = newRequestKey();
+    const run: PendingFlux3ImageRun = { requestKey, title: input.title, prompt: input.request.prompt?.trim() || "", startedAt: Date.now() };
+    sending.current.add(requestKey);
+    changePending((runs) => [...runs, run]);
     try {
-      const jobId = await submitFlux3ImageRun({
-        ...input.request,
-        apiKey: deps.apiKey || undefined,
-        title: input.title,
-        sourceAssetIds: input.sourceAssetIds,
-        referenceMeta: input.referenceMeta
-      });
-      const run = { jobId, title: input.title, prompt: input.request.prompt?.trim() || "", startedAt: Date.now() };
-      changePending((runs) => [...runs, run]);
+      const jobId = await submitFlux3ImageRun(
+        {
+          ...input.request,
+          apiKey: deps.apiKey || undefined,
+          title: input.title,
+          sourceAssetIds: input.sourceAssetIds,
+          referenceMeta: input.referenceMeta
+        },
+        fetch,
+        requestKey
+      );
+      changePending((runs) => runs.map((item) => (item.requestKey === requestKey ? { ...item, jobId } : item)));
       deps.setRecoveryMessage(`FLUX 3 Image queued: ${input.title}. It keeps running if you reload this page.`);
       return jobId;
     } catch (error) {
       const message = error instanceof Error ? error.message : "FLUX 3 Image could not be queued.";
-      deps.setRunLog((log) => [runLogEntry({ jobId: "", title: input.title, prompt: input.request.prompt || "", startedAt: Date.now() }, { error: message }), ...log]);
+      changePending((runs) => runs.filter((item) => item.requestKey !== requestKey));
+      deps.setRunLog((log) => [runLogEntry(run, { error: message }), ...log]);
       deps.setError(message);
       return null;
     } finally {
-      setSubmitting((count) => count - 1);
+      sending.current.delete(requestKey);
     }
   }
 
   const oldest = pending[0];
   const flux3ImageRun: Flux3ImageRunView = {
     startedAt: oldest?.startedAt ?? null,
-    status: oldest ? statuses[oldest.jobId] ?? "queued" : submitting > 0 ? "submitting" : "",
-    count: pending.length + submitting,
+    status: oldest ? (oldest.jobId ? statuses[oldest.jobId] ?? "queued" : "submitting") : "",
+    count: pending.length,
     result,
     watching
   };
 
   return {
     runFlux3Image,
-    isFlux3ImageRunning: submitting > 0 || pending.length > 0,
+    isFlux3ImageRunning: pending.length > 0,
     flux3ImageRun,
     /** Closes the layer over the stage; running jobs carry on in the queue. */
     dismissFlux3ImageResult: () => {
