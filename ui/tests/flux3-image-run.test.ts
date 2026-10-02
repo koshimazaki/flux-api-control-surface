@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   Flux3ImageJobError,
+  findJobByRequestKey,
   followFlux3ImageJob,
   loadFlux3ImageOutput,
   normalizePendingRuns,
@@ -117,5 +118,40 @@ describe("FLUX 3 Image runs follow the queue instead of holding the request open
   it("says so when a finished job's output is not listed yet", async () => {
     const fetcher = vi.fn(async () => json([{ id: "other" }]));
     await expect(loadFlux3ImageOutput("f3i-1", fetcher)).rejects.toThrow(/not in Assets yet/);
+  });
+});
+
+describe("FLUX 3 Image runs carry a request key", () => {
+  it("sends a run again under its key when the answer is lost, and takes the job it names", async () => {
+    let calls = 0;
+    const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => {
+      calls += 1;
+      if (calls === 1) throw new TypeError("Failed to fetch");
+      return json({ queued: true, jobId: "job-1", reused: true }, 202);
+    });
+    await expect(submitFlux3ImageRun({ mode: "t2i", prompt: "fox" }, fetcher, "run-key-abc1", { delayMs: 0 })).resolves.toBe("job-1");
+    const keys = fetcher.mock.calls.map(([, init]) => (init?.headers as Record<string, string>)["Idempotency-Key"]);
+    expect(keys).toEqual(["run-key-abc1", "run-key-abc1"]);
+  });
+
+  it("does not resend a request the dashboard answered with a refusal", async () => {
+    const fetcher = vi.fn(async () => json({ error: "Idempotency-Key run-key-abc2 was already used for a different request" }, 409));
+    await expect(submitFlux3ImageRun({ mode: "t2i", prompt: "fox" }, fetcher, "run-key-abc2", { delayMs: 0 })).rejects.toThrow(/different request/);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("finds the job a key started after a reload, or says the run never arrived", async () => {
+    const found = vi.fn(async (_url: string) => json({ job: { id: "job-7" } }));
+    await expect(findJobByRequestKey("run-key-abc3", { fetcher: found, intervalMs: 0 })).resolves.toBe("job-7");
+    expect(found.mock.calls[0][0]).toBe("/api/dashboard/queue?requestKey=run-key-abc3");
+    const missing = vi.fn(async (_url: string) => json({ error: "No queue job" }, 404));
+    await expect(findJobByRequestKey("run-key-abc4", { fetcher: missing, intervalMs: 0, tries: 2 })).resolves.toBeNull();
+    expect(missing).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps a run stored before its answer, which has a key but no job yet", () => {
+    expect(normalizePendingRuns([{ requestKey: "run-key-abc5", title: "fox", prompt: "fox", startedAt: 1 }, { title: "neither" }])).toEqual([
+      { requestKey: "run-key-abc5", title: "fox", prompt: "fox", startedAt: 1 }
+    ]);
   });
 });

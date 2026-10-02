@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import sharp from "sharp";
 import { POST } from "@/app/api/bfl/flux3-image/route";
@@ -34,11 +34,11 @@ vi.mock("@/lib/bfl-server", () => ({
 vi.mock("@/lib/png-metadata", () => ({ embedPngMetadata: vi.fn((buffer: Buffer) => buffer) }));
 vi.mock("@/lib/remote-archive", () => ({ syncOutputToRemote: mocks.syncOutputToRemote }));
 
-function post(body: Record<string, unknown>) {
+function post(body: Record<string, unknown>, requestKey?: string) {
   return POST(
     new NextRequest("http://localhost/api/bfl/flux3-image", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(requestKey ? { "Idempotency-Key": requestKey } : {}) },
       body: JSON.stringify(body)
     })
   );
@@ -235,5 +235,49 @@ describe("FLUX 3 Image route", () => {
     const response = await post({ mode: "t2i", prompt: "fox" });
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(JSON.stringify(await response.json())).toMatch(/does not have access/);
+  });
+
+  describe("request keys", () => {
+    const paidSubmits = () => mocks.bflJson.mock.calls.filter(([method]) => method === "POST").length;
+    // The early-access test above pauses the queue, as an auth refusal should.
+    beforeEach(async () => {
+      const { mutateQueueState } = await import("@/lib/queue/store");
+      await mutateQueueState((state) => {
+        state.paused = false;
+        state.pauseReason = undefined;
+      });
+    });
+
+    it("answers a resend with its key with the job the first send started, and pays once", async () => {
+      mockSuccess();
+      const first = await post({ mode: "t2i", prompt: "a fox once", wait: false }, "run-key-0001");
+      const again = await post({ mode: "t2i", prompt: "a fox once", wait: false }, "run-key-0001");
+      const [one, two] = [await first.json(), await again.json()];
+      expect(two).toMatchObject({ jobId: one.jobId, reused: true });
+      await vi.waitFor(() => expect(mocks.saveOutputFiles).toHaveBeenCalled(), { timeout: 5_000 });
+      expect(paidSubmits()).toBe(1);
+    });
+
+    it("gives a waiting resend the finished answer instead of running it again", async () => {
+      mockSuccess();
+      const first = await post({ mode: "t2i", prompt: "a fox waited for" }, "run-key-0002");
+      expect(first.status).toBe(200);
+      const again = await post({ mode: "t2i", prompt: "a fox waited for" }, "run-key-0002");
+      expect(again.status).toBe(200);
+      expect((await again.json()).flux3Image).toMatchObject({ mode: "t2i" });
+      expect(paidSubmits()).toBe(1);
+    });
+
+    it("refuses the same key with a different prompt, and a malformed key, before anything is queued", async () => {
+      mockSuccess();
+      await post({ mode: "t2i", prompt: "a fox", wait: false }, "run-key-0003");
+      await vi.waitFor(() => expect(mocks.saveOutputFiles).toHaveBeenCalled(), { timeout: 5_000 });
+      const conflict = await post({ mode: "t2i", prompt: "an owl", wait: false }, "run-key-0003");
+      expect(conflict.status).toBe(409);
+      expect((await conflict.json()).error).toMatch(/already used for a different request/);
+      const malformed = await post({ mode: "t2i", prompt: "a fox", wait: false }, "bad key!");
+      expect(malformed.status).toBe(400);
+      expect(paidSubmits()).toBe(1);
+    });
   });
 });

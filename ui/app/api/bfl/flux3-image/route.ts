@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
   if (!apiKey) return jsonError("FLUX API key is required.");
 
   return queueBackedResponse({
+    request,
     enqueue: {
       kind: "image",
       operation: FLUX3_IMAGE_OPERATION,

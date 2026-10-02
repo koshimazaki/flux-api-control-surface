@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
   if (!tool || !toolConfig) return jsonError(`Unknown tool: ${tool || "(none)"}`);
 
   return queueBackedResponse({
+    request,
     enqueue: {
       kind: "tool",
       operation: tool,

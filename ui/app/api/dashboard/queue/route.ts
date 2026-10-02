@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { GenerationJobKind } from "@/lib/generation-queue";
 import { enqueueGenerationJobs, type EnqueueOptions } from "@/lib/queue/enqueue";
+import { entryRequestKey, requestKeyConflictBody, requestKeyFrom } from "@/lib/queue/request-key";
 import { requestedOperation } from "@/lib/queue/operation";
 import { ensureQueueRunner } from "@/lib/queue/runner";
 import {
@@ -57,9 +58,11 @@ export async function GET(request: NextRequest) {
   ensureQueueRunner();
   const snapshot = await readQueueSnapshot();
   const id = request.nextUrl.searchParams.get("id")?.trim();
-  if (!id) return NextResponse.json(snapshot);
-  const job = snapshot.jobs.find((entry) => entry.id === id);
-  if (!job) return jsonError(`Queue job ${id} was not found`, 404);
+  // A caller that lost its answer finds the job its Idempotency-Key started.
+  const requestKey = request.nextUrl.searchParams.get("requestKey")?.trim();
+  if (!id && !requestKey) return NextResponse.json(snapshot);
+  const job = snapshot.jobs.find((entry) => (id ? entry.id === id : entry.requestKey === requestKey));
+  if (!job) return jsonError(id ? `Queue job ${id} was not found` : `No queue job was started with request key ${requestKey}`, 404);
   return NextResponse.json({ job, summary: snapshot.summary, paused: snapshot.paused, runner: snapshot.runner });
 }
 
@@ -71,15 +74,24 @@ export async function POST(request: NextRequest) {
   const entries = Array.isArray(raw.jobs) ? raw.jobs : [raw];
   if (!entries.length) return jsonError("Provide at least one job to enqueue.");
 
+  const requestKey = requestKeyFrom(request, raw);
+  if (requestKey.error) return jsonError(requestKey.error);
   const origin = new URL(request.url).origin;
   const options: EnqueueOptions[] = [];
-  for (const entry of entries) {
+  for (const [index, entry] of entries.entries()) {
     const parsed = toEnqueueOptions(entry, origin);
     if (typeof parsed === "string") return jsonError(parsed);
-    options.push(parsed);
+    options.push({ ...parsed, requestKey: entryRequestKey(requestKey.key, index, entries.length) });
   }
 
-  const jobs = await enqueueGenerationJobs(options);
+  let jobs;
+  try {
+    jobs = await enqueueGenerationJobs(options);
+  } catch (error) {
+    const conflict = requestKeyConflictBody(error);
+    if (conflict) return NextResponse.json(conflict, { status: 409 });
+    throw error;
+  }
   const snapshot = await readQueueSnapshot();
   return NextResponse.json({ ok: true, jobs, summary: snapshot.summary, paused: snapshot.paused });
 }
