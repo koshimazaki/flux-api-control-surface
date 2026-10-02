@@ -1,13 +1,17 @@
 import { ImagePlus, X } from "lucide-react";
-import { useRef, type CSSProperties, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { RegionCard, type BoxVariant } from "@/components/flux3-image-region-card";
 import type { Size } from "@/lib/canvas-geometry";
 import { assetImageSource } from "@/lib/dashboard-tools";
 import { FLUX3_BOX_ACTIONS, boxActionLabels, type Flux3Box, type Flux3BoxAction, type Flux3ImageRegion } from "@/lib/flux3-image-boxes";
 import {
+  boxColor,
+  boxLayers,
   defaultMoveTarget,
   dragResult,
+  fillsFrame,
   regionCardPlacement,
+  resizeRegion,
   type BoxDrag,
   type BoxPart,
   type RegionHandle
@@ -89,12 +93,14 @@ function percent(value: number, total: number) {
   return `${(value / Math.max(1, total)) * 100}%`;
 }
 
-function frameStyle(box: Flux3Box, size: Size) {
+function frameStyle(box: Flux3Box, size: Size, color: string, layer: number) {
   return {
     left: percent(box.x, size.width),
     top: percent(box.y, size.height),
     width: percent(box.width, size.width),
-    height: percent(box.height, size.height)
+    height: percent(box.height, size.height),
+    zIndex: layer,
+    "--box-color": color
   } as CSSProperties;
 }
 
@@ -103,13 +109,15 @@ function MoveLines({ regions }: { regions: Flux3ImageRegion[] }) {
   return (
     <>
       {regions
-        .filter((region) => region.action === "move" && region.target)
-        .map((region) => {
+        .map((region, index) => ({ region, color: boxColor(index) }))
+        .filter(({ region }) => region.action === "move" && region.target)
+        .map(({ region, color }) => {
           const target = region.target!;
           return (
             <line
               key={region.id}
               className="regionMoveLine"
+              style={{ stroke: color }}
               x1={region.x + region.width / 2}
               y1={region.y + region.height / 2}
               x2={target.x + target.width / 2}
@@ -121,25 +129,95 @@ function MoveLines({ regions }: { regions: Flux3ImageRegion[] }) {
   );
 }
 
+/** Whether a key press is typing into a field rather than acting on the page. */
+function isTyping(target: EventTarget | null) {
+  return target instanceof HTMLElement && (target.isContentEditable || target.matches("input, textarea, select"));
+}
+
+const NUDGES: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+
+type BoxKeyOptions = {
+  activeId: string | null;
+  /** Whether the boxes are on screen at all. */
+  enabled: boolean;
+  regions: Flux3ImageRegion[];
+  frame: Size | null;
+  onChange: (region: Flux3ImageRegion) => void;
+  onRemove: (id: string) => void;
+};
+
+/**
+ * Keys for the selected box while the boxes are on screen: Delete or
+ * Backspace removes it, the arrows nudge it by 1% of the frame (Shift: 5%).
+ * Nothing happens while a field has the keyboard, where those keys edit text.
+ */
+export function useBoxKeys(options: BoxKeyOptions) {
+  const latest = useRef(options);
+  latest.current = options;
+  const { activeId, enabled } = options;
+  useEffect(() => {
+    if (!activeId || !enabled) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target)) return;
+      const { regions, frame, onChange, onRemove } = latest.current;
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        onRemove(activeId);
+        return;
+      }
+      const nudge = NUDGES[event.key];
+      const region = regions.find((item) => item.id === activeId);
+      if (!nudge || !region || !frame) return;
+      event.preventDefault();
+      const step = event.shiftKey ? 0.05 : 0.01;
+      onChange(resizeRegion(region, "source", "move", nudge[0] * step * frame.width, nudge[1] * step * frame.height, frame));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeId, enabled]);
+}
+
 const CORNER_HANDLES: RegionHandle[] = ["nw", "ne", "se", "sw"];
 const EDGE_HANDLES: RegionHandle[] = ["n", "e", "s", "w"];
 
 /**
- * FLUX 3 Image boxes over the frame they are drawn on, kept light: a frame
- * tinted by its action and a small chip per box. The selected box gets edge
- * and corner handles and its card; a move also shows its dashed target box,
- * which has handles of its own. A box's number drags it. Elsewhere the layer
- * lets pointer events through, so drawing continues on top.
+ * FLUX 3 Image boxes over the frame they are drawn on, kept light: a frame in
+ * the box's own colour and a small chip per box. Pressing inside a box selects
+ * it and dragging moves it; the selected box gets edge and corner handles and
+ * its card, and a move also shows its dashed target box, which drags the same
+ * way. Smaller boxes sit above larger ones. Holding Shift lets drags through
+ * to draw a new box over existing ones, and a box that fills the
+ * frame lets them through anyway, since it has nowhere to move.
  */
 export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & { regions: Flux3ImageRegion[]; size: Size }) {
   const layerRef = useRef<HTMLDivElement | null>(null);
   const drag = useRef<BoxDrag | null>(null);
+  const [drawThrough, setDrawThrough] = useState(false);
+  const layers = boxLayers(regions);
+
+  // Shift held: the boxes let drags through, to draw a new box over them.
+  // (Alt-drag already pans the canvas.)
+  useEffect(() => {
+    const track = (event: KeyboardEvent) => setDrawThrough(event.shiftKey);
+    const release = () => setDrawThrough(false);
+    window.addEventListener("keydown", track);
+    window.addEventListener("keyup", track);
+    window.addEventListener("blur", release);
+    return () => {
+      window.removeEventListener("keydown", track);
+      window.removeEventListener("keyup", track);
+      window.removeEventListener("blur", release);
+    };
+  }, []);
 
   function startDrag(event: ReactPointerEvent<HTMLElement>, region: Flux3ImageRegion, part: BoxPart, handle: RegionHandle) {
     const rect = layerRef.current?.getBoundingClientRect();
     if (!rect?.width) return;
     event.preventDefault();
     event.stopPropagation();
+    // Pressing the box means working on the box: leave any description being typed, so Delete acts on the box.
+    const typing = document.activeElement;
+    if (typing instanceof HTMLElement && typing.matches("input, textarea, select, [contenteditable]")) typing.blur();
     drag.current = { part, handle, x: event.clientX, y: event.clientY, scale: size.width / rect.width, origin: region };
     event.currentTarget.setPointerCapture(event.pointerId);
     callbacks.onSelect(region.id);
@@ -181,12 +259,15 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
     ));
 
   return (
-    <div className="regionLayer" ref={layerRef}>
+    <div className={drawThrough ? "regionLayer drawThrough" : "regionLayer"} ref={layerRef}>
       <svg className="regionShapes" viewBox={`0 0 ${size.width} ${size.height}`} preserveAspectRatio="none" aria-hidden="true">
         <MoveLines regions={regions} />
       </svg>
       {regions.map((region, index) => {
         const active = region.id === callbacks.activeId;
+        const color = boxColor(index);
+        // The selected box rides above the rest, with its handles and card.
+        const layer = active ? regions.length + 1 : layers[index];
         const reference = callbacks.referenceFor(region);
         const action = callbacks.variant === "layout" ? "change" : region.action;
         return (
@@ -194,7 +275,7 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
             {action === "move" && region.target && (
               <div
                 className={["regionFrame", "regionTarget", active ? "active" : ""].filter(Boolean).join(" ")}
-                style={frameStyle(region.target, size)}
+                style={frameStyle(region.target, size, color, layer)}
                 title={`Where box ${index + 1} moves to`}
                 onPointerDown={(event) => startDrag(event, region, "target", "move")}
                 {...dragHandlers}
@@ -205,8 +286,12 @@ export function RegionLayer({ regions, size, ...callbacks }: RegionCallbacks & {
             )}
             <div
               data-region-id={region.id}
-              className={["regionFrame", `action-${action}`, active ? "active" : ""].filter(Boolean).join(" ")}
-              style={frameStyle(region, size)}
+              className={["regionFrame", `action-${action}`, active ? "active" : "", !active && fillsFrame(region, size) ? "passThrough" : ""]
+                .filter(Boolean)
+                .join(" ")}
+              style={frameStyle(region, size, color, layer)}
+              onPointerDown={(event) => startDrag(event, region, "source", "move")}
+              {...dragHandlers}
             >
               {active && handles(region, "source")}
               <div className="regionChip" onPointerDown={(event) => event.stopPropagation()}>
@@ -274,6 +359,7 @@ export function RegionList({ regions, frame, ...callbacks }: RegionCallbacks & {
         <li
           key={region.id}
           className={region.id === callbacks.activeId ? "active" : undefined}
+          style={{ "--box-color": boxColor(index) } as CSSProperties}
           onFocus={() => callbacks.onSelect(region.id)}
           onClick={() => callbacks.onSelect(region.id)}
         >

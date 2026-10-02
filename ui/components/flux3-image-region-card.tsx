@@ -1,5 +1,12 @@
 import { Check, ChevronDown, ImagePlus, Trash2, X } from "lucide-react";
-import { useState, type DragEvent as ReactDragEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type DragEvent as ReactDragEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent
+} from "react";
 import type { Size } from "@/lib/canvas-geometry";
 import { assetImageSource } from "@/lib/dashboard-tools";
 import {
@@ -9,7 +16,8 @@ import {
   type Flux3BoxAction,
   type Flux3ImageRegion
 } from "@/lib/flux3-image-boxes";
-import { defaultMoveTarget, type regionCardPlacement } from "@/lib/flux3-image-regions";
+import { rememberCardOffset, rememberedCardOffset, type CardOffset } from "@/lib/flux3-image-card-offsets";
+import { cardShift, defaultMoveTarget, type regionCardPlacement } from "@/lib/flux3-image-regions";
 import { dragPayloadFromTransfer, imageFilesFromTransfer, isSourceDrag } from "@/lib/source-drop";
 import type { AssetRecord } from "@/lib/types";
 
@@ -72,9 +80,62 @@ export function RegionCard({ region, index, variant, frame, resolution, referenc
     onChange({ ...region, action, target, referenceId: action === "change" ? region.referenceId : null });
   }
 
+  // The card opens beside its box, or where it was last dragged for this box,
+  // can be dragged away by its header (double-click puts it back), and is
+  // always nudged back inside the visible canvas, so it never ends up off an edge.
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [offset, setOffset] = useState<CardOffset>(() => rememberedCardOffset(region.id));
+  const [shift, setShift] = useState({ x: 0, y: 0 });
+  const cardDrag = useRef<{ x: number; y: number; base: CardOffset; last: CardOffset } | null>(null);
+
+  // Re-measured after every render: dragging the box, zoom and pan all move the card. It
+  // settles in one pass, since the shift is worked out from the card's unshifted place.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    const card = cardRef.current;
+    const canvas = card?.closest(".maskPaintViewport");
+    if (!card || !canvas) return;
+    const next = cardShift(card.getBoundingClientRect(), canvas.getBoundingClientRect(), shift);
+    if (next.x !== shift.x || next.y !== shift.y) setShift(next);
+  });
+
+  function startCardDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if ((event.target as HTMLElement).closest("button")) return;
+    event.preventDefault();
+    // Fold the in-view shift into the dragged offset, so the card starts from where it is seen.
+    const base = { x: offset.x + shift.x, y: offset.y + shift.y };
+    cardDrag.current = { x: event.clientX, y: event.clientY, base, last: base };
+    setOffset(base);
+    setShift({ x: 0, y: 0 });
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveCard(event: ReactPointerEvent<HTMLDivElement>) {
+    const current = cardDrag.current;
+    if (!current) return;
+    current.last = { x: current.base.x + event.clientX - current.x, y: current.base.y + event.clientY - current.y };
+    setOffset(current.last);
+  }
+
+  function endCardDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const current = cardDrag.current;
+    if (!current) return;
+    cardDrag.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    rememberCardOffset(region.id, current.last);
+  }
+
+  function resetCard(event: ReactMouseEvent<HTMLDivElement>) {
+    if ((event.target as HTMLElement).closest("button")) return;
+    setOffset({ x: 0, y: 0 });
+    rememberCardOffset(region.id, { x: 0, y: 0 });
+  }
+
   return (
     <div
+      ref={cardRef}
       className={`regionCard ${placement.vertical} ${placement.horizontal}`}
+      style={{ transform: `translate(${offset.x + shift.x}px, ${offset.y + shift.y}px)` }}
       onPointerDown={(event) => event.stopPropagation()}
       onDragOver={(event) => {
         if (!takesReference || !isSourceDrag(event)) return;
@@ -88,7 +149,15 @@ export function RegionCard({ region, index, variant, frame, resolution, referenc
       }}
       onDrop={handleDrop}
     >
-      <div className="regionCardHeader">
+      <div
+        className="regionCardHeader"
+        title="Drag to move this card; double-click to put it back"
+        onPointerDown={startCardDrag}
+        onDoubleClick={resetCard}
+        onPointerMove={moveCard}
+        onPointerUp={endCardDrag}
+        onPointerCancel={endCardDrag}
+      >
         <span>Box {index + 1}</span>
         <button type="button" title="Done" onClick={onDone}>
           <Check size={14} />

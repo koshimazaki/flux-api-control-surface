@@ -50,7 +50,7 @@ const shapeHints: Record<MaskCanvasTool, string> = {
   brush: `paint = new region · shift = add to the selected one · ${navHint}`,
   eraser: navHint,
   lasso: `lasso = new region · shift = add to the selected one · ${navHint}`,
-  box: `drag = new box region · ${navHint}`
+  box: `drag = new box · drag a box = move it · shift-drag = draw over boxes · delete = remove · ${navHint}`
 };
 
 function percentBox(start: Point, end: Point, size: Size) {
@@ -315,53 +315,57 @@ export function MaskCanvas({
   const cursor = isPanning ? "grabbing" : panReady ? "grab" : "crosshair";
 
   return (
-    <div className="maskPaintViewport" ref={viewportRef}>
-      <div
-        className="maskPaintStage"
-        style={{
-          width: display.width || undefined,
-          height: display.height || undefined,
-          transform: `translate(${pan.x}px, ${pan.y}px)`
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageSrc} alt="Tool source" draggable={false} />
-        <canvas
-          ref={canvasRef}
-          className="maskPaintCanvas"
-          style={{ cursor }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+    // The hints sit in their own row under the canvas, so they never cover the image.
+    <div className="maskPaintFrame">
+      {/* Marked while a pan is ready, so overlays such as boxes let the pan through. */}
+      <div className="maskPaintViewport" ref={viewportRef} data-pan-ready={panReady || isPanning ? "" : undefined}>
+        <div
+          className="maskPaintStage"
+          style={{
+            width: display.width || undefined,
+            height: display.height || undefined,
+            transform: `translate(${pan.x}px, ${pan.y}px)`
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imageSrc} alt="Tool source" draggable={false} />
+          <canvas
+            ref={canvasRef}
+            className="maskPaintCanvas"
+            style={{ cursor }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+          />
+          {naturalSize && renderOverlay?.(naturalSize)}
+          {naturalSize && boxDrag && (
+            <span className="maskDraftBox" style={percentBox(boxDrag.start, boxDrag.end, naturalSize)} />
+          )}
+          {naturalSize && trace.length > 0 && (
+            <svg
+              className={tool === "lasso" ? "maskLassoPath" : "maskLassoPath maskBrushPath"}
+              viewBox={`0 0 ${naturalSize.width} ${naturalSize.height}`}
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <polyline
+                points={trace.map((point) => `${point.x},${point.y}`).join(" ")}
+                style={tool === "lasso" ? undefined : { strokeWidth: brushPx.current }}
+              />
+            </svg>
+          )}
+        </div>
+        <CanvasZoomControls
+          zoom={zoom}
+          onZoomIn={view.zoomIn}
+          onZoomOut={view.zoomOut}
+          onReset={view.reset}
+          canPan={view.canPan}
+          handMode={view.handMode}
+          onToggleHand={view.toggleHand}
         />
-        {naturalSize && renderOverlay?.(naturalSize)}
-        {naturalSize && boxDrag && (
-          <span className="maskDraftBox" style={percentBox(boxDrag.start, boxDrag.end, naturalSize)} />
-        )}
-        {naturalSize && trace.length > 0 && (
-          <svg
-            className={tool === "lasso" ? "maskLassoPath" : "maskLassoPath maskBrushPath"}
-            viewBox={`0 0 ${naturalSize.width} ${naturalSize.height}`}
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <polyline
-              points={trace.map((point) => `${point.x},${point.y}`).join(" ")}
-              style={tool === "lasso" ? undefined : { strokeWidth: brushPx.current }}
-            />
-          </svg>
-        )}
       </div>
-      <CanvasZoomControls
-        zoom={zoom}
-        onZoomIn={view.zoomIn}
-        onZoomOut={view.zoomOut}
-        onReset={view.reset}
-        canPan={view.canPan}
-        handMode={view.handMode}
-        onToggleHand={view.toggleHand}
-      />
       <small className="maskPaintHint">{(shapes ? shapeHints : maskHints)[tool]}</small>
     </div>
   );

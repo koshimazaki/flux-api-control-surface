@@ -44,6 +44,50 @@ export function resizeRegion(region: Flux3ImageRegion, part: BoxPart, handle: Re
   return resizeBox(region, handle, dx, dy, size);
 }
 
+/**
+ * One colour per box, in drawing order, so box 3 on the image and Box 3 in the
+ * list read as the same thing. What a box does shows in its label and pattern,
+ * not its colour. Mid-tone hues that read on dark and light themes; no red,
+ * which would look like Remove.
+ */
+export const BOX_COLORS = ["#ff9f43", "#48c6ef", "#7bd88f", "#c08cff", "#ffd166", "#2ec4b6", "#ff7eb6", "#8c9eff"] as const;
+
+export function boxColor(index: number) {
+  return BOX_COLORS[((index % BOX_COLORS.length) + BOX_COLORS.length) % BOX_COLORS.length];
+}
+
+/** Stacking for each box: smaller boxes sit above larger ones, so a box inside another can still be grabbed. */
+export function boxLayers(boxes: Flux3Box[]) {
+  const order = boxes.map((box, index) => ({ index, area: box.width * box.height })).sort((a, b) => b.area - a.area || a.index - b.index);
+  const layers = Array<number>(boxes.length);
+  order.forEach(({ index }, rank) => {
+    layers[index] = rank + 1;
+  });
+  return layers;
+}
+
+/** A box that fills nearly the whole frame cannot move, so drags inside it draw new boxes instead. */
+export function fillsFrame(box: Flux3Box, size: Size) {
+  return box.width >= size.width * 0.9 && box.height >= size.height * 0.9;
+}
+
+type ScreenRect = { left: number; top: number; width: number; height: number };
+
+/**
+ * How far to shift a box's card so it stays inside the visible canvas, given
+ * where it is drawn now (with `current` shift applied) and the canvas bounds.
+ * Measured against its unshifted place, so the answer is stable across renders.
+ */
+export function cardShift(card: ScreenRect, bounds: ScreenRect, current: { x: number; y: number }, margin = 8) {
+  const fit = (start: number, size: number, low: number, span: number) => {
+    const max = low + span - margin - size;
+    return Math.max(low + margin, Math.min(start, max)) - start;
+  };
+  const left = card.left - current.x;
+  const top = card.top - current.y;
+  return { x: Math.round(fit(left, card.width, bounds.left, bounds.width)), y: Math.round(fit(top, card.height, bounds.top, bounds.height)) };
+}
+
 /** A box drag in progress: what is dragged, where the pointer started, and the box as it was. */
 export type BoxDrag = { part: BoxPart; handle: RegionHandle; x: number; y: number; scale: number; origin: Flux3ImageRegion };
 

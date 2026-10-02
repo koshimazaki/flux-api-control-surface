@@ -686,17 +686,28 @@
   font-size: 11px;
 }
 
+/* The canvas over a row of key hints: the hints never cover the image. */
+.maskPaintFrame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.maskPaintFrame > .maskPaintViewport {
+  height: auto;
+}
+
 .maskPaintHint {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.66);
+  justify-self: start;
+  max-width: 100%;
+  padding: 0 4px;
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 10px;
+  line-height: 1.5;
   pointer-events: none;
 }
 
