@@ -237,6 +237,8 @@
 /* Live gestures on the mask canvas: box, lasso outline, brush stroke. */
 .dsgn-root .maskDraftBox {
   position: absolute;
+  /* Above existing boxes, which stack by size. */
+  z-index: 100;
   border: 1.5px dashed var(--acc-intel);
   background: color-mix(in srgb, var(--acc-intel) 12%, transparent);
   pointer-events: none;

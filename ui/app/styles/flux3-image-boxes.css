@@ -30,39 +30,46 @@
 }
 
 /*
- * FLUX 3 Image boxes stay quiet: a dashed outline tinted by what the box does
- * and a label chip; the selected one gets handles and a card. Change uses the
- * accent, Keep the green signal, Move the intel blue, Remove is hatched red.
+ * FLUX 3 Image boxes stay quiet: a dashed outline in the box's own colour (set
+ * inline, one per box in drawing order) and a label chip; the selected one gets
+ * handles and a card, whose accents take the same colour. What a box does shows without colour: the chip names the
+ * action, Keep has no fill, Remove is hatched, a move's target is dotted.
+ * Pressing inside a box drags it.
  */
 .dsgn-root .regionFrame {
   --box-color: var(--accent);
   position: absolute;
   outline: 1px dashed color-mix(in srgb, var(--box-color) 80%, transparent);
   background: color-mix(in srgb, var(--box-color) 7%, transparent);
-}
-
-.dsgn-root .regionFrame.action-keep {
-  --box-color: var(--acc-green);
-  background: transparent;
-}
-
-.dsgn-root .regionFrame.action-move,
-.dsgn-root .regionFrame.regionTarget {
-  --box-color: var(--acc-intel);
-}
-
-.dsgn-root .regionFrame.action-remove {
-  --box-color: var(--danger, #e5484d);
-  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--box-color) 18%, transparent) 0 6px, transparent 6px 12px);
-}
-
-/* Where a move goes: a dashed box that drags as a whole, with its own handles when selected. */
-.dsgn-root .regionFrame.regionTarget {
-  outline-style: dotted;
-  background: color-mix(in srgb, var(--box-color) 10%, transparent);
   cursor: move;
   pointer-events: auto;
   touch-action: none;
+}
+
+/* Drags pass through to draw a new box: over a box that fills the frame, with
+   Shift held, and while the canvas is ready to pan. */
+.dsgn-root .regionFrame.passThrough,
+.dsgn-root .regionLayer.drawThrough .regionFrame {
+  cursor: inherit;
+  pointer-events: none;
+}
+
+.dsgn-root .maskPaintViewport[data-pan-ready] .regionLayer * {
+  pointer-events: none !important;
+}
+
+.dsgn-root .regionFrame.action-keep {
+  background: transparent;
+}
+
+.dsgn-root .regionFrame.action-remove {
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--box-color) 22%, transparent) 0 6px, transparent 6px 12px);
+}
+
+/* Where a move goes: a dotted box that drags as a whole, with its own handles when selected. */
+.dsgn-root .regionFrame.regionTarget {
+  outline-style: dotted;
+  background: color-mix(in srgb, var(--box-color) 10%, transparent);
 }
 
 .dsgn-root .regionTargetLabel {
@@ -78,6 +85,7 @@
   pointer-events: none;
 }
 
+/* Each line's colour is its box's, set inline. */
 .dsgn-root .regionMoveLine {
   stroke: color-mix(in srgb, var(--acc-intel) 80%, transparent);
   stroke-width: 1.5;
@@ -95,7 +103,7 @@
   width: 9px;
   height: 9px;
   margin: -4.5px 0 0 -4.5px;
-  border: 1px solid color-mix(in srgb, var(--accent) 70%, #000);
+  border: 1px solid color-mix(in srgb, var(--box-color, var(--accent)) 70%, #000);
   border-radius: 1.5px;
   background: #f4f4f4;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -199,7 +207,7 @@
   width: 272px;
   display: grid;
   gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid color-mix(in srgb, var(--box-color, #fff) 45%, transparent);
   border-radius: 10px;
   background: rgba(18, 20, 24, 0.8);
   padding: 10px;
@@ -213,15 +221,19 @@
 .dsgn-root .regionCard.start { left: 0; }
 .dsgn-root .regionCard.end { right: 0; }
 
+/* The header drags the card out of the way; its buttons still click. */
 .dsgn-root .regionCardHeader {
   display: flex;
   align-items: center;
   gap: 2px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .dsgn-root .regionCardHeader span {
   margin-right: auto;
-  color: color-mix(in srgb, var(--accent) 80%, #fff);
+  color: color-mix(in srgb, var(--box-color, var(--accent)) 80%, #fff);
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.1em;
@@ -311,8 +323,8 @@
 }
 
 .dsgn-root .regionDropArea.over {
-  border-color: var(--acc-intel);
-  background: var(--acc-intel-ghost);
+  border-color: var(--box-color, var(--acc-intel));
+  background: color-mix(in srgb, var(--box-color, var(--acc-intel)) 14%, transparent);
 }
 
 .dsgn-root .regionDropArea.filled {
@@ -390,7 +402,7 @@
 
 .dsgn-root .regionReference.filled {
   border-style: solid;
-  border-color: var(--acc-intel);
+  border-color: var(--box-color, var(--acc-intel));
 }
 
 .dsgn-root .regionReference label {
@@ -433,17 +445,23 @@
   list-style: none;
 }
 
+/* Each card carries its box's colour, so Box 3 here is box 3 on the image. */
 .dsgn-root .regionList li {
   display: grid;
   gap: 6px;
   border: 1px solid var(--border-default);
+  border-left: 3px solid var(--box-color, var(--border-default));
   border-radius: var(--radius-sm);
   background: var(--surface-sunken);
   padding: 8px;
 }
 
 .dsgn-root .regionList li.active {
-  border-color: var(--accent);
+  border-color: var(--box-color, var(--accent));
+}
+
+.dsgn-root .regionListHeader strong {
+  color: var(--box-color, inherit);
 }
 
 .dsgn-root .regionListHeader {
@@ -500,8 +518,8 @@
 }
 
 .dsgn-root .regionCardActions button.active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--box-color, var(--accent));
+  background: color-mix(in srgb, var(--box-color, var(--accent)) 22%, transparent);
   color: #fff;
 }
 
@@ -518,4 +536,11 @@
 .dsgn-root .regionListHint {
   color: var(--text-muted);
   font-size: 10.5px;
+}
+
+/* Fields in a box's card or list entry take the box's colour on focus, like the rest of its accents. */
+.dsgn-root .regionCard :is(input, select, textarea):focus,
+.dsgn-root .regionList li :is(input, select, textarea):focus {
+  border-color: var(--box-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--box-color) 35%, transparent);
 }

@@ -2,7 +2,7 @@ import { Images, ImagePlus, LayoutGrid, MessageSquareText, Target, WandSparkles,
 import { useState, type DragEvent as ReactDragEvent } from "react";
 import { Flux3ImageDock } from "@/components/flux3-image-dock";
 import { Flux3ImageReferenceSlots } from "@/components/flux3-image-references";
-import { RegionLayer, RegionList } from "@/components/flux3-image-regions";
+import { RegionLayer, RegionList, useBoxKeys } from "@/components/flux3-image-regions";
 import { Flux3ImageSettingsFields } from "@/components/flux3-image-settings";
 import { MaskCanvas, type CanvasShape } from "@/components/mask-canvas";
 import { CanvasSurface } from "@/components/ui/canvas-surface";
@@ -131,6 +131,14 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     setDraft((current) => ({ ...current, [boxKey]: current[boxKey].filter((region) => region.id !== id) }));
     if (activeRegionId === id) setActiveRegionId(null);
   }
+  useBoxKeys({
+    activeId: activeRegionId,
+    enabled: draft.mode === "precise" || layoutMode,
+    regions: draft[boxKey],
+    frame: layoutMode ? layoutFrame : draft.regionFrame,
+    onChange: updateRegion,
+    onRemove: removeRegion
+  });
 
   /** Every drag on the image makes a box; in Edit, the first box turns the edit into a precise one. */
   function handleShape(shape: CanvasShape, size: Size) {
