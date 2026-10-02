@@ -1,6 +1,7 @@
 import { QUEUE_LANE_BY_KIND, type EnqueueJobInput, type ServerQueueJob } from "./types";
 import { buildQueueJobDescriptor } from "./descriptors";
 import { sourceFingerprint } from "./failures";
+import { reconcileOperation } from "./operation";
 import { mutateQueueState } from "./store";
 import { setJobRuntime } from "./runtime";
 import { awaitQueueJob, newQueueJobId, nudgeQueueRunner } from "./runner";
@@ -110,7 +111,8 @@ function jobFromOptions(options: EnqueueOptions, id: string, now: number): Serve
 
 export async function enqueueGenerationJobs(list: EnqueueOptions[]): Promise<ServerQueueJob[]> {
   const now = Date.now();
-  const prepared = list.map((options) => {
+  // Every route enqueues here, so this is where a job and its body are made to name one product.
+  const prepared = list.map(reconcileOperation).map((options) => {
     const id = options.id || newQueueJobId();
     const descriptor = buildQueueJobDescriptor({
       jobId: id,

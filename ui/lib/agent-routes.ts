@@ -16,11 +16,16 @@ export const nativeFluxMcp = {
     login: "codex mcp login FLUX",
     list: "codex mcp list"
   },
+  // The hosted server's tools as BFL documents them (docs.bfl.ai/api_integration/mcp_integration).
   tools: [
     {
       name: "generate_image",
-      purpose: "Generate one image or a small parallel batch with FLUX models.",
+      purpose: "Generate one image or up to eight in parallel with FLUX.2 models, including edits and multi-reference composition.",
       notes: "Use native BFL MCP when the MCP client should own generation/history directly."
+    },
+    {
+      name: "vto",
+      purpose: "Virtual try-on from a person image and one garment image."
     },
     {
       name: "generate_variations",
@@ -33,6 +38,14 @@ export const nativeFluxMcp = {
     {
       name: "get_credits",
       purpose: "Check BFL credit balance."
+    },
+    {
+      name: "generate_video",
+      purpose: "Generate FLUX 3 video (t2v, i2v, v2v); returns a request_id to pick up with get_result."
+    },
+    {
+      name: "enhance_video",
+      purpose: "Re-render a finished FLUX 3 draft at full quality."
     }
   ]
 };
@@ -185,11 +198,14 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     category: "generation",
     auth: "Uses apiKey in each job payload, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     body: {
-      jobs: "Array of { kind: image|tool|video, payload, operation?, priority?, dependsOn?, batchId? }"
+      jobs: "Array of { kind: image|tool|video, payload, operation?, priority?, dependsOn?, batchId? }",
+      operation:
+        "Names the product when a lane carries several: flux3-image in the image lane (payload as /api/bfl/flux3-image takes it), video-upscale or video-edit in the video lane. Omitted, an image job is FLUX.2 generation and a video job is FLUX 3 video in payload.mode."
     },
     example: {
       jobs: [
         { kind: "image", payload: { prompt: "a cybernetic flower", width: 1024, height: 1024 } },
+        { kind: "image", operation: "flux3-image", payload: { mode: "t2i", prompt: "a glass fox at dawn", settings: { resolution: "1k" } } },
         { kind: "tool", payload: { tool: "deblur", image: "/api/outputs/abc/image" } }
       ]
     }
@@ -399,10 +415,10 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     category: "tools",
     auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     body: {
-      erase: "tool=image, mask, dilatePixels, seed, outputFormat png|jpeg",
-      vto: "tool=image, garments[], prompt, seed, safetyTolerance, outputFormat",
-      outpaint: "tool=image, canvasWidth, canvasHeight, offsetX, offsetY, mode, autoCrop, outputFormat png|jpeg",
-      deblur: "tool=image, seed, safetyTolerance, outputFormat"
+      erase: "tool=erase, image, mask, dilatePixels, seed, outputFormat png|jpeg",
+      vto: "tool=vto, image, garments[], prompt, seed, safetyTolerance, outputFormat",
+      outpaint: "tool=outpaint, image, canvasWidth, canvasHeight, offsetX, offsetY, mode, autoCrop, outputFormat png|jpeg",
+      deblur: "tool=deblur, image, seed, safetyTolerance, outputFormat"
     },
     example: {
       tool: "outpaint",
@@ -641,7 +657,9 @@ export const localAgentCoverage = {
   assetLibrary:
     "Server-side agents can read saved filesystem/R2 outputs through /api/outputs. Browser-imported local files live in browser storage until generated or exported.",
   collections:
-    "Gallery collections are server-backed moodboard/project folders under /api/collections. The UI can curate them now; dedicated stdio MCP collection tools are a Phase 2 wrapper.",
+    "Gallery collections are server-backed moodboard/project folders under /api/collections, curated from the UI, the local MCP tools (list_collections, create_collection, update_collection, delete_collection), or the CLI.",
+  cli:
+    "Every local MCP tool has a CLI command on the same route (npm run --silent cli -- help), so an agent can use whichever it prefers. A test keeps the two in step.",
   audio:
     "Audio slicing and guide rendering are exposed as routes. Browser-side waveform analysis remains a UI workflow; agents can call /api/audio/guide when they already have an analysis payload.",
   finetuning:
@@ -685,6 +703,10 @@ export const localDashboardMcpTools = [
   "delete_prompt",
   "list_reference_archive",
   "sync_reference_archive",
+  "list_collections",
+  "create_collection",
+  "update_collection",
+  "delete_collection",
   "vectorize_glyph",
   "vectorize_glyph_batch",
   "prepare_caption_job",
@@ -696,9 +718,9 @@ export const localDashboardMcpTools = [
 
 export const localMcpParityNotes = {
   wrapper:
-    "The stdio MCP wrapper covers the local JSON dashboard routes for discovery, assets, prompts, planning, generation, the server-owned generation queue, evaluation, image tools, references, glyphs, credits, caption job prep, and finetune dataset/registry workflows.",
+    "The stdio MCP wrapper covers the local JSON dashboard routes for discovery, assets, collections, prompts, planning, generation, the server-owned generation queue, evaluation, image tools, references, glyphs, credits, caption job prep, and finetune dataset/registry workflows. The CLI mirrors it tool for tool.",
   httpOnly:
-    "Audio guide rendering and audio slicing remain HTTP/UI workflows because those routes return binary media. Gallery collection CRUD is currently HTTP/UI while dedicated MCP collection tools are deferred. Browser waveform analysis, drag/drop import, mask painting, and live React control remain UI or browser-automation workflows."
+    "Audio guide rendering and audio slicing remain HTTP/UI workflows because those routes return binary media. Browser waveform analysis, drag/drop import, mask painting, box drawing, and live React control remain UI or browser-automation workflows."
 };
 
 export const mcpStatusRoutes = Array.from(

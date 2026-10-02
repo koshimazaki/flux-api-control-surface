@@ -15,6 +15,8 @@ import { useEffect, useState, type ChangeEvent, type DragEvent } from "react";
 import { AssetCard } from "@/components/asset-card";
 import { AssetCollectionGallery, visibleAssetCollections } from "@/components/asset-collection-gallery";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { DEFAULT_SEND_FAMILY, SEND_FAMILIES, SEND_FAMILY_KEY, isSendFamily, sendFamilyLabels, type SendFamily } from "@/lib/asset-send";
+import type { Flux3ImageGalleryTarget } from "@/lib/dashboard/flux3-image-inbox";
 import type {
   AssetBadge,
   AssetCollection,
@@ -70,6 +72,7 @@ type AssetLibraryProps = {
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToVtoGarment: (asset: AssetRecord) => void;
   onSendToFlux3Keyframe?: (asset: AssetRecord) => void;
+  onSendToFlux3Image?: (asset: AssetRecord, target: Flux3ImageGalleryTarget) => void;
   onSendToFlux3Continue?: (asset: AssetRecord) => void;
   onSendToEdit?: (asset: AssetRecord) => void;
   onSendToUpscale?: (asset: AssetRecord) => void;
@@ -105,6 +108,8 @@ export function AssetLibrary(props: AssetLibraryProps) {
   const [newCollectionName, setNewCollectionName] = useState("");
   const [targetCollectionId, setTargetCollectionId] = useState("");
   const [collectionToolsOpen, setCollectionToolsOpen] = useState(false);
+  // Which product family's send buttons the cards lead with; remembered per browser.
+  const [sendFamily, setSendFamily] = useState<SendFamily>(DEFAULT_SEND_FAMILY);
   const assetGridStyle = {
     gridTemplateColumns: `repeat(${props.gridSize}, minmax(0, 1fr))`
   };
@@ -132,6 +137,24 @@ export function AssetLibrary(props: AssetLibraryProps) {
   function onImageImport(event: ChangeEvent<HTMLInputElement>) {
     props.onImportImages(Array.from(event.target.files || []));
     event.target.value = "";
+  }
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SEND_FAMILY_KEY);
+      if (isSendFamily(stored)) setSendFamily(stored);
+    } catch {
+      /* the preference is optional */
+    }
+  }, []);
+
+  function chooseSendFamily(family: SendFamily) {
+    setSendFamily(family);
+    try {
+      localStorage.setItem(SEND_FAMILY_KEY, family);
+    } catch {
+      /* the choice still holds for this visit */
+    }
   }
 
   useEffect(() => {
@@ -188,6 +211,21 @@ export function AssetLibrary(props: AssetLibraryProps) {
                 onClick={() => toggleFilterChip(option)}
               >
                 {collectionFilterLabels[option]}
+              </button>
+            ))}
+          </div>
+          <div className="assetSendFamilyPicker" role="group" aria-label="Send buttons shown on each card">
+            <span>Send to</span>
+            {SEND_FAMILIES.map((family) => (
+              <button
+                type="button"
+                key={family}
+                className={sendFamily === family ? "active" : ""}
+                aria-pressed={sendFamily === family}
+                onClick={() => chooseSendFamily(family)}
+                title={sendFamilyLabels[family].title}
+              >
+                {sendFamilyLabels[family].label}
               </button>
             ))}
           </div>
@@ -340,6 +378,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   badges={props.assetBadges[asset.id] || []}
                   isSelected={props.selectedAssetIds.includes(asset.id)}
                   metadataOpen={props.metadataAssetId === asset.id}
+                  sendFamily={sendFamily}
                   key={asset.id}
                   onToggleSelected={props.onToggleSelected}
                   onToggleMetadata={props.onToggleMetadata}
@@ -351,6 +390,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   onSendToWorkspace={props.onSendToWorkspace}
                   onSendToVtoGarment={props.onSendToVtoGarment}
                   onSendToFlux3Keyframe={props.onSendToFlux3Keyframe}
+                  onSendToFlux3Image={props.onSendToFlux3Image}
                   onSendToFlux3Continue={props.onSendToFlux3Continue}
                   onSendToEdit={props.onSendToEdit}
                   onSendToUpscale={props.onSendToUpscale}

@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { normalizeImageInput, resolveImageInput } from "@/lib/bfl-server";
 import {
   FLUX3_IMAGE_MODEL,
@@ -10,6 +11,7 @@ import {
   type Flux3ImageRequest
 } from "@/lib/flux3-image";
 import { normalizeFrame, normalizeRequestBoxes } from "@/lib/flux3-image-boxes";
+import { MAX_IMAGE_INPUT_BYTES, MAX_IMAGE_INPUT_PIXELS } from "@/lib/remote-image-fetch";
 import type { ReferenceImage } from "@/lib/types";
 import { imageGenerateAdapter } from "./image-generate";
 import type { OperationAdapter, OperationFinalizeInput, PreparedOperation } from "./types";
@@ -32,8 +34,30 @@ function stringList(value: unknown) {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string" && Boolean(entry)) : [];
 }
 
-/** BFL's per-image limit on base64 payloads. */
-const MAX_IMAGE_BASE64_BYTES = 20 * 1024 * 1024;
+/** BFL: each image is "256 × 256 px to 16 MP"; its pricing page counts a megapixel as 1024 × 1024. */
+const MIN_IMAGE_SIDE = 256;
+const MAX_IMAGE_PIXELS = 16 * 1024 * 1024;
+
+/**
+ * Names an image the API is documented to refuse, before anything is sent.
+ * Only images held as base64 are measured: BFL fetches a URL itself, and an
+ * image that cannot be measured here is left for BFL to judge.
+ */
+async function imageSizeBlocker(image: string, position: number) {
+  if (/^https?:/i.test(image)) return null;
+  const size = await sharp(Buffer.from(image, "base64"), { failOn: "none", limitInputPixels: MAX_IMAGE_INPUT_PIXELS })
+    .metadata()
+    .catch(() => null);
+  if (!size?.width || !size.height) return null;
+  const measured = `Image ${position} is ${size.width} × ${size.height}`;
+  if (size.width < MIN_IMAGE_SIDE || size.height < MIN_IMAGE_SIDE) {
+    return `${measured}; FLUX 3 Image needs at least ${MIN_IMAGE_SIDE} × ${MIN_IMAGE_SIDE}.`;
+  }
+  if (size.width * size.height > MAX_IMAGE_PIXELS) {
+    return `${measured}, over FLUX 3 Image's limit of 16 megapixels per image. Downscale it first.`;
+  }
+  return null;
+}
 
 /** Gallery ids, local outputs and data URLs become what the API takes: an http(s) URL or raw base64. */
 async function resolveImages(values: string[], origin: string) {
@@ -76,9 +100,12 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
     return { error: error instanceof Error ? error.message : "Could not read an input image.", status: 400 };
   }
   if (images.some((image) => !image)) return { error: "An input image could not be read.", status: 400 };
-  if (images.some((image) => !/^https?:/i.test(image) && image.length > MAX_IMAGE_BASE64_BYTES)) {
-    return { error: "Each image must be at most 20 MB for FLUX 3 Image.", status: 400 };
+  // The dashboard's own cap on an input, shared with the image tools; BFL documents a size in pixels, checked next.
+  if (images.some((image) => !/^https?:/i.test(image) && image.length > MAX_IMAGE_INPUT_BYTES)) {
+    return { error: `Each image must be at most ${MAX_IMAGE_INPUT_BYTES / (1024 * 1024)} MB here.`, status: 400 };
   }
+  const sizeBlocker = (await Promise.all(images.map((image, index) => imageSizeBlocker(image, index + 1)))).find(Boolean);
+  if (sizeBlocker) return { error: sizeBlocker, status: 400 };
   const resolved = withResolvedImages(request, inputs, images);
 
   let built: ReturnType<typeof buildFlux3ImagePayload>;

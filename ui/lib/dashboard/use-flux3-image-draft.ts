@@ -12,6 +12,8 @@ import {
 import { normalizeBoxRegion } from "@/lib/flux3-image-boxes";
 
 export const FLUX3_IMAGE_DRAFT_KEY = "bfl-flux3-image-draft";
+/** Sent after something outside the workspace (the gallery) changes the stored draft. */
+export const FLUX3_IMAGE_DRAFT_EVENT = "bfl-flux3-image-draft-changed";
 
 export type Flux3ImageDraft = {
   mode: Flux3ImageMode;
@@ -94,18 +96,44 @@ export function normalizeFlux3ImageDraft(value: unknown): Flux3ImageDraft {
   };
 }
 
+function readStoredDraft() {
+  return normalizeFlux3ImageDraft(JSON.parse(localStorage.getItem(FLUX3_IMAGE_DRAFT_KEY) || "null"));
+}
+
+/**
+ * Changes the stored draft from outside the workspace, such as a gallery
+ * button, and tells an open workspace to pick it up. Returns null when
+ * browser storage is unavailable.
+ */
+export function updateStoredFlux3ImageDraft<T extends { draft: Flux3ImageDraft }>(change: (draft: Flux3ImageDraft) => T): T | null {
+  try {
+    const result = change(readStoredDraft());
+    localStorage.setItem(FLUX3_IMAGE_DRAFT_KEY, JSON.stringify(result.draft));
+    window.dispatchEvent(new Event(FLUX3_IMAGE_DRAFT_EVENT));
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 /** FLUX 3 Image workspace state, kept in local storage so it survives tab switches. */
 export function useFlux3ImageDraft(sourceId: string | null) {
   const [draft, setDraft] = useState<Flux3ImageDraft>(defaultFlux3ImageDraft);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      setDraft(normalizeFlux3ImageDraft(JSON.parse(localStorage.getItem(FLUX3_IMAGE_DRAFT_KEY) || "null")));
-    } catch {
-      /* keep the default draft */
-    }
+    const load = () => {
+      try {
+        setDraft(readStoredDraft());
+      } catch {
+        /* keep the current draft */
+      }
+    };
+    load();
     setHydrated(true);
+    // The gallery can add references while the workspace is open.
+    window.addEventListener(FLUX3_IMAGE_DRAFT_EVENT, load);
+    return () => window.removeEventListener(FLUX3_IMAGE_DRAFT_EVENT, load);
   }, []);
 
   useEffect(() => {

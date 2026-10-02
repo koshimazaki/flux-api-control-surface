@@ -458,6 +458,121 @@ pre {
   padding: 0 9px;
 }
 
+/* Send buttons: one labelled row per product family, FLUX 3 first. */
+.assetSend {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.assetSendRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
+  min-width: 0;
+}
+
+.assetSendRow + .assetSendRow,
+.assetSend + .assetButtonGroup {
+  border-top: 1px solid rgba(237, 237, 237, 0.08);
+  padding-top: 6px;
+}
+
+/* Few enough buttons for one line: the families sit side by side. */
+.assetSend.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.assetSend.inline .assetSendRow + .assetSendRow {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.assetSend.inline .assetSendFamily {
+  min-width: 0;
+}
+
+.assetSendFamily {
+  min-width: 44px;
+  color: var(--violet);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.assetSendGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.assetSendGroup em {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.assetButtons .assetSendMore {
+  margin-left: auto;
+  min-height: 26px;
+  padding: 0 6px;
+  color: var(--muted);
+}
+
+.assetSendMore svg {
+  transition: transform 140ms ease;
+}
+
+.assetSendMore.open svg {
+  transform: rotate(180deg);
+}
+
+/* The gallery-wide choice of which family the cards lead with. */
+.assetSendFamilyPicker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+}
+
+.assetFilterChips:has(+ .assetSendFamilyPicker) {
+  margin-right: 10px;
+}
+
+.assetSendFamilyPicker span {
+  margin-right: 4px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.assetSendFamilyPicker button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.46);
+  color: var(--text);
+  font-size: 11px;
+  box-shadow: inset 0 -14px 28px rgba(255, 255, 255, 0.03);
+}
+
+.assetSendFamilyPicker button.active {
+  border-color: var(--violet);
+  color: var(--violet);
+}
+
 .assetReferenceAction {
   position: relative;
   display: inline-flex;

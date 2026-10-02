@@ -3,7 +3,6 @@ import { TabButtonBar, type TabButtonItem } from "@/components/ui/tab-button-bar
 import type { Flux3SourceMode } from "@/lib/flux3-video";
 import type { WorkspaceMode } from "@/lib/types";
 import {
-  IMAGE_WORKSPACE_MODES,
   videoToolTabForWorkspace,
   workspaceForVideoToolTab,
   workspaceMediaKindForMode,
@@ -31,10 +30,8 @@ const videoTabs: TabButtonItem<VideoToolTab>[] = [
   { id: "upscale", label: "Upscale", icon: ScanLine }
 ];
 
-// FLUX 3 Image shows only behind its flag.
-const imageItems = imageModes.filter((mode) => IMAGE_WORKSPACE_MODES.includes(mode.id));
 // Both rails share one track count, so a seventh image tool widens both together.
-const railClass = imageItems.length > 6 ? " workspaceModeBar-seven" : "";
+const railClass = imageModes.length > 6 ? " workspaceModeBar-seven" : "";
 
 type WorkspaceModeTabsProps = {
   value: WorkspaceMode;
@@ -62,7 +59,7 @@ export function WorkspaceModeTabs({ value, flux3SourceMode, onChange, onFlux3Sou
   }
   return (
     <TabButtonBar
-      items={imageItems}
+      items={imageModes}
       value={value}
       onChange={onChange}
       className={`workspaceModeBar workspaceModeBar-image${railClass}`}

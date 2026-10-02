@@ -30,6 +30,20 @@
   text-transform: uppercase;
 }
 
+/*
+ * Room around the picture. The image fits the canvas's content box, so this
+ * padding letterboxes it: a box at the top edge has its chip above the image
+ * rather than over it, the zoom bar sits in the margin, and a zoomed image has
+ * space to be moved into.
+ */
+.dsgn-root .flux3ImageStage .maskPaintViewport {
+  padding: 44px 28px 22px;
+}
+
+.dsgn-root .flux3ImageStage .canvasZoomBar {
+  top: 3px;
+}
+
 /* The sub-mode picker. FLUX 3 video moved its modes onto the tool rail, so
    its base and themed rules live here now. :where() keeps each rule's weight
    as it was, so the theme still overrides the base. */

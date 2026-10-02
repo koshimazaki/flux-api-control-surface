@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runnerLeasePath } from "@/lib/queue/paths";
 import { mutateQueueState, readQueueState } from "@/lib/queue/store";
+import { VIDEO_EDIT_MODEL } from "@/lib/video-edit";
 
 const mocks = vi.hoisted(() => ({
   bflJson: vi.fn(),
@@ -111,6 +112,33 @@ describe("dashboard queue route", () => {
     const data = await response.json();
     expect(data.jobs.map((job: { lane: string }) => job.lane)).toEqual(["image", "tool", "video"]);
     expect(data.summary.total).toBe(3);
+  });
+
+  it("sends a job to the product it names, whether the job or its payload names it", async () => {
+    const response = await POST(
+      jsonRequest("/api/dashboard/queue", "POST", {
+        jobs: [
+          { kind: "image", operation: "flux3-image", payload: { mode: "t2i", prompt: "a glass fox", settings: { resolution: "2k" } } },
+          { kind: "image", payload: { operation: "flux3-image", mode: "t2i", prompt: "a glass fox" } },
+          { kind: "image", payload: { prompt: "a cybernetic flower" } },
+          { kind: "video", payload: { operation: "video-edit", inputVideo: "/api/bfl/flux3-video/clip", prompt: "Remove the bucket." } }
+        ]
+      })
+    );
+    const { jobs } = (await response.json()) as { jobs: Array<{ id: string; operation: string; model: string; estimatedUsd?: number }> };
+    const store = await readQueueState();
+
+    expect(response.status).toBe(200);
+    expect(jobs.map((job) => job.operation)).toEqual(["flux3-image", "flux3-image", "generate", "video-edit"]);
+    // The adapters pick a product by the stored body's tag, so it has to match the job.
+    expect(jobs.map((job) => store.descriptors[job.id].body.operation)).toEqual([
+      "flux3-image",
+      "flux3-image",
+      undefined,
+      "video-edit"
+    ]);
+    expect(jobs.map((job) => job.model)).toEqual(["flux-3-image", "flux-3-image", "pro-preview", VIDEO_EDIT_MODEL]);
+    expect(jobs.slice(0, 2).map((job) => job.estimatedUsd)).toEqual([0.1, 0.048]);
   });
 
   it("pauses and resumes the whole queue", async () => {

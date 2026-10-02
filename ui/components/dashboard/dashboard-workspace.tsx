@@ -108,6 +108,16 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onSourceFiles={(files) => void state.importToolSourceFiles(files)}
           onRun={state.runFlux3Image}
           isRunning={state.isFlux3ImageRunning}
+          run={state.flux3ImageRun}
+          queue={{
+            queue: state.generationQueue,
+            summary: state.generationQueueSummary,
+            concurrency: state.generationQueueConcurrency,
+            controls: state.generationQueueControls
+          }}
+          onDismissResult={state.dismissFlux3ImageResult}
+          onOpenResult={state.setSelectedAsset}
+          onEditResult={(asset) => state.sendAssetToFlux3Image(asset, "source")}
         />
       </section>
     );

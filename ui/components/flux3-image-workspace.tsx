@@ -1,19 +1,21 @@
-import { Images, ImagePlus, LayoutGrid, MessageSquareText, Target, WandSparkles, X } from "lucide-react";
-import { useState, type DragEvent as ReactDragEvent } from "react";
+import { ImagePlus, WandSparkles, X } from "lucide-react";
+import { useState, type ComponentProps, type DragEvent as ReactDragEvent } from "react";
+import { Flux3ImageControls } from "@/components/flux3-image-controls";
 import { Flux3ImageDock } from "@/components/flux3-image-dock";
 import { Flux3ImageReferenceSlots } from "@/components/flux3-image-references";
-import { RegionLayer, RegionList, useBoxKeys } from "@/components/flux3-image-regions";
-import { Flux3ImageSettingsFields } from "@/components/flux3-image-settings";
+import { RegionLayer, useBoxKeys } from "@/components/flux3-image-regions";
+import { Flux3ImageResult } from "@/components/flux3-image-result";
 import { MaskCanvas, type CanvasShape } from "@/components/mask-canvas";
 import { CanvasSurface } from "@/components/ui/canvas-surface";
 import { IconButton } from "@/components/ui/icon-button";
+import type { JobQueue } from "@/components/ui/job-queue";
 import { MetaBox } from "@/components/ui/meta-box";
 import { PanelHeader } from "@/components/ui/panel-header";
-import { RunButton } from "@/components/ui/run-button";
 import type { Size } from "@/lib/canvas-geometry";
 import { assetImageSource } from "@/lib/dashboard-tools";
-import { useFlux3ImageDraft, type Flux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
-import type { Flux3ImageRunInput } from "@/lib/dashboard/use-flux3-image-run";
+import { flux3ImageModeTitles, flux3ImageRequestFor, flux3ImageRunTitle } from "@/lib/dashboard/flux3-image-request";
+import { useFlux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
+import type { Flux3ImageRunInput, Flux3ImageRunView } from "@/lib/dashboard/use-flux3-image-run";
 import {
   FLUX3_IMAGE_MAX_REFERENCES,
   estimateFlux3ImageUsd,
@@ -22,7 +24,6 @@ import {
   removeReference,
   type Flux3ImageMode,
   type Flux3ImageRegion,
-  type Flux3ImageRequest,
   type Flux3ImageSettings
 } from "@/lib/flux3-image";
 import { layoutFrameImage, layoutFrameSize, rescaleBoxes } from "@/lib/flux3-image-boxes";
@@ -44,49 +45,16 @@ type Flux3ImageWorkspaceProps = {
   /** Runs the request through the queue-backed FLUX 3 Image route. */
   onRun: (input: Flux3ImageRunInput) => Promise<unknown>;
   isRunning: boolean;
+  /** The runs being followed and the latest finished image, shown over the stage. */
+  run: Flux3ImageRunView;
+  /** The server queue: FLUX 3 Image jobs line up in it like any other. */
+  queue: ComponentProps<typeof JobQueue>;
+  /** Closes the layer over the stage; running jobs carry on in the queue. */
+  onDismissResult: () => void;
+  onOpenResult: (asset: AssetRecord) => void;
+  /** Loads a result as the source of the next edit. */
+  onEditResult: (asset: AssetRecord) => void;
 };
-
-const modeOptions: Array<{ id: Flux3ImageMode; label: string; detail: string; icon: typeof WandSparkles }> = [
-  { id: "t2i", label: "Text", detail: "Prompt, optional layout", icon: MessageSquareText },
-  { id: "i2i", label: "Image", detail: `1–${FLUX3_IMAGE_MAX_REFERENCES} references`, icon: Images },
-  { id: "edit", label: "Edit", detail: "Whole image", icon: WandSparkles },
-  { id: "precise", label: "Precise", detail: "Boxes: change, keep, move", icon: Target }
-];
-
-const modeTitles: Record<Flux3ImageMode, string> = {
-  t2i: "Text to image",
-  i2i: "Image to image",
-  edit: "Image edit",
-  precise: "Edit with boxes"
-};
-
-function requestFor(
-  draft: Flux3ImageDraft,
-  source: string | undefined,
-  sourceOf: (id: string | null | undefined) => string | undefined
-): Flux3ImageRequest {
-  const settings = draft.settings;
-  if (draft.mode === "t2i") {
-    if (!draft.layoutEnabled) return { mode: "t2i", prompt: draft.prompts.t2i, settings };
-    // Layout rows have no references; only where each element goes and what it is.
-    const layout = draft.layoutRegions.map((region) => ({ ...region, referenceId: undefined, reference: undefined }));
-    return { mode: "t2i", prompt: draft.prompts.t2i, layout, frame: layoutFrameSize(settings.aspectRatio), settings };
-  }
-  if (draft.mode === "i2i") {
-    const references = draft.references.map(sourceOf).filter((item): item is string => !!item);
-    return { mode: "i2i", prompt: draft.prompts.i2i, references, settings };
-  }
-  if (draft.mode === "edit") return { mode: "edit", source, prompt: draft.prompts.edit, settings };
-  const regions = draft.regions.map(({ referenceId, ...region }) => ({ ...region, reference: sourceOf(referenceId) }));
-  return { mode: "precise", source, prompt: draft.prompts.precise, regions, frame: draft.regionFrame ?? undefined, settings };
-}
-
-/** A gallery title from the prompt or the first box, or the mode when there is neither. */
-function runTitle(mode: Flux3ImageMode, draft: Flux3ImageDraft) {
-  const words = mode === "precise" ? draft.prompts.precise || draft.regions[0]?.prompt || "" : draft.prompts[mode];
-  const text = words.trim().replace(/\s+/g, " ");
-  return text ? `FLUX 3 Image: ${text.length > 56 ? `${text.slice(0, 55)}…` : text}` : `FLUX 3 Image: ${modeTitles[mode]}`;
-}
 
 const newBox = (id: string, box: { x: number; y: number; width: number; height: number }): Flux3ImageRegion => ({
   id,
@@ -116,12 +84,18 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     return asset ? assetImageSource(asset) : undefined;
   };
   const referenceAssets = draft.references.map(assetById);
-  const request = requestFor(draft, source, sourceOf);
+  const request = flux3ImageRequestFor(draft, source, sourceOf);
   const blocker = flux3ImageRequestBlocker(request);
   const estimate = estimateFlux3ImageUsd(request);
   const layoutFrame = layoutFrameSize(draft.settings.aspectRatio);
   const layoutMode = draft.mode === "t2i" && draft.layoutEnabled;
   const boxKey = layoutMode ? "layoutRegions" : "regions";
+
+  /** Choosing a mode is work on the stage, so a result or waiting field over it steps aside. */
+  function changeMode(mode: Flux3ImageMode) {
+    update({ mode });
+    props.onDismissResult();
+  }
 
   function updateRegion(region: Flux3ImageRegion) {
     setDraft((current) => ({ ...current, [boxKey]: current[boxKey].map((item) => (item.id === region.id ? region : item)) }));
@@ -173,8 +147,8 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
   }
 
   function submit() {
-    if (blocker || props.isRunning) {
-      if (blocker) setNotice(blocker);
+    if (blocker) {
+      setNotice(blocker);
       return;
     }
     const boxReferences = draft.mode === "precise" ? draft.regions.map((region) => assetById(region.referenceId)) : [];
@@ -188,7 +162,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     setNotice("");
     void props.onRun({
       request,
-      title: runTitle(draft.mode, draft),
+      title: flux3ImageRunTitle(draft),
       sourceAssetIds: assets.map((asset) => asset.id),
       referenceMeta: assets.map((asset) => ({ id: asset.id, name: asset.title || asset.id, value: assetImageSource(asset), assetId: asset.id }))
     });
@@ -261,6 +235,8 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
       return;
     }
     if (layoutMode) return;
+    // A new source is work on the stage: whatever covers it steps aside.
+    props.onDismissResult();
     if (payload) props.onSourceDropPayload(payload);
     else props.onSourceFiles(files);
   }
@@ -347,13 +323,6 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
         : draft.mode === "precise" || layoutMode
           ? `${boxes.length} box${boxes.length === 1 ? "" : "es"}`
           : "none";
-  const aspectNote =
-    draft.mode === "precise"
-      ? "Boxes follow the source frame, so edits use Auto."
-      : layoutMode && draft.settings.aspectRatio === "auto"
-        ? "Auto lays the frame out square."
-        : undefined;
-
   // Same grid cells as Erase and the other image tools: the stage in the main
   // cell, the controls in the right-hand run column.
   return (
@@ -374,20 +343,35 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
           }}
           onDrop={handleDrop}
         >
-          <PanelHeader title="FLUX 3 Image" subtitle={layoutMode ? "Text to image with layout" : modeTitles[draft.mode]}>
+          <PanelHeader title="FLUX 3 Image" subtitle={layoutMode ? "Text to image with layout" : flux3ImageModeTitles[draft.mode]}>
             <div className="workspaceHeaderActions">
               {sourceAsset && (draft.mode === "edit" || draft.mode === "precise") && (
-                <IconButton onClick={props.onClearSource} title="Clear source">
+                <IconButton
+                  onClick={() => {
+                    props.onDismissResult();
+                    props.onClearSource();
+                  }}
+                  title="Clear source"
+                >
                   <X size={14} />
                 </IconButton>
               )}
             </div>
           </PanelHeader>
-          <CanvasSurface className="imageToolCanvas" variant="tool">
+          <CanvasSurface className={props.isRunning ? "imageToolCanvas edgeSweep" : "imageToolCanvas"} variant="tool">
             {renderStage()}
+            {props.run.watching && (
+              <Flux3ImageResult
+                running={props.isRunning}
+                run={props.run}
+                onOpen={props.onOpenResult}
+                onEdit={props.onEditResult}
+                onDismiss={props.onDismissResult}
+              />
+            )}
           </CanvasSurface>
           <div className="imageToolMeta">
-            <MetaBox label="Mode" value={modeTitles[draft.mode]} />
+            <MetaBox label="Mode" value={flux3ImageModeTitles[draft.mode]} />
             <MetaBox
               label="Source"
               value={draft.mode === "t2i" || draft.mode === "i2i" ? "not needed" : sourceAsset?.title || sourceAsset?.id || "None"}
@@ -397,87 +381,21 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
         </section>
       </div>
 
-      <aside className="panel controls toolControls flux3ImageControls">
-        <PanelHeader title="Create image" subtitle="Text, references, edits, boxes">
-          <WandSparkles size={18} aria-label="FLUX 3 Image" />
-        </PanelHeader>
-        <div className="flux3ModePicker">
-          {modeOptions.map(({ id, label, detail, icon: Icon }) => (
-            <button type="button" className={draft.mode === id ? "active" : ""} key={id} onClick={() => update({ mode: id })}>
-              <Icon size={16} />
-              <span>
-                <strong>{label}</strong>
-                <small>{detail}</small>
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {draft.mode === "t2i" && (
-          <label className="toggle flux3Toggle" title="Place each element with a box on a frame of the chosen aspect ratio">
-            <input type="checkbox" checked={draft.layoutEnabled} onChange={(event) => update({ layoutEnabled: event.target.checked })} />
-            <LayoutGrid size={16} />
-            Lay out with boxes
-          </label>
-        )}
-        {(draft.mode === "precise" || layoutMode) && (
-          <>
-            <p className="toolStubNote">
-              {layoutMode
-                ? "Drag a box for each element and say what goes in it. Boxes guide placement; elements can spill over slightly."
-                : "Drag a box over each thing to change, keep, move or remove. Keep boxes anchor what must not move. Boxes guide the edit; they are not masks."}
-            </p>
-            <RegionList regions={boxes} frame={layoutMode ? layoutFrame : draft.regionFrame} {...regionCallbacks} />
-          </>
-        )}
-
-        {draft.mode === "i2i" && (
-          <p className="toolStubNote">
-            Drop up to {FLUX3_IMAGE_MAX_REFERENCES} references on the numbered slots and name them in the prompt as image 1,
-            image 2 and so on.
-          </p>
-        )}
-        {draft.mode === "edit" && (
-          <p className="toolStubNote">Drag a box on the image to edit only that area; the edit becomes a precise one.</p>
-        )}
-        <label>
-          {draft.mode === "t2i"
-            ? "Image prompt"
-            : draft.mode === "i2i"
-              ? "Prompt using the references"
-              : draft.mode === "edit"
-                ? "Edit instruction"
-                : "Overall instruction (optional)"}
-          <textarea
-            className="toolPrompt"
-            rows={draft.mode === "precise" ? 3 : 5}
-            value={draft.prompts[draft.mode]}
-            onChange={(event) => update({ prompts: { ...draft.prompts, [draft.mode]: event.target.value } })}
-            placeholder={
-              draft.mode === "t2i"
-                ? "Describe the image…"
-                : draft.mode === "i2i"
-                  ? "The character from image 1 in the jacket from image 2, lit like image 3…"
-                  : draft.mode === "edit"
-                    ? "Describe the change to the whole image…"
-                    : "Anything for the whole edit, such as keeping the lighting warm…"
-            }
-          />
-        </label>
-
-        <Flux3ImageSettingsFields
-          settings={draft.settings}
-          onChange={changeSettings}
-          estimate={estimate}
-          aspectLocked={draft.mode === "precise"}
-          aspectNote={aspectNote}
-        />
-        {notice && <p className="flux3Warning">{notice}</p>}
-        <RunButton isRunning={props.isRunning} onClick={submit} disabled={Boolean(blocker) || props.isRunning} icon={WandSparkles}>
-          {draft.mode === "t2i" || draft.mode === "i2i" ? "Generate image" : "Apply edit"}
-        </RunButton>
-        {blocker && <p className="flux3Blocker">{blocker}</p>}
-      </aside>
+      <Flux3ImageControls
+        draft={draft}
+        layoutMode={layoutMode}
+        layoutFrame={layoutFrame}
+        regionCallbacks={regionCallbacks}
+        estimate={estimate}
+        blocker={blocker}
+        notice={notice}
+        isRunning={props.isRunning}
+        queue={props.queue}
+        onModeChange={changeMode}
+        onDraftChange={update}
+        onSettingsChange={changeSettings}
+        onSubmit={submit}
+      />
 
       <Flux3ImageDock
         mode={draft.mode}

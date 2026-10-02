@@ -3,51 +3,42 @@ import {
   Check,
   Clipboard,
   Download,
-  Eraser,
   Expand,
-  Clapperboard,
   Film,
-  Fingerprint,
   FolderSearch,
-  Focus,
   Heart,
   ImageOff,
   ImagePlus,
   Info,
-  Maximize2,
   PackagePlus,
-  PencilLine,
   Play,
-  ScanLine,
-  Send,
-  Shirt,
   Sparkles,
   Trash2,
-  Upload,
-  UserRound,
-  Video
+  Upload
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { AssetSendActions, type AssetSendHandlers } from "@/components/asset-send-actions";
 import { AssetRoleBadge, assetRoleClassName } from "@/components/ui/asset-role-badge";
+import type { SendFamily } from "@/lib/asset-send";
 import { copyText } from "@/lib/clipboard";
 import { glyphPreviewBackgroundForAsset, glyphPreviewClassName } from "@/lib/glyph-svg";
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
-import { referenceDropTargets, referencePreviewSrc } from "@/lib/reference-roles";
+import { referencePreviewSrc } from "@/lib/reference-roles";
 import { useHoverPreview } from "@/lib/use-hover-preview";
-import type { AssetBadge, AssetRecord, AspectRatio, ImageWorkspaceMode, ReferenceImage, ReferenceRole } from "@/lib/types";
-
-type ImageToolMode = ImageWorkspaceMode;
+import type { AssetBadge, AssetRecord, AspectRatio, ReferenceImage } from "@/lib/types";
 
 // Broken legacy pointers should fail once per browser session, not every time
 // the Assets tab remounts or a card re-enters the viewport.
 const unavailableMediaSources = new Set<string>();
 
-type AssetCardProps = {
+type AssetCardProps = AssetSendHandlers & {
   asset: AssetRecord;
   aspectRatio: AspectRatio;
   badges: AssetBadge[];
   isSelected: boolean;
   metadataOpen: boolean;
+  /** The product family whose send buttons every card leads with. */
+  sendFamily: SendFamily;
   onToggleSelected: (id: string) => void;
   onToggleMetadata: (id: string) => void;
   onOpen: (asset: AssetRecord) => void;
@@ -55,14 +46,6 @@ type AssetCardProps = {
   onRevealAsset?: (asset: AssetRecord) => void;
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
-  onSendToPrompt: (asset: AssetRecord) => void;
-  onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
-  onSendToVtoGarment: (asset: AssetRecord) => void;
-  onSendToFlux3Keyframe?: (asset: AssetRecord) => void;
-  onSendToFlux3Continue?: (asset: AssetRecord) => void;
-  onSendToEdit?: (asset: AssetRecord) => void;
-  onSendToUpscale?: (asset: AssetRecord) => void;
-  onSendToReference: (asset: AssetRecord, role?: ReferenceRole, targetId?: string) => void;
   onSavePromptToLibrary: (asset: AssetRecord) => void;
 };
 
@@ -137,7 +120,6 @@ function ReferenceThumb({ reference, index }: { reference: ReferenceImage; index
 export function AssetCard(props: AssetCardProps) {
   const [isPromptCopied, setIsPromptCopied] = useState(false);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const addImageTarget = referenceDropTargets.find((target) => target.id === "add-image") || referenceDropTargets[0];
   const asset = props.asset;
   const isVideo = asset.mediaType === "video";
   const mediaSource = asset.videoUrl || asset.imageDataUrl || asset.sampleUrl || asset.imageUrl || asset.image_url;
@@ -326,71 +308,19 @@ export function AssetCard(props: AssetCardProps) {
         )}
       </div>
       <div className="assetButtons">
-        <div className="assetButtonGroup">
-          <button onClick={() => props.onSendToPrompt(asset)} title={isVideo ? "Send prompt to FLUX 3 video" : "Send prompt to Generate"}>
-            <Send size={15} />
-          </button>
-          {isVideo && props.onSendToFlux3Continue && (
-            <button onClick={() => props.onSendToFlux3Continue?.(asset)} title="Continue this video in FLUX 3">
-              <Video size={15} />
-            </button>
-          )}
-          {isVideo && props.onSendToEdit && (
-            <button onClick={() => props.onSendToEdit?.(asset)} title="Send to Video Edit">
-              <PencilLine size={15} />
-            </button>
-          )}
-          {isVideo && props.onSendToUpscale && (
-            <button onClick={() => props.onSendToUpscale?.(asset)} title="Send to Video Upscale">
-              <ScanLine size={15} />
-            </button>
-          )}
-          {!isVideo && <div className="assetReferenceAction">
-            <button
-              onClick={() => props.onSendToReference(asset, addImageTarget.role, addImageTarget.id)}
-              title="Add image reference"
-            >
-              <ImagePlus size={15} />
-            </button>
-            <div className="assetReferenceMenu" aria-label="Use as reference">
-              {referenceDropTargets.map((target) => (
-                <button
-                  type="button"
-                  key={target.id}
-                  onClick={() => props.onSendToReference(asset, target.role, target.id)}
-                  title={`Use as ${target.label} reference`}
-                >
-                  {target.shortLabel}
-                </button>
-              ))}
-            </div>
-          </div>}
-          {!isVideo && props.onSendToFlux3Keyframe && (
-            <button onClick={() => props.onSendToFlux3Keyframe?.(asset)} title="Add as next FLUX 3 video keyframe">
-              <Clapperboard size={15} />
-            </button>
-          )}
-        </div>
-        {!isVideo && <div className="assetButtonGroup">
-          <button onClick={() => props.onSendToWorkspace(asset, "erase")} title="Send to Erase">
-            <Eraser size={15} />
-          </button>
-          <button onClick={() => props.onSendToWorkspace(asset, "vto")} title="Use as VTO person">
-            <UserRound size={15} />
-          </button>
-          <button onClick={() => props.onSendToVtoGarment(asset)} title="Add as next VTO garment">
-            <Shirt size={15} />
-          </button>
-          <button onClick={() => props.onSendToWorkspace(asset, "outpaint")} title="Send to Outpaint">
-            <Maximize2 size={15} />
-          </button>
-          <button onClick={() => props.onSendToWorkspace(asset, "deblur")} title="Send to Deblur">
-            <Focus size={15} />
-          </button>
-          <button onClick={() => props.onSendToWorkspace(asset, "glyphs")} title="Send to Glyphs">
-            <Fingerprint size={15} />
-          </button>
-        </div>}
+        <AssetSendActions
+          asset={asset}
+          family={props.sendFamily}
+          onSendToPrompt={props.onSendToPrompt}
+          onSendToWorkspace={props.onSendToWorkspace}
+          onSendToVtoGarment={props.onSendToVtoGarment}
+          onSendToFlux3Keyframe={props.onSendToFlux3Keyframe}
+          onSendToFlux3Image={props.onSendToFlux3Image}
+          onSendToFlux3Continue={props.onSendToFlux3Continue}
+          onSendToEdit={props.onSendToEdit}
+          onSendToUpscale={props.onSendToUpscale}
+          onSendToReference={props.onSendToReference}
+        />
         <div className="assetButtonGroup">
           <button
             onClick={() => props.onToggleSelected(asset.id)}

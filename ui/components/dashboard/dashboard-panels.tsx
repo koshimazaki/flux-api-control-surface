@@ -92,6 +92,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onSendToWorkspace={state.sendAssetToWorkspace}
           onSendToVtoGarment={state.sendAssetToNextVtoGarment}
           onSendToFlux3Keyframe={state.sendAssetToNextFlux3Keyframe}
+          onSendToFlux3Image={state.sendAssetToFlux3Image}
           onSendToFlux3Continue={state.sendAssetToFlux3Continue}
           onSendToEdit={state.sendAssetToEdit}
           onSendToUpscale={state.sendAssetToUpscale}

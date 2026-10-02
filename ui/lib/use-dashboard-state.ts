@@ -46,6 +46,13 @@ import { useAssetCollections } from "@/lib/dashboard/use-asset-collections";
 import { glyphPreviewBackgroundForSvg, type GlyphPreviewBackground } from "@/lib/glyph-svg";
 import { useBalance } from "@/lib/dashboard/use-balance";
 import { useFlux3ImageRun } from "@/lib/dashboard/use-flux3-image-run";
+import {
+  addAsNextBoxReference,
+  addAsNextReference,
+  openAsEditSource,
+  type Flux3ImageGalleryTarget
+} from "@/lib/dashboard/flux3-image-inbox";
+import { updateStoredFlux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
 import { useGlyphLabCache } from "@/lib/dashboard/use-glyph-lab-cache";
 import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
 import { IMAGE_PROMPT_LIBRARY_ID, VIDEO_PROMPT_LIBRARY_ID } from "@/lib/prompt-library-groups";
@@ -430,11 +437,15 @@ export function useDashboardState() {
   });
 
   const { balance, setBalance, isCheckingBalance, checkBalance } = useBalance(apiKey);
-  const { runFlux3Image, isFlux3ImageRunning } = useFlux3ImageRun({
+  // Read when a run finishes, which can be long after this render.
+  const workspaceModeRef = useRef(workspaceMode);
+  workspaceModeRef.current = workspaceMode;
+  const { runFlux3Image, isFlux3ImageRunning, flux3ImageRun, dismissFlux3ImageResult } = useFlux3ImageRun({
     apiKey,
     setAssets,
     setRunLog,
     setSelectedAsset,
+    showsResultInPlace: () => workspaceModeRef.current === "flux3_image",
     setError,
     setRecoveryMessage,
     checkBalance
@@ -1032,6 +1043,29 @@ export function useDashboardState() {
     setVtoGarmentAsset(slotIndex, asset);
     return slotIndex + 1;
   }
+  /** Gallery buttons: the image becomes the FLUX 3 Image edit source, fills the next free reference slot, or the next box without a reference. */
+  function sendAssetToFlux3Image(asset: AssetRecord, target: Flux3ImageGalleryTarget) {
+    if (asset.mediaType === "video") {
+      setRecoveryMessage("FLUX 3 Image takes images, not videos.");
+      return;
+    }
+    const label = asset.title || asset.id;
+    // Sending an image to the stage is work on the stage, so a result shown over it steps aside.
+    dismissFlux3ImageResult();
+    if (target === "source") setSourceAssetIdForMode("flux3_image", asset.id);
+    const result = updateStoredFlux3ImageDraft((draft) =>
+      target === "source"
+        ? openAsEditSource(draft, asset.id, label)
+        : target === "box"
+          ? addAsNextBoxReference(draft, asset.id, label)
+          : addAsNextReference(draft, asset.id, label)
+    );
+    setError("");
+    setSelectedAsset(null);
+    setWorkspaceMode("flux3_image");
+    setRecoveryMessage(result?.message ?? "This browser's storage is unavailable, so the FLUX 3 Image draft could not be updated.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
   function sendAssetToNextFlux3Keyframe(asset: AssetRecord) {
     if (asset.mediaType === "video") {
       setRecoveryMessage("FLUX 3 keyframes take images. Drag videos into the continuation slot instead.");
@@ -1361,6 +1395,8 @@ export function useDashboardState() {
     setToolMask,
     runFlux3Image,
     isFlux3ImageRunning,
+    flux3ImageRun,
+    dismissFlux3ImageResult,
     toolBrushSize,
     setToolBrushSize,
     toolDilatePixels,
@@ -1401,6 +1437,7 @@ export function useDashboardState() {
     sendAssetToEdit,
     sendVideoToEdit,
     sendAssetToNextFlux3Keyframe,
+    sendAssetToFlux3Image,
     revealAssetLocally,
     setAudioAssignments,
     searchQuery,

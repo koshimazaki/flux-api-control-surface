@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import sharp from "sharp";
 import { POST } from "@/app/api/bfl/flux3-image/route";
 
 const mocks = vi.hoisted(() => ({
@@ -134,6 +135,25 @@ describe("FLUX 3 Image route", () => {
     expect(masked.status).toBe(400);
     expect((await masked.json()).error).toMatch(/takes no mask\. Use Precise/);
     expect(mocks.bflJson).not.toHaveBeenCalledWith("POST", expect.anything(), expect.anything(), expect.anything());
+  });
+
+  it("names an image outside BFL's documented 256 px to 16 MP range before any paid call", async () => {
+    mockSuccess();
+    const flat = async (width: number, height: number) =>
+      `data:image/png;base64,${(await sharp({ create: { width, height, channels: 3, background: "#808080" } }).png().toBuffer()).toString("base64")}`;
+
+    const small = await post({ mode: "edit", prompt: "dusk", source: await flat(300, 200) });
+    expect(small.status).toBe(400);
+    expect((await small.json()).error).toBe("Image 1 is 300 × 200; FLUX 3 Image needs at least 256 × 256.");
+
+    const large = await post({ mode: "i2i", prompt: "combine them", references: [await flat(256, 256), await flat(4100, 4100)] });
+    expect(large.status).toBe(400);
+    expect((await large.json()).error).toMatch(/^Image 2 is 4100 × 4100, over FLUX 3 Image's limit of 16 megapixels/);
+    expect(mocks.bflJson).not.toHaveBeenCalledWith("POST", expect.anything(), expect.anything(), expect.anything());
+
+    // Exactly 16 MP, the size of a square 4k result, is inside the range.
+    const edge = await post({ mode: "edit", prompt: "dusk", source: await flat(4096, 4096) });
+    expect(edge.status).toBe(200);
   });
 
   it("sends a precise edit as boxes in the prompt, with box references after the source", async () => {

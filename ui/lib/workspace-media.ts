@@ -1,17 +1,10 @@
-import { FLUX3_IMAGE_ENABLED } from "@/lib/feature-flags";
 import { isFlux3SourceMode, type Flux3SourceMode } from "@/lib/flux3-video";
 import type { ImageWorkspaceMode, SourceImageMode, WorkspaceMode } from "@/lib/types";
 
 export type WorkspaceMediaKind = "image" | "video";
 
-const IMAGE_TOOL_MODES: readonly WorkspaceMode[] = ["prompt", "erase", "outpaint", "deblur", "vto", "glyphs"];
-
-/** FLUX 3 Image leads the image rail once its flag is on. */
-export function imageWorkspaceModes(flux3Image = FLUX3_IMAGE_ENABLED): readonly WorkspaceMode[] {
-  return flux3Image ? ["flux3_image", ...IMAGE_TOOL_MODES] : IMAGE_TOOL_MODES;
-}
-
-export const IMAGE_WORKSPACE_MODES = imageWorkspaceModes();
+/** Workspaces mounted in the Image domain; FLUX 3 Image leads the rail. */
+export const IMAGE_WORKSPACE_MODES: readonly WorkspaceMode[] = ["flux3_image", "prompt", "erase", "outpaint", "deblur", "vto", "glyphs"];
 
 /** Workspaces mounted in the Video domain. FLUX 3 hosts three source modes behind one workspace. */
 export const VIDEO_WORKSPACE_MODES: readonly WorkspaceMode[] = ["flux3", "edit", "upscale"];

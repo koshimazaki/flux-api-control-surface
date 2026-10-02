@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { persistAssetImage } from "@/lib/dashboard-assets";
 import type { Flux3ImageRequest } from "@/lib/flux3-image";
 import { estimateTokens } from "@/lib/pricing";
@@ -16,18 +16,55 @@ export type Flux3ImageRunInput = {
 /** A queued run the page is following; stored so a reload follows it again instead of resubmitting. */
 export type PendingFlux3ImageRun = { jobId: string; title: string; prompt: string; startedAt: number };
 
+/** What the workspace shows of its runs: the oldest one still going, how many there are, and the latest result. */
+export type Flux3ImageRunView = {
+  /** When the oldest pending run was queued, for the elapsed-time readout. */
+  startedAt: number | null;
+  /** The queue's status for that run. */
+  status: string;
+  /** Runs queued or running; Generate clicks stack. */
+  count: number;
+  /** The latest finished image, until it is dismissed or another run starts. */
+  result: AssetRecord | null;
+  /** False once the layer over the stage was closed; the next Generate opens it again. */
+  watching: boolean;
+};
+
 export const FLUX3_IMAGE_PENDING_KEY = "bfl-flux3-image-pending";
 const POLL_INTERVAL_MS = 1_500;
 /** How many recent outputs to look through for a finished job's image. */
 const OUTPUT_LOOKUP_LIMIT = 24;
 
 type Fetcher = (input: string, init?: RequestInit) => Promise<Response>;
-type FollowOptions = { fetcher?: Fetcher; intervalMs?: number; signal?: { cancelled: boolean } };
+type FollowOptions = {
+  fetcher?: Fetcher;
+  intervalMs?: number;
+  signal?: { cancelled: boolean };
+  /** Told the queue's status for the job each time a poll reads it. */
+  onStatus?: (status: string) => void;
+};
+
+/** What the stage says while a job is in each queue state. */
+export const flux3ImageStatusLabels: Record<string, string> = {
+  waiting: "Waiting for its turn",
+  queued: "Queued",
+  submitting: "Sending to BFL",
+  running: "Generating",
+  downloading: "Saving your image"
+};
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** A failure the queue reported, as opposed to a poll that may succeed next time. */
-class Flux3ImageJobError extends Error {}
+export class Flux3ImageJobError extends Error {
+  /** The job was cancelled from the queue, which is not a failure to report. */
+  constructor(
+    message: string,
+    readonly cancelled = false
+  ) {
+    super(message);
+  }
+}
 
 /**
  * Queues the run and returns its job id without waiting for the image. The
@@ -101,10 +138,10 @@ export async function followFlux3ImageJob(jobId: string, options: FollowOptions 
       }
       if (response.ok) {
         const job = ((await response.json()).job || {}) as { status?: string; error?: string; resultAssetId?: string };
+        if (job.status) options.onStatus?.(job.status);
         if (job.status === "complete" && job.resultAssetId) return await loadFlux3ImageOutput(job.resultAssetId, fetcher);
-        if (job.status === "failed" || job.status === "cancelled") {
-          throw new Flux3ImageJobError(job.error || `The FLUX 3 Image job was ${job.status}.`);
-        }
+        if (job.status === "cancelled") throw new Flux3ImageJobError("The FLUX 3 Image job was cancelled.", true);
+        if (job.status === "failed") throw new Flux3ImageJobError(job.error || "The FLUX 3 Image job failed.");
       }
     } catch (error) {
       if (error instanceof Flux3ImageJobError) throw error;
@@ -115,21 +152,26 @@ export async function followFlux3ImageJob(jobId: string, options: FollowOptions 
   return null;
 }
 
-function readPending(): PendingFlux3ImageRun | null {
+/** Stored runs, read defensively. One run saved before runs could stack is read as a list of one. */
+export function normalizePendingRuns(value: unknown): PendingFlux3ImageRun[] {
+  const list = Array.isArray(value) ? value : value ? [value] : [];
+  return list.filter((run): run is PendingFlux3ImageRun => Boolean(run) && typeof run === "object" && typeof (run as PendingFlux3ImageRun).jobId === "string");
+}
+
+function readPending(): PendingFlux3ImageRun[] {
   try {
-    const stored = JSON.parse(localStorage.getItem(FLUX3_IMAGE_PENDING_KEY) || "null");
-    return stored && typeof stored.jobId === "string" ? (stored as PendingFlux3ImageRun) : null;
+    return normalizePendingRuns(JSON.parse(localStorage.getItem(FLUX3_IMAGE_PENDING_KEY) || "null"));
   } catch {
-    return null;
+    return [];
   }
 }
 
-function writePending(pending: PendingFlux3ImageRun | null) {
+function writePending(pending: PendingFlux3ImageRun[]) {
   try {
-    if (pending) localStorage.setItem(FLUX3_IMAGE_PENDING_KEY, JSON.stringify(pending));
+    if (pending.length) localStorage.setItem(FLUX3_IMAGE_PENDING_KEY, JSON.stringify(pending));
     else localStorage.removeItem(FLUX3_IMAGE_PENDING_KEY);
   } catch {
-    // Storage can be blocked; the run is still followed for as long as the page is open.
+    // Storage can be blocked; the runs are still followed for as long as the page is open.
   }
 }
 
@@ -157,66 +199,100 @@ type Flux3ImageRunDeps = {
   setAssets: Dispatch<SetStateAction<AssetRecord[]>>;
   setRunLog: Dispatch<SetStateAction<RunLogEntry[]>>;
   setSelectedAsset: (asset: AssetRecord | null) => void;
+  /** True while the FLUX 3 Image stage is on screen: the result is revealed there rather than opened over the page. */
+  showsResultInPlace: () => boolean;
   setError: (message: string) => void;
   setRecoveryMessage: (message: string) => void;
   checkBalance: () => unknown;
 };
 
 /**
- * Runs FLUX 3 Image through the server queue: queue it, follow the job, and
- * file the saved output like any generation. One run at a time; while a job
- * is pending, Generate stays busy rather than queueing a second paid job.
+ * Runs FLUX 3 Image through the server queue: queue each run, follow its job,
+ * and file the saved output like any generation. Generate clicks stack, as
+ * they do for FLUX.2: every run is its own queue job, followed on its own, and
+ * the queue's lane limits decide how many go at once.
  */
 export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
   const depsRef = useRef(deps);
   depsRef.current = deps;
-  const [pending, setPending] = useState<PendingFlux3ImageRun | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pending, setPending] = useState<PendingFlux3ImageRun[]>([]);
+  const [submitting, setSubmitting] = useState(0);
+  /** Each pending job's last status from the queue. */
+  const [statuses, setStatuses] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<AssetRecord | null>(null);
+  const [watching, setWatching] = useState(true);
+  const followed = useRef(new Map<string, { cancelled: boolean }>());
 
-  // A run queued before a reload is followed again.
+  const changePending = useCallback(
+    (change: (runs: PendingFlux3ImageRun[]) => PendingFlux3ImageRun[]) =>
+      setPending((runs) => {
+        const next = change(runs);
+        writePending(next);
+        return next;
+      }),
+    []
+  );
+
+  // Runs queued before a reload are followed again.
   useEffect(() => {
     const stored = readPending();
-    if (stored) setPending(stored);
+    if (stored.length) setPending(stored);
+    const jobs = followed.current;
+    return () => {
+      jobs.forEach((signal) => {
+        signal.cancelled = true;
+      });
+      jobs.clear();
+    };
   }, []);
 
   useEffect(() => {
-    if (!pending) return;
-    const signal = { cancelled: false };
-    const settle = (outcome: { asset?: AssetRecord; error?: string }) => {
-      if (signal.cancelled) return;
-      const current = depsRef.current;
-      writePending(null);
-      setPending(null);
-      current.setRunLog((log) => [runLogEntry(pending, outcome), ...log]);
-      if (outcome.error) current.setError(outcome.error);
-      void current.checkBalance();
-    };
-    void (async () => {
-      try {
-        const asset = await followFlux3ImageJob(pending.jobId, { signal });
-        if (!asset || signal.cancelled) return;
-        await persistAssetImage(asset.id, asset.imageDataUrl);
+    for (const run of pending) {
+      if (followed.current.has(run.jobId)) continue;
+      const signal = { cancelled: false };
+      followed.current.set(run.jobId, signal);
+      const settle = (outcome: { asset?: AssetRecord; error?: string; cancelled?: boolean }) => {
+        if (signal.cancelled) return;
+        followed.current.delete(run.jobId);
+        changePending((runs) => runs.filter((item) => item.jobId !== run.jobId));
+        setStatuses(({ [run.jobId]: _settled, ...rest }) => rest);
         const current = depsRef.current;
-        current.setAssets((assets) => [asset, ...assets.filter((item) => item.id !== asset.id)]);
-        current.setSelectedAsset(asset);
-        current.setRecoveryMessage(`FLUX 3 Image saved: ${pending.title}.`);
-        settle({ asset });
-      } catch (error) {
-        settle({ error: error instanceof Error ? error.message : "FLUX 3 Image generation failed." });
-      }
-    })();
-    return () => {
-      signal.cancelled = true;
-    };
-  }, [pending]);
+        if (outcome.cancelled) {
+          current.setRecoveryMessage(`FLUX 3 Image cancelled: ${run.title}.`);
+          return;
+        }
+        current.setRunLog((log) => [runLogEntry(run, outcome), ...log]);
+        if (outcome.error) current.setError(outcome.error);
+        void current.checkBalance();
+      };
+      void (async () => {
+        try {
+          const asset = await followFlux3ImageJob(run.jobId, {
+            signal,
+            onStatus: (status) => setStatuses((all) => (all[run.jobId] === status ? all : { ...all, [run.jobId]: status }))
+          });
+          if (!asset || signal.cancelled) return;
+          await persistAssetImage(asset.id, asset.imageDataUrl);
+          const current = depsRef.current;
+          current.setAssets((assets) => [asset, ...assets.filter((item) => item.id !== asset.id)]);
+          setResult(asset);
+          // Away from the stage there is nowhere to reveal it, so it opens over the page as before.
+          if (!current.showsResultInPlace()) current.setSelectedAsset(asset);
+          current.setRecoveryMessage(`FLUX 3 Image saved: ${run.title}.`);
+          settle({ asset });
+        } catch (error) {
+          if (error instanceof Flux3ImageJobError && error.cancelled) settle({ cancelled: true });
+          else settle({ error: error instanceof Error ? error.message : "FLUX 3 Image generation failed." });
+        }
+      })();
+    }
+  }, [pending, changePending]);
 
   async function runFlux3Image(input: Flux3ImageRunInput) {
-    if (pending || isSubmitting) {
-      deps.setError("A FLUX 3 Image job is still running. Its result is filed here when it is ready.");
-      return null;
-    }
     deps.setError("");
-    setIsSubmitting(true);
+    setResult(null);
+    setWatching(true);
+    setSubmitting((count) => count + 1);
     try {
       const jobId = await submitFlux3ImageRun({
         ...input.request,
@@ -226,8 +302,7 @@ export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
         referenceMeta: input.referenceMeta
       });
       const run = { jobId, title: input.title, prompt: input.request.prompt?.trim() || "", startedAt: Date.now() };
-      writePending(run);
-      setPending(run);
+      changePending((runs) => [...runs, run]);
       deps.setRecoveryMessage(`FLUX 3 Image queued: ${input.title}. It keeps running if you reload this page.`);
       return jobId;
     } catch (error) {
@@ -236,9 +311,27 @@ export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
       deps.setError(message);
       return null;
     } finally {
-      setIsSubmitting(false);
+      setSubmitting((count) => count - 1);
     }
   }
 
-  return { runFlux3Image, isFlux3ImageRunning: isSubmitting || Boolean(pending) };
+  const oldest = pending[0];
+  const flux3ImageRun: Flux3ImageRunView = {
+    startedAt: oldest?.startedAt ?? null,
+    status: oldest ? statuses[oldest.jobId] ?? "queued" : submitting > 0 ? "submitting" : "",
+    count: pending.length + submitting,
+    result,
+    watching
+  };
+
+  return {
+    runFlux3Image,
+    isFlux3ImageRunning: submitting > 0 || pending.length > 0,
+    flux3ImageRun,
+    /** Closes the layer over the stage; running jobs carry on in the queue. */
+    dismissFlux3ImageResult: () => {
+      setResult(null);
+      setWatching(false);
+    }
+  };
 }

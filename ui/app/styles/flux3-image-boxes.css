@@ -130,12 +130,14 @@
 .regionHandle-e { top: 8px; right: -4px; bottom: 8px; width: 8px !important; cursor: ew-resize; }
 .regionHandle-w { top: 8px; bottom: 8px; left: -4px; width: 8px !important; cursor: ew-resize; }
 
+/* The chip rides above its box, so it never covers what the box holds; a box at
+   the top edge has its chip in the room the stage leaves around the picture. */
 .dsgn-root .regionChip {
   position: absolute;
   z-index: 3;
-  top: 5px;
-  left: 5px;
-  max-width: max(120px, calc(100% - 10px));
+  bottom: calc(100% + 4px);
+  left: -1px;
+  max-width: max(120px, 100%);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -217,7 +219,8 @@
 }
 
 .dsgn-root .regionCard.below { top: calc(100% + 10px); }
-.dsgn-root .regionCard.above { bottom: calc(100% + 10px); }
+/* Above the box the card also clears the chip. */
+.dsgn-root .regionCard.above { bottom: calc(100% + 30px); }
 .dsgn-root .regionCard.start { left: 0; }
 .dsgn-root .regionCard.end { right: 0; }
 

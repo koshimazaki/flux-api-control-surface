@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { followFlux3ImageJob, loadFlux3ImageOutput, submitFlux3ImageRun } from "@/lib/dashboard/use-flux3-image-run";
+import {
+  Flux3ImageJobError,
+  followFlux3ImageJob,
+  loadFlux3ImageOutput,
+  normalizePendingRuns,
+  submitFlux3ImageRun
+} from "@/lib/dashboard/use-flux3-image-run";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const savedOutput = { id: "f3i-1", title: "fox", imageUrl: "/api/outputs/f3i-1/image", runSettings: { flux3Image: { mode: "t2i" } } };
@@ -43,6 +49,27 @@ describe("FLUX 3 Image runs follow the queue instead of holding the request open
     );
     const gone = vi.fn(async () => json({ error: "not found" }, 404));
     await expect(followFlux3ImageJob("job-7", { fetcher: gone, intervalMs: 0 })).rejects.toThrow(/no longer on the server queue/);
+  });
+
+  it("tells a cancelled job from a failed one, and reports each status on the way", async () => {
+    const cancelled = await followFlux3ImageJob("job-7", { fetcher: queueFetcher([{ status: "cancelled" }]), intervalMs: 0 }).catch((error) => error);
+    expect(cancelled).toBeInstanceOf(Flux3ImageJobError);
+    expect(cancelled).toMatchObject({ cancelled: true, message: "The FLUX 3 Image job was cancelled." });
+    const failed = await followFlux3ImageJob("job-7", { fetcher: queueFetcher([{ status: "failed" }]), intervalMs: 0 }).catch((error) => error);
+    expect(failed).toMatchObject({ cancelled: false, message: "The FLUX 3 Image job failed." });
+
+    const seen: string[] = [];
+    const fetcher = queueFetcher([{ status: "queued" }, { status: "running" }, { status: "complete", resultAssetId: "f3i-1" }]);
+    await followFlux3ImageJob("job-7", { fetcher, intervalMs: 0, onStatus: (status) => seen.push(status) });
+    expect(seen).toEqual(["queued", "running", "complete"]);
+  });
+
+  it("reads stored runs as a list, including the single run saved before runs could stack", () => {
+    const run = { jobId: "job-7", title: "fox", prompt: "fox", startedAt: 1 };
+    expect(normalizePendingRuns([run, { jobId: "job-8", title: "hat", prompt: "", startedAt: 2 }]).map((item) => item.jobId)).toEqual(["job-7", "job-8"]);
+    expect(normalizePendingRuns(run)).toEqual([run]);
+    expect(normalizePendingRuns([null, { title: "no id" }, "text"])).toEqual([]);
+    expect(normalizePendingRuns(null)).toEqual([]);
   });
 
   it("stops quietly when the page stops following", async () => {

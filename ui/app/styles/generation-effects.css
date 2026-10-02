@@ -1,0 +1,181 @@
+/*
+ * Generation effects shared with FLUX Studio Lite: a light that travels an
+ * element's edge while something is being made, and the dither field a result
+ * arrives through. Imported after the theme layers, so selectors carry
+ * .dsgn-root.
+ */
+@property --edge-sweep-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* The busy Generate button drops its solid fill, as in Studio Lite, so the light on its edge reads. */
+.dsgn-root .generateButton[aria-busy="true"],
+.dsgn-root .generateButton[aria-busy="true"]:hover {
+  opacity: 1;
+  cursor: progress;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-default));
+  background: var(--accent-ghost);
+  color: var(--accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .generateButton[aria-busy="true"] {
+  color: color-mix(in srgb, var(--accent-strong) 56%, #000);
+}
+
+/*
+ * The travelling light: a one-pixel ring of which only a moving arc shows.
+ * On a busy Generate button and a stage being generated into it says "working";
+ * on the closed Visual direction panel it marks the way in, as Studio Lite's
+ * camera control does.
+ */
+.dsgn-root .edgeSweep,
+.dsgn-root .generateButton[aria-busy="true"],
+.dsgn-root .cameraPanel:not(.open) {
+  position: relative;
+  isolation: isolate;
+}
+
+.dsgn-root .edgeSweep::before,
+.dsgn-root .generateButton[aria-busy="true"]::before,
+.dsgn-root .cameraPanel:not(.open)::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 6;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--edge-sweep-angle),
+    transparent 0deg 190deg,
+    var(--accent-ghost) 240deg,
+    var(--accent) 280deg,
+    transparent 320deg
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* The stage clips at its border, so its ring runs just inside it. */
+.dsgn-root .canvasSurface.edgeSweep::before {
+  inset: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dsgn-root .edgeSweep::before,
+  .dsgn-root .generateButton[aria-busy="true"]::before {
+    animation: edge-sweep 8s linear infinite;
+  }
+
+  .dsgn-root .cameraPanel:not(.open)::before {
+    animation: edge-sweep 7s linear infinite;
+  }
+}
+
+@keyframes edge-sweep {
+  to {
+    --edge-sweep-angle: 360deg;
+  }
+}
+
+/* The waiting field covers whatever it sits in; its palette is three "r g b" values a theme can change. */
+.waitField {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.dsgn-root[data-surface-theme="rams-lite"] .waitField {
+  --wait-field-base: 163 163 163;
+  --wait-field-low: 170 170 170;
+  --wait-field-high: 236 236 236;
+}
+
+/*
+ * FLUX 3 Image: the run and its result, over the stage. The field covers the
+ * stage while the job runs, the picture arrives through it, and the result
+ * stays until it is closed or edited.
+ */
+.dsgn-root .flux3ImageResult {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  /* The same room around the picture as the box canvas underneath. */
+  padding: 44px 28px 22px;
+  background: var(--surface-inset);
+}
+
+/* While a job runs with nothing to show yet, what is underneath stays in place under the field. */
+.dsgn-root .flux3ImageResult.waiting {
+  background: transparent;
+}
+
+.dsgn-root .flux3ImageResult > img {
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: zoom-in;
+}
+
+.dsgn-root .flux3ImageResultStatus {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.dsgn-root .flux3ImageResultStatus strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.dsgn-root .flux3ImageResultStatus span {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.dsgn-root .flux3ImageResultActions {
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: holodeck-disclose 160ms ease;
+}
+
+.dsgn-root .flux3ImageResultActions > span {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 4px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsgn-root .flux3ImageResultActions button {
+  min-height: 30px;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 12px;
+}

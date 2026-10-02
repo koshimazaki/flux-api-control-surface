@@ -657,6 +657,84 @@ server.registerTool(
   async ({ payload }) => result(await post("/api/reference-archive", payload))
 );
 
+const collectionMemberSchema = z.object({
+  assetId: z.string().min(1).describe("Saved output id, as list_assets returns it."),
+  kind: z.enum(["input", "generation", "asset"]).optional(),
+  role: z.enum(["character", "style", "environment", "pose", "loose"]).optional(),
+  name: z.string().optional()
+});
+
+server.registerTool(
+  "list_collections",
+  {
+    title: "List Collections",
+    description: "List gallery collections (moodboard/project folders of saved assets), or return one by id.",
+    inputSchema: {
+      id: z.string().optional()
+    }
+  },
+  async ({ id }) => result(await requestJson(withParams("/api/collections", { id })))
+);
+
+server.registerTool(
+  "create_collection",
+  {
+    title: "Create Collection",
+    description: "Create a gallery collection, optionally with asset members. Collections feed Video Script pools and reference sets.",
+    inputSchema: {
+      name: z.string().min(1),
+      description: z.string().optional(),
+      members: z.array(collectionMemberSchema).optional(),
+      cover: z.array(z.string()).max(4).optional().describe("Up to four asset ids shown as the cover."),
+      favorite: z.boolean().optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async (payload) => result(await post("/api/collections", payload))
+);
+
+server.registerTool(
+  "update_collection",
+  {
+    title: "Update Collection",
+    description: "Rename or update a gallery collection. members replaces the whole list; addMembers appends without removing any.",
+    inputSchema: {
+      id: z.string().min(1),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      favorite: z.boolean().optional(),
+      cover: z.array(z.string()).max(4).optional(),
+      members: z.array(collectionMemberSchema).optional(),
+      addMembers: z.array(collectionMemberSchema).optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async ({ id, ...changes }) => result(await patch(withParams("/api/collections", { id }), changes))
+);
+
+server.registerTool(
+  "delete_collection",
+  {
+    title: "Delete Collection",
+    description: "Delete a gallery collection, or remove one asset from it when assetId is given. The assets themselves stay in the gallery.",
+    inputSchema: {
+      id: z.string().min(1),
+      assetId: z.string().optional().describe("Remove only this member instead of deleting the collection.")
+    },
+    annotations: {
+      destructiveHint: true,
+      openWorldHint: false
+    }
+  },
+  async ({ id, assetId }) => result(await del(withParams("/api/collections", { id, assetId })))
+);
+
 server.registerTool(
   "vectorize_glyph",
   {

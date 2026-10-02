@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { GenerationJobKind } from "@/lib/generation-queue";
 import { enqueueGenerationJobs, type EnqueueOptions } from "@/lib/queue/enqueue";
+import { requestedOperation } from "@/lib/queue/operation";
 import { ensureQueueRunner } from "@/lib/queue/runner";
 import {
   cancelQueueJob,
@@ -23,13 +24,6 @@ function jsonError(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
 }
 
-function operationFor(kind: GenerationJobKind, body: Record<string, any>, explicit?: unknown) {
-  if (typeof explicit === "string" && explicit.trim()) return explicit.trim();
-  if (kind === "tool") return typeof body.tool === "string" ? body.tool : "";
-  if (kind === "video") return typeof body.mode === "string" ? body.mode : "";
-  return "generate";
-}
-
 function toEnqueueOptions(raw: unknown, origin: string): EnqueueOptions | string {
   if (!raw || typeof raw !== "object") return "Each queue job must be an object.";
   const entry = raw as Record<string, any>;
@@ -37,7 +31,7 @@ function toEnqueueOptions(raw: unknown, origin: string): EnqueueOptions | string
   if (!KINDS.has(kind)) return "Each queue job needs a kind of image, tool, or video.";
   const body = (entry.payload && typeof entry.payload === "object" ? entry.payload : entry.body) as Record<string, any>;
   if (!body || typeof body !== "object") return `A ${kind} queue job needs a payload object.`;
-  const operation = operationFor(kind, body, entry.operation);
+  const operation = requestedOperation(kind, body, entry.operation);
   if (!operation) return `A ${kind} queue job needs ${kind === "tool" ? "a tool" : "a mode"}.`;
   return {
     kind,

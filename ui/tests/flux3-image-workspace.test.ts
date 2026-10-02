@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeFlux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
 import { normalizeToolWorkspaceCache } from "@/lib/dashboard/workspace-cache";
-import { imageWorkspaceModes, workspaceModesForMedia } from "@/lib/workspace-media";
+import { workspaceModesForMedia } from "@/lib/workspace-media";
 
 const legacyBox = { id: "box-a", x: 10, y: 20, width: 100, height: 80, fuzz: 8, prompt: "make the scarf red" };
 
@@ -54,11 +54,8 @@ describe("FLUX 3 Image workspace state", () => {
     expect(draft.regionSourceId).toBe("asset-1");
   });
 
-  it("leads the image rail only when the flag is on", () => {
-    expect(imageWorkspaceModes(true)[0]).toBe("flux3_image");
-    expect(imageWorkspaceModes(false)).not.toContain("flux3_image");
-    // The suite runs with the flag off, as a fresh checkout does.
-    expect(workspaceModesForMedia("image")).not.toContain("flux3_image");
-    expect(normalizeToolWorkspaceCache({ workspaceMode: "flux3_image" }).workspaceMode).toBe("prompt");
+  it("leads the image rail, and a saved FLUX 3 Image workspace comes back as it was left", () => {
+    expect(workspaceModesForMedia("image")[0]).toBe("flux3_image");
+    expect(normalizeToolWorkspaceCache({ workspaceMode: "flux3_image" }).workspaceMode).toBe("flux3_image");
   });
 });
