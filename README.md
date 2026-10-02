@@ -1,8 +1,8 @@
 
 # FLUX API Control Surface
 
-Local workbench for FLUX.2 image and FLUX 3 Video workflows: prompt libraries,
-reference images, FLUX image tools, video scripting with keyframe permutations,
+Local workbench for FLUX 3 Image, FLUX.2 image and FLUX 3 Video workflows: prompt
+libraries, reference images, FLUX image tools, video scripting with keyframe permutations,
 a server-owned generation queue, model evaluation records, output provenance,
 local asset recovery, and agent-friendly routes.
 
@@ -37,6 +37,9 @@ npm run build
 
 ## What It Does
 
+- Generate and edit with FLUX 3 Image: text to image, image to image from up
+  to ten references, whole-image edits, and precise edits where boxes change,
+  keep, move or remove parts of the picture. Boxes also lay out a new image.
 - Generate FLUX.2 images through local Next.js API routes.
 - Generate FLUX 3 Video: text-to-video, one to ten ordered or explicitly timed
   keyframes, video continuation, synchronized audio, and deterministic
@@ -54,6 +57,8 @@ npm run build
 - Capture each run as a normalized evaluation record with prompts, settings,
   timings, and cost; rate, tag, and export JSON/JSONL from the Evaluate tab,
   the CLI, or MCP.
+- Drive everything from an agent three ways over the same routes: HTTP, the
+  local MCP wrapper, or the CLI, which has a command for every MCP tool.
 - Run FLUX Erase, Virtual Try-On, Outpaint, and Deblur from saved gallery assets.
 - Manage prompts, prompt combos, reference roles, costs, credits, and run logs.
 - Save outputs as image, prompt text, JSON metadata, and PNG metadata.
@@ -99,6 +104,13 @@ Local dashboard MCP wrapper:
 ```bash
 cd ui
 BFL_DASHBOARD_URL=http://localhost:3017 npm run mcp
+```
+
+Or the CLI, for agents that prefer a shell:
+
+```bash
+cd ui
+BFL_DASHBOARD_URL=http://localhost:3017 npm run --silent cli -- help
 ```
 
 See [MCP And Agent Guide](./docs/mcp-agent-guide.md).

@@ -6,6 +6,7 @@ import {
   buildFlux3ImagePayload,
   flux3ImageInputs,
   flux3ImageRequestBlocker,
+  flux3ImageSettingsBlocker,
   normalizeFlux3ImageSettings,
   type Flux3ImageMode,
   type Flux3ImageRequest
@@ -78,6 +79,9 @@ function withResolvedImages(request: Flux3ImageRequest, inputs: string[], resolv
 async function prepare(rawBody: Record<string, any>, origin = "http://localhost") {
   const body = rawBody as Flux3ImageRouteBody;
   if (!MODES.includes(body.mode)) return { error: "mode must be t2i, i2i, edit or precise.", status: 400 };
+  // Checked as sent, before normalizing would turn an unknown tier or ratio into the default.
+  const settingsBlocker = flux3ImageSettingsBlocker(body.settings);
+  if (settingsBlocker) return { error: settingsBlocker, status: 400 };
   const request: Flux3ImageRequest = {
     mode: body.mode,
     prompt: body.prompt,

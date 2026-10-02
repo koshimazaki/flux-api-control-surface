@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { persistAssetImage } from "@/lib/dashboard-assets";
 import type { Flux3ImageRequest } from "@/lib/flux3-image";
+import { MAX_OUTPUT_LIMIT } from "@/lib/output-pagination";
 import { estimateTokens } from "@/lib/pricing";
 import type { AssetRecord, ReferenceImage, RunLogEntry } from "@/lib/types";
 
@@ -32,8 +33,8 @@ export type Flux3ImageRunView = {
 
 export const FLUX3_IMAGE_PENDING_KEY = "bfl-flux3-image-pending";
 const POLL_INTERVAL_MS = 1_500;
-/** How many recent outputs to look through for a finished job's image. */
-const OUTPUT_LOOKUP_LIMIT = 24;
+/** How many pages of outputs to look through for a finished job's image before giving up. */
+const OUTPUT_LOOKUP_PAGES = 50;
 
 type Fetcher = (input: string, init?: RequestInit) => Promise<Response>;
 type FollowOptions = {
@@ -68,8 +69,10 @@ export class Flux3ImageJobError extends Error {
 
 /**
  * Queues the run and returns its job id without waiting for the image. The
- * queue owns the paid job from here, so a slow render, a long queue or a
- * dropped connection can never make it look failed and invite a second submit.
+ * queue owns the paid job from here, so a slow render or a long queue cannot
+ * time the request out and invite a second submit. The one gap left is this
+ * first response: if it is lost, the job still runs and shows in the queue
+ * panel, but the page has no id to follow it by.
  */
 export async function submitFlux3ImageRun(body: Record<string, unknown>, fetcher: Fetcher = fetch) {
   const response = await fetcher("/api/bfl/flux3-image", {
@@ -102,16 +105,37 @@ async function imageSize(blob: Blob) {
 }
 
 /**
+ * A local read of a finished job's output. A refusal ends the run with a job
+ * error; a read that only failed for now (the server busy or restarting) throws
+ * a plain error instead, which the follower treats like a dropped poll and
+ * asks again. Either way nothing is resubmitted: the job is already done.
+ */
+async function readOutput(response: Response, what: string) {
+  if (response.ok) return response;
+  const { status } = response;
+  if (status === 408 || status === 429 || status >= 500) throw new Error(`${what} is unavailable for now (HTTP ${status}).`);
+  throw new Flux3ImageJobError(`FLUX 3 Image finished, but ${what} could not be read (HTTP ${status}).`);
+}
+
+/**
  * A finished job's saved output, read through /api/outputs exactly as a
- * reload or another browser would read it, with its image inlined.
+ * reload or another browser would read it, with its image inlined. A run
+ * followed again long after it finished can sit behind newer outputs, so the
+ * listing is paged until the output turns up or runs out.
  */
 export async function loadFlux3ImageOutput(assetId: string, fetcher: Fetcher = fetch): Promise<AssetRecord> {
-  const response = await fetcher(`/api/outputs?limit=${OUTPUT_LOOKUP_LIMIT}`, { cache: "no-store" });
-  const assets = response.ok ? ((await response.json()) as AssetRecord[]) : [];
-  const asset = assets.find((item) => item.id === assetId);
+  let asset: AssetRecord | undefined;
+  for (let page = 0; page < OUTPUT_LOOKUP_PAGES && !asset; page += 1) {
+    const url = `/api/outputs?limit=${MAX_OUTPUT_LIMIT}&offset=${page * MAX_OUTPUT_LIMIT}`;
+    const assets = (await (await readOutput(await fetcher(url, { cache: "no-store" }), "the output list")).json()) as AssetRecord[];
+    asset = assets.find((item) => item.id === assetId);
+    if (assets.length < MAX_OUTPUT_LIMIT) break;
+  }
   if (!asset) throw new Flux3ImageJobError(`FLUX 3 Image finished, but its output ${assetId} is not in Assets yet. Refresh Assets to load it.`);
-  const image = await fetcher(asset.imageUrl || `/api/outputs/${encodeURIComponent(assetId)}/image`, { cache: "no-store" });
-  if (!image.ok) throw new Flux3ImageJobError(`FLUX 3 Image finished, but its image ${assetId} could not be read.`);
+  const image = await readOutput(
+    await fetcher(asset.imageUrl || `/api/outputs/${encodeURIComponent(assetId)}/image`, { cache: "no-store" }),
+    `its image ${assetId}`
+  );
   const blob = await image.blob();
   const { width, height } = asset.width && asset.height ? { width: asset.width, height: asset.height } : await imageSize(blob);
   return {

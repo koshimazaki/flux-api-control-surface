@@ -81,6 +81,39 @@ describe("FLUX 3 Image runs follow the queue instead of holding the request open
     await expect(followFlux3ImageJob("job-7", { fetcher, intervalMs: 0, signal })).resolves.toBeNull();
   });
 
+  it("finds an output that newer ones have pushed off the first page", async () => {
+    const newer = (page: number) => Array.from({ length: 60 }, (_, index) => ({ id: `newer-${page}-${index}` }));
+    const fetcher = vi.fn(async (url: string) => {
+      if (url === "/api/outputs/f3i-1/image") return new Response(new Blob(["png"], { type: "image/png" }));
+      const offset = Number(new URL(url, "http://localhost").searchParams.get("offset"));
+      // Two full pages of newer outputs, then the page that holds it.
+      return json(offset < 120 ? newer(offset / 60) : [{ id: "older" }, savedOutput]);
+    });
+    await expect(loadFlux3ImageOutput("f3i-1", fetcher)).resolves.toMatchObject({ id: "f3i-1" });
+    expect(fetcher.mock.calls.map(([url]) => url).filter((url) => String(url).startsWith("/api/outputs?"))).toEqual([
+      "/api/outputs?limit=60&offset=0",
+      "/api/outputs?limit=60&offset=60",
+      "/api/outputs?limit=60&offset=120"
+    ]);
+  });
+
+  it("asks again when a finished job's output cannot be read for now, and ends the run when it is refused", async () => {
+    // The list answers 503 once and the image 503 once; the job is polled again each time and nothing is resubmitted.
+    const failures = { list: 1, image: 1 };
+    const fetcher = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/dashboard/queue")) return json({ job: { status: "complete", resultAssetId: "f3i-1" } });
+      if (url.startsWith("/api/outputs?")) return failures.list-- > 0 ? json({ error: "busy" }, 503) : json([savedOutput]);
+      return failures.image-- > 0 ? new Response("busy", { status: 503 }) : new Response(new Blob(["png"], { type: "image/png" }));
+    });
+    await expect(followFlux3ImageJob("job-7", { fetcher, intervalMs: 0 })).resolves.toMatchObject({ id: "f3i-1" });
+    // Only the queue and the outputs are read again; the generation route is never called.
+    expect(fetcher.mock.calls.some(([url]) => url.startsWith("/api/bfl/"))).toBe(false);
+
+    const refused = vi.fn(async (url: string) => (url.startsWith("/api/outputs?") ? json([savedOutput]) : new Response("gone", { status: 404 })));
+    await expect(loadFlux3ImageOutput("f3i-1", refused)).rejects.toThrow(/its image f3i-1 could not be read \(HTTP 404\)/);
+    await expect(loadFlux3ImageOutput("f3i-1", refused)).rejects.toBeInstanceOf(Flux3ImageJobError);
+  });
+
   it("says so when a finished job's output is not listed yet", async () => {
     const fetcher = vi.fn(async () => json([{ id: "other" }]));
     await expect(loadFlux3ImageOutput("f3i-1", fetcher)).rejects.toThrow(/not in Assets yet/);

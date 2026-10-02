@@ -107,6 +107,26 @@ describe("FLUX 3 Image route", () => {
     await vi.waitFor(() => expect(mocks.saveOutputFiles).toHaveBeenCalled(), { timeout: 5_000 });
   });
 
+  it("refuses a size or shape it does not send, rather than quietly making a 1k image", async () => {
+    mockSuccess();
+    const unpriced = await post({ mode: "t2i", prompt: "fox", settings: { resolution: "1.5k" } });
+    expect(unpriced.status).toBe(400);
+    expect((await unpriced.json()).error).toBe("FLUX 3 Image resolution 1.5k has no listed price, so it is not offered here. Use 768sq, 1k, 2k, 4k.");
+
+    const misspelt = await post({ mode: "t2i", prompt: "fox", settings: { resolution: "2K" } });
+    expect((await misspelt.json()).error).toMatch(/resolution must be one of 768sq, 1k, 2k, 4k, not "2K"/);
+
+    const shape = await post({ mode: "t2i", prompt: "fox", settings: { aspectRatio: "16:10" } });
+    expect(shape.status).toBe(400);
+    expect((await shape.json()).error).toMatch(/aspectRatio must be one of auto, 21:9.*not "16:10"/);
+    expect(mocks.bflJson).not.toHaveBeenCalledWith("POST", expect.anything(), expect.anything(), expect.anything());
+
+    // Settings left out still take the API's defaults.
+    const defaults = await post({ mode: "t2i", prompt: "fox" });
+    expect(defaults.status).toBe(200);
+    expect(submitted()?.[3]).toMatchObject({ resolution: "1k", aspect_ratio: "auto" });
+  });
+
   it("sends references as base64 or URLs in one images array", async () => {
     mockSuccess();
     mocks.resolveImageInput.mockImplementation(async (value: string) =>

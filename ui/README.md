@@ -1,9 +1,9 @@
 # FLUX API Control Surface
 
-Local Next.js control surface for FLUX.2 images and FLUX 3 video: prompts,
-batch permutations, Video Script keyframe batches, reference images, image
-tools, a server-owned generation queue, model evaluation, assets, costs, and
-logs.
+Local Next.js control surface for FLUX 3 Image, FLUX.2 images and FLUX 3
+video: prompts, batch permutations, Video Script keyframe batches, reference
+images, image tools, a server-owned generation queue, model evaluation, assets,
+costs, and logs.
 
 This is a local-first developer tool. It is suitable as a public demo/workflow
 repo when it is presented as a local FLUX API workbench, not as a hosted public
@@ -141,6 +141,17 @@ or FLUX.2 [klein] dataset. The local HTML reference view is available at
 
 The workspace mode switcher exposes FLUX image tools on any gallery output:
 
+- **FLUX 3 Image** (`flux-3-image`): leads the image rail. Four modes over the
+  one endpoint: text to image, image to image from up to ten references, a
+  whole-image edit, and a precise edit. Places are set with boxes, not masks
+  (the API has none): drag a box on the source and give it an action (change,
+  keep, move or remove), or lay a text-to-image frame out with boxes. Boxes are
+  written into the prompt as BFL's `[top, left, bottom, right]` rows on a
+  0 to 1000 grid. Each box has its own colour and drags from inside; arrows
+  nudge it and Delete removes it. Settings are aspect ratio, resolution
+  (`768sq`, `1k`, `2k`, `4k`), grounding and safety tolerance. Generate clicks
+  stack on the job queue. While a job runs the stage shows a waiting field,
+  and the result arrives through it with Edit this, Open and Close.
 - **Erase** (`flux-tools/erase-v1`): paint a mask directly on the image
   (white = remove, shift-drag unpaints), set mask dilation, run. No prompt.
 - **Virtual Try-On** (`flux-tools/vto-v1`): use the source image as the person
@@ -199,11 +210,16 @@ The Assets menu can filter the shared library to **Images**, **Videos**, or
 **Collections**. Video cards open in the same lightbox with native playback
 controls.
 
+Each card's send buttons are grouped by product family: FLUX 3 first (a video
+keyframe, then FLUX 3 Image as edit source, reference or box reference), with
+FLUX.2 and the FLUX Tools behind the card's chevron. **Send to** in the library
+header chooses which family every card leads with.
+
 ## Generation Queue
 
-Every paid entry point — image generation, image tools, FLUX 3 video, and
-batches — enqueues onto one server-owned queue instead of running inside a
-blocking request:
+Every paid entry point — FLUX 3 Image, FLUX.2 generation, image tools, FLUX 3
+video, and batches — enqueues onto one server-owned queue instead of running
+inside a blocking request:
 
 - File-backed store under `outputs/flux-api-control-surface/.generation-queue/`
   with atomic writes, a cross-process lock, and a single-runner lease, so two
@@ -260,16 +276,22 @@ verdicts, tags, and notes as an atomic sidecar, and exports JSON or JSONL.
 The same surface is scriptable:
 
 ```bash
+npm run --silent cli -- help
 npm run --silent cli -- evaluations --media video --format jsonl
+npm run --silent cli -- generate-flux3-image --json request.json
 npm run --silent cli -- generate-video --json request.json
 npm run --silent cli -- edit-video --json request.json
 npm run --silent cli -- trim-video --json request.json
+npm run --silent cli -- queue
+npm run --silent cli -- collections
 npm run --silent cli -- evaluate GENERATION_ID --rating 5 --verdict keep --tags favorite,motion
 ```
 
 The CLI is a thin client over the local HTTP routes — no separate provider
 logic, so queue behavior and persistence are identical from the browser, MCP,
-and shell.
+and shell. Every local MCP tool has a command on the same route, and a test
+fails if the two drift apart; the full table is in
+[`../docs/mcp-agent-guide.md`](../docs/mcp-agent-guide.md).
 
 ## Prompt Library + Asset References
 
@@ -294,6 +316,10 @@ The UI is also an agent/MCP-facing local API:
   calls the local BFL route and saves image/prompt/metadata files.
 - `POST /api/bfl/tools` runs erase/vto/outpaint/deblur on an existing image with the
   same output persistence and provenance as generations.
+- `POST /api/bfl/flux3-image` generates or edits with FLUX 3 Image: `mode` is
+  `t2i`, `i2i`, `edit` or `precise`, with boxes as `layout[]` or `regions[]` in
+  the pixels of `frame`. A resolution or aspect ratio outside the supported
+  lists is refused rather than replaced.
 - `GET/POST /api/bfl/flux3-video` lists saved FLUX 3 videos or submits text-to-video,
   image-to-video, video continuation, and draft-enhancement jobs. Every mode except
   draft enhancement accepts an optional `camera` choice (`{ selection, edits }`);
@@ -314,6 +340,8 @@ The UI is also an agent/MCP-facing local API:
   FLUX MCP handoff options.
 - `GET /api/outputs` hydrates saved filesystem outputs and, when configured,
   archived R2/D1 outputs back into the gallery.
+- `GET/POST/PATCH/DELETE /api/collections` lists, creates, updates and deletes
+  gallery collections.
 - `GET /api/reference-archive` hydrates Cloudflare reference folders back into
   the collection builder; `POST /api/reference-archive` syncs collection images.
 - `POST /api/finetune/dataset` exports a FLUX.2 [klein] LoRA dataset with image
@@ -327,9 +355,10 @@ The UI is also an agent/MCP-facing local API:
 BFL MCP is useful inside MCP clients such as Codex or Claude because it owns the
 OAuth flow and native BFL tool calls. This browser UI uses BFL's HTTP API for
 saved local outputs. The local stdio MCP wrapper exposes the JSON dashboard
-routes for prompts, plans, generation, tools, references, glyphs, credits, and
-caption job prep, plus FLUX 3 video listing/generation, FLUX Video Edit and
-Video Upscale (`edit_video`, `upscale_video` — neither exists in the hosted
+routes for prompts, plans, generation, tools, references, collections, glyphs,
+credits, and caption job prep, plus FLUX 3 Image (`generate_flux3_image`),
+FLUX 3 video listing/generation, FLUX Video Edit and Video Upscale
+(`edit_video`, `upscale_video` — none of these three exists in the hosted
 FLUX MCP), local clip cutting (`trim_video`), generation-queue
 control (`list_generation_queue`, `enqueue_generation_jobs`,
 `update_generation_job`, `cancel_generation_job`), evaluation records

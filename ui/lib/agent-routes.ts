@@ -310,7 +310,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     category: "generation",
     auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     body: {
-      t2i: "mode=t2i, prompt, settings { aspectRatio, resolution (768sq|1k|2k|4k), grounding, safetyTolerance }; optional layout[] boxes { x, y, width, height, prompt } with frame { width, height }",
+      t2i: "mode=t2i, prompt, settings { aspectRatio, resolution (768sq|1k|2k|4k), grounding, safetyTolerance }; optional layout[] boxes { x, y, width, height, prompt } with frame { width, height }. A resolution or aspectRatio outside the lists is refused, not replaced.",
       i2i: "mode=i2i, prompt, references[1..10] (URL, data URL, or /api/outputs/<id>/image), settings",
       edit: "mode=edit, prompt, source (one image), settings",
       precise:

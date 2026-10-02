@@ -98,6 +98,28 @@ export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings 
   };
 }
 
+/**
+ * Names a setting an outside request (an agent, MCP or the CLI) asked for that
+ * this surface does not send. Saved drafts are normalized quietly; a request
+ * is refused instead, so a caller never pays for a size or shape it did not
+ * ask for. BFL also accepts `1.5k`, but lists no price for it, so it is not
+ * offered here.
+ */
+export function flux3ImageSettingsBlocker(value: unknown) {
+  const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const { resolution, aspectRatio } = record;
+  const given = (setting: unknown) => setting !== undefined && setting !== null && setting !== "";
+  if (given(resolution) && !FLUX3_IMAGE_RESOLUTIONS.some((tier) => tier === resolution)) {
+    return resolution === "1.5k"
+      ? `FLUX 3 Image resolution 1.5k has no listed price, so it is not offered here. Use ${FLUX3_IMAGE_RESOLUTIONS.join(", ")}.`
+      : `FLUX 3 Image resolution must be one of ${FLUX3_IMAGE_RESOLUTIONS.join(", ")}, not ${JSON.stringify(resolution)}.`;
+  }
+  if (given(aspectRatio) && !FLUX3_IMAGE_ASPECT_RATIOS.some((ratio) => ratio === aspectRatio)) {
+    return `FLUX 3 Image aspectRatio must be one of ${FLUX3_IMAGE_ASPECT_RATIOS.join(", ")}, not ${JSON.stringify(aspectRatio)}.`;
+  }
+  return null;
+}
+
 export type Flux3ImageRequest = {
   mode: Flux3ImageMode;
   /** The prompt for text to image, image to image, or an edit. */
