@@ -3,6 +3,7 @@
 import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { noAnswerMessage, stillRunningMessage } from "../lib/dashboard-answers.mjs";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:3000";
 
@@ -365,16 +366,27 @@ async function payloadFrom(flags, need) {
   return payload;
 }
 
+/** The command that shows a queue job, or the whole queue. */
+const followInQueue = (id) => `npm run --silent cli -- queue${id ? ` ${id}` : ""}`;
+
 async function send(baseUrl, { method, path, body }) {
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: body ? { "content-type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined
   }).catch((error) => {
-    throw new Error(`Could not reach the dashboard at ${baseUrl} (${error.message}). Start it with npm run dev, or set BFL_DASHBOARD_URL.`);
+    throw new Error(noAnswerMessage(error, { method, path, baseUrl, follow: followInQueue }));
   });
   const text = await response.text();
-  if (!response.ok) throw new Error(`${method} ${path} failed (${response.status}): ${text}`);
+  if (!response.ok) {
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // Not JSON: reported as it came.
+    }
+    throw new Error(stillRunningMessage(data, { method, path, follow: followInQueue }) || `${method} ${path} failed (${response.status}): ${text}`);
+  }
   return text;
 }
 

@@ -83,6 +83,7 @@ export const agentWorkflowGuide = {
         "Place elements with boxes rather than a mask: layout[] for text to image, regions[] with an action (change, keep, move, remove) for a precise edit, each in the pixels of frame { width, height }",
         "The server writes the boxes into the prompt as BFL's [top, left, bottom, right] rows on a 0-1000 grid; a precise edit keeps the source's aspect ratio",
         `Add wait=false to get a queue job id at once and follow it through ${agentRouteMap.queue}`,
+        "Without wait=false the call waits up to about five minutes; a longer render answers with timedOut and its queueJobId and keeps running, so follow that job instead of sending the request again",
         `GET ${agentRouteMap.outputs}: the saved image records its mode, settings and the prompt BFL expanded the request into`
       ]
     },

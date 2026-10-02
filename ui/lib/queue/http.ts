@@ -3,11 +3,17 @@ import { enqueueAndWait, enqueueGenerationJob, type EnqueueOptions } from "./enq
 import { ensureQueueRunner } from "./runner";
 import { takeJobFailure } from "./runtime";
 
-export const IMAGE_ROUTE_WAIT_MS = 300_000;
-/** FLUX 3 Image at 4k "can take several minutes"; matches its queue poll budget. */
-export const SLOW_IMAGE_ROUTE_WAIT_MS = 900_000;
-// Kept under the FLUX 3 route's maxDuration so the handler answers before Next
-// tears it down; the job itself keeps running on the server queue.
+/**
+ * How long a route that waits for its result holds the request open, kept
+ * under five minutes. Node's fetch, which the MCP wrapper and the CLI use,
+ * gives up after five minutes without an answer; the caller is then left with
+ * no job id while the job runs on and is charged, and trying again pays twice.
+ * Answering first, with the queue job id, lets the caller follow the job
+ * instead. The job keeps running on the server queue either way: a 4k FLUX 3
+ * Image still has its full poll budget there.
+ */
+export const IMAGE_ROUTE_WAIT_MS = 290_000;
+// The same limit, which also keeps the video routes under their maxDuration.
 export const VIDEO_ROUTE_WAIT_MS = 290_000;
 
 export type QueueBackedRouteOptions = {
@@ -35,9 +41,16 @@ export async function queueBackedResponse(options: QueueBackedRouteOptions) {
     return NextResponse.json(outcome.response);
   }
   if (outcome.timedOut) {
+    // Still an error status, so callers that only check for success do not
+    // read it as a finished result; the text and `timedOut` say what it is.
+    const seconds = Math.round(options.waitMs / 1000);
     return NextResponse.json(
       {
-        error: options.timeoutMessage || "Timed out waiting for BFL result",
+        error:
+          options.timeoutMessage ||
+          `Still running on the server queue as job ${outcome.job.id} after ${seconds} s. It was not sent again and is saved when it finishes; do not send it again.`,
+        timedOut: true,
+        queueJobId: outcome.job.id,
         details: {
           queueJobId: outcome.job.id,
           note: "The job is still running on the server queue. Recover it through /api/dashboard/queue or /api/bfl/jobs."

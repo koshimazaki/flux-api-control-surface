@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveApiKey } from "@/lib/bfl-server";
 import { FLUX3_IMAGE_OPERATION, type Flux3ImageRouteBody } from "@/lib/operations/flux3-image";
-import { IMAGE_ROUTE_WAIT_MS, SLOW_IMAGE_ROUTE_WAIT_MS, queueBackedResponse, wantsWait } from "@/lib/queue/http";
+import { IMAGE_ROUTE_WAIT_MS, queueBackedResponse, wantsWait } from "@/lib/queue/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,7 +39,8 @@ export async function POST(request: NextRequest) {
       sourceAssetIds: Array.isArray(body.sourceAssetIds) ? body.sourceAssetIds : undefined
     },
     wait: wantsWait(body as Record<string, unknown>),
-    waitMs: body.settings?.resolution === "4k" ? SLOW_IMAGE_ROUTE_WAIT_MS : IMAGE_ROUTE_WAIT_MS,
+    // A 4k image can outlast the wait; it then answers with its queue job id and keeps running.
+    waitMs: IMAGE_ROUTE_WAIT_MS,
     fallbackError: "FLUX 3 Image generation failed."
   });
 }

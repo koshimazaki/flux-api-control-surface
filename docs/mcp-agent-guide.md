@@ -199,8 +199,10 @@ rows on a 0 to 1000 grid, each named `<id>` in the caption. A precise edit sends
 }
 ```
 
-Add `"wait": false` to get a queue job id at once. The saved image records its
-mode, settings and the prompt BFL expanded the request into.
+Add `"wait": false` to get a queue job id at once. Without it the call waits up
+to about five minutes; a render that takes longer (4k can) answers with
+`timedOut: true` and its `queueJobId` and keeps running. The saved image records
+its mode, settings and the prompt BFL expanded the request into.
 
 ### Queue Paid Work
 
@@ -216,6 +218,13 @@ mode, settings and the prompt BFL expanded the request into.
 
 The queue keeps running with no browser open, and survives a restart by
 resuming accepted jobs from their saved provider request ids.
+
+A call that waits for its result answers within about five minutes. If the
+work takes longer, the answer says it is still running and gives its queue job
+id: follow that job with `list_generation_queue` or `queue <id>` instead of
+sending the request again, which would pay twice. The CLI and the MCP wrapper
+say the same when a request ends without an answer, and only say the dashboard
+is not running when the connection was refused.
 
 ### Image Tool Edit
 
