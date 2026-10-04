@@ -22,8 +22,11 @@ function dashboard(answer: (request: import("node:http").IncomingMessage, respon
 
 function runCli(baseUrl: string, args: string[]) {
   return new Promise<{ code: number; stdout: string; stderr: string }>((done) => {
-    const child = execFile(process.execPath, [cli, ...args, "--base-url", baseUrl, "--json", "-"], (error, stdout, stderr) =>
-      done({ code: error ? Number(error.code ?? 1) : 0, stdout, stderr: stderr.trim() })
+    const child = execFile(
+      process.execPath,
+      [cli, ...args, "--base-url", baseUrl, "--json", "-"],
+      { env: { ...process.env, BFL_DASHBOARD_RETRY_DELAY_MS: "0" } },
+      (error, stdout, stderr) => done({ code: error ? Number(error.code ?? 1) : 0, stdout, stderr: stderr.trim() })
     );
     child.stdin?.end(JSON.stringify({ mode: "t2i", prompt: "a glass fox" }));
   });
@@ -40,12 +43,34 @@ describe("the CLI when a request ends without its result", () => {
     expect(result.stderr).toMatch(/^Could not reach the dashboard at http:\/\/127\.0\.0\.1:\d+ \(ECONNREFUSED\)/);
   });
 
-  it("warns that a request whose answer was lost may have started a paid job", async () => {
-    const base = await dashboard((request) => request.socket.destroy());
+  it("sends a lost paid request again under the same key, then warns it may have started a job", async () => {
+    const keys: string[] = [];
+    const base = await dashboard((request) => {
+      keys.push(String(request.headers["idempotency-key"]));
+      request.socket.destroy();
+    });
     const result = await runCli(base, ["generate-flux3-image"]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toMatch(/^POST \/api\/bfl\/flux3-image got no answer \(.+\)\. It may still have been carried out/);
+    expect(keys).toHaveLength(3);
+    expect(new Set(keys).size).toBe(1);
+    expect(result.stderr).toMatch(/^POST \/api\/bfl\/flux3-image got no answer after 3 tries \(.+\)\. It may still have been carried out/);
     expect(result.stderr).toContain("check npm run --silent cli -- queue before sending it again");
+    expect(result.stderr).toContain(`Sending it again with Idempotency-Key ${keys[0]} is safe`);
+  });
+
+  it("gets the result when a resend under the same key is answered", async () => {
+    const keys: string[] = [];
+    const base = await dashboard((request, response) => {
+      keys.push(String(request.headers["idempotency-key"]));
+      if (keys.length === 1) return request.socket.destroy();
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ queued: true, jobId: "q-9", reused: true }));
+    });
+    const result = await runCli(base, ["generate-flux3-image"]);
+    expect(result.code).toBe(0);
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBe(keys[1]);
+    expect(result.stdout).toContain('"jobId":"q-9"');
   });
 
   it("says a job that outlasted the route's wait is still running, and how to follow it", async () => {

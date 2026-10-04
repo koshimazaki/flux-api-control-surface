@@ -226,6 +226,17 @@ sending the request again, which would pay twice. The CLI and the MCP wrapper
 say the same when a request ends without an answer, and only say the dashboard
 is not running when the connection was refused.
 
+Every route that starts paid work (the `/api/bfl/*` generation, tool and video
+routes, `/api/bfl/jobs`, `/api/dashboard/queue` and `/api/dashboard/batch`)
+accepts an `Idempotency-Key` header, or `requestKey` in the body: 8 to 128
+letters, digits, dots, colons, underscores or hyphens. Make one key per request
+you mean to send. If the answer is lost, send the same request with the same key
+and the dashboard answers with the job the first one started instead of
+queueing, and paying for, a second one. The same key with a different request is
+refused with `409`. `GET /api/dashboard/queue?requestKey=<key>` finds the job a
+key started. The CLI and the MCP wrapper do this for you: each paid call gets a
+key, and a lost answer is sent again under it before they report anything.
+
 ### Image Tool Edit
 
 1. `GET /api/outputs`

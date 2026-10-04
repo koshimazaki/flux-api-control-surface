@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { noAnswerMessage, stillRunningMessage } from "../lib/dashboard-answers.mjs";
+import { fetchDashboard, noAnswerMessage, stillRunningMessage } from "../lib/dashboard-answers.mjs";
 
 // 127.0.0.1, not localhost: `npm run dev`/`start` bind Next with `-H 127.0.0.1`
 // (IPv4 only), so a `localhost` default would fail to connect on hosts where it
@@ -26,13 +26,17 @@ const followInQueue = (id) => (id ? `list_generation_queue with id "${id}"` : "l
 
 async function requestJson(path, options = {}) {
   const method = options.method || "GET";
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    }
-  }).catch((error) => {
+  const response = await fetchDashboard(
+    `${baseUrl}${path}`,
+    {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      }
+    },
+    { method, path }
+  ).catch((error) => {
     throw new Error(noAnswerMessage(error, { method, path, baseUrl, follow: followInQueue }));
   });
   const data = await response.json().catch(() => ({}));

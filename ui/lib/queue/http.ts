@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { enqueueAndWait, enqueueGenerationJob, type EnqueueOptions } from "./enqueue";
+import { requestKeyConflictBody, requestKeyFrom } from "./request-key";
 import { ensureQueueRunner } from "./runner";
 import { takeJobFailure } from "./runtime";
 
@@ -18,6 +19,8 @@ export const VIDEO_ROUTE_WAIT_MS = 290_000;
 
 export type QueueBackedRouteOptions = {
   enqueue: EnqueueOptions;
+  /** The incoming request, read for its Idempotency-Key. */
+  request?: Request;
   waitMs: number;
   wait: boolean;
   timeoutMessage?: string;
@@ -31,14 +34,38 @@ export type QueueBackedRouteOptions = {
  */
 export async function queueBackedResponse(options: QueueBackedRouteOptions) {
   ensureQueueRunner();
+  const requestKey = options.request ? requestKeyFrom(options.request, options.enqueue.body) : {};
+  if (requestKey.error) return NextResponse.json({ error: requestKey.error }, { status: 400 });
+  const enqueue = requestKey.key ? { ...options.enqueue, requestKey: requestKey.key } : options.enqueue;
+  try {
+    return await answer(options, enqueue);
+  } catch (error) {
+    const conflict = requestKeyConflictBody(error);
+    if (conflict) return NextResponse.json(conflict, { status: 409 });
+    throw error;
+  }
+}
+
+async function answer(options: QueueBackedRouteOptions, enqueue: EnqueueOptions) {
   if (!options.wait) {
-    const job = await enqueueGenerationJob(options.enqueue);
-    return NextResponse.json({ queued: true, jobId: job.id, job }, { status: 202 });
+    const job = await enqueueGenerationJob(enqueue);
+    return NextResponse.json({ queued: true, jobId: job.id, job, ...(job.reused ? { reused: true } : {}) }, { status: 202 });
   }
 
-  const outcome = await enqueueAndWait(options.enqueue, options.waitMs);
+  const outcome = await enqueueAndWait(enqueue, options.waitMs);
   if (outcome.settled?.status === "complete" && outcome.response) {
     return NextResponse.json(outcome.response);
+  }
+  if (outcome.settled?.status === "complete" && outcome.job.reused) {
+    // Sent again after the first answer was lost, and done long enough ago
+    // that its full answer is gone: say where the saved output is.
+    return NextResponse.json({
+      reused: true,
+      queueJobId: outcome.job.id,
+      status: "complete",
+      resultAssetId: outcome.settled.resultAssetId,
+      note: `This request already ran as queue job ${outcome.job.id} and finished; it was not run again. Its output is in Assets (/api/outputs).`
+    });
   }
   if (outcome.timedOut) {
     // Still an error status, so callers that only check for success do not

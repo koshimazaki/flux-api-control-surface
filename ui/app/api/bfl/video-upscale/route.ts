@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
   const apiKey = await resolveApiKey(body.apiKey);
   if (!apiKey) return jsonError("FLUX API key is required.");
   return queueBackedResponse({
+    request,
     enqueue: {
       kind: "video",
       operation: VIDEO_UPSCALE_OPERATION,

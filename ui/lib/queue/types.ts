@@ -76,6 +76,10 @@ export type ServerQueueJob = GenerationQueueJob & {
   attempts?: QueueJobAttempt[];
   recovery?: QueueRecoveryEvent[];
   result?: QueueJobResult;
+  /** The caller's Idempotency-Key, so sending the same request again returns this job. */
+  requestKey?: string;
+  /** What the request asked for, so the same key with a different request is refused. */
+  requestHash?: string;
 };
 
 /**
@@ -149,6 +153,8 @@ export type EnqueueJobInput = {
   estimatedUsd?: number;
   sourceAssetIds?: string[];
   promptTokens?: number;
+  /** The caller's Idempotency-Key for this job; see lib/queue/request-key.ts. */
+  requestKey?: string;
 };
 
 export const QUEUE_LANE_BY_KIND: Record<GenerationJobKind, GenerationLane> = {

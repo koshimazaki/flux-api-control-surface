@@ -3,7 +3,7 @@
 import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { noAnswerMessage, stillRunningMessage } from "../lib/dashboard-answers.mjs";
+import { fetchDashboard, noAnswerMessage, stillRunningMessage } from "../lib/dashboard-answers.mjs";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:3000";
 
@@ -369,12 +369,19 @@ async function payloadFrom(flags, need) {
 /** The command that shows a queue job, or the whole queue. */
 const followInQueue = (id) => `npm run --silent cli -- queue${id ? ` ${id}` : ""}`;
 
+/** Pause before sending a paid request again; tests shorten it. */
+const RETRY_DELAY_MS = Number(process.env.BFL_DASHBOARD_RETRY_DELAY_MS) >= 0 ? Number(process.env.BFL_DASHBOARD_RETRY_DELAY_MS) : 1500;
+
 async function send(baseUrl, { method, path, body }) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers: body ? { "content-type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined
-  }).catch((error) => {
+  const response = await fetchDashboard(
+    `${baseUrl}${path}`,
+    {
+      method,
+      headers: body ? { "content-type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined
+    },
+    { method, path, delayMs: RETRY_DELAY_MS }
+  ).catch((error) => {
     throw new Error(noAnswerMessage(error, { method, path, baseUrl, follow: followInQueue }));
   });
   const text = await response.text();
