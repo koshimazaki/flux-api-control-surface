@@ -2,8 +2,7 @@
 
 Case id: `bfl-holodeck-control-surface-v1`
 
-This is an opportunity-linked product morph. The BFL Product Engineer role
-selects the proof gap; MORPHKIT governs the design transfer and evidence.
+MORPHKIT governs the design transfer and evidence.
 
 ## Parent roles
 

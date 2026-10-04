@@ -172,7 +172,8 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
   preview (three.js, loaded on demand) opens on a scene diagram of the rig and
   its path; its shot view shows what the camera sees, with focus, lens, light,
   grade, format and media looks and the diagram inset. It labels each chosen
-  term as shown, approximate or prompt-only.
+  term as shown, approximate or prompt-only. Rules for changing it:
+  [`../docs/visual-direction.md`](../docs/visual-direction.md).
 - **Video Upscale** (`flux-tools/video-upscale-v1`): upscale an MP4 at 1.5×–3×
   in precise or creative mode, preserve audio, and save both source and result
   for the workspace's before/after fader. The surface identifies the capability
