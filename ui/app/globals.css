@@ -34,3 +34,5 @@
 @import "./styles/flux3-image-boxes.css";
 @import "./styles/reference-dock.css";
 @import "./styles/generation-effects.css";
+
+@import "./styles/themed-select.css";

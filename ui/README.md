@@ -137,6 +137,23 @@ or FLUX.2 [klein] dataset. The local HTML reference view is available at
 - `lib/` contains prompt helpers, pricing estimates, shared types, and
   IndexedDB/localStorage persistence.
 
+## FLUX 3 Image Klein
+
+Choose **FLUX 3 Image Klein** in the image workspace's Model menu. The local
+`POST /api/bfl/flux3-image` route selects `/v1/flux-3-image-klein` with
+`settings.model: "flux-3-image-klein"`. Existing clients default to FLUX 3 Image.
+
+Klein follows the published BFL contract: automatic or five resolution tiers
+(including 1.5K), JPEG/PNG, seed, 1–16 steps, paired custom dimensions, and
+filtering levels 0–7 subject to organization approval. Grounding is available
+only on the standard model. Precise edits and layouts preserve their box frame.
+Klein pricing remains unlisted; the run log records actual returned credits.
+
+The endpoint is published in [BFL's OpenAPI schema](https://api.bfl.ai/openapi.json).
+An authenticated validation check reached HTTP 422 on 15 October 2026, replacing
+an earlier 403 response. This checks the route without creating a generation;
+a successful image generation has not been verified in this change.
+
 ## Image Tool Workspaces
 
 The workspace mode switcher exposes FLUX image tools on any gallery output:

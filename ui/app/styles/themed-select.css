@@ -1,0 +1,40 @@
+/* Shared menus inherit the surface theme, including when raised into the top layer. */
+.themedSelectField { display: grid; gap: 6px; min-width: 0; }
+.themedSelectField > span { color: var(--text-secondary); font-size: 12px; }
+.themedSelect { min-width: 0; width: 100%; }
+.dsgn-root .themedSelectTrigger {
+  width: 100%; justify-content: space-between; gap: 8px; padding: 0 10px;
+  border-color: var(--border-default); background: var(--surface-inset);
+  color: var(--text-primary); box-shadow: var(--inset-1); text-align: left;
+  font-size: 12px;
+}
+.themedSelectTrigger > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.themedSelectTrigger > svg { flex-shrink: 0; color: var(--text-secondary); }
+.dsgn-root .themedSelectTrigger:hover,
+.dsgn-root .themedSelectTrigger[aria-expanded="true"] {
+  border-color: var(--accent); color: var(--text-primary); background: var(--surface-raised);
+}
+.dsgn-root .themedSelectTrigger:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.dsgn-root .themedSelectTrigger:disabled { opacity: 0.5; cursor: not-allowed; }
+.dsgn-root .themedSelectMenu {
+  position: fixed; margin: 0; padding: 5px; overflow-y: auto; overscroll-behavior: contain;
+  border: 1px solid var(--border-machined); border-radius: var(--radius-md);
+  background: var(--surface-sunken); color: var(--text-primary); box-shadow: var(--elev-4), var(--rim-top);
+  scrollbar-color: var(--border-strong) transparent;
+}
+.dsgn-root .themedSelectOption {
+  display: flex; width: 100%; min-height: 32px; justify-content: space-between;
+  padding: 6px 9px; gap: 10px; border: 1px solid transparent;
+  background: transparent; box-shadow: none; color: var(--text-secondary);
+  text-align: left; font-size: 12px; transform: none;
+}
+.dsgn-root .themedSelectOption[aria-selected="true"] { color: var(--accent-strong); }
+.dsgn-root .themedSelectOption[data-highlighted="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-default));
+  background: var(--accent-ghost); color: var(--text-primary);
+}
+.themedSelectOption > svg { flex-shrink: 0; color: var(--accent-strong); }
+.comboThemedSelect { width: 92px; }
+.dsgn-root .comboThemedSelect .themedSelectTrigger { background: var(--mat-gunmetal); box-shadow: var(--elev-1), var(--rim-top); }

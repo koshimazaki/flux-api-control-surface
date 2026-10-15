@@ -1,5 +1,5 @@
 import { BFL_API_BASE, bflJson, getCredits, resolveApiKey } from "@/lib/bfl-server";
-import { FLUX3_IMAGE_MODEL } from "@/lib/flux3-image";
+import { FLUX3_IMAGE_MODEL, FLUX3_IMAGE_KLEIN_MODEL } from "@/lib/flux3-image";
 import { measured } from "@/lib/generation-capture";
 import { isBflPollFailureStatus } from "@/lib/provider-registry";
 import { isOperationFailure, operationAdapter } from "@/lib/operations";
@@ -19,7 +19,7 @@ export const QUEUE_POLL_SLOW_INTERVAL_MS = 2_000;
 export const QUEUE_POLL_FAST_WINDOW_MS = 30_000;
 export const QUEUE_PROVIDER_BUDGET_MS: Record<string, number> = { image: 300_000, tool: 300_000, video: 900_000 };
 /** Models that outlast their lane's budget: FLUX 3 Image at 4k "can take several minutes". */
-export const QUEUE_MODEL_BUDGET_MS: Record<string, number> = { [FLUX3_IMAGE_MODEL]: 900_000 };
+export const QUEUE_MODEL_BUDGET_MS: Record<string, number> = { [FLUX3_IMAGE_MODEL]: 900_000, [FLUX3_IMAGE_KLEIN_MODEL]: 900_000 };
 
 export type LifecycleOutcome = {
   ok: boolean;

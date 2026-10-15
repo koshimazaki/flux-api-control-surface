@@ -36,6 +36,11 @@ export type Flux3ImageMode = "t2i" | "i2i" | "edit" | "precise";
 export const FLUX3_IMAGE_OPERATION = "flux3-image";
 /** The model label the queue shows and budgets by; BFL: 4k "can take several minutes". */
 export const FLUX3_IMAGE_MODEL = "flux-3-image";
+export const FLUX3_IMAGE_MODELS = [FLUX3_IMAGE_MODEL, FLUX3_IMAGE_KLEIN_MODEL] as const;
+export const FLUX3_IMAGE_MODEL_LABELS = {
+  [FLUX3_IMAGE_MODEL]: "FLUX 3 Image",
+  [FLUX3_IMAGE_KLEIN_MODEL]: "FLUX 3 Image Klein"
+};
 
 /** `images`: "one to 10 total", references or the edit source alike. */
 export const FLUX3_IMAGE_MAX_REFERENCES = 10;
@@ -71,6 +76,7 @@ export type Flux3ImageSettings = {
 };
 
 export const defaultFlux3ImageSettings: Flux3ImageSettings = {
+  model: FLUX3_IMAGE_MODEL,
   aspectRatio: "auto",
   resolution: "1k",
   grounding: true,
@@ -80,7 +86,10 @@ export const defaultFlux3ImageSettings: Flux3ImageSettings = {
 export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings {
   const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   if (record.model === FLUX3_IMAGE_KLEIN_MODEL) {
-    const checked = flux3ImageKleinSchema.safeParse({ prompt: "", ...kleinSettingsPayload(record) });
+    // Stored drafts from the provisional route also carried standard-only grounding.
+    // Drop that obsolete field on restore; explicit API requests still reject it.
+    const restored = Object.fromEntries(Object.entries(record).filter(([key]) => key !== "grounding"));
+    const checked = flux3ImageKleinSchema.safeParse({ prompt: "", ...kleinSettingsPayload(restored) });
     const parsed = checked.success ? checked.data : flux3ImageKleinSchema.parse({ prompt: "" });
     return {
       model: FLUX3_IMAGE_KLEIN_MODEL,
@@ -96,6 +105,7 @@ export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings 
   const resolution = FLUX3_IMAGE_RESOLUTIONS.find((tier) => tier === record.resolution);
   const tolerance = Number(record.safetyTolerance);
   return {
+    model: FLUX3_IMAGE_MODEL,
     aspectRatio: aspectRatio ?? defaultFlux3ImageSettings.aspectRatio,
     resolution: resolution ?? defaultFlux3ImageSettings.resolution,
     grounding: typeof record.grounding === "boolean" ? record.grounding : defaultFlux3ImageSettings.grounding,
@@ -115,7 +125,7 @@ export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings 
 export function flux3ImageSettingsBlocker(value: unknown) {
   const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   if (record.model !== undefined && record.model !== FLUX3_IMAGE_MODEL && record.model !== FLUX3_IMAGE_KLEIN_MODEL) {
-    return "FLUX 3 Image model must be flux-3-image or flux-3-image-klein.";
+    return `Unknown FLUX 3 Image model: ${JSON.stringify(record.model)}. Use flux-3-image or flux-3-image-klein.`;
   }
   if (record.model === FLUX3_IMAGE_KLEIN_MODEL) return kleinSettingsBlocker(value);
   const { resolution, aspectRatio } = record;

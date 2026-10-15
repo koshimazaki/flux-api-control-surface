@@ -1,3 +1,5 @@
+import { GenerationWait } from "@/components/ui/generation-wait";
+import { generationJobMatchesWorkspace, pendingGenerationJobs } from "@/lib/generation-view";
 import { Download, Film, PencilLine, Repeat, Save, ScanLine, Scissors, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { VideoComparisonFader } from "@/components/video-comparison-fader";
@@ -438,6 +440,7 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
             <span className="flux3HeaderIcon" aria-label="FLUX Video Edit"><PencilLine size={18} /></span>
           </div>
         </PanelHeader>
+        <div className="generationStage">
         {selected ? (
           <VideoComparisonFader beforeUrl={selected.sourceVideoUrl} afterUrl={selected.videoUrl} afterLabel="Edited" />
         ) : source ? (
@@ -533,6 +536,10 @@ export function VideoEditWorkspace(props: VideoEditWorkspaceProps) {
             <span>Maximum 50 MB · 15 seconds · the edit keeps the source length, aspect ratio, and audio · up to 720p</span>
           </button>
         )}
+        {(isRunning || pendingQueueJobId || pendingGenerationJobs(props.generationQueue).some((job) => generationJobMatchesWorkspace(job, "edit"))) && (
+          <GenerationWait id={pendingQueueJobId || pendingGenerationJobs(props.generationQueue).find((job) => generationJobMatchesWorkspace(job, "edit"))?.id} label="Editing video" detail="The result will appear here and in Assets." />
+        )}
+        </div>
         <input ref={inputRef} hidden type="file" accept="video/mp4,.mp4" onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) void selectFile(file);

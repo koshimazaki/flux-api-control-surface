@@ -110,6 +110,15 @@ describe("official FLUX 3 Image Klein contract", () => {
     for (const prompt of [undefined, null, 1]) expect(flux3ImageKleinSchema.safeParse({ prompt }).success).toBe(false);
   });
 
+  it("migrates saved provisional Klein drafts without losing supported settings", () => {
+    const legacy = { model: FLUX3_IMAGE_KLEIN_MODEL, grounding: false, aspectRatio: "16:9", resolution: "1k", safetyTolerance: 3 };
+    expect(normalizeFlux3ImageDraft({ settings: legacy }).settings).toMatchObject({
+      model: FLUX3_IMAGE_KLEIN_MODEL, aspectRatio: "16:9", resolution: "1k", safetyTolerance: 3
+    });
+    expect(normalizeFlux3ImageDraft({ settings: legacy }).settings).not.toHaveProperty("grounding");
+    expect(() => buildFlux3ImagePayload(request({ grounding: false }))).toThrow();
+  });
+
   it("persists Klein settings and renders only Klein controls", () => {
     const settings = normalizeFlux3ImageSettings(request({ resolution: "1.5k", seed: 0, steps: 8, safetyTolerance: 7, width: 1000, height: 800 }).settings);
     expect(normalizeFlux3ImageDraft({ settings }).settings).toEqual(settings);

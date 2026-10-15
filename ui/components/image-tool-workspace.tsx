@@ -1,3 +1,4 @@
+import { GenerationWait } from "@/components/ui/generation-wait";
 import { ImagePlus, Shirt, UserRound, X } from "lucide-react";
 import type { DragEvent as ReactDragEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useRef, useState } from "react";
@@ -321,6 +322,8 @@ function OutpaintPreview({
 }
 
 type ImageToolWorkspaceProps = {
+  running?: boolean;
+  jobId?: string;
   mode: ImageToolMode;
   sourceAsset: AssetRecord | null;
   brushSize: number;
@@ -454,6 +457,7 @@ export function ImageToolWorkspace(props: ImageToolWorkspaceProps) {
 
       <CanvasSurface className="imageToolCanvas" variant="tool">
         {renderStage()}
+        {props.running && <GenerationWait id={props.jobId} label={`Generating ${copy.title}`} detail="The result will appear in Assets." />}
       </CanvasSurface>
 
       <div className="imageToolMeta">

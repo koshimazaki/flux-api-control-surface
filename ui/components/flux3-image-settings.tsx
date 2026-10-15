@@ -1,15 +1,9 @@
 import { Globe, GlobeLock } from "lucide-react";
+import { ThemedSelect } from "@/components/ui/themed-select";
 import {
-  FLUX3_IMAGE_ASPECT_RATIOS,
-  FLUX3_IMAGE_KLEIN_MODEL,
-  FLUX3_IMAGE_KLEIN_RESOLUTIONS,
-  FLUX3_IMAGE_MODEL,
-  FLUX3_IMAGE_RESOLUTIONS,
-  defaultFlux3ImageSettings,
-  normalizeFlux3ImageSettings,
-  type Flux3ImageAspectRatio,
-  type Flux3ImageResolution,
-  type Flux3ImageSettings
+  FLUX3_IMAGE_ASPECT_RATIOS, FLUX3_IMAGE_KLEIN_MODEL, FLUX3_IMAGE_KLEIN_RESOLUTIONS,
+  FLUX3_IMAGE_MODEL, FLUX3_IMAGE_MODELS, FLUX3_IMAGE_MODEL_LABELS, FLUX3_IMAGE_RESOLUTIONS,
+  normalizeFlux3ImageSettings, type Flux3ImageResolution, type Flux3ImageSettings
 } from "@/lib/flux3-image";
 
 const resolutionLabels: Record<Flux3ImageResolution, string> = {
@@ -24,54 +18,52 @@ type Flux3ImageSettingsFieldsProps = {
   aspectNote?: string;
 };
 
-/** Each model exposes its own published settings and request defaults. */
+/** Theme-aware controls follow each model's published contract. */
 export function Flux3ImageSettingsFields({ settings, onChange, estimate, aspectLocked = false, aspectNote }: Flux3ImageSettingsFieldsProps) {
   const set = (patch: Partial<Flux3ImageSettings>) => onChange({ ...settings, ...patch });
-  const klein = settings.model === FLUX3_IMAGE_KLEIN_MODEL;
+  const model = settings.model ?? FLUX3_IMAGE_MODEL;
+  const klein = model === FLUX3_IMAGE_KLEIN_MODEL;
   return (
     <>
       <div className="flux3SettingsGrid">
-        <label>
-          Model
-          <select value={settings.model ?? FLUX3_IMAGE_MODEL} onChange={(event) => onChange(
-            event.target.value === FLUX3_IMAGE_KLEIN_MODEL
-              ? normalizeFlux3ImageSettings({ model: FLUX3_IMAGE_KLEIN_MODEL })
-              : { ...defaultFlux3ImageSettings }
-          )}>
-            <option value={FLUX3_IMAGE_MODEL}>FLUX 3 Image</option>
-            <option value={FLUX3_IMAGE_KLEIN_MODEL}>FLUX 3 Image Klein</option>
-          </select>
-        </label>
-        <label>
-          Resolution
-          <select value={settings.resolution ?? ""} onChange={(event) => set({ resolution: (event.target.value || null) as Flux3ImageResolution | null })}>
-            {klein && <option value="">Auto (1K text / source size edit)</option>}
-            {(klein ? FLUX3_IMAGE_KLEIN_RESOLUTIONS : FLUX3_IMAGE_RESOLUTIONS).map((tier) => (
-              <option value={tier} key={tier}>{resolutionLabels[tier]}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Aspect
-          <select value={aspectLocked ? "auto" : settings.aspectRatio} disabled={aspectLocked} title={aspectNote}
-            onChange={(event) => set({ aspectRatio: event.target.value as Flux3ImageAspectRatio })}>
-            {FLUX3_IMAGE_ASPECT_RATIOS.map((ratio) => <option value={ratio} key={ratio}>{ratio === "auto" ? "Auto" : ratio}</option>)}
-          </select>
-        </label>
-        <label>
-          Safety
-          <select value={settings.safetyTolerance} onChange={(event) => set({ safetyTolerance: Number(event.target.value) })}>
-            {Array.from({ length: klein ? 8 : 5 }, (_, level) => (
-              <option value={level} key={level}>{level === 0 ? "0 (strictest)" : level}</option>
-            ))}
-          </select>
-        </label>
+        <div className="themedSelectField">
+          <span>Model</span>
+          <ThemedSelect label="Model" value={model}
+            options={FLUX3_IMAGE_MODELS.map((value) => ({ value, label: FLUX3_IMAGE_MODEL_LABELS[value] }))}
+            onChange={(next) => {
+              const shared = Object.fromEntries(Object.entries(settings).filter(([key]) => key !== "grounding"));
+              onChange(normalizeFlux3ImageSettings({ ...shared, model: next }));
+            }} />
+        </div>
+        <div className="themedSelectField">
+          <span>Resolution</span>
+          <ThemedSelect label="Resolution" value={settings.resolution ?? ""}
+            options={[
+              ...(klein ? [{ value: "", label: "Auto (1K text / source size edit)" }] : []),
+              ...(klein ? FLUX3_IMAGE_KLEIN_RESOLUTIONS : FLUX3_IMAGE_RESOLUTIONS).map((tier) => ({ value: tier, label: resolutionLabels[tier] }))
+            ]}
+            onChange={(value) => set({ resolution: (value || null) as Flux3ImageResolution | null })} />
+        </div>
+        <div className="themedSelectField">
+          <span>Aspect ratio</span>
+          <ThemedSelect label="Aspect ratio" value={aspectLocked ? "auto" : settings.aspectRatio}
+            disabled={aspectLocked} title={aspectNote}
+            options={FLUX3_IMAGE_ASPECT_RATIOS.map((value) => ({ value, label: value === "auto" ? "Auto" : value }))}
+            onChange={(aspectRatio) => set({ aspectRatio })} />
+        </div>
+        <div className="themedSelectField">
+          <span>Filtering</span>
+          <ThemedSelect label="Filtering" value={String(settings.safetyTolerance)}
+            options={Array.from({ length: klein ? 8 : 5 }, (_, level) => ({ value: String(level), label: level === 0 ? "0 (strictest)" : String(level) }))}
+            onChange={(level) => set({ safetyTolerance: Number(level) })} />
+        </div>
         {klein && <>
-          <label>Format
-            <select value={settings.outputFormat ?? "jpeg"} onChange={(event) => set({ outputFormat: event.target.value as "jpeg" | "png" })}>
-              <option value="jpeg">JPEG</option><option value="png">PNG</option>
-            </select>
-          </label>
+          <div className="themedSelectField">
+            <span>Format</span>
+            <ThemedSelect label="Format" value={settings.outputFormat ?? "jpeg"}
+              options={[{ value: "jpeg", label: "JPEG" }, { value: "png", label: "PNG" }]}
+              onChange={(outputFormat) => set({ outputFormat })} />
+          </div>
           <label>Steps
             <input type="number" min={1} max={16} step={1} placeholder="16" value={settings.steps ?? ""}
               onChange={(event) => set({ steps: event.target.value === "" ? null : Number(event.target.value) })} />
@@ -88,16 +80,16 @@ export function Flux3ImageSettingsFields({ settings, onChange, estimate, aspectL
         </>}
       </div>
       {aspectNote && <small className="flux3SettingsNote">{aspectNote}</small>}
-      {klein ? <small className="flux3SettingsNote">Set width and height together to override resolution and aspect (up to 16.8 MP). Safety levels require organization approval.</small> :
+      {klein ? <small className="flux3SettingsNote">Width and height override resolution and aspect for unboxed runs (up to 16.8 MP). Boxed edits and layouts keep their frame. Filtering levels depend on organization approval.</small> :
         <label className="toggle flux3Toggle" title="Lets FLUX 3 ground the prompt in web and image search">
           <input type="checkbox" checked={settings.grounding} onChange={(event) => set({ grounding: event.target.checked })} />
           {settings.grounding ? <Globe size={16} /> : <GlobeLock size={16} />}
           Grounding: web and image search
         </label>}
       <div className="flux3CostBox">
-        <div><span>Model</span><strong>{klein ? "FLUX 3 Image Klein" : "FLUX 3 Image"}</strong></div>
+        <div><span>Model</span><strong>{FLUX3_IMAGE_MODEL_LABELS[model]}</strong></div>
         <div><span>Estimate</span><strong>{estimate === null ? "Not listed" : `$${estimate.toFixed(3)}`}</strong></div>
-        <small>{klein ? "Requires BFL access. Price is not listed; actual credits are recorded after generation." :
+        <small>{klein ? "Price is not listed; the run log records actual credits after generation." :
           "Per image, by resolution. The run log records the credits each image actually used."}</small>
       </div>
     </>

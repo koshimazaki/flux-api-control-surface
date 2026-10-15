@@ -127,6 +127,33 @@ describe("FLUX 3 Image route", () => {
     expect(submitted()?.[3]).toMatchObject({ resolution: "1k", aspect_ratio: "auto" });
   });
 
+  it("routes Klein through the queue and preserves its model without borrowing the standard price", async () => {
+    mockSuccess();
+    const response = await post({
+      mode: "t2i", prompt: "a Klein fox", title: "Klein route test",
+      settings: { model: "flux-3-image-klein", resolution: "2k" }
+    });
+    expect(response.status).toBe(200);
+    expect(submitted()?.[1]).toBe("https://api.bfl.ai/v1/flux-3-image-klein");
+    expect(submitted()?.[3]).toMatchObject({ prompt: "a Klein fox", resolution: "2k" });
+    expect(submitted()?.[3]).not.toHaveProperty("model");
+    expect(mocks.saveOutputFiles).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({ model: "flux-3-image-klein", endpointName: "flux-3-image-klein" })
+    }));
+    const { readQueueState } = await import("@/lib/queue/store");
+    const job = (await readQueueState()).jobs.find((item) => item.title === "Klein route test");
+    expect(job?.model).toBe("flux-3-image-klein");
+    expect(job?.estimatedUsd).toBeUndefined();
+  });
+
+  it("rejects an unknown model before any provider call", async () => {
+    mockSuccess();
+    const response = await post({ mode: "t2i", prompt: "fox", settings: { model: "flux-3-omni" } });
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/Unknown FLUX 3 Image model/);
+    expect(submitted()).toBeUndefined();
+  });
+
   it("submits the complete Klein contract and saves nullable async billing fields", async () => {
     mockSuccess();
     mocks.bflJson.mockImplementation(async (method: string) => method === "POST"

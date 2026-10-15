@@ -122,14 +122,27 @@ describe("FLUX 3 Image request blocker", () => {
     expect(normalizeFlux3ImageSettings({ resolution: "1.5k" }).resolution).toBe("1k");
   });
 
+  it("selects the Klein endpoint for generation and edits, with an unknown price", () => {
+    for (const request of [
+      { mode: "t2i" as const, prompt: "fox" },
+      { mode: "edit" as const, prompt: "night", source: SOURCE }
+    ]) {
+      const klein = { ...request, settings: { model: "flux-3-image-klein" as const, resolution: "2k" as const } };
+      expect(buildFlux3ImagePayload(klein).endpoint).toBe("flux-3-image-klein");
+      expect(estimateFlux3ImageUsd(klein)).toBeNull();
+    }
+  });
+
   it("keeps settings inside the schema's enums and range", () => {
     expect(normalizeFlux3ImageSettings({ aspectRatio: "7:5", resolution: "2k", grounding: false, safetyTolerance: 3.6 })).toEqual({
+      model: "flux-3-image",
       aspectRatio: "7:5",
       resolution: "2k",
       grounding: false,
       safetyTolerance: 4
     });
     expect(normalizeFlux3ImageSettings({ aspectRatio: "3:1", resolution: "8k", grounding: "yes", safetyTolerance: -2 })).toEqual({
+      model: "flux-3-image",
       aspectRatio: "auto",
       resolution: "1k",
       grounding: true,

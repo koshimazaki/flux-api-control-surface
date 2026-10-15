@@ -1,5 +1,5 @@
 import type { Flux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
-import type { Flux3ImageMode, Flux3ImageRequest } from "@/lib/flux3-image";
+import { FLUX3_IMAGE_MODEL, FLUX3_IMAGE_MODEL_LABELS, normalizeFlux3ImageSettings, type Flux3ImageMode, type Flux3ImageRequest } from "@/lib/flux3-image";
 import { layoutFrameSize } from "@/lib/flux3-image-boxes";
 
 export const flux3ImageModeTitles: Record<Flux3ImageMode, string> = {
@@ -40,5 +40,6 @@ export function flux3ImageRunTitle(draft: Flux3ImageDraft) {
   const { mode } = draft;
   const words = mode === "precise" ? draft.prompts.precise || draft.regions[0]?.prompt || "" : draft.prompts[mode];
   const text = words.trim().replace(/\s+/g, " ");
-  return text ? `FLUX 3 Image: ${text.length > 56 ? `${text.slice(0, 55)}…` : text}` : `FLUX 3 Image: ${flux3ImageModeTitles[mode]}`;
+  const label = FLUX3_IMAGE_MODEL_LABELS[normalizeFlux3ImageSettings(draft.settings).model ?? FLUX3_IMAGE_MODEL];
+  return text ? `${label}: ${text.length > 56 ? `${text.slice(0, 55)}…` : text}` : `${label}: ${flux3ImageModeTitles[mode]}`;
 }
