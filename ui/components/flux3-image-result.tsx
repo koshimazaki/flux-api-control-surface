@@ -1,5 +1,5 @@
 import { Expand, WandSparkles, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { WaitField } from "@/components/ui/wait-field";
 import { assetImageSource } from "@/lib/dashboard-tools";
 import { flux3ImageStatusLabels, type Flux3ImageRunView } from "@/lib/dashboard/use-flux3-image-run";
@@ -25,14 +25,11 @@ type Flux3ImageResultProps = {
  */
 export function Flux3ImageResult({ running, run, onOpen, onEdit, onDismiss }: Flux3ImageResultProps) {
   const { result } = run;
-  const shaderId = useRef(run.jobId || result?.id || "flux3-image");
-  if (running && run.jobId) shaderId.current = run.jobId;
   const [decodedId, setDecodedId] = useState<string | null>(null);
   // Results revealed already; one present at mount counts as revealed.
   const [revealedId, setRevealedId] = useState<string | null>(result?.id ?? null);
   const [now, setNow] = useState(() => Date.now());
-  // A previous result must not suppress the field on the next run.
-  const waiting = running;
+  const waiting = running && !result;
 
   useEffect(() => {
     if (!waiting) return;
@@ -61,7 +58,7 @@ export function Flux3ImageResult({ running, run, onOpen, onEdit, onDismiss }: Fl
           onError={() => setDecodedId(result.id)}
         />
       )}
-      {covered && <WaitField id={shaderId.current} active={waiting || decodedId !== result?.id} onDone={() => setRevealedId(result?.id ?? null)} />}
+      {covered && <WaitField active={waiting || decodedId !== result?.id} onDone={() => setRevealedId(result?.id ?? null)} />}
       {waiting && (
         <>
           <div className="flux3ImageResultStatus" role="status">

@@ -1,5 +1,3 @@
-import { GenerationWait } from "@/components/ui/generation-wait";
-import { generationJobMatchesWorkspace, pendingGenerationJobs } from "@/lib/generation-view";
 import { Download, Film, PencilLine, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CameraPanel } from "@/components/camera-panel";
@@ -292,8 +290,6 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
     );
   }
 
-  const queueJob = pendingGenerationJobs(props.generationQueue).find((job) => generationJobMatchesWorkspace(job, "flux3"));
-
   return (
     <section className="flux3VideoWorkspace" ref={rootRef} hidden={!props.active}>
       <div className="flux3PreviewPanel panel">
@@ -345,12 +341,16 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
               <span>Draft first, select the shot, then enhance it without reinterpreting the generation.</span>
             </div>
           )}
-          {(isRunning || pendingQueueJobId || queueJob) && (
-            <GenerationWait
-              id={pendingQueueJobId || queueJob?.id}
-              label={pendingQueueJobId ? "Still rendering on the server queue" : runLabel || "Generating video"}
-              detail="The video appears here and in Assets as soon as it is saved."
-            />
+          {(isRunning || pendingQueueJobId) && (
+            <div className="flux3RenderOverlay">
+              <Sparkles className="spin" size={24} />
+              <strong>{pendingQueueJobId ? "Still rendering on the server queue" : runLabel}</strong>
+              <span>
+                {pendingQueueJobId
+                  ? "The server keeps working with this tab closed. The video appears here and in Assets as soon as it is saved."
+                  : "FLUX 3 video jobs usually take a minute or two. The result is downloaded locally as soon as it is ready."}
+              </span>
+            </div>
           )}
         </div>
         {selected && (

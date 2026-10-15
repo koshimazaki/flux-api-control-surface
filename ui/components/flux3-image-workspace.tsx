@@ -1,4 +1,3 @@
-import { GenerationWait } from "@/components/ui/generation-wait";
 import { ImagePlus, WandSparkles, X } from "lucide-react";
 import { useState, type ComponentProps, type DragEvent as ReactDragEvent } from "react";
 import { Flux3ImageControls } from "@/components/flux3-image-controls";
@@ -369,9 +368,6 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
                 onEdit={props.onEditResult}
                 onDismiss={props.onDismissResult}
               />
-            )}
-            {!props.run.watching && props.isRunning && !props.run.count && (
-              <GenerationWait id={props.run.jobId} label="Generating image" detail="The result will appear in Assets." />
             )}
           </CanvasSurface>
           <div className="imageToolMeta">

@@ -59,7 +59,6 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
       assets={
         <AssetLibrary
           assets={state.assets}
-          generationQueue={state.generationQueue}
           filteredAssets={state.filteredAssets}
           searchQuery={state.searchQuery}
           gridSize={state.gridSize}

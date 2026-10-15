@@ -1,7 +1,3 @@
-import { GalleryGenerationCard } from "@/components/generation/gallery-generation-card";
-import { galleryEntries, type GalleryEntry } from "@/lib/gallery-generations";
-import { useGalleryGenerations } from "@/lib/dashboard/use-gallery-generations";
-import type { GenerationQueueJob } from "@/lib/generation-queue";
 import {
   Download,
   FolderOpen,
@@ -44,7 +40,6 @@ const collectionFilterLabels: Record<AssetCollectionFilter, string> = {
 const collectionFilterChipOptions: AssetCollectionFilter[] = ["images", "videos", "collections"];
 
 type AssetLibraryProps = {
-  generationQueue?: GenerationQueueJob[];
   assets: AssetRecord[];
   filteredAssets: AssetRecord[];
   searchQuery: string;
@@ -92,15 +87,15 @@ type AssetLibraryProps = {
   onDelete: (id: string) => void;
 };
 
-function groupAssetsByDate(entries: GalleryEntry[]) {
-  const groups = new Map<string, GalleryEntry[]>();
-  entries.forEach((entry) => {
-    const date = new Date(entry.timestamp).toLocaleDateString(undefined, {
+function groupAssetsByDate(assets: AssetRecord[]) {
+  const groups = new Map<string, AssetRecord[]>();
+  assets.forEach((asset) => {
+    const date = new Date(asset.timestamp).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
       day: "numeric"
     });
-    groups.set(date, [...(groups.get(date) || []), entry]);
+    groups.set(date, [...(groups.get(date) || []), asset]);
   });
   return Array.from(groups.entries());
 }
@@ -110,7 +105,6 @@ function imageFilesFromTransfer(event: DragEvent) {
 }
 
 export function AssetLibrary(props: AssetLibraryProps) {
-  const { generations, markRevealed } = useGalleryGenerations(props.generationQueue ?? [], props.assets);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [targetCollectionId, setTargetCollectionId] = useState("");
   const [collectionToolsOpen, setCollectionToolsOpen] = useState(false);
@@ -136,13 +130,10 @@ export function AssetLibrary(props: AssetLibraryProps) {
       : [...props.collectionFilter, option];
     props.onCollectionFilterChange(next.length === collectionFilterChipOptions.length ? [] : next);
   }
-  const visibleGenerations = showAssets && !props.openedCollection ? generations.filter(({ job }) => {
-    if (props.searchQuery && !`${job.title} ${job.operation}`.toLowerCase().includes(props.searchQuery.toLowerCase())) return false;
-    if (filterAll || (filterHas("images") && filterHas("videos"))) return true;
-    return filterHas("videos") ? job.kind === "video" : job.kind !== "video";
-  }) : [];
-  const groupedAssets = showAssets ? groupAssetsByDate(galleryEntries(mediaAssets, visibleGenerations)) : [];
-  const visibleOrder = groupedAssets.flatMap(([, entries]) => entries.flatMap((entry) => entry.asset ? [entry.asset] : []));
+  const groupedAssets = showAssets ? groupAssetsByDate(mediaAssets) : [];
+  // Exactly what the grid shows, in the order it shows it, so paging the
+  // lightbox walks the gallery rather than some other list.
+  const visibleOrder = groupedAssets.flatMap(([, dateAssets]) => dateAssets);
   function onImageImport(event: ChangeEvent<HTMLInputElement>) {
     props.onImportImages(Array.from(event.target.files || []));
     event.target.value = "";
@@ -380,10 +371,8 @@ export function AssetLibrary(props: AssetLibraryProps) {
               <span>{dateAssets.length} asset{dateAssets.length === 1 ? "" : "s"}</span>
             </div>
             <div className="assetGrid" style={assetGridStyle}>
-              {dateAssets.map((entry) => {
-                const asset = entry.asset;
-                const card = asset ? <AssetCard
-                  eagerPreview={Boolean(entry.generation && !entry.generation.revealed)}
+              {dateAssets.map((asset) => (
+                <AssetCard
                   asset={asset}
                   aspectRatio={props.aspectRatio}
                   badges={props.assetBadges[asset.id] || []}
@@ -408,12 +397,8 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   onRevealAsset={props.onRevealAsset}
                   onSendToReference={props.onSendToReference}
                   onSavePromptToLibrary={props.onSavePromptToLibrary}
-                /> : null;
-                return entry.generation ? <GalleryGenerationCard
-                  key={entry.key} generation={entry.generation} asset={asset} aspectRatio={props.aspectRatio}
-                  onRevealed={markRevealed}
-                >{card}</GalleryGenerationCard> : card;
-              })}
+                />
+              ))}
             </div>
           </section>
         ))}

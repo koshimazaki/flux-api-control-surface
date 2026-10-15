@@ -32,7 +32,6 @@ import type { AssetBadge, AssetRecord, AspectRatio, ReferenceImage } from "@/lib
 const unavailableMediaSources = new Set<string>();
 
 type AssetCardProps = AssetSendHandlers & {
-  eagerPreview?: boolean;
   asset: AssetRecord;
   aspectRatio: AspectRatio;
   badges: AssetBadge[];
@@ -210,7 +209,7 @@ export function AssetCard(props: AssetCardProps) {
               src={mediaSource}
               muted
               playsInline
-              preload={props.eagerPreview ? "auto" : "metadata"}
+              preload="metadata"
               aria-label={asset.title || asset.id}
               className={mediaLoaded ? "assetMediaReady" : undefined}
               {...hoverPreview}
@@ -230,7 +229,7 @@ export function AssetCard(props: AssetCardProps) {
           <img
             src={mediaSource}
             alt={asset.title || asset.id}
-            loading={props.eagerPreview ? "eager" : "lazy"}
+            loading="lazy"
             decoding="async"
             className={mediaLoaded ? "assetMediaReady" : undefined}
             onLoad={(event) => {

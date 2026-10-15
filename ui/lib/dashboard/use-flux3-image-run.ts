@@ -23,7 +23,6 @@ export type PendingFlux3ImageRun = { jobId?: string; requestKey?: string; title:
 
 /** What the workspace shows of its runs: the oldest one still going, how many there are, and the latest result. */
 export type Flux3ImageRunView = {
-  jobId?: string;
   /** When the oldest pending run was queued, for the elapsed-time readout. */
   startedAt: number | null;
   /** The queue's status for that run. */
@@ -423,7 +422,6 @@ export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
   const oldest = pending[0];
   const flux3ImageRun: Flux3ImageRunView = {
     startedAt: oldest?.startedAt ?? null,
-    jobId: oldest?.jobId || oldest?.requestKey,
     status: oldest ? (oldest.jobId ? statuses[oldest.jobId] ?? "queued" : "submitting") : "",
     count: pending.length,
     result,
