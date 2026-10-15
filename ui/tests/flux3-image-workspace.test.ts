@@ -26,7 +26,7 @@ describe("FLUX 3 Image workspace state", () => {
     expect(draft).not.toHaveProperty("regionTool");
     expect(draft.prompts).toEqual({ t2i: "fox", i2i: "", edit: "", precise: "" });
     expect(draft.references).toEqual(Array.from({ length: 10 }, () => null));
-    expect(draft.settings).toEqual({ aspectRatio: "auto", resolution: "1k", grounding: true, safetyTolerance: 2 });
+    expect(draft.settings).toEqual({ model: "flux-3-image", aspectRatio: "auto", resolution: "1k", grounding: true, safetyTolerance: 2 });
     // Lasso and brush regions keep their bounds as change boxes; outlines and fuzz are dropped.
     expect(draft.regions).toEqual([
       { id: "r1", x: 5, y: 5, width: 50, height: 40, action: "change", prompt: "sky", referenceId: "asset-9" },
@@ -45,6 +45,12 @@ describe("FLUX 3 Image workspace state", () => {
     expect(
       normalizeFlux3ImageDraft({ regionFrame: { width: 1360, height: 768 }, layoutEnabled: true, layoutRegions: [{ id: "l1", x: 0, y: 0, width: 500, height: 500, prompt: "sky" }] })
     ).toMatchObject({ regionFrame: { width: 1360, height: 768 }, layoutEnabled: true, layoutRegions: [{ id: "l1", action: "change" }] });
+  });
+
+  it("keeps Klein selected across saved drafts and defaults older drafts to FLUX 3 Image", () => {
+    expect(normalizeFlux3ImageDraft({ settings: { model: "flux-3-image-klein", resolution: "2k" } }).settings)
+      .toMatchObject({ model: "flux-3-image-klein", resolution: "2k" });
+    expect(normalizeFlux3ImageDraft({ settings: { resolution: "2k" } }).settings.model).toBe("flux-3-image");
   });
 
   it("carries boxes from drafts saved before regions over as box regions", () => {

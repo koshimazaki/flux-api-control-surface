@@ -305,12 +305,13 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     method: "POST",
     path: agentRouteMap.flux3Image,
     purpose:
-      "Generate a FLUX 3 image (POST /v1/flux-3-image): text to image (optionally laid out with boxes), image to image from up to ten references, a whole-image edit, or an edit with boxes that change, keep, move or remove parts of the source. Polls, downloads, and saves the image locally like /api/bfl/generate.",
+      "Generate a FLUX 3 image (POST /v1/flux-3-image or /v1/flux-3-image-klein via settings.model): text to image (optionally laid out with boxes), image to image from up to ten references, a whole-image edit, or an edit with boxes that change, keep, move or remove parts of the source. Polls, downloads, and saves the image locally like /api/bfl/generate.",
     sideEffects: true,
     category: "generation",
     auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     body: {
       t2i: "mode=t2i, prompt, settings { aspectRatio, resolution (768sq|1k|2k|4k), grounding, safetyTolerance }; optional layout[] boxes { x, y, width, height, prompt } with frame { width, height }. A resolution or aspectRatio outside the lists is refused, not replaced.",
+      klein: "settings.model=flux-3-image-klein; aspectRatio (auto or published ratios), resolution (null/omitted keeps API default: 1k text or source size edit; 768sq|1k|1.5k|2k|4k), safetyTolerance integer 0..7 (default 2, organization approval applies), outputFormat jpeg|png (default jpeg), seed null or integer 0..4294967295, steps null or integer 1..16 (omitted uses 16), width/height null or paired integers 64..6256 (product <=16822272, override aspect/resolution). No grounding, version or extra settings. Klein price is unknown.",
       i2i: "mode=i2i, prompt, references[1..10] (URL, data URL, or /api/outputs/<id>/image), settings",
       edit: "mode=edit, prompt, source (one image), settings",
       precise:

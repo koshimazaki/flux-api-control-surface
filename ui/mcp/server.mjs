@@ -476,7 +476,7 @@ server.registerTool(
   {
     title: "Generate FLUX 3 Image",
     description:
-      "Generate and locally save a FLUX 3 image. Modes: t2i (prompt; optional layout boxes with frame), i2i (up to ten references), edit (whole-image edit of a source), precise (an edit with boxes on the source: each box {x, y, width, height, action: change|keep|move|remove, prompt, reference?, target? for move} in source pixels, plus frame {width, height}). Boxes are converted to BFL's [top, left, bottom, right] 0-1000 rows in the prompt. Settings: aspectRatio, resolution (768sq, 1k, 2k, 4k), grounding, safetyTolerance. There is no mask.",
+      "Generate and locally save a FLUX 3 image. Modes: t2i (prompt; optional layout boxes with frame), i2i (up to ten references), edit (whole-image edit of a source), precise (an edit with boxes on the source: each box {x, y, width, height, action: change|keep|move|remove, prompt, reference?, target? for move} in source pixels, plus frame {width, height}). Boxes are converted to BFL's [top, left, bottom, right] 0-1000 rows in the prompt. Settings: aspectRatio, resolution (768sq, 1k, 2k, 4k), grounding, safetyTolerance. There is no mask. Select Klein with settings.model=flux-3-image-klein: no grounding; resolution may be null/omitted or 768sq|1k|1.5k|2k|4k, safetyTolerance integer 0..7, outputFormat jpeg|png, seed integer 0..4294967295 or null, steps integer 1..16 or null, paired width/height integers 64..6256 (product <=16822272) or null. Default format jpeg, safety 2, steps 16; omitted resolution uses 1k for text or source size for edits. Klein pricing is not listed.",
     inputSchema: {
       payload: z.record(z.string(), z.unknown())
     },

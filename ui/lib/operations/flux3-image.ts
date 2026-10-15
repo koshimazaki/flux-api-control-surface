@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import { normalizeImageInput, resolveImageInput } from "@/lib/bfl-server";
 import {
-  FLUX3_IMAGE_MODEL,
+  FLUX3_IMAGE_KLEIN_MODEL,
   FLUX3_IMAGE_OPERATION,
   buildFlux3ImagePayload,
   flux3ImageInputs,
@@ -79,6 +79,15 @@ function withResolvedImages(request: Flux3ImageRequest, inputs: string[], resolv
 async function prepare(rawBody: Record<string, any>, origin = "http://localhost") {
   const body = rawBody as Flux3ImageRouteBody;
   if (!MODES.includes(body.mode)) return { error: "mode must be t2i, i2i, edit or precise.", status: 400 };
+  if (typeof body.prompt !== "string" && body.prompt !== undefined) return { error: "prompt must be a string.", status: 400 };
+  if (body.settings?.model === FLUX3_IMAGE_KLEIN_MODEL) {
+    const allowed = new Set(["mode", "prompt", "references", "source", "mask", "regions", "layout", "frame", "settings", "apiKey", "title", "operation", "sourceAssetIds", "referenceMeta", "wait"]);
+    const extra = Object.keys(body).filter((key) => !allowed.has(key));
+    if (extra.length) return { error: `Unknown Klein request fields: ${extra.join(", ")}. Use settings for model options.`, status: 400 };
+    if (body.references !== undefined && (!Array.isArray(body.references) || body.references.some((image) => typeof image !== "string"))) {
+      return { error: "references must be an array of strings.", status: 400 };
+    }
+  }
   // Checked as sent, before normalizing would turn an unknown tier or ratio into the default.
   const settingsBlocker = flux3ImageSettingsBlocker(body.settings);
   if (settingsBlocker) return { error: settingsBlocker, status: 400 };
@@ -108,7 +117,9 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
   if (images.some((image) => !/^https?:/i.test(image) && image.length > MAX_IMAGE_INPUT_BYTES)) {
     return { error: `Each image must be at most ${MAX_IMAGE_INPUT_BYTES / (1024 * 1024)} MB here.`, status: 400 };
   }
-  const sizeBlocker = (await Promise.all(images.map((image, index) => imageSizeBlocker(image, index + 1)))).find(Boolean);
+  // The standard route's documented pixel limits are not part of Klein's published contract.
+  const sizeBlocker = body.settings?.model === FLUX3_IMAGE_KLEIN_MODEL ? null
+    : (await Promise.all(images.map((image, index) => imageSizeBlocker(image, index + 1)))).find(Boolean);
   if (sizeBlocker) return { error: sizeBlocker, status: 400 };
   const resolved = withResolvedImages(request, inputs, images);
 
@@ -133,9 +144,9 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
     ),
     // The FLUX.2 finalizer saves the result; these are the fields it reads.
     context: {
-      model: FLUX3_IMAGE_MODEL,
+      model: built.endpoint,
       endpointName: built.endpoint,
-      outputFormat: undefined,
+      outputFormat: built.payload.output_format,
       finetune: null,
       shouldUpsample: false,
       referenceCount: images.length,

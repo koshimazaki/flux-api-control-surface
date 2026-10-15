@@ -127,6 +127,102 @@ describe("FLUX 3 Image route", () => {
     expect(submitted()?.[3]).toMatchObject({ resolution: "1k", aspect_ratio: "auto" });
   });
 
+  it("routes Klein through the queue and preserves its model without borrowing the standard price", async () => {
+    mockSuccess();
+    const response = await post({
+      mode: "t2i", prompt: "a Klein fox", title: "Klein route test",
+      settings: { model: "flux-3-image-klein", resolution: "2k" }
+    });
+    expect(response.status).toBe(200);
+    expect(submitted()?.[1]).toBe("https://api.bfl.ai/v1/flux-3-image-klein");
+    expect(submitted()?.[3]).toMatchObject({ prompt: "a Klein fox", resolution: "2k" });
+    expect(submitted()?.[3]).not.toHaveProperty("model");
+    expect(mocks.saveOutputFiles).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({ model: "flux-3-image-klein", endpointName: "flux-3-image-klein" })
+    }));
+    const { readQueueState } = await import("@/lib/queue/store");
+    const job = (await readQueueState()).jobs.find((item) => item.title === "Klein route test");
+    expect(job?.model).toBe("flux-3-image-klein");
+    expect(job?.estimatedUsd).toBeUndefined();
+  });
+
+  it("rejects an unknown model before any provider call", async () => {
+    mockSuccess();
+    const response = await post({ mode: "t2i", prompt: "fox", settings: { model: "flux-3-omni" } });
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/Unknown FLUX 3 Image model/);
+    expect(submitted()).toBeUndefined();
+  });
+
+  it("submits the complete Klein contract and saves nullable async billing fields", async () => {
+    mockSuccess();
+    mocks.bflJson.mockImplementation(async (method: string) => method === "POST"
+      ? { id: "klein-1", polling_url: "https://poll.example/klein-1", cost: null, input_mp: 1.2, output_mp: null }
+      : { status: "Ready", result: { sample: "https://images.example/klein-1.png" } });
+    const response = await post({ mode: "edit", source: "data:image/png;base64,SRC", prompt: "dusk", settings: {
+      model: "flux-3-image-klein", resolution: "1.5k", aspectRatio: "7:5", safetyTolerance: 7,
+      outputFormat: "png", width: 1280, height: 720, seed: 4294967295, steps: 1
+    } });
+    expect(response.status).toBe(200);
+    expect(submitted()).toEqual(["POST", "https://api.bfl.ai/v1/flux-3-image-klein", "test-key", {
+      prompt: "dusk", images: ["SRC"], resolution: "1.5k", aspect_ratio: "7:5", safety_tolerance: 7,
+      output_format: "png", width: 1280, height: 720, seed: 4294967295, steps: 1
+    }]);
+    const body = await response.json();
+    expect(body).toMatchObject({ model: "flux-3-image-klein", endpointName: "flux-3-image-klein",
+      runSettings: { outputFormat: "png", seed: 4294967295, inputMp: 1.2, outputMp: null, submittedCost: null },
+      submit: { cost: null, inputMp: 1.2, outputMp: null } });
+  });
+
+  it("does not impose standard-model reference pixel limits on Klein", async () => {
+    mockSuccess();
+    const source = `data:image/png;base64,${(await sharp({ create: { width: 64, height: 64, channels: 3, background: "#808080" } }).png().toBuffer()).toString("base64")}`;
+    const response = await post({ mode: "edit", source, prompt: "dusk", settings: { model: "flux-3-image-klein" } });
+    expect(response.status).toBe(200);
+    expect(submitted()?.[1]).toBe("https://api.bfl.ai/v1/flux-3-image-klein");
+  });
+
+  it("queues Klein without assigning standard-model pricing", async () => {
+    mockSuccess();
+    const response = await post({ mode: "t2i", prompt: "fox", settings: { model: "flux-3-image-klein" }, wait: false });
+    const { job } = await response.json();
+    expect(response.status).toBe(202);
+    expect(job.model).toBe("flux-3-image-klein");
+    expect(job.estimatedUsd).toBeUndefined();
+    expect(job.estimatedCredits).toBeUndefined();
+    await vi.waitFor(() => expect(mocks.saveOutputFiles).toHaveBeenCalled(), { timeout: 5_000 });
+    expect(submitted()?.[3]).toEqual({ prompt: "fox", aspect_ratio: "auto", resolution: null, output_format: "jpeg", safety_tolerance: 2 });
+  });
+
+  it("refuses unsupported Klein fields and invalid types before provider submission", async () => {
+    mockSuccess();
+    for (const fields of [
+      { settings: { model: "flux-3-image-klein", grounding: false } },
+      { settings: { model: "flux-3-image-klein", version: "1" } },
+      { settings: { model: "flux-3-image-klein", steps: 17 } },
+      { settings: { model: "flux-3-image-klein", safetyTolerance: 8 } },
+      { settings: { model: "flux-3-image-klein", width: 64 } },
+      { settings: { model: "flux-3-image-klein" }, extra: true },
+      { settings: { model: "flux-3-image-klein" }, prompt: 42 },
+      { settings: { model: "flux-3-image-klein" }, references: [42] }
+    ]) {
+      const response = await post({ mode: "t2i", prompt: "fox", ...fields });
+      expect(response.status).toBe(400);
+    }
+    expect(submitted()).toBeUndefined();
+  });
+
+  it("returns provider 422 validation details for unapproved Klein safety levels", async () => {
+    mockSuccess();
+    const detail = [{ loc: ["body", "safety_tolerance"], msg: "Approved levels: 0, 1, 2", type: "value_error" }];
+    mocks.bflJson.mockRejectedValue(Object.assign(new Error(`BFL API 422: ${JSON.stringify({ detail })}`), { status: 422, data: { detail } }));
+    const response = await post({ mode: "t2i", prompt: "fox", settings: { model: "flux-3-image-klein", safetyTolerance: 7 } });
+    expect(response.status).toBe(422);
+    expect((await response.json()).details).toEqual({ detail });
+    expect(mocks.bflJson).toHaveBeenCalledTimes(1);
+    expect(mocks.saveOutputFiles).not.toHaveBeenCalled();
+  });
+
   it("sends references as base64 or URLs in one images array", async () => {
     mockSuccess();
     mocks.resolveImageInput.mockImplementation(async (value: string) =>

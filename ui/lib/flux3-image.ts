@@ -1,3 +1,8 @@
+import {
+  FLUX3_IMAGE_ASPECT_RATIOS, FLUX3_IMAGE_KLEIN_MODEL, FLUX3_IMAGE_KLEIN_RESOLUTIONS,
+  flux3ImageKleinSchema, kleinSettingsBlocker, kleinSettingsPayload
+} from "@/lib/flux3-image-klein";
+export { FLUX3_IMAGE_ASPECT_RATIOS, FLUX3_IMAGE_KLEIN_MODEL, FLUX3_IMAGE_KLEIN_RESOLUTIONS };
 import { clampValue, type Size } from "@/lib/canvas-geometry";
 import {
   FLUX3_IMAGE_MIN_BOX,
@@ -31,29 +36,15 @@ export type Flux3ImageMode = "t2i" | "i2i" | "edit" | "precise";
 export const FLUX3_IMAGE_OPERATION = "flux3-image";
 /** The model label the queue shows and budgets by; BFL: 4k "can take several minutes". */
 export const FLUX3_IMAGE_MODEL = "flux-3-image";
+export const FLUX3_IMAGE_MODELS = [FLUX3_IMAGE_MODEL, FLUX3_IMAGE_KLEIN_MODEL] as const;
+export const FLUX3_IMAGE_MODEL_LABELS = {
+  [FLUX3_IMAGE_MODEL]: "FLUX 3 Image",
+  [FLUX3_IMAGE_KLEIN_MODEL]: "FLUX 3 Image Klein"
+};
 
 /** `images`: "one to 10 total", references or the edit source alike. */
 export const FLUX3_IMAGE_MAX_REFERENCES = 10;
 
-/** `aspect_ratio`: `auto` follows the first image in `images`, or makes 1:1 without one. */
-export const FLUX3_IMAGE_ASPECT_RATIOS = [
-  "auto",
-  "21:9",
-  "2:1",
-  "16:9",
-  "3:2",
-  "7:5",
-  "4:3",
-  "5:4",
-  "1:1",
-  "4:5",
-  "3:4",
-  "5:7",
-  "2:3",
-  "9:16",
-  "1:2",
-  "9:21"
-] as const;
 /** `resolution`: the four documented, priced tiers; `1k` is the API's default. */
 export const FLUX3_IMAGE_RESOLUTIONS = ["768sq", "1k", "2k", "4k"] as const;
 /** Price per image by resolution, from BFL's pricing page (1 October 2026). */
@@ -64,19 +55,28 @@ export const FLUX3_IMAGE_PRICE_USD: Record<(typeof FLUX3_IMAGE_RESOLUTIONS)[numb
   "4k": 0.607
 };
 export type Flux3ImageAspectRatio = (typeof FLUX3_IMAGE_ASPECT_RATIOS)[number];
-export type Flux3ImageResolution = (typeof FLUX3_IMAGE_RESOLUTIONS)[number];
+export type Flux3ImageResolution = (typeof FLUX3_IMAGE_KLEIN_RESOLUTIONS)[number];
+export type Flux3ImageModel = typeof FLUX3_IMAGE_MODEL | typeof FLUX3_IMAGE_KLEIN_MODEL;
 
 /** The published settings, with the API's own defaults. */
 export type Flux3ImageSettings = {
   aspectRatio: Flux3ImageAspectRatio;
-  resolution: Flux3ImageResolution;
+  resolution: Flux3ImageResolution | null;
+  /** Omitted model keeps existing standard-model drafts working. */
+  model?: Flux3ImageModel;
+  outputFormat?: "jpeg" | "png";
+  seed?: number | null;
+  steps?: number | null;
+  width?: number | null;
+  height?: number | null;
   /** Lets the prompt be grounded in web and image search; on by default. */
-  grounding: boolean;
-  /** Moderation tolerance, 0 (strictest) to 4. */
+  grounding?: boolean;
+  /** Moderation tolerance, 0 (strictest) to 4 for standard, 7 for Klein. */
   safetyTolerance: number;
 };
 
 export const defaultFlux3ImageSettings: Flux3ImageSettings = {
+  model: FLUX3_IMAGE_MODEL,
   aspectRatio: "auto",
   resolution: "1k",
   grounding: true,
@@ -85,10 +85,27 @@ export const defaultFlux3ImageSettings: Flux3ImageSettings = {
 
 export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings {
   const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  if (record.model === FLUX3_IMAGE_KLEIN_MODEL) {
+    // Stored drafts from the provisional route also carried standard-only grounding.
+    // Drop that obsolete field on restore; explicit API requests still reject it.
+    const restored = Object.fromEntries(Object.entries(record).filter(([key]) => key !== "grounding"));
+    const checked = flux3ImageKleinSchema.safeParse({ prompt: "", ...kleinSettingsPayload(restored) });
+    const parsed = checked.success ? checked.data : flux3ImageKleinSchema.parse({ prompt: "" });
+    return {
+      model: FLUX3_IMAGE_KLEIN_MODEL,
+      aspectRatio: parsed.aspect_ratio,
+      resolution: parsed.resolution ?? null,
+      safetyTolerance: parsed.safety_tolerance,
+      outputFormat: parsed.output_format,
+      ...Object.fromEntries(["width", "height", "seed", "steps"].filter((key) => key in parsed)
+        .map((key) => [key, parsed[key as keyof typeof parsed]]))
+    };
+  }
   const aspectRatio = FLUX3_IMAGE_ASPECT_RATIOS.find((ratio) => ratio === record.aspectRatio);
   const resolution = FLUX3_IMAGE_RESOLUTIONS.find((tier) => tier === record.resolution);
   const tolerance = Number(record.safetyTolerance);
   return {
+    model: FLUX3_IMAGE_MODEL,
     aspectRatio: aspectRatio ?? defaultFlux3ImageSettings.aspectRatio,
     resolution: resolution ?? defaultFlux3ImageSettings.resolution,
     grounding: typeof record.grounding === "boolean" ? record.grounding : defaultFlux3ImageSettings.grounding,
@@ -103,10 +120,14 @@ export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings 
  * this surface does not send. Saved drafts are normalized quietly; a request
  * is refused instead, so a caller never pays for a size or shape it did not
  * ask for. BFL also accepts `1.5k`, but lists no price for it, so it is not
- * offered here.
+ * offered for the standard model here.
  */
 export function flux3ImageSettingsBlocker(value: unknown) {
   const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  if (record.model !== undefined && record.model !== FLUX3_IMAGE_MODEL && record.model !== FLUX3_IMAGE_KLEIN_MODEL) {
+    return `Unknown FLUX 3 Image model: ${JSON.stringify(record.model)}. Use flux-3-image or flux-3-image-klein.`;
+  }
+  if (record.model === FLUX3_IMAGE_KLEIN_MODEL) return kleinSettingsBlocker(value);
   const { resolution, aspectRatio } = record;
   const given = (setting: unknown) => setting !== undefined && setting !== null && setting !== "";
   if (given(resolution) && !FLUX3_IMAGE_RESOLUTIONS.some((tier) => tier === resolution)) {
@@ -165,7 +186,7 @@ function usedLayout(request: Flux3ImageRequest) {
 }
 
 function toPayload(request: Flux3ImageRequest): Record<string, unknown> {
-  const settings = normalizeFlux3ImageSettings({ ...defaultFlux3ImageSettings, ...request.settings });
+  const settings = normalizeFlux3ImageSettings(request.settings);
   const images = flux3ImageInputs(request);
   const layout = usedLayout(request);
   let prompt = (request.prompt ?? "").trim();
@@ -178,6 +199,18 @@ function toPayload(request: Flux3ImageRequest): Record<string, unknown> {
     prompt = composeLayoutPrompt(request.prompt, layout, request.frame);
     // The frame the boxes were designed on; without a reference, auto would be square anyway.
     if (aspectRatio === "auto") aspectRatio = "1:1";
+  }
+  if (settings.model === FLUX3_IMAGE_KLEIN_MODEL) {
+    const payloadSettings = kleinSettingsPayload(settings);
+    if (request.frame && (request.mode === "precise" || layout.length > 0)) {
+      // Exact sizes override aspect_ratio at the provider, moving boxes off their designed frame.
+      delete payloadSettings.width;
+      delete payloadSettings.height;
+    }
+    return flux3ImageKleinSchema.parse({
+      ...payloadSettings, prompt,
+      ...(images.length ? { images } : {}), aspect_ratio: aspectRatio
+    });
   }
   return {
     prompt,
@@ -193,8 +226,26 @@ function toPayload(request: Flux3ImageRequest): Record<string, unknown> {
 export const FLUX3_IMAGE_API: Flux3ImageApi | null = {
   endpoint: "flux-3-image",
   toPayload,
-  estimateUsd: (request) => FLUX3_IMAGE_PRICE_USD[normalizeFlux3ImageSettings(request.settings).resolution]
+  estimateUsd: (request) => {
+    const resolution = normalizeFlux3ImageSettings(request.settings).resolution;
+    return resolution && resolution in FLUX3_IMAGE_PRICE_USD
+      ? FLUX3_IMAGE_PRICE_USD[resolution as keyof typeof FLUX3_IMAGE_PRICE_USD] : null;
+  }
 };
+
+const FLUX3_IMAGE_KLEIN_API: Flux3ImageApi = {
+  endpoint: FLUX3_IMAGE_KLEIN_MODEL,
+  toPayload,
+  estimateUsd: () => null
+};
+
+export function flux3ImageModel(input: Flux3ImageRequest) {
+  return input.settings?.model === FLUX3_IMAGE_KLEIN_MODEL ? FLUX3_IMAGE_KLEIN_MODEL : FLUX3_IMAGE_MODEL;
+}
+
+function apiFor(input: Flux3ImageRequest) {
+  return flux3ImageModel(input) === FLUX3_IMAGE_KLEIN_MODEL ? FLUX3_IMAGE_KLEIN_API : FLUX3_IMAGE_API;
+}
 
 export const FLUX3_IMAGE_API_PENDING =
   "FLUX 3 Image is not in the API yet. This request is ready to wire once the endpoint is published.";
@@ -227,15 +278,15 @@ export function flux3ImageInputBlocker(input: Flux3ImageRequest) {
 }
 
 /** The input problem first, then what the API cannot take yet; null only when a request could be sent. */
-export function flux3ImageRequestBlocker(input: Flux3ImageRequest, api: Flux3ImageApi | null = FLUX3_IMAGE_API) {
-  return flux3ImageInputBlocker(input) ?? (api ? flux3ImageScopeBlocker(input) : FLUX3_IMAGE_API_PENDING);
+export function flux3ImageRequestBlocker(input: Flux3ImageRequest, api: Flux3ImageApi | null = apiFor(input)) {
+  return flux3ImageSettingsBlocker(input.settings) ?? flux3ImageInputBlocker(input) ?? (api ? flux3ImageScopeBlocker(input) : FLUX3_IMAGE_API_PENDING);
 }
 
-export function estimateFlux3ImageUsd(input: Flux3ImageRequest, api: Flux3ImageApi | null = FLUX3_IMAGE_API) {
+export function estimateFlux3ImageUsd(input: Flux3ImageRequest, api: Flux3ImageApi | null = apiFor(input)) {
   return api?.estimateUsd?.(input) ?? null;
 }
 
-export function buildFlux3ImagePayload(input: Flux3ImageRequest, api: Flux3ImageApi | null = FLUX3_IMAGE_API) {
+export function buildFlux3ImagePayload(input: Flux3ImageRequest, api: Flux3ImageApi | null = apiFor(input)) {
   const blocker = flux3ImageRequestBlocker(input, api);
   if (blocker || !api) throw new Error(blocker || FLUX3_IMAGE_API_PENDING);
   return { endpoint: api.endpoint, payload: api.toPayload(input) };
