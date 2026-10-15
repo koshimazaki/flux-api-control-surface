@@ -191,8 +191,14 @@ function toPayload(request: Flux3ImageRequest): Record<string, unknown> {
     if (aspectRatio === "auto") aspectRatio = "1:1";
   }
   if (settings.model === FLUX3_IMAGE_KLEIN_MODEL) {
+    const payloadSettings = kleinSettingsPayload(settings);
+    if (request.frame && (request.mode === "precise" || layout.length > 0)) {
+      // Exact sizes override aspect_ratio at the provider, moving boxes off their designed frame.
+      delete payloadSettings.width;
+      delete payloadSettings.height;
+    }
     return flux3ImageKleinSchema.parse({
-      ...kleinSettingsPayload(settings), prompt,
+      ...payloadSettings, prompt,
       ...(images.length ? { images } : {}), aspect_ratio: aspectRatio
     });
   }

@@ -49,6 +49,40 @@ describe("official FLUX 3 Image Klein contract", () => {
     expect(buildFlux3ImagePayload(request({ width: null, height: null, resolution: null })).payload).toMatchObject({ width: null, height: null, resolution: null });
   });
 
+  it("keeps precise boxes on the source frame despite retained custom dimensions", () => {
+    const settings = request({ width: 1200, height: 600, aspectRatio: "2:1" }).settings;
+    const { payload } = buildFlux3ImagePayload({
+      mode: "precise", source: "SOURCE", settings, frame: { width: 800, height: 1000 },
+      regions: [{ id: "fox", x: 80, y: 100, width: 400, height: 500, action: "change", prompt: "a fox" }]
+    });
+    expect(payload.aspect_ratio).toBe("auto");
+    expect(payload).not.toHaveProperty("width");
+    expect(payload).not.toHaveProperty("height");
+    expect(payload.prompt).toContain('"tgt_bbox":[100,100,600,600]');
+    expect(settings).toMatchObject({ width: 1200, height: 600 });
+  });
+
+  it.each(["auto", "16:9"] as const)("keeps layout boxes on their %s frame despite retained custom dimensions", (aspectRatio) => {
+    const settings = request({ width: 600, height: 1200, aspectRatio }).settings;
+    const { payload } = buildFlux3ImagePayload({
+      mode: "t2i", prompt: "a fox", settings,
+      frame: { width: 1000, height: aspectRatio === "auto" ? 1000 : 563 },
+      layout: [{ id: "fox", x: 100, y: 100, width: 200, height: 200, action: "change", prompt: "a fox" }]
+    });
+    expect(payload.aspect_ratio).toBe(aspectRatio === "auto" ? "1:1" : aspectRatio);
+    expect(payload).not.toHaveProperty("width");
+    expect(payload).not.toHaveProperty("height");
+    expect(payload.prompt).toContain('"bbox":');
+  });
+
+  it.each(["t2i", "edit", "i2i"] as const)("preserves exact dimensions for unboxed %s runs", (mode) => {
+    const { payload } = buildFlux3ImagePayload({
+      ...request({ width: 1200, height: 600 }), mode, source: "SOURCE", references: ["REFERENCE"],
+      layout: [], frame: { width: 1000, height: 1000 }
+    });
+    expect(payload).toMatchObject({ width: 1200, height: 600 });
+  });
+
   it.each([
     { safetyTolerance: -1 }, { safetyTolerance: 8 }, { safetyTolerance: 2.5 }, { safetyTolerance: "2" }, { safetyTolerance: null },
     { seed: -1 }, { seed: 4294967296 }, { seed: 1.5 }, { seed: "0" },
