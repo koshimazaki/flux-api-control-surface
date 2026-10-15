@@ -1,3 +1,5 @@
+import { GenerationWait } from "@/components/ui/generation-wait";
+import { generationJobMatchesWorkspace, pendingGenerationJobs } from "@/lib/generation-view";
 import { useEffect, useRef, useState } from "react";
 import { Flux3ImageWorkspace } from "@/components/flux3-image-workspace";
 import { Flux3VideoWorkspace } from "@/components/flux3-video-workspace";
@@ -16,6 +18,8 @@ import type { DashboardState } from "@/lib/use-dashboard-state";
 import { isImageWorkspaceMode } from "@/lib/workspace-media";
 
 export function DashboardWorkspace({ state }: { state: DashboardState }) {
+  const workspaceJobs = pendingGenerationJobs(state.generationQueue).filter((job) => generationJobMatchesWorkspace(job, state.workspaceMode));
+  const workspaceBusy = workspaceJobs.length > 0;
   const isFlux3Mode = state.workspaceMode === "flux3";
   const isEditMode = state.workspaceMode === "edit";
   const isUpscaleMode = state.workspaceMode === "upscale";
@@ -107,8 +111,8 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           onSourceDropPayload={(payload) => void state.loadToolSourceFromDropPayload(payload)}
           onSourceFiles={(files) => void state.importToolSourceFiles(files)}
           onRun={state.runFlux3Image}
-          isRunning={state.isFlux3ImageRunning}
-          run={state.flux3ImageRun}
+          isRunning={state.isFlux3ImageRunning || workspaceBusy}
+          run={{ ...state.flux3ImageRun, jobId: state.flux3ImageRun.jobId || workspaceJobs[0]?.id }}
           queue={{
             queue: state.generationQueue,
             summary: state.generationQueueSummary,
@@ -188,9 +192,16 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
       {modeTabs}
       {promptLibrary}
       <div className="workspaceMain">
+        {!imageToolMode && workspaceBusy && (
+          <div className="generationStage legacyGenerationStage">
+            <GenerationWait id={workspaceJobs[0]?.id} label="Generating image" detail="The result will appear in Assets." />
+          </div>
+        )}
         {imageToolMode ? (
           <ImageToolWorkspace
             mode={imageToolMode}
+            running={workspaceBusy}
+            jobId={workspaceJobs[0]?.id}
             sourceAsset={state.toolSourceAsset}
             brushSize={state.toolBrushSize}
             mask={state.toolMask}
