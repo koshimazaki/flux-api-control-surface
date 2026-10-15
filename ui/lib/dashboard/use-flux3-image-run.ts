@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { persistAssetImage } from "@/lib/dashboard-assets";
-import type { Flux3ImageRequest } from "@/lib/flux3-image";
+import { flux3ImageModel, type Flux3ImageRequest } from "@/lib/flux3-image";
 import { MAX_OUTPUT_LIMIT } from "@/lib/output-pagination";
 import { estimateTokens } from "@/lib/pricing";
 import type { AssetRecord, ReferenceImage, RunLogEntry } from "@/lib/types";
@@ -19,7 +19,7 @@ export type Flux3ImageRunInput = {
  * resubmitting. It is stored before it is sent, with its request key; the job
  * id arrives with the answer, or is found by that key if the answer was lost.
  */
-export type PendingFlux3ImageRun = { jobId?: string; requestKey?: string; title: string; prompt: string; startedAt: number };
+export type PendingFlux3ImageRun = { jobId?: string; requestKey?: string; title: string; prompt: string; startedAt: number; model?: string };
 
 /** What the workspace shows of its runs: the oldest one still going, how many there are, and the latest result. */
 export type Flux3ImageRunView = {
@@ -255,7 +255,7 @@ function runLogEntry(run: PendingFlux3ImageRun, outcome: { asset?: AssetRecord; 
     id: asset?.id ?? `failed-flux3-image-${Date.now()}`,
     title: run.title,
     timestamp: Date.now(),
-    model: "flux-3-image",
+    model: asset?.model ?? run.model ?? "flux-3-image",
     status: error ? "failed" : "complete",
     promptTokens: estimateTokens(run.prompt),
     estimatedCredits: 0,
@@ -390,7 +390,7 @@ export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
     // Each click is its own request: a fresh key, stored before it is sent, so
     // a reload mid-send finds the job rather than losing or repeating it.
     const requestKey = newRequestKey();
-    const run: PendingFlux3ImageRun = { requestKey, title: input.title, prompt: input.request.prompt?.trim() || "", startedAt: Date.now() };
+    const run: PendingFlux3ImageRun = { model: flux3ImageModel(input.request), requestKey, title: input.title, prompt: input.request.prompt?.trim() || "", startedAt: Date.now() };
     sending.current.add(requestKey);
     changePending((runs) => [...runs, run]);
     try {

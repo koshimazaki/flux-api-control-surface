@@ -243,7 +243,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
 
   const regionCallbacks = {
     variant: layoutMode ? ("layout" as const) : ("edit" as const),
-    resolution: draft.settings.resolution,
+    resolution: draft.settings.resolution ?? "1k",
     activeId: activeRegionId,
     referenceFor: (region: Flux3ImageRegion) => assetById(region.referenceId),
     onSelect: setActiveRegionId,

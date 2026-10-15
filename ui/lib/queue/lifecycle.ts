@@ -124,7 +124,10 @@ export async function submitQueueJob(jobId: string): Promise<LifecycleOutcome> {
     return { ok: true, status: "running", jobId };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Generation failed";
-    runtime.failure = { message, status: 500, details: runtime.prepared?.failureDetails };
+    // Keep provider validation details (including Klein's approved safety levels).
+    const providerError = error as { status?: unknown; data?: unknown } | null;
+    const status = typeof providerError?.status === "number" ? providerError.status : 500;
+    runtime.failure = { message, status, details: providerError?.data ?? runtime.prepared?.failureDetails };
     const outcome = await applyJobFailure({ jobId, message, phase: "submit" });
     if (!outcome.retrying) releaseRuntimeArtifacts(jobId);
     return {
