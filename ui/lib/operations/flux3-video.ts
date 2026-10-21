@@ -1,3 +1,4 @@
+import { bflUserBlocker } from "@/lib/bfl-user.mjs";
 import { readFile } from "node:fs/promises";
 import { patchOutputMetadataFile, resolveImageInput } from "@/lib/bfl-server";
 import { applyCameraChoice } from "@/lib/camera-language";
@@ -38,6 +39,8 @@ function normalizeBinaryInput(value?: string) {
 
 async function prepare(rawBody: Record<string, any>, origin = "http://localhost") {
   const body = rawBody as Flux3RouteBody;
+  const userError = bflUserBlocker(body.user);
+  if (userError) return { error: userError, status: 400 };
   let draftSource: Awaited<ReturnType<typeof findFlux3VideoOutput>> = null;
   const prepared: Flux3VideoRequest = { ...body };
   // Direction clauses join the prompt exactly once, whether the dashboard

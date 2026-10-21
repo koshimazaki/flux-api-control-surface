@@ -1,3 +1,4 @@
+import { bflUserBlocker } from "@/lib/bfl-user.mjs";
 import sharp from "sharp";
 import { normalizeImageInput, resolveImageInput } from "@/lib/bfl-server";
 import {
@@ -78,10 +79,12 @@ function withResolvedImages(request: Flux3ImageRequest, inputs: string[], resolv
 
 async function prepare(rawBody: Record<string, any>, origin = "http://localhost") {
   const body = rawBody as Flux3ImageRouteBody;
+  const userError = bflUserBlocker(body.user);
+  if (userError) return { error: userError, status: 400 };
   if (!MODES.includes(body.mode)) return { error: "mode must be t2i, i2i, edit or precise.", status: 400 };
   if (typeof body.prompt !== "string" && body.prompt !== undefined) return { error: "prompt must be a string.", status: 400 };
   if (body.settings?.model === FLUX3_IMAGE_KLEIN_MODEL) {
-    const allowed = new Set(["mode", "prompt", "references", "source", "mask", "regions", "layout", "frame", "settings", "apiKey", "title", "operation", "sourceAssetIds", "referenceMeta", "wait"]);
+    const allowed = new Set(["user", "mode", "prompt", "references", "source", "mask", "regions", "layout", "frame", "settings", "apiKey", "title", "operation", "sourceAssetIds", "referenceMeta", "wait"]);
     const extra = Object.keys(body).filter((key) => !allowed.has(key));
     if (extra.length) return { error: `Unknown Klein request fields: ${extra.join(", ")}. Use settings for model options.`, status: 400 };
     if (body.references !== undefined && (!Array.isArray(body.references) || body.references.some((image) => typeof image !== "string"))) {
@@ -92,6 +95,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
   const settingsBlocker = flux3ImageSettingsBlocker(body.settings);
   if (settingsBlocker) return { error: settingsBlocker, status: 400 };
   const request: Flux3ImageRequest = {
+    user: body.user,
     mode: body.mode,
     prompt: body.prompt,
     references: stringList(body.references),

@@ -1,3 +1,4 @@
+import { bflUserBlocker, bflUserPayload } from "@/lib/bfl-user.mjs";
 export const VIDEO_EDIT_OPERATION = "video-edit" as const;
 export const VIDEO_EDIT_ENDPOINT = "flux-tools/video-edit-v1" as const;
 export const VIDEO_EDIT_MODEL = "flux-tools-video-edit-v1" as const;
@@ -17,6 +18,7 @@ export const VIDEO_EDIT_USD_PER_SECOND = 0.03;
  * 720p comes back at 720p.
  */
 export type VideoEditRequest = {
+  user?: string | null;
   inputVideo: string;
   prompt: string;
   safetyTolerance?: number;
@@ -100,6 +102,8 @@ function finite(value: unknown): value is number {
 }
 
 export function videoEditRequestBlocker(request: VideoEditRequest) {
+  const userError = bflUserBlocker(request.user);
+  if (userError) return userError;
   if (!request.inputVideo?.trim()) return "Add an MP4 clip to edit.";
   const prompt = request.prompt?.trim() || "";
   if (!prompt) return "Describe the change you want FLUX to make.";
@@ -133,6 +137,7 @@ export function buildVideoEditPayload(request: VideoEditRequest) {
   const blocker = videoEditRequestBlocker(request);
   if (blocker) throw new Error(blocker);
   return {
+    ...bflUserPayload(request.user),
     video: request.inputVideo,
     prompt: request.prompt.trim(),
     safety_tolerance: request.safetyTolerance ?? 2

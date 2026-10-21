@@ -34,6 +34,8 @@ type SanitizeOutcome = {
 };
 
 function isMediaString(key: string, value: string) {
+  // An opaque end-user identifier can start with "data:" without being media.
+  if (key === "user") return false;
   // A data: URL is embedded media no matter where it appears.
   if (value.startsWith("data:")) return true;
   if (TEXT_KEYS.has(key)) return false;

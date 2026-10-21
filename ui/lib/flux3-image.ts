@@ -1,3 +1,4 @@
+import { bflUserBlocker, bflUserPayload } from "@/lib/bfl-user.mjs";
 import {
   FLUX3_IMAGE_ASPECT_RATIOS, FLUX3_IMAGE_KLEIN_MODEL, FLUX3_IMAGE_KLEIN_RESOLUTIONS,
   flux3ImageKleinSchema, kleinSettingsBlocker, kleinSettingsPayload
@@ -142,6 +143,7 @@ export function flux3ImageSettingsBlocker(value: unknown) {
 }
 
 export type Flux3ImageRequest = {
+  user?: string | null;
   mode: Flux3ImageMode;
   /** The prompt for text to image, image to image, or an edit. */
   prompt?: string;
@@ -208,11 +210,12 @@ function toPayload(request: Flux3ImageRequest): Record<string, unknown> {
       delete payloadSettings.height;
     }
     return flux3ImageKleinSchema.parse({
-      ...payloadSettings, prompt,
+      ...payloadSettings, ...bflUserPayload(request.user), prompt,
       ...(images.length ? { images } : {}), aspect_ratio: aspectRatio
     });
   }
   return {
+    ...bflUserPayload(request.user),
     prompt,
     ...(images.length ? { images } : {}),
     aspect_ratio: aspectRatio,
@@ -279,6 +282,8 @@ export function flux3ImageInputBlocker(input: Flux3ImageRequest) {
 
 /** The input problem first, then what the API cannot take yet; null only when a request could be sent. */
 export function flux3ImageRequestBlocker(input: Flux3ImageRequest, api: Flux3ImageApi | null = apiFor(input)) {
+  const userError = bflUserBlocker(input.user);
+  if (userError) return userError;
   return flux3ImageSettingsBlocker(input.settings) ?? flux3ImageInputBlocker(input) ?? (api ? flux3ImageScopeBlocker(input) : FLUX3_IMAGE_API_PENDING);
 }
 

@@ -1,3 +1,4 @@
+import { bflUserBlocker, bflUserPayload } from "@/lib/bfl-user.mjs";
 export const VIDEO_UPSCALE_OPERATION = "video-upscale" as const;
 export const VIDEO_UPSCALE_ENDPOINT = "flux-tools/video-upscale-v1" as const;
 export const VIDEO_UPSCALE_MODEL = "flux-tools-video-upscale-v1" as const;
@@ -8,6 +9,7 @@ export const VIDEO_UPSCALE_MAX_OUTPUT_MP = 13.75;
 export type VideoUpscaleCreativity = 0 | 1;
 
 export type VideoUpscaleRequest = {
+  user?: string | null;
   inputVideo: string;
   upscaleFactor?: number;
   creativity?: VideoUpscaleCreativity;
@@ -53,6 +55,8 @@ export function clampUpscaleFactor(value: number) {
 }
 
 export function videoUpscaleRequestBlocker(request: VideoUpscaleRequest) {
+  const userError = bflUserBlocker(request.user);
+  if (userError) return userError;
   if (!request.inputVideo?.trim()) return "Add an MP4 clip to upscale.";
   if (finite(request.sourceBytes) && request.sourceBytes > VIDEO_UPSCALE_MAX_BYTES) {
     return "Video Upscale accepts MP4 files up to 50 MB.";
@@ -81,6 +85,7 @@ export function buildVideoUpscalePayload(request: VideoUpscaleRequest) {
   const blocker = videoUpscaleRequestBlocker(request);
   if (blocker) throw new Error(blocker);
   return {
+    ...bflUserPayload(request.user),
     input_video: request.inputVideo,
     upscale_factor: request.upscaleFactor ?? 2,
     creativity: request.creativity ?? 1,

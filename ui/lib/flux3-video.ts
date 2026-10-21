@@ -1,3 +1,4 @@
+import { bflUserBlocker, bflUserPayload } from "@/lib/bfl-user.mjs";
 import type { CameraChoice, CameraRecord } from "@/lib/camera-language";
 
 export type Flux3VideoMode = "t2v" | "i2v" | "v2v" | "draft_enhance";
@@ -55,6 +56,7 @@ export type Flux3TimedKeyframe = [seconds: number, image: string];
 export const FLUX3_MAX_TIMED_SECONDS = 20;
 
 export type Flux3VideoRequest = {
+  user?: string | null;
   mode: Flux3VideoMode;
   prompt?: string;
   keyframes?: string[];
@@ -155,6 +157,8 @@ export function flux3TimedKeyframeBlocker(pairs: Flux3TimedKeyframe[], duration:
 }
 
 export function flux3RequestBlocker(input: Flux3VideoRequest) {
+  const userError = bflUserBlocker(input.user);
+  if (userError) return userError;
   if (input.mode === "draft_enhance") {
     return input.draftCache || input.draftCacheId ? null : "Choose a saved draft to enhance.";
   }
@@ -196,6 +200,7 @@ export function buildFlux3VideoPayload(input: Flux3VideoRequest) {
 
   if (input.mode === "draft_enhance") {
     return {
+      ...bflUserPayload(input.user),
       mode: input.mode,
       draft_cache: input.draftCache,
       resolution: input.resolution || "fhd",
@@ -204,6 +209,7 @@ export function buildFlux3VideoPayload(input: Flux3VideoRequest) {
   }
 
   const payload: Record<string, unknown> = {
+    ...bflUserPayload(input.user),
     mode: input.mode,
     prompt: input.prompt!.trim(),
     aspect_ratio: input.aspectRatio || "auto",

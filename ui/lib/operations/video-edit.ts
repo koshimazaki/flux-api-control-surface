@@ -1,3 +1,4 @@
+import { bflUserBlocker } from "@/lib/bfl-user.mjs";
 import { patchOutputMetadataFile } from "@/lib/bfl-server";
 import { buildGenerationTiming } from "@/lib/generation-capture";
 import {
@@ -21,6 +22,8 @@ export type VideoEditRouteBody = VideoEditRequest & {
 
 async function prepare(rawBody: Record<string, any>, origin = "http://localhost") {
   const body = rawBody as VideoEditRouteBody;
+  const userError = bflUserBlocker(body.user);
+  if (userError) return { error: userError, status: 400 };
   try {
     const source = await resolveVideoInput(body.inputVideo || "", origin);
     if (source.buffer.byteLength > VIDEO_EDIT_MAX_BYTES) {

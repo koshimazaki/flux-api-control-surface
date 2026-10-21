@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { bflUserSchema } from "@/lib/bfl-user.mjs";
 
 export const FLUX3_IMAGE_KLEIN_MODEL = "flux-3-image-klein";
 export const FLUX3_IMAGE_ASPECT_RATIOS = [
@@ -13,6 +14,7 @@ export const FLUX3_IMAGE_KLEIN_RESOLUTIONS = ["768sq", "1k", "1.5k", "2k", "4k"]
  */
 export const flux3ImageKleinSchema = z.strictObject({
   prompt: z.string(),
+  user: bflUserSchema,
   images: z.union([z.string(), z.array(z.string()).min(1).max(10)]).nullable().optional(),
   aspect_ratio: z.enum(FLUX3_IMAGE_ASPECT_RATIOS).default("auto"),
   resolution: z.enum(FLUX3_IMAGE_KLEIN_RESOLUTIONS).nullable().optional(),
