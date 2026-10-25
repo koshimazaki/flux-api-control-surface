@@ -19,6 +19,12 @@ export const agentWorkflowGuide = {
     commands: nativeFluxMcp.install
   },
   localWorkbench: {
+    endUserIdentifier: {
+      field: "user",
+      contract: "Optional opaque end-user identifier: null or 1–256 Unicode characters without NUL. Values are forwarded verbatim; omission leaves the provider default unchanged.",
+      supported: ["image generation", "FLUX 3 Image including Klein", "image tools", "FLUX 3 Video", "Video Edit", "Video Upscale"],
+      exception: "Explicit user is rejected for the undocumented Klein finetuned contract."
+    },
     role:
       "Use the local dashboard routes when the agent should work with prompt libraries, saved outputs, reference roles, audio guide files, image-tool provenance, finetune registry records, local archives, or UI-visible artifacts.",
     mcpWrapper: {
