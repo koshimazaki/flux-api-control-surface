@@ -7,12 +7,20 @@ export type GenerationRecipe = {
   body: Record<string, unknown>;
 };
 
+export function isGenerationRecipe(value: unknown): value is GenerationRecipe {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const recipe = value as Record<string, unknown>;
+  return recipe.version === 1 && ["image", "video", "tool"].includes(String(recipe.kind)) &&
+    typeof recipe.operation === "string" && recipe.operation.length > 0 &&
+    Boolean(recipe.body) && typeof recipe.body === "object" && !Array.isArray(recipe.body);
+}
+
 // Explicit request fields only: credentials, queue controls and provider responses
 // never belong in a reusable generation recipe.
 export const RECIPE_FIELDS = [
   "model", "title", "prompt", "originalPrompt", "referenceCue", "width", "height", "seed", "outputFormat",
   "promptUpsampling", "safetyTolerance", "references", "referenceMeta", "referenceWeight", "normalizeReferences",
-  "finetuneId", "finetuneStrength", "mode", "keyframes", "timedKeyframes", "keyframeAssetIds", "startVideo",
+  "finetuneId", "finetuneStrength", "camera", "mode", "keyframes", "timedKeyframes", "keyframeAssetIds", "startVideo",
   "startVideoAssetId", "draftCacheId", "aspectRatio", "duration", "resolution", "generateAudio", "draft",
   "inputVideo", "upscaleFactor", "creativity", "sourceAssetId", "sourceName", "sourceWidth", "sourceHeight",
   "durationSeconds", "tool", "image", "mask", "garment", "garments", "garmentAssetIds", "garmentTitles",
@@ -21,6 +29,15 @@ export const RECIPE_FIELDS = [
 
 export function recipeSource(value: unknown): string {
   return typeof value === "string" && /^(\/[^/]|https?:\/\/|data:(image|video)\/)/i.test(value) ? value : "";
+}
+
+/** Only this dashboard's content-addressed saved inputs are local recipe media. */
+export function recipeMediaName(value: string, origin = "http://localhost"): string | null {
+  try {
+    const url = new URL(value, origin);
+    if (url.origin !== new URL(origin).origin) return null;
+    return url.pathname.match(/^\/api\/outputs\/recreate\/media\/([a-f0-9]{64}\.(?:png|jpg|webp|gif|mp4))$/)?.[1] || null;
+  } catch { return null; }
 }
 
 export function assetRecipe(asset: AssetRecord): GenerationRecipe {

@@ -28,7 +28,6 @@ const allRoutes = readdirSync(apiDir, { recursive: true })
 const DISCOVERY_ONLY = ["/api/mcp/guide", "/api/mcp/status", "/api/bfl_dashboard/v1/manifest"];
 const INTERNAL_ONLY = [
   "/api/outputs/[id]/image",
-  "/api/outputs/recreate/media/[file]",
   // Opens the local file manager on the machine running the dashboard; only
   // meaningful for the human at that machine, never for agents.
   "/api/outputs/reveal",
@@ -43,10 +42,8 @@ const INTERNAL_ONLY = [
   // drive work through the queue tools; these exist for diagnostics and repair.
   "/api/bfl/jobs"
 ];
+const KNOWN_RECREATE_GAP = ["/api/outputs/recreate/[id]", "/api/outputs/recreate/media/[file]"];
 const KNOWN_AUDIO_GAP = ["/api/audio/guide", "/api/audio/slice"];
-const KNOWN_COLLECTIONS_GAP = ["/api/collections"];
-// Draft restoration currently fills the browser editors; no MCP recipe reader yet.
-const KNOWN_RECREATE_GAP = ["/api/outputs/recreate/[id]"];
 
 describe("local MCP tool registry", () => {
   it("registers exactly the documented tool set (no drift between code and the manifest list)", () => {
@@ -67,6 +64,7 @@ describe("MCP covers every core control-surface function", () => {
   it("wraps generation, image tools, planning, prompts, glyphs, credits, references, and assets", () => {
     const mustBeReachable = [
       "/api/bfl/generate",
+      "/api/bfl/flux3-image",
       "/api/bfl/flux3-video",
       "/api/bfl/video-upscale",
       "/api/bfl/video-edit",
@@ -81,12 +79,28 @@ describe("MCP covers every core control-surface function", () => {
       "/api/bfl/key",
       "/api/reference-archive",
       "/api/outputs",
+      "/api/collections",
       "/api/finetune/dataset",
       "/api/finetunes"
     ];
     for (const route of mustBeReachable) {
       expect(mcpCalledRoutes, `${route} must be reachable from the MCP server`).toContain(route);
     }
+  });
+
+  it("wraps FLUX 3 Image, which the hosted FLUX MCP does not expose yet", () => {
+    expect(registeredTools).toContain("generate_flux3_image");
+    expect(mcpCalledRoutes).toContain("/api/bfl/flux3-image");
+    // The tool's description is all an agent sees before calling it: it has to name the modes and say there is no mask.
+    const description = serverSrc.slice(serverSrc.indexOf('"generate_flux3_image"'), serverSrc.indexOf('"generate_flux3_video"'));
+    for (const word of ["t2i", "i2i", "edit", "precise", "no mask"]) expect(description).toContain(word);
+  });
+
+  it("wraps gallery collections: list, create, update and delete", () => {
+    for (const tool of ["list_collections", "create_collection", "update_collection", "delete_collection"]) {
+      expect(registeredTools, `${tool} must be registered`).toContain(tool);
+    }
+    expect(mcpCalledRoutes).toContain("/api/collections");
   });
 
   it("wraps FLUX 3 video generation and saved-video listing", () => {
@@ -157,12 +171,13 @@ describe("MCP coverage gaps stay explicit", () => {
     );
     // If this fails because a new route appeared, either add an MCP tool for it
     // or classify it (discovery/internal/known-gap) — that is the whole point.
-    expect(uncovered.sort()).toEqual([...KNOWN_AUDIO_GAP, ...KNOWN_COLLECTIONS_GAP, ...KNOWN_RECREATE_GAP].sort());
+    expect(uncovered.sort()).toEqual([...KNOWN_AUDIO_GAP, ...KNOWN_RECREATE_GAP].sort());
   });
 
-  it("documents the audio/binary and collection HTTP-only gaps honestly in the parity notes", () => {
+  it("documents the audio/binary HTTP-only gap honestly in the parity notes", () => {
     expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("audio");
-    expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("collection");
     expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("recreate");
+    // Collections are wrapped now, so the notes no longer list them as a gap.
+    expect(localMcpParityNotes.httpOnly.toLowerCase()).not.toContain("collection");
   });
 });

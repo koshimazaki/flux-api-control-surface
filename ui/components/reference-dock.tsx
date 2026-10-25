@@ -11,7 +11,7 @@ import {
   UserRound,
   X
 } from "lucide-react";
-import { useEffect, useState, type DragEvent as ReactDragEvent } from "react";
+import { useState, type DragEvent as ReactDragEvent } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 import { assetImageSource } from "@/lib/dashboard-tools";
 import { BFL_IMAGE_OPTION_MIME, BFL_REFERENCE_MIME, parseReferenceDragPayload, setReferenceDragData } from "@/lib/reference-drag";
@@ -24,6 +24,7 @@ import {
   type ReferenceDropTarget
 } from "@/lib/reference-roles";
 import type { AssetRecord, ReferenceImage, ReferenceRole, WorkspaceMode } from "@/lib/types";
+import { useDockVisibility } from "@/lib/use-dock-visibility";
 import type { LucideIcon } from "lucide-react";
 
 type MaybeAsync = Promise<unknown> | unknown;
@@ -115,35 +116,7 @@ export function ReferenceDock({
   const dockMode = mode === "vto" ? "vto" : mode === "prompt" ? "prompt" : null;
   const [collapsed, setCollapsed] = useState(false);
   const [dragTarget, setDragTarget] = useState("");
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    function shouldShowDock() {
-      if (!dockMode) return false;
-      const firstAsset = document.querySelector<HTMLElement>(".assetsPanel .assetCard");
-      if (firstAsset) return firstAsset.getBoundingClientRect().bottom <= 96;
-
-      const assetsPanel = document.querySelector<HTMLElement>(".assetsPanel");
-      if (assetsPanel) return assetsPanel.getBoundingClientRect().top <= 96 && window.scrollY > 320;
-
-      return false;
-    }
-
-    let frame = 0;
-    const updateVisibility = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => setIsVisible(shouldShowDock()));
-    };
-
-    updateVisibility();
-    window.addEventListener("scroll", updateVisibility, { passive: true });
-    window.addEventListener("resize", updateVisibility);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", updateVisibility);
-      window.removeEventListener("resize", updateVisibility);
-    };
-  }, [dockMode]);
+  const isVisible = useDockVisibility(Boolean(dockMode));
 
   if (!dockMode) return null;
 

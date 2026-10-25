@@ -1,3 +1,5 @@
+import { recreateImageDraft, referenceAssets } from "@/lib/recreate";
+import { updateStoredFlux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
 import { useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { flux3Recreation, imageRecreation, mergedAssetRecipe, numberSetting, recreationInputAsset, textSetting, type RecreationSeed } from "../asset-recreation";
 import { recipeSource } from "../generation-recipe";
@@ -13,11 +15,12 @@ type Options = {
   setReferenceCue: (cue: string) => void; setReferenceWeight: (weight: number) => void;
   setBatchMode: (mode: "current") => void; setBatchCount: Setter<number>;
   setFlux3SourceMode: Setter<Flux3SourceMode>; setFlux3Keyframes: Setter<Flux3InputMedia[]>; setFlux3StartVideo: Setter<Flux3InputMedia | null>;
-  setSourceAssetIdForMode: (mode: "erase" | "vto" | "outpaint" | "deblur", id: string | null) => void;
+  setSourceAssetIdForMode: (mode: "erase" | "vto" | "outpaint" | "deblur" | "flux3_image", id: string | null) => void;
   setVtoGarmentAssetIds: Setter<(string | null)[]>; setToolMask: Setter<string>; setVtoPromptText: Setter<string>; setOutpaintPromptText: Setter<string>;
   setToolDilatePixels: Setter<number>; setToolGuidance: Setter<number>; setToolSteps: Setter<number>; setToolSafetyTolerance: Setter<number>;
   setToolOutputFormat: Setter<"png" | "jpeg" | "webp">; setOutpaintOffsetX: Setter<string>; setOutpaintOffsetY: Setter<string>;
   setOutpaintMode: Setter<"high" | "fast">; setOutpaintAutoCrop: Setter<boolean>; setRecoveryMessage: Setter<string>;
+  dismissFlux3ImageResult: () => void;
 };
 
 export function useAssetRecreation(o: Options) {
@@ -33,6 +36,7 @@ export function useAssetRecreation(o: Options) {
       if (version !== requestVersion.current) return;
       const recipe = mergedAssetRecipe(asset, data.recipe), b = recipe.body;
       let missing = 0;
+      const warnings: string[] = [];
       if (recipe.kind === "video") {
         if (recipe.operation === "video-edit" || recipe.operation === "video-upscale") {
           o.setWorkspaceMode(recipe.operation === "video-edit" ? "edit" : "upscale");
@@ -51,6 +55,20 @@ export function useAssetRecreation(o: Options) {
           o.setWorkspaceMode("flux3"); missing += settings.missing;
         }
         setVideoRecreation(current => ({ recipe, nonce: (current?.nonce || 0) + 1 }));
+      } else if (asset.model === "flux-3-image" || asset.model === "flux-3-image-klein") {
+        const restored = recreateImageDraft(asset);
+        const sourceId = restored.draft.regionSourceId || asset.sourceAssetId || null;
+        const inputs = referenceAssets(asset);
+        if (sourceId && !inputs.some(input => input.id === sourceId)) {
+          const input = recreationInputAsset(asset, `/api/outputs/${encodeURIComponent(sourceId)}/image`, "source");
+          if (input) inputs.push({ ...input, id: sourceId });
+        }
+        if (!updateStoredFlux3ImageDraft(() => ({ draft: restored.draft }))) throw new Error("Browser storage is unavailable; the image setup could not be loaded.");
+        o.setAssets(current => [...current, ...inputs.filter(input => !current.some(known => known.id === input.id))]);
+        o.setSourceAssetIdForMode("flux3_image", sourceId);
+        o.dismissFlux3ImageResult();
+        o.setWorkspaceMode("flux3_image");
+        warnings.push(...restored.warnings);
       } else if (recipe.kind === "tool") {
         const mode = recipe.operation;
         if (mode !== "erase" && mode !== "vto" && mode !== "outpaint" && mode !== "deblur") throw new Error("This tool cannot yet restore saved settings.");
@@ -82,7 +100,7 @@ export function useAssetRecreation(o: Options) {
         o.setReferences(settings.references); o.setReferenceCue(settings.referenceCue); o.setReferenceWeight(settings.referenceWeight);
         o.setBatchMode("current"); o.setBatchCount(1); o.setWorkspaceMode("prompt"); missing += settings.missing;
       }
-      o.setRecoveryMessage(`Loaded settings from ${asset.title || asset.id}. ${missing ? `${missing} saved input${missing > 1 ? "s are" : " is"} unavailable; add the missing media before generating.` : "Ready to adjust and generate."}`);
+      o.setRecoveryMessage(`Loaded settings from ${asset.title || asset.id}. ${missing ? `${missing} saved input${missing > 1 ? "s are" : " is"} unavailable; add the missing media before generating.` : "Ready to adjust and generate."} ${warnings.join(" ")}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       if (version === requestVersion.current) o.setRecoveryMessage(error instanceof Error ? error.message : "Could not restore this generation.");

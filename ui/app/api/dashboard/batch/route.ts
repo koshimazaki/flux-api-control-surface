@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { maxReferencesForBflModel } from "@/lib/provider-registry";
 import { enqueueGenerationJobs } from "@/lib/queue/enqueue";
+import { entryRequestKey, requestKeyConflictBody, requestKeyFrom } from "@/lib/queue/request-key";
 import { awaitQueueJob, ensureQueueRunner, newQueueJobId } from "@/lib/queue/runner";
 import { takeJobFailure, takeJobResponse } from "@/lib/queue/runtime";
 import { findQueueJob, readQueueState } from "@/lib/queue/store";
@@ -51,6 +52,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Request body must be JSON" }, { status: 400 });
   }
 
+  const requestKey = requestKeyFrom(request, body as Record<string, unknown>);
+  if (requestKey.error) return NextResponse.json({ error: requestKey.error }, { status: 400 });
   const origin = new URL(request.url).origin;
   const planResponse = await fetch(`${origin}/api/dashboard/run-plan`, {
     method: "POST",
@@ -89,24 +92,32 @@ export async function POST(request: NextRequest) {
   // first failure is even observed, so the items are chained on dependsOn and
   // the scheduler releases them one by one.
   const ids = items.map(() => newQueueJobId());
-  const jobs = await enqueueGenerationJobs(
-    items.map((item, index) => ({
-      id: ids[index],
-      kind: "image" as const,
-      operation: "generate",
-      title: item.title,
-      body: { ...item.body, apiKey: body.apiKey, references: referencesFor(item, body) },
-      origin,
-      apiKey: typeof body.apiKey === "string" ? body.apiKey : undefined,
-      dependsOn: continueOnError || index === 0 ? undefined : [ids[index - 1]],
-      batchId,
-      batchIndex: item.batchIndex ?? index + 1,
-      batchTotal: item.batchTotal ?? items.length,
-      estimatedCredits: item.estimatedCredits,
-      estimatedUsd: item.estimatedUsd,
-      promptTokens: item.promptTokens
-    }))
-  );
+  let jobs;
+  try {
+    jobs = await enqueueGenerationJobs(
+      items.map((item, index) => ({
+        id: ids[index],
+        kind: "image" as const,
+        operation: "generate",
+        title: item.title,
+        body: { ...item.body, apiKey: body.apiKey, references: referencesFor(item, body) },
+        origin,
+        apiKey: typeof body.apiKey === "string" ? body.apiKey : undefined,
+        dependsOn: continueOnError || index === 0 ? undefined : [ids[index - 1]],
+        batchId,
+        batchIndex: item.batchIndex ?? index + 1,
+        batchTotal: item.batchTotal ?? items.length,
+        estimatedCredits: item.estimatedCredits,
+        estimatedUsd: item.estimatedUsd,
+        promptTokens: item.promptTokens,
+        requestKey: entryRequestKey(requestKey.key, index, items.length)
+      }))
+    );
+  } catch (error) {
+    const conflict = requestKeyConflictBody(error);
+    if (conflict) return NextResponse.json(conflict, { status: 409 });
+    throw error;
+  }
 
   const results = [];
   const deadline = Date.now() + IMAGE_ROUTE_WAIT_MS;

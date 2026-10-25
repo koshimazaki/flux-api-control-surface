@@ -12,6 +12,7 @@ import {
 describe("workspace media navigation", () => {
   it("keeps every image tool in one ordered domain", () => {
     expect(workspaceModesForMedia("image")).toEqual([
+      "flux3_image",
       "prompt",
       "erase",
       "outpaint",

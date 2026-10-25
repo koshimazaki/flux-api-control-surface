@@ -8,6 +8,7 @@ import {
   computeRetryDelayMs,
   nextBreakerState,
   pausesQueue,
+  pollBodyFromError,
   providerStatusFromMessage,
   shouldRetry,
   sourceFingerprint
@@ -45,6 +46,15 @@ describe("provider failure taxonomy", () => {
   it("reads the HTTP status back out of a bflJson error message", () => {
     expect(providerStatusFromMessage('BFL API 500: {"detail":"boom"}')).toBe(500);
     expect(providerStatusFromMessage("network unreachable")).toBeUndefined();
+  });
+
+  it("reads a poll's status from a 503 that carries a result body, and rethrows anything else", () => {
+    const withBody = (status: number, data: unknown) => Object.assign(new Error(`BFL API ${status}`), { status, data });
+    expect(pollBodyFromError(withBody(503, { status: "Pending" }))).toEqual({ status: "Pending" });
+    const plain503 = withBody(503, { detail: "Service Unavailable" });
+    expect(() => pollBodyFromError(plain503)).toThrow(plain503);
+    expect(() => pollBodyFromError(withBody(500, { status: "Error" }))).toThrow("BFL API 500");
+    expect(() => pollBodyFromError(new Error("fetch failed"))).toThrow("fetch failed");
   });
 
   it("only auto-retries retryable failures, and only within the retry budget", () => {

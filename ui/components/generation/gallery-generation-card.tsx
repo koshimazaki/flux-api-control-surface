@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Film, ImageIcon } from "lucide-react";
-import { isGenerationInFlight, type GalleryGeneration } from "@/lib/gallery-generations";
+import { type GalleryGeneration } from "@/lib/gallery-generations";
 import type { AssetRecord, AspectRatio } from "@/lib/types";
 
 const PixelReveal = dynamic(() => import("./pixel-reveal"), { ssr: false });
@@ -67,7 +67,7 @@ export function GalleryGenerationCard({ generation, asset, aspectRatio, onReveal
         {unavailable && job.error && <p className="generationError">{job.error}</p>}
       </article>}
       {!finished && !unavailable && <div className="generationOverlay" style={{ height: frameHeight }}>
-        <PixelReveal id={job.id} ready={Boolean(revealMedia)} media={revealMedia} paused={!hasResult && !isGenerationInFlight(job)} onComplete={complete} />
+        <PixelReveal id={job.id} ready={Boolean(revealMedia)} media={revealMedia} paused={!hasResult && job.status === "paused"} onComplete={complete} />
       </div>}
     </div>
   );

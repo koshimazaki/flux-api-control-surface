@@ -1,5 +1,7 @@
 import { numberSetting, textSetting, type RecreationSeed } from "@/lib/asset-recreation";
 import { recipeSource } from "@/lib/generation-recipe";
+import { GenerationWait } from "@/components/ui/generation-wait";
+import { generationJobMatchesWorkspace, pendingGenerationJobs } from "@/lib/generation-view";
 import { Download, Film, ScanLine, Sparkles, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { VideoComparisonFader } from "@/components/video-comparison-fader";
@@ -245,6 +247,7 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
             <span className="flux3HeaderIcon" aria-label="FLUX 3 Video Upscale"><ScanLine size={18} /></span>
           </div>
         </PanelHeader>
+        <div className="generationStage">
         {selected ? (
           <VideoComparisonFader beforeUrl={selected.sourceVideoUrl} afterUrl={selected.videoUrl} />
         ) : source ? (
@@ -266,6 +269,10 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
             <span>Maximum 50 MB · 20 seconds · 2560 × 1440 input</span>
           </button>
         )}
+        {(isRunning || pendingQueueJobId || pendingGenerationJobs(props.generationQueue).some((job) => generationJobMatchesWorkspace(job, "upscale"))) && (
+          <GenerationWait id={pendingQueueJobId || pendingGenerationJobs(props.generationQueue).find((job) => generationJobMatchesWorkspace(job, "upscale"))?.id} label="Upscaling video" detail="The result will appear here and in Assets." />
+        )}
+        </div>
         <input ref={inputRef} hidden type="file" accept="video/mp4,.mp4" onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) void selectFile(file);

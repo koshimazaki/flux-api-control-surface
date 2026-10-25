@@ -5,6 +5,7 @@ import {
   localMcpParityNotes,
   nativeFluxMcp
 } from "@/lib/agent-routes";
+import { CAMERA_GUIDE_URL, cameraSections } from "@/lib/camera-language";
 
 export const agentWorkflowGuide = {
   name: "FLUX Control Surface Agent Guide",
@@ -13,7 +14,7 @@ export const agentWorkflowGuide = {
   nativeFluxMcp: {
     serverUrl: nativeFluxMcp.serverUrl,
     role:
-      "Use the hosted FLUX MCP when the MCP client should directly generate, edit, vary, browse history, or check BFL credits through OAuth.",
+      "Use the hosted FLUX MCP when the MCP client should directly generate images or FLUX 3 video, edit, vary, browse history, or check BFL credits through OAuth.",
     tools: nativeFluxMcp.tools.map((tool) => tool.name),
     commands: nativeFluxMcp.install
   },
@@ -31,8 +32,11 @@ export const agentWorkflowGuide = {
       manifest: agentRouteMap.mcpManifest,
       runPlan: agentRouteMap.runPlan,
       batch: agentRouteMap.batch,
+      queue: agentRouteMap.queue,
+      videoScriptPlan: agentRouteMap.videoScriptPlan,
       generate: agentRouteMap.generate,
       tools: agentRouteMap.tools,
+      flux3Image: agentRouteMap.flux3Image,
       flux3Video: agentRouteMap.flux3Video,
       videoUpscale: agentRouteMap.videoUpscale,
       videoEdit: agentRouteMap.videoEdit,
@@ -40,6 +44,7 @@ export const agentWorkflowGuide = {
       providerJobs: agentRouteMap.providerJobs,
       glyphVectorize: agentRouteMap.glyphVectorize,
       outputs: agentRouteMap.outputs,
+      collections: agentRouteMap.collections,
       evaluations: agentRouteMap.evaluations,
       prompts: agentRouteMap.prompts,
       audioGuide: agentRouteMap.audioGuide,
@@ -51,23 +56,35 @@ export const agentWorkflowGuide = {
     cli: {
       command: "npm run --silent cli -- <command>",
       baseUrlEnvironment: "BFL_DASHBOARD_URL",
-      role: "Thin JSON/JSONL client over the same local HTTP routes used by the dashboard and MCP."
+      role: "Thin JSON/JSONL client over the same local HTTP routes used by the dashboard and MCP.",
+      parity: "Every local MCP tool has a command on the same route; run the help command for the list."
     }
   },
   useTogether: [
     "Ask the hosted FLUX MCP for quick creative exploration, variations, or BFL account history.",
     "Use this local workbench API when the result should become a durable dashboard asset, prompt-library entry, reference set, audio/video guide, captioning job, or finetune registry entry.",
-    "When an agent uses /api/bfl/generate, /api/bfl/tools, or /api/dashboard/batch, the output is saved locally and can be recovered through /api/outputs.",
+    "When an agent uses /api/bfl/generate, /api/bfl/flux3-image, /api/bfl/tools, or /api/dashboard/batch, the output is saved locally and can be recovered through /api/outputs.",
     "Read and score saved outputs through /api/evaluations, the local MCP tools, or npm run --silent cli -- evaluations without scraping the browser."
   ],
   workflows: [
     {
       name: "Capture and evaluate model outputs",
       steps: [
-        `Generate through ${agentRouteMap.generate}, ${agentRouteMap.tools}, ${agentRouteMap.flux3Video}, ${agentRouteMap.videoEdit}, or ${agentRouteMap.videoUpscale}`,
+        `Generate through ${agentRouteMap.generate}, ${agentRouteMap.flux3Image}, ${agentRouteMap.tools}, ${agentRouteMap.flux3Video}, ${agentRouteMap.videoEdit}, or ${agentRouteMap.videoUpscale}`,
         `GET ${agentRouteMap.evaluations} or call list_evaluations`,
         `PATCH ${agentRouteMap.evaluations}?id=<generationId> or call update_evaluation`,
         "Export JSON/JSONL from the Runs tab or npm run --silent cli -- evaluations --format jsonl"
+      ]
+    },
+    {
+      name: "Generate or edit with FLUX 3 Image",
+      steps: [
+        `POST ${agentRouteMap.flux3Image} with mode t2i, i2i, edit or precise (or call generate_flux3_image, or npm run --silent cli -- generate-flux3-image)`,
+        "Place elements with boxes rather than a mask: layout[] for text to image, regions[] with an action (change, keep, move, remove) for a precise edit, each in the pixels of frame { width, height }",
+        "The server writes the boxes into the prompt as BFL's [top, left, bottom, right] rows on a 0-1000 grid; a precise edit keeps the source's aspect ratio",
+        `Add wait=false to get a queue job id at once and follow it through ${agentRouteMap.queue}`,
+        "Without wait=false the call waits up to about five minutes; a longer render answers with timedOut and its queueJobId and keeps running, so follow that job instead of sending the request again",
+        `GET ${agentRouteMap.outputs}: the saved image records its mode, settings and the prompt BFL expanded the request into`
       ]
     },
     {
@@ -77,6 +94,14 @@ export const agentWorkflowGuide = {
         `POST ${agentRouteMap.videoUpscale} with inputVideo and upscaleFactor 1.5 through 3`,
         `GET ${agentRouteMap.videoUpscale} for the saved source/result comparison URLs`,
         `GET ${agentRouteMap.outputs} to recover the result in Assets`
+      ]
+    },
+    {
+      name: "Direct a FLUX 3 video: camera, look and effects",
+      steps: [
+        `POST ${agentRouteMap.flux3Video} (t2v, i2v or v2v) with the scene as prompt and camera.selection naming at most one term per section (null for none)`,
+        "Optional camera.edits rewrites a chosen term's clause; the server appends the clauses after the scene exactly once",
+        `GET ${agentRouteMap.flux3Video} or ${agentRouteMap.outputs}: each render records camera.terms and the scene`
       ]
     },
     {
@@ -151,6 +176,11 @@ export const agentWorkflowGuide = {
       ]
     }
   ],
+  cameraLanguage: {
+    guide: CAMERA_GUIDE_URL,
+    appliesTo: "FLUX 3 video modes t2v, i2v and v2v (not draft_enhance)",
+    sections: cameraSections.map((section) => ({ id: section.id, terms: section.terms.map((term) => term.id) }))
+  },
   currentGaps: [
     {
       capability: "Binary audio export through the stdio MCP wrapper",
@@ -181,6 +211,8 @@ export const agentWorkflowGuide = {
   examples: [
     "Create a two-prompt permutation plan from the cybernetic flower library, then execute it locally so outputs appear in the dashboard.",
     "Use this recovered gallery image as @character and another as @style, then generate four FLUX.2 Pro options.",
+    "Generate a 16:9 FLUX 3 image at 2k with a title box across the top third and the subject in the lower right, then recover it through /api/outputs.",
+    "Edit this saved image with FLUX 3 Image: keep the background box unchanged and change the boxed jacket to red leather.",
     "Outpaint this saved output to 16:9, save the result, and make it available in /api/outputs.",
     "Deblur this imported source image, then use the sharpened result as a gallery reference.",
     "Export this collection as a FLUX.2 [klein] LoRA dataset, register the hosted finetune_id, then generate with strength 1.2.",
@@ -188,6 +220,7 @@ export const agentWorkflowGuide = {
     "Vectorize these four saved outputs into two-color and four-color SVG glyphs, then recover them through the gallery.",
     "Generate a FLUX 3 video from request.json with the CLI, then list and rate its captured evaluation record.",
     "Upscale a saved FLUX 3 clip at 2× in precise mode, then compare source and result in the Upscale tab.",
+    "Render a FLUX 3 text-to-video shot as a low-angle close-up with a slow orbit, using camera.selection instead of hand-written camera prose.",
     "Edit a saved FLUX 3 clip so the orange bucket is gone, compare before and after in the Edit tab, then upscale the result.",
     "Save a video prompt with save_prompt using mediaType video, a videoCategory, and structured beats, then read it back grouped in the Video prompt library."
   ],

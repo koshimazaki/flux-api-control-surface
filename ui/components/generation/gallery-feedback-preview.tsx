@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { AssetLibrary } from "@/components/asset-library";
 import { Lightbox } from "@/components/lightbox";
 import { JobQueue } from "@/components/ui/job-queue";
-import { useGalleryGenerations } from "@/lib/dashboard/use-gallery-generations";
 import { generationPattern } from "@/lib/gallery-generations";
 import { summarizeGenerationQueue, type GenerationQueueJob } from "@/lib/generation-queue";
 import type { AssetCollectionFilter, AssetRecord, AspectRatio } from "@/lib/types";
@@ -33,7 +32,6 @@ export function GalleryFeedbackPreview() {
   const [previewAsset, setPreviewAsset] = useState<AssetRecord | null>(null);
   const run = useRef(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const gallery = useGalleryGenerations(jobs, assets);
   useEffect(() => {
     let cancelled = false;
     const scheduled = timers.current;
@@ -92,7 +90,7 @@ export function GalleryFeedbackPreview() {
     </div>
     <JobQueue queue={jobs} summary={summary} concurrency={3} controls={controls} />
     <AssetLibrary assets={allAssets} filteredAssets={allAssets.filter((asset) => !search || asset.title?.toLowerCase().includes(search.toLowerCase()))}
-      generations={gallery.generations} onGenerationRevealed={gallery.markRevealed}
+      generationQueue={jobs}
       searchQuery={search} gridSize={grid} aspectRatio={ratio} metadataAssetId={null} selectedAssetIds={[]} assetBadges={{}}
       collections={[collection]} collectionFilter={filter} openedCollection={openedId ? collection : null}
       onSearchChange={setSearch} onGridSizeChange={setGrid} onAspectRatioChange={setRatio} onCollectionFilterChange={setFilter}

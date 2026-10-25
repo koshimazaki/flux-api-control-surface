@@ -1,6 +1,9 @@
 import { flux3Recreation, type RecreationSeed } from "@/lib/asset-recreation";
+import { GenerationWait } from "@/components/ui/generation-wait";
+import { generationJobMatchesWorkspace, pendingGenerationJobs } from "@/lib/generation-view";
 import { Download, Film, PencilLine, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CameraPanel } from "@/components/camera-panel";
 import { Flux3MediaDropzone, type Flux3InputMedia } from "@/components/flux3-media-dropzone";
 import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
@@ -11,12 +14,15 @@ import type { VideoEditSourceInput } from "@/lib/video-edit";
 import { usePauseHiddenMedia } from "@/lib/use-pause-hidden-media";
 import { videoAspectFromEvent, videoStageStyle, type VideoStageAspect } from "@/lib/video-stage";
 import type { VideoUpscaleSourceInput } from "@/lib/video-upscale";
+import { cameraChoice, composeCameraClauses, withCameraClauses } from "@/lib/camera-language";
+import { useCameraDirection } from "@/lib/dashboard/use-camera-direction";
 import type { GenerationQueueJob, GenerationQueueSummary } from "@/lib/generation-queue";
 import {
   FLUX3_ASPECT_RATIOS,
   estimateFlux3VideoUsd,
   flux3MaxDuration,
   flux3RequestBlocker,
+  type Flux3PromptSeed,
   type Flux3VideoAspectRatio,
   type Flux3VideoMode,
   type Flux3VideoRequest,
@@ -39,7 +45,7 @@ type Flux3VideoWorkspaceProps = {
   startVideo: Flux3InputMedia | null;
   onStartVideoChange: (media: Flux3InputMedia | null) => void;
   /** Prompt pushed from a library video card; the nonce re-applies repeat sends. */
-  promptSeed?: { text: string; nonce: number } | null;
+  promptSeed?: Flux3PromptSeed | null;
   /** Sends the selected render to the Video Edit workspace. */
   onSendToEdit?: (source: VideoEditSourceInput) => void;
   /** Sends the selected render to the Video Upscale workspace. */
@@ -72,6 +78,7 @@ function durationOptions(max: number) {
 export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   const mode = props.mode;
   const [prompt, setPrompt] = useState("");
+  const { direction: cameraDirection, setDirection: setCameraDirection, restore: restoreCamera } = useCameraDirection();
   const keyframes = props.keyframes;
   const startVideo = props.startVideo;
   const setStartVideo = props.onStartVideoChange;
@@ -98,6 +105,11 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   usePauseHiddenMedia(rootRef, props.active);
   const selected = results.find((item) => item.id === selectedId) || results[0] || null;
   const maxDuration = flux3MaxDuration(mode);
+  // Direction applies to every source mode: its clauses follow the scene in the
+  // prompt the API receives, and the choice is saved with the render.
+  const camera = useMemo(() => cameraChoice(cameraDirection), [cameraDirection]);
+  const cameraTail = camera ? composeCameraClauses(camera.selection, camera.edits) : "";
+  const directedPrompt = camera ? withCameraClauses(prompt, cameraTail) : prompt;
 
   function updateKeyframes(items: Flux3InputMedia[]) {
     if (items.length > keyframes.length) props.onModeChange("i2v");
@@ -109,21 +121,26 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
   }, [props.libraryPrompt]);
 
   useEffect(() => {
-    if (props.promptSeed?.text.trim()) setPrompt(props.promptSeed.text);
-  }, [props.promptSeed]);
+    if (!props.promptSeed?.text.trim()) return;
+    setPrompt(props.promptSeed.text);
+    if (props.promptSeed.camera) restoreCamera(props.promptSeed.camera);
+  }, [props.promptSeed, restoreCamera]);
 
   useEffect(() => {
     if (!props.recreation || ["video-edit", "video-upscale"].includes(props.recreation.recipe.operation)) return;
     const restored = flux3Recreation(props.recreation.recipe);
+    if (restored.camera) restoreCamera(restored.camera);
+    else setCameraDirection(current => ({ ...current, enabled: false }));
     setPrompt(restored.prompt); setAspectRatio(restored.aspectRatio); setDuration(restored.duration);
     setResolution(restored.resolution); setGenerateAudio(restored.generateAudio);
     setSafetyTolerance(restored.safetyTolerance); setDraft(restored.draft); setError("");
-  }, [props.recreation]);
+  }, [props.recreation, restoreCamera, setCameraDirection]);
 
   const requestInput = useMemo<Flux3VideoRequest>(
     () => ({
       mode,
-      prompt,
+      prompt: directedPrompt,
+      camera: camera ?? undefined,
       keyframes: keyframes.map((item) => item.source),
       timedKeyframes: keyframes.length && keyframes.every(item => typeof item.seconds === "number")
         ? keyframes.map(item => [item.seconds!, item.source]) : undefined,
@@ -135,7 +152,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       safetyTolerance,
       draft
     }),
-    [aspectRatio, draft, duration, generateAudio, keyframes, mode, prompt, resolution, safetyTolerance, startVideo]
+    [aspectRatio, camera, directedPrompt, draft, duration, generateAudio, keyframes, mode, resolution, safetyTolerance, startVideo]
   );
   const blocker = mode === "i2v" && keyframes.some(frame => !frame.source) ? "Replace the missing saved keyframe before generating." : flux3RequestBlocker(requestInput);
   const estimatedUsd = estimateFlux3VideoUsd(requestInput);
@@ -290,6 +307,8 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
     );
   }
 
+  const queueJob = pendingGenerationJobs(props.generationQueue).find((job) => generationJobMatchesWorkspace(job, "flux3"));
+
   return (
     <section className="flux3VideoWorkspace" ref={rootRef} hidden={!props.active}>
       <div className="flux3PreviewPanel panel">
@@ -341,16 +360,12 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
               <span>Draft first, select the shot, then enhance it without reinterpreting the generation.</span>
             </div>
           )}
-          {(isRunning || pendingQueueJobId) && (
-            <div className="flux3RenderOverlay">
-              <CubeLoader />
-              <strong>{pendingQueueJobId ? "Still rendering on the server queue" : runLabel}</strong>
-              <span>
-                {pendingQueueJobId
-                  ? "The server keeps working with this tab closed. The video appears here and in Assets as soon as it is saved."
-                  : "FLUX 3 video jobs usually take a minute or two. The result is downloaded locally as soon as it is ready."}
-              </span>
-            </div>
+          {(isRunning || pendingQueueJobId || queueJob) && (
+            <GenerationWait
+              id={pendingQueueJobId || queueJob?.id}
+              label={pendingQueueJobId ? "Still rendering on the server queue" : runLabel || "Generating video"}
+              detail="The video appears here and in Assets as soon as it is saved."
+            />
           )}
         </div>
         {selected && (
@@ -358,6 +373,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
             <div>
               <strong>{selected.title}</strong>
               <span>{formatMode(selected.mode)} · {selected.duration === "auto" ? "auto duration" : `${selected.duration}s`} · {selected.resolution?.toUpperCase()}</span>
+              {selected.camera?.terms.length ? <span className="flux3ResultCamera">Camera · {selected.camera.terms.join(" · ")}</span> : null}
             </div>
             <div>
               {selected.draft && selected.draftCacheAvailable && (
@@ -389,15 +405,18 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
         <PanelHeader title="Create video" subtitle={`FLUX 3 · ${formatMode(mode)}`}>
           <Film size={18} aria-label="FLUX 3 video creation" />
         </PanelHeader>
-        <label>
-          Video prompt
-          <textarea
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            rows={7}
-            placeholder={mode === "v2v" ? "Describe the next beat, camera motion, dialogue, sound, and ambience…" : "Describe action, camera, dialogue, sound, and scene changes…"}
-          />
-        </label>
+        <div className={camera ? "flux3PromptBlock withCameraClauses" : "flux3PromptBlock"}>
+          <label>
+            Video prompt
+            <textarea
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              rows={7}
+              placeholder={mode === "v2v" ? "Describe the next beat, camera motion, dialogue, sound, and ambience…" : "Describe action, camera, dialogue, sound, and scene changes…"}
+            />
+          </label>
+          <CameraPanel direction={cameraDirection} onChange={setCameraDirection} />
+        </div>
         <div className="flux3SettingsGrid">
           <label>
             Duration

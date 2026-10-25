@@ -1,4 +1,4 @@
-import { Eraser, Fingerprint, Focus, Images, Maximize2, MessageSquareText, PencilLine, ScanLine, Shirt, Sparkles, Video } from "lucide-react";
+import { Eraser, Fingerprint, Focus, Images, Maximize2, MessageSquareText, PencilLine, ScanLine, Shirt, Sparkles, Video, WandSparkles } from "lucide-react";
 import { TabButtonBar, type TabButtonItem } from "@/components/ui/tab-button-bar";
 import type { Flux3SourceMode } from "@/lib/flux3-video";
 import type { WorkspaceMode } from "@/lib/types";
@@ -10,7 +10,8 @@ import {
 } from "@/lib/workspace-media";
 
 const imageModes: TabButtonItem<WorkspaceMode>[] = [
-  { id: "prompt", label: "Generate", icon: Sparkles },
+  { id: "flux3_image", label: "FLUX 3 Image", icon: WandSparkles },
+  { id: "prompt", label: "FLUX 2", icon: Sparkles },
   { id: "erase", label: "Erase", icon: Eraser },
   { id: "outpaint", label: "Outpaint", icon: Maximize2 },
   { id: "deblur", label: "Deblur", icon: Focus },
@@ -28,6 +29,9 @@ const videoTabs: TabButtonItem<VideoToolTab>[] = [
   { id: "edit", label: "Edit", icon: PencilLine },
   { id: "upscale", label: "Upscale", icon: ScanLine }
 ];
+
+// Both rails share one track count, so a seventh image tool widens both together.
+const railClass = imageModes.length > 6 ? " workspaceModeBar-seven" : "";
 
 type WorkspaceModeTabsProps = {
   value: WorkspaceMode;
@@ -47,7 +51,7 @@ export function WorkspaceModeTabs({ value, flux3SourceMode, onChange, onFlux3Sou
           if (target.flux3SourceMode) onFlux3SourceModeChange(target.flux3SourceMode);
           onChange(target.workspaceMode);
         }}
-        className="workspaceModeBar workspaceModeBar-video"
+        className={`workspaceModeBar workspaceModeBar-video${railClass}`}
         iconSize={18}
         ariaLabel="Video tools"
       />
@@ -58,7 +62,7 @@ export function WorkspaceModeTabs({ value, flux3SourceMode, onChange, onFlux3Sou
       items={imageModes}
       value={value}
       onChange={onChange}
-      className="workspaceModeBar workspaceModeBar-image"
+      className={`workspaceModeBar workspaceModeBar-image${railClass}`}
       iconSize={18}
       ariaLabel="Image tools"
     />

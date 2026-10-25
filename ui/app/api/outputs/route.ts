@@ -49,7 +49,8 @@ function videoAsset(result: Flux3VideoResult): AssetRecord {
       aspect_ratio: result.aspectRatio,
       generate_audio: result.generateAudio,
       draft: result.draft,
-      draft_cache_available: result.draftCacheAvailable
+      draft_cache_available: result.draftCacheAvailable,
+      ...(result.camera ? { camera: result.camera } : {})
     },
     references: [],
     runSettings: {
@@ -59,7 +60,8 @@ function videoAsset(result: Flux3VideoResult): AssetRecord {
       mode: result.mode,
       duration: result.duration,
       resolution: result.resolution,
-      generateAudio: result.generateAudio
+      generateAudio: result.generateAudio,
+      ...(result.camera ? { camera: result.camera.terms.join(" · ") } : {})
     },
     costCredits: result.costCredits,
     creditsAfter: result.creditsAfter,

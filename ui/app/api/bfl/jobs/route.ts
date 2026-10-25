@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enqueueGenerationJob } from "@/lib/queue/enqueue";
+import { requestKeyConflictBody, requestKeyFrom } from "@/lib/queue/request-key";
 import { finalizeQueueJob, pollQueueJobStep, submitQueueJob } from "@/lib/queue/lifecycle";
+import { requestedOperation } from "@/lib/queue/operation";
 import { markManualRecovery } from "@/lib/queue/recovery";
 import { ensureQueueRunner } from "@/lib/queue/runner";
 import { findQueueJob, readQueueState } from "@/lib/queue/store";
@@ -21,12 +23,6 @@ async function jobById(id: string) {
   return findQueueJob(state, id);
 }
 
-function operationFor(kind: GenerationJobKind, body: Record<string, any>) {
-  if (kind === "tool") return typeof body.tool === "string" ? body.tool : "";
-  if (kind === "video") return typeof body.mode === "string" ? body.mode : "";
-  return "generate";
-}
-
 /**
  * Submit one provider operation and persist its accepted request id and polling
  * URL before responding. This is a recovery/diagnostic primitive that shares the
@@ -45,16 +41,26 @@ export async function POST(request: NextRequest) {
     if (!KINDS.has(kind)) return jsonError("A job kind of image, tool, or video is required.");
     const payload = (raw.payload && typeof raw.payload === "object" ? raw.payload : raw.body) as Record<string, any>;
     if (!payload || typeof payload !== "object") return jsonError("A payload object is required.");
-    const operation = operationFor(kind, payload);
+    const operation = requestedOperation(kind, payload);
     if (!operation) return jsonError(`A ${kind} job needs ${kind === "tool" ? "a tool" : "a mode"}.`);
+    const requestKey = requestKeyFrom(request, raw);
+    if (requestKey.error) return jsonError(requestKey.error);
     const job = await enqueueGenerationJob({
       kind,
       operation,
       body: payload,
       origin: new URL(request.url).origin,
       apiKey: typeof payload.apiKey === "string" ? payload.apiKey : undefined,
-      priority: typeof raw.priority === "number" ? raw.priority : undefined
+      priority: typeof raw.priority === "number" ? raw.priority : undefined,
+      requestKey: requestKey.key
+    }).catch((error) => {
+      const conflict = requestKeyConflictBody(error);
+      if (conflict) return conflict;
+      throw error;
     });
+    if ("conflict" in job) return NextResponse.json(job, { status: 409 });
+    // Sent again with the same key: the first send already started this job.
+    if (job.reused) return NextResponse.json({ ok: true, reused: true, job: await jobById(job.id) });
     jobId = job.id;
   } else {
     const existing = await jobById(jobId);

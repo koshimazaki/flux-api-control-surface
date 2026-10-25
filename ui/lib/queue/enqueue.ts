@@ -1,9 +1,12 @@
 import { QUEUE_LANE_BY_KIND, type EnqueueJobInput, type ServerQueueJob } from "./types";
 import { buildQueueJobDescriptor } from "./descriptors";
 import { sourceFingerprint } from "./failures";
+import { reconcileOperation } from "./operation";
+import { RequestKeyConflictError, requestFingerprint } from "./request-key";
 import { mutateQueueState } from "./store";
 import { setJobRuntime } from "./runtime";
 import { awaitQueueJob, newQueueJobId, nudgeQueueRunner } from "./runner";
+import { estimateFlux3ImageUsd, flux3ImageModel, FLUX3_IMAGE_OPERATION, type Flux3ImageRequest } from "@/lib/flux3-image";
 import { estimateFlux3VideoUsd, type Flux3VideoRequest } from "@/lib/flux3-video";
 import { estimateVideoEditUsd, VIDEO_EDIT_MODEL, VIDEO_EDIT_OPERATION, type VideoEditRequest } from "@/lib/video-edit";
 import { estimateVideoUpscaleUsd, VIDEO_UPSCALE_MODEL, VIDEO_UPSCALE_OPERATION, type VideoUpscaleRequest } from "@/lib/video-upscale";
@@ -51,6 +54,10 @@ function estimateJobCost(options: EnqueueOptions) {
   if (typeof options.estimatedCredits === "number" || typeof options.estimatedUsd === "number") {
     return { credits: options.estimatedCredits, usd: options.estimatedUsd };
   }
+  if (options.operation === FLUX3_IMAGE_OPERATION) {
+    const usd = estimateFlux3ImageUsd(options.body as Flux3ImageRequest);
+    return typeof usd === "number" ? { credits: Math.round(usd * 100), usd } : {};
+  }
   if (options.kind === "image") {
     const model = typeof options.body.model === "string" ? options.body.model : "pro-preview";
     const hasReferences = Array.isArray(options.body.references) && options.body.references.length > 0;
@@ -65,6 +72,7 @@ function estimateJobCost(options: EnqueueOptions) {
 }
 
 function modelLabel(options: EnqueueOptions) {
+  if (options.operation === FLUX3_IMAGE_OPERATION) return flux3ImageModel(options.body as Flux3ImageRequest);
   if (typeof options.body.model === "string" && options.body.model.trim()) return options.body.model.trim();
   if (options.kind === "video") return videoOperationModel(options.operation);
   if (options.kind === "tool") return `flux-tools/${options.operation}`;
@@ -102,9 +110,13 @@ function jobFromOptions(options: EnqueueOptions, id: string, now: number): Serve
   };
 }
 
-export async function enqueueGenerationJobs(list: EnqueueOptions[]): Promise<ServerQueueJob[]> {
+/** A job as enqueue returns it: `reused` when a request key matched a job already queued. */
+export type EnqueuedJob = ServerQueueJob & { reused?: boolean };
+
+export async function enqueueGenerationJobs(list: EnqueueOptions[]): Promise<EnqueuedJob[]> {
   const now = Date.now();
-  const prepared = list.map((options) => {
+  // Every route enqueues here, so this is where a job and its body are made to name one product.
+  const prepared = list.map(reconcileOperation).map((options) => {
     const id = options.id || newQueueJobId();
     const descriptor = buildQueueJobDescriptor({
       jobId: id,
@@ -115,17 +127,33 @@ export async function enqueueGenerationJobs(list: EnqueueOptions[]): Promise<Ser
     });
     const job = jobFromOptions(options, id, now);
     job.payloadRecoverable = descriptor.recoverable;
+    if (options.requestKey) {
+      job.requestKey = options.requestKey;
+      job.requestHash = requestFingerprint(options.kind, options.operation, options.body);
+    }
     return { options, job, descriptor };
   });
 
+  // Under the queue lock, a request key already on a job returns that job
+  // rather than queueing (and paying for) the same request twice.
+  const reused = new Map<number, ServerQueueJob>();
   await mutateQueueState((state) => {
-    for (const entry of prepared) {
+    reused.clear();
+    prepared.forEach((entry, index) => {
+      const key = entry.job.requestKey;
+      const existing = key ? state.jobs.find((job) => job.requestKey === key) : undefined;
+      if (existing) {
+        if (existing.requestHash !== entry.job.requestHash) throw new RequestKeyConflictError(key!, existing.id);
+        reused.set(index, existing);
+        return;
+      }
       state.jobs.push(entry.job);
       state.descriptors[entry.job.id] = entry.descriptor;
-    }
+    });
   });
 
-  for (const entry of prepared) {
+  const fresh = prepared.filter((_, index) => !reused.has(index));
+  for (const entry of fresh) {
     setJobRuntime({
       jobId: entry.job.id,
       kind: entry.options.kind,
@@ -136,8 +164,11 @@ export async function enqueueGenerationJobs(list: EnqueueOptions[]): Promise<Ser
       marks: { requestStartedAt: Date.now(), queuedAt: entry.job.queuedAt }
     });
   }
-  nudgeQueueRunner(0);
-  return prepared.map((entry) => entry.job);
+  if (fresh.length) nudgeQueueRunner(0);
+  return prepared.map((entry, index) => {
+    const existing = reused.get(index);
+    return existing ? { ...existing, reused: true } : entry.job;
+  });
 }
 
 export async function enqueueGenerationJob(options: EnqueueOptions) {
@@ -146,7 +177,7 @@ export async function enqueueGenerationJob(options: EnqueueOptions) {
 }
 
 export type EnqueueAndWaitOutcome = {
-  job: ServerQueueJob;
+  job: EnqueuedJob;
   settled?: ServerQueueJob;
   response?: Record<string, any>;
   timedOut: boolean;

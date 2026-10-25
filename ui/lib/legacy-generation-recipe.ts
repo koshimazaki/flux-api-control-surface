@@ -21,7 +21,7 @@ export async function readLegacyGenerationRecipe(id: string): Promise<Generation
     const p = m.payload;
     const sources = (m.keyframeAssetIds || []).map(key => `/api/outputs/${encodeURIComponent(key)}/image`);
     return { version: 1, kind: "video", operation: m.mode, body: {
-      mode: m.mode, prompt: m.prompt, draftCacheId: m.sourceDraftId, duration: p.duration,
+      mode: m.mode, prompt: m.prompt, camera: m.camera, draftCacheId: m.sourceDraftId, duration: p.duration,
       resolution: p.resolution, aspectRatio: p.aspect_ratio, generateAudio: p.generate_audio,
       safetyTolerance: p.safety_tolerance, draft: p.draft, keyframes: sources,
       keyframeAssetIds: m.keyframeAssetIds,

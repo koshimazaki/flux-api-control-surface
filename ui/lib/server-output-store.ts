@@ -152,22 +152,37 @@ export async function readLocalOutputManifest(): Promise<OutputManifestItem[]> {
   );
 }
 
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+
+/**
+ * Image outputs, newest first: each metadata file that has an image beside it.
+ * The video tools keep sidecars with no image in sibling folders that sort
+ * ahead of the dated ones; counted as outputs they used up a page's limit and
+ * left a short page with no images on it at all.
+ */
+function imageOutputs(files: string[]) {
+  const present = new Set(files);
+  return files
+    .filter((file) => file.endsWith(".json"))
+    .sort()
+    .reverse()
+    .flatMap((metadataPath) => {
+      const base = metadataPath.replace(/\.json$/, "");
+      const imagePath = IMAGE_EXTENSIONS.map((extension) => `${base}.${extension}`).find((file) => present.has(file));
+      return imagePath ? [{ metadataPath, base, imagePath }] : [];
+    });
+}
+
 export async function readLocalOutputAssets(options: OutputAssetReadOptions = {}): Promise<AssetRecord[]> {
   const files = (await Promise.all(OUTPUT_ROOTS.map((root) => walk(root)))).flat();
-  const metadataFiles = files.filter((file) => file.endsWith(".json")).sort().reverse();
+  const outputs = imageOutputs(files);
   const offset = Math.max(0, options.offset || 0);
   const includeImageData = Boolean(options.includeImageData);
-  const selectedMetadataFiles =
-    typeof options.limit === "number"
-      ? metadataFiles.slice(offset, offset + Math.max(0, options.limit))
-      : metadataFiles.slice(offset);
+  const selectedOutputs =
+    typeof options.limit === "number" ? outputs.slice(offset, offset + Math.max(0, options.limit)) : outputs.slice(offset);
 
-  const assets = await Promise.all(
-    selectedMetadataFiles.map(async (metadataPath) => {
-      const base = metadataPath.replace(/\.json$/, "");
-      const imagePath = imageForBase(files, base);
-      if (!imagePath) return null;
-
+  return Promise.all(
+    selectedOutputs.map(async ({ metadataPath, base, imagePath }) => {
       const [metadataText, fileStat] = await Promise.all([
         readFile(metadataPath, "utf8"),
         stat(imagePath)
@@ -240,8 +255,6 @@ export async function readLocalOutputAssets(options: OutputAssetReadOptions = {}
       } satisfies AssetRecord;
     })
   );
-
-  return assets.filter(Boolean) as AssetRecord[];
 }
 
 export async function findLocalOutputImage(id: string) {

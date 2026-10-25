@@ -1,8 +1,9 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { OUTPUT_ROOT } from "./server-output-store";
-import { RECIPE_FIELDS, type GenerationRecipe } from "./generation-recipe";
+import { isGenerationRecipe, RECIPE_FIELDS, type GenerationRecipe } from "./generation-recipe";
+import { normalizeCameraChoice } from "./camera-language";
 
 export function recipeRoot() { return process.env.BFL_RECIPE_DIR || path.join(OUTPUT_ROOT, ".generation-recipes"); }
 const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
@@ -22,6 +23,7 @@ export async function saveGenerationRecipe(id: string, kind: GenerationRecipe["k
   const directory = recipeRoot();
   await mkdir(path.join(directory, "media"), { recursive: true });
   async function persist(value: unknown, key: string): Promise<unknown> {
+    if (key === "camera") return normalizeCameraChoice(value);
     if (Array.isArray(value)) return Promise.all(value.map(item => persist(item, key)));
     if (value && typeof value === "object") {
       // Only reference metadata has nested objects in these request fields.
@@ -30,7 +32,7 @@ export async function saveGenerationRecipe(id: string, kind: GenerationRecipe["k
         .map(async ([name, child]) => [name, await persist(child, name)])));
     }
     if (typeof value !== "string" || !MEDIA_KEYS.test(key)) return value;
-    if (/^(\/|https?:\/\/)/.test(value) || value.startsWith("[")) return value;
+    if (/^(\/api\/|https?:\/\/)/.test(value) || value.startsWith("[")) return value;
     const encoded = value.match(/^data:(?:image|video)\/[^;,]+;base64,([\s\S]+)$/)?.[1] || value;
     if (!/^[A-Za-z0-9+/=\s]+$/.test(encoded)) return "";
     const buffer = Buffer.from(encoded, "base64");
@@ -42,13 +44,17 @@ export async function saveGenerationRecipe(id: string, kind: GenerationRecipe["k
   }
   const safeBody = Object.fromEntries(await Promise.all(RECIPE_FIELDS.filter(key => body[key] !== undefined)
     .map(async key => [key, await persist(body[key], key)])));
-  const target = recipePath(id), temporary = `${target}.${process.pid}.tmp`;
+  const target = recipePath(id), temporary = `${target}.${randomUUID()}.tmp`;
   await writeFile(temporary, JSON.stringify({ version: 1, kind, operation, body: safeBody } satisfies GenerationRecipe));
   await rename(temporary, target);
 }
 
 export async function readGenerationRecipe(id: string): Promise<GenerationRecipe | null> {
-  try { return JSON.parse(await readFile(recipePath(id), "utf8")); }
+  try {
+    const value: unknown = JSON.parse(await readFile(recipePath(id), "utf8"));
+    if (!isGenerationRecipe(value)) throw new Error("The saved generation recipe is invalid.");
+    return value;
+  }
   catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
 }
 

@@ -1,8 +1,9 @@
-import { assetRecipe, recipeSource, type GenerationRecipe } from "./generation-recipe";
+import { assetRecipe, isGenerationRecipe, recipeSource, type GenerationRecipe } from "./generation-recipe";
 import { FLUX3_ASPECT_RATIOS, type Flux3InputMedia, type Flux3SourceMode, type Flux3VideoAspectRatio } from "./flux3-video";
 import { getBflModel } from "./provider-registry";
 import { normalizeReferenceRole } from "./reference-roles";
 import { stripReferenceCue } from "./prompt-utils";
+import { applyCameraChoice, normalizeCameraChoice } from "./camera-language";
 import type { AssetRecord, ReferenceImage } from "./types";
 
 export type RecreationSeed = { recipe: GenerationRecipe; nonce: number };
@@ -12,6 +13,7 @@ export const booleanSetting = (value: unknown, fallback: boolean) => typeof valu
 const list = (value: unknown): unknown[] => Array.isArray(value) ? value : [];
 
 export function mergedAssetRecipe(asset: AssetRecord, saved?: GenerationRecipe | null): GenerationRecipe {
+  if (saved && !isGenerationRecipe(saved)) throw new Error("The saved generation recipe is invalid.");
   const base = assetRecipe(asset);
   return saved ? { ...saved, body: { ...base.body, ...Object.fromEntries(Object.entries(saved.body).filter(([,value]) => value !== undefined)) } } : base;
 }
@@ -41,6 +43,8 @@ export function imageRecreation(asset: AssetRecord, recipe: GenerationRecipe, as
 
 export function flux3Recreation(recipe: GenerationRecipe) {
   const b = recipe.body;
+  const camera = normalizeCameraChoice(b.camera);
+  const directed = applyCameraChoice(textSetting(b.prompt), camera);
   const mode: Flux3SourceMode = ["i2v", "v2v"].includes(textSetting(b.mode)) ? b.mode as Flux3SourceMode : "t2v";
   const timed = list(b.timedKeyframes).filter((pair): pair is [number, string] => Array.isArray(pair) && typeof pair[0] === "number" && typeof pair[1] === "string");
   const inputs = timed.length ? timed.map(pair => pair[1]) : list(b.keyframes);
@@ -51,7 +55,7 @@ export function flux3Recreation(recipe: GenerationRecipe) {
   }));
   const startVideo: Flux3InputMedia | null = recipeSource(b.startVideo) ? { id: "recreate-continuation", name: "Original continuation clip", kind: "video",
     source: recipeSource(b.startVideo), assetId: textSetting(b.startVideoAssetId) || undefined } : null;
-  return { mode, keyframes, startVideo, prompt: textSetting(b.prompt),
+  return { mode, keyframes, startVideo, camera, prompt: directed.camera?.scene ?? directed.prompt,
     aspectRatio: FLUX3_ASPECT_RATIOS.includes(b.aspectRatio as Flux3VideoAspectRatio) ? b.aspectRatio as Flux3VideoAspectRatio : "auto" as const,
     duration: typeof b.duration === "number" ? b.duration : "auto" as const,
     resolution: b.resolution === "fhd" ? "fhd" as const : "hd" as const,

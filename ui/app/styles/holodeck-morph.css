@@ -392,6 +392,7 @@ body::before {
 .dsgn-root .comboPopoverActions button,
 .dsgn-root .assetActions .fileButton,
 .dsgn-root .assetFilterChips button,
+.dsgn-root .assetSendFamilyPicker button,
 .dsgn-root .flux3ResultBar a,
 .dsgn-root .flux3SectionHeader button {
   border-color: var(--border-machined);
@@ -442,6 +443,7 @@ body::before {
 
 .dsgn-root .seedLockButton.selected,
 .dsgn-root .assetFilterChips button.active,
+.dsgn-root .assetSendFamilyPicker button.active,
 .dsgn-root .assetActions .selected {
   border-color: var(--acc-intel);
   background: var(--acc-intel-ghost);

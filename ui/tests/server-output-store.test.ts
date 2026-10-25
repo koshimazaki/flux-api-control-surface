@@ -41,6 +41,30 @@ describe("server output store", () => {
     expect(manifest.map((item) => item.id)).toEqual(["real-output"]);
   });
 
+  it("counts only outputs that have an image against a page, so video sidecars cannot empty it", async () => {
+    const root = await createTempUiWorkspace();
+    const outputs = path.join(root, "outputs", "flux-api-control-surface");
+    // Video tools keep image-less sidecars in sibling folders that sort ahead of the dated image folders.
+    for (const [folder, count] of [["video", 4], ["video-edit", 2], ["video-trim", 1]] as const) {
+      await mkdir(path.join(outputs, folder, "2026-09-12"), { recursive: true });
+      for (let index = 0; index < count; index += 1) {
+        await writeFile(path.join(outputs, folder, "2026-09-12", `2026-09-12T10-0${index}-00-000Z_clip.json`), JSON.stringify({ id: `${folder}-${index}` }));
+      }
+    }
+    await mkdir(path.join(outputs, "2026-10-02"), { recursive: true });
+    for (const name of ["a-older", "b-newer"]) {
+      const base = path.join(outputs, "2026-10-02", `2026-10-02_2026-10-02T00-00-00-000Z_${name}`);
+      await writeFile(`${base}.json`, JSON.stringify({ id: name, payload: { prompt: name } }));
+      await writeFile(`${base}.png`, "image");
+    }
+
+    const { readLocalOutputAssets } = await import("@/lib/server-output-store");
+    // Seven sidecars sit ahead of the images; a page of two still holds the two images.
+    expect((await readLocalOutputAssets({ limit: 2 })).map((asset) => asset.id)).toEqual(["b-newer", "a-older"]);
+    expect((await readLocalOutputAssets({ limit: 1, offset: 1 })).map((asset) => asset.id)).toEqual(["a-older"]);
+    expect(await readLocalOutputAssets({ limit: 5, offset: 2 })).toEqual([]);
+  });
+
   it("shares a local image index until it is explicitly invalidated", async () => {
     const root = await createTempUiWorkspace();
     const outputDir = path.join(root, "outputs", "flux-api-control-surface", "2026-08-21");

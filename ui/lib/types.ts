@@ -81,8 +81,21 @@ export type ReferenceRole = "character" | "style" | "environment" | "pose" | "lo
 
 export type BatchMode = "current" | "library" | "permutations";
 
-export type WorkspaceMode = "prompt" | "erase" | "vto" | "outpaint" | "deblur" | "flux3" | "edit" | "upscale" | "glyphs";
-export type ImageWorkspaceMode = Exclude<WorkspaceMode, "prompt" | "flux3" | "edit" | "upscale">;
+export type WorkspaceMode =
+  | "flux3_image"
+  | "prompt"
+  | "erase"
+  | "vto"
+  | "outpaint"
+  | "deblur"
+  | "flux3"
+  | "edit"
+  | "upscale"
+  | "glyphs";
+/** Image tools that run through the shared tool panel. */
+export type ImageWorkspaceMode = Exclude<WorkspaceMode, "prompt" | "flux3" | "edit" | "upscale" | "flux3_image">;
+/** Modes that work on a loaded source image; FLUX 3 Image shares the tool source. */
+export type SourceImageMode = ImageWorkspaceMode | "flux3_image";
 
 export type DashboardTab = "script" | "audio" | "assets" | "runs" | "collections" | "apis" | "mcp" | "system";
 

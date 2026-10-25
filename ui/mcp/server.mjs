@@ -2,6 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { fetchDashboard, noAnswerMessage, stillRunningMessage } from "../lib/dashboard-answers.mjs";
 
 // 127.0.0.1, not localhost: `npm run dev`/`start` bind Next with `-H 127.0.0.1`
 // (IPv4 only), so a `localhost` default would fail to connect on hosts where it
@@ -20,17 +21,30 @@ function result(data) {
   };
 }
 
+/** The tool that shows a queue job, or the whole queue. */
+const followInQueue = (id) => (id ? `list_generation_queue with id "${id}"` : "list_generation_queue");
+
 async function requestJson(path, options = {}) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    }
+  const method = options.method || "GET";
+  const response = await fetchDashboard(
+    `${baseUrl}${path}`,
+    {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      }
+    },
+    { method, path }
+  ).catch((error) => {
+    throw new Error(noAnswerMessage(error, { method, path, baseUrl, follow: followInQueue }));
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(`${options.method || "GET"} ${path} failed with ${response.status}: ${JSON.stringify(data)}`);
+    throw new Error(
+      stillRunningMessage(data, { method, path, follow: followInQueue }) ||
+        `${method} ${path} failed with ${response.status}: ${JSON.stringify(data)}`
+    );
   }
   return data;
 }
@@ -458,6 +472,23 @@ server.registerTool(
 );
 
 server.registerTool(
+  "generate_flux3_image",
+  {
+    title: "Generate FLUX 3 Image",
+    description:
+      "Generate and locally save a FLUX 3 image. Modes: t2i (prompt; optional layout boxes with frame), i2i (up to ten references), edit (whole-image edit of a source), precise (an edit with boxes on the source: each box {x, y, width, height, action: change|keep|move|remove, prompt, reference?, target? for move} in source pixels, plus frame {width, height}). Boxes are converted to BFL's [top, left, bottom, right] 0-1000 rows in the prompt. Settings: aspectRatio, resolution (768sq, 1k, 2k, 4k), grounding, safetyTolerance. There is no mask. Select Klein with settings.model=flux-3-image-klein: no grounding; resolution may be null/omitted or 768sq|1k|1.5k|2k|4k, safetyTolerance integer 0..7, outputFormat jpeg|png, seed integer 0..4294967295 or null, steps integer 1..16 or null, paired width/height integers 64..6256 (product <=16822272) or null. Default format jpeg, safety 2, steps 16; omitted resolution uses 1k for text or source size for edits. Klein pricing is not listed.",
+    inputSchema: {
+      payload: z.record(z.string(), z.unknown())
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: true
+    }
+  },
+  async ({ payload }) => result(await post("/api/bfl/flux3-image", payload))
+);
+
+server.registerTool(
   "generate_flux3_video",
   {
     title: "Generate FLUX 3 Video",
@@ -638,6 +669,84 @@ server.registerTool(
     }
   },
   async ({ payload }) => result(await post("/api/reference-archive", payload))
+);
+
+const collectionMemberSchema = z.object({
+  assetId: z.string().min(1).describe("Saved output id, as list_assets returns it."),
+  kind: z.enum(["input", "generation", "asset"]).optional(),
+  role: z.enum(["character", "style", "environment", "pose", "loose"]).optional(),
+  name: z.string().optional()
+});
+
+server.registerTool(
+  "list_collections",
+  {
+    title: "List Collections",
+    description: "List gallery collections (moodboard/project folders of saved assets), or return one by id.",
+    inputSchema: {
+      id: z.string().optional()
+    }
+  },
+  async ({ id }) => result(await requestJson(withParams("/api/collections", { id })))
+);
+
+server.registerTool(
+  "create_collection",
+  {
+    title: "Create Collection",
+    description: "Create a gallery collection, optionally with asset members. Collections feed Video Script pools and reference sets.",
+    inputSchema: {
+      name: z.string().min(1),
+      description: z.string().optional(),
+      members: z.array(collectionMemberSchema).optional(),
+      cover: z.array(z.string()).max(4).optional().describe("Up to four asset ids shown as the cover."),
+      favorite: z.boolean().optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async (payload) => result(await post("/api/collections", payload))
+);
+
+server.registerTool(
+  "update_collection",
+  {
+    title: "Update Collection",
+    description: "Rename or update a gallery collection. members replaces the whole list; addMembers appends without removing any.",
+    inputSchema: {
+      id: z.string().min(1),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      favorite: z.boolean().optional(),
+      cover: z.array(z.string()).max(4).optional(),
+      members: z.array(collectionMemberSchema).optional(),
+      addMembers: z.array(collectionMemberSchema).optional()
+    },
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false
+    }
+  },
+  async ({ id, ...changes }) => result(await patch(withParams("/api/collections", { id }), changes))
+);
+
+server.registerTool(
+  "delete_collection",
+  {
+    title: "Delete Collection",
+    description: "Delete a gallery collection, or remove one asset from it when assetId is given. The assets themselves stay in the gallery.",
+    inputSchema: {
+      id: z.string().min(1),
+      assetId: z.string().optional().describe("Remove only this member instead of deleting the collection.")
+    },
+    annotations: {
+      destructiveHint: true,
+      openWorldHint: false
+    }
+  },
+  async ({ id, assetId }) => result(await del(withParams("/api/collections", { id, assetId })))
 );
 
 server.registerTool(

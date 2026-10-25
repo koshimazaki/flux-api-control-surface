@@ -411,6 +411,24 @@
   text-transform: uppercase;
 }
 
+/* The controls column can run long: Visual direction alone opens fourteen
+   sections. Beside it the preview used to stretch into a tall, mostly empty
+   panel with the picture at its top. It now keeps to the viewport and follows
+   the scroll, and any spare height goes evenly above and below the picture. */
+@media (min-width: 1161px) {
+  .flux3VideoWorkspace > .flux3PreviewPanel {
+    position: sticky;
+    top: 14px;
+    align-self: start;
+    /* The row's height, up to what fits on screen under the top bar and the rail. */
+    min-height: min(100%, calc(100vh - 218px));
+  }
+
+  .flux3PreviewPanel > .videoStage {
+    margin-block: auto;
+  }
+}
+
 @media (max-width: 1160px) {
   .workspace.flux3Mode {
     grid-template-columns: 240px minmax(360px, 1fr);

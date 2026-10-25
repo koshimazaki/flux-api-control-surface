@@ -1,8 +1,20 @@
 # UI sprint — remaining steps
 
-Status: 12 September 2026. Implementation paused at the user's request so the
-remaining changes can be reviewed individually. This draft checkpoint preserves
-the current implementation; it does not mark the remaining steps complete.
+Status: 25 October 2026. Refreshed against current `main`, keeping the current
+queue, camera controls, Klein integration and generation shaders. This remains
+a draft: Frames, gallery-scroll reproduction and final visual review are open.
+
+Recreate now routes FLUX 3 Image back to its own workspace, preserves saved
+drafts and box geometry, and conservatively recovers older compiled box prompts.
+Uploaded PNG/JPEG/video inputs survive in the recipe store and resolve directly
+from disk; raw JPEG base64 is not mistaken for a URL. Video restoration preserves
+camera direction without duplicating clauses or inheriting an unrelated choice.
+Recipe envelopes are validated, credentials stay excluded, overlapping writes
+use separate temporary files, and a recipe-save failure cannot retry paid work.
+
+Validation: production build and TypeScript pass on Node 26.12.1. 109 test files /
+837 tests pass with the CLI socket test file excluded; its four tests are blocked
+by sandbox `listen EPERM`. No paid generation or deployment was performed.
 
 Preserve the approved collection sizes, three generation shaders, one-second
 generation reveal, half-second video reveal from black, queue animation and
@@ -67,7 +79,7 @@ removal, collapse/reopen and switching video modes.
 
 ## 5. Finish Recreate in the asset library
 
-**In progress; not yet validated end to end.**
+**Restoration fixes and regression tests implemented; browser round-trip review pending.**
 
 A circular-arrow action loads an asset's saved setup into its originating tool.
 It must not enqueue or spend credits. Keep the existing Send prompt action.

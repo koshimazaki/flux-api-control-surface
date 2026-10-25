@@ -1,3 +1,7 @@
+import { GalleryGenerationCard } from "@/components/generation/gallery-generation-card";
+import { galleryEntries, type GalleryEntry } from "@/lib/gallery-generations";
+import { useGalleryGenerations } from "@/lib/dashboard/use-gallery-generations";
+import type { GenerationQueueJob } from "@/lib/generation-queue";
 import {
   Download,
   FolderOpen,
@@ -13,10 +17,10 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ChangeEvent, type DragEvent } from "react";
 import { AssetCard } from "@/components/asset-card";
-import { GalleryGenerationCard } from "@/components/generation/gallery-generation-card";
-import { galleryEntries, type GalleryEntry, type GalleryGeneration } from "@/lib/gallery-generations";
 import { AssetCollectionGallery, visibleAssetCollections } from "@/components/asset-collection-gallery";
 import { PanelHeader } from "@/components/ui/panel-header";
+import { DEFAULT_SEND_FAMILY, SEND_FAMILIES, SEND_FAMILY_KEY, isSendFamily, sendFamilyLabels, type SendFamily } from "@/lib/asset-send";
+import type { Flux3ImageGalleryTarget } from "@/lib/dashboard/flux3-image-inbox";
 import type {
   AssetBadge,
   AssetCollection,
@@ -38,11 +42,9 @@ const collectionFilterLabels: Record<AssetCollectionFilter, string> = {
 };
 
 const collectionFilterChipOptions: AssetCollectionFilter[] = ["images", "videos", "collections"];
-const ignoreGenerationReveal = () => {};
 
 type AssetLibraryProps = {
-  generations?: GalleryGeneration[];
-  onGenerationRevealed?: (id: string) => void;
+  generationQueue?: GenerationQueueJob[];
   assets: AssetRecord[];
   filteredAssets: AssetRecord[];
   searchQuery: string;
@@ -76,6 +78,7 @@ type AssetLibraryProps = {
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToVtoGarment: (asset: AssetRecord) => void;
   onSendToFlux3Keyframe?: (asset: AssetRecord) => void;
+  onSendToFlux3Image?: (asset: AssetRecord, target: Flux3ImageGalleryTarget) => void;
   onSendToFlux3Continue?: (asset: AssetRecord) => void;
   onSendToEdit?: (asset: AssetRecord) => void;
   onSendToUpscale?: (asset: AssetRecord) => void;
@@ -90,15 +93,15 @@ type AssetLibraryProps = {
   onDelete: (id: string) => void;
 };
 
-function groupAssetsByDate(assets: GalleryEntry[]) {
+function groupAssetsByDate(entries: GalleryEntry[]) {
   const groups = new Map<string, GalleryEntry[]>();
-  assets.forEach((asset) => {
-    const date = new Date(asset.timestamp).toLocaleDateString(undefined, {
+  entries.forEach((entry) => {
+    const date = new Date(entry.timestamp).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
       day: "numeric"
     });
-    groups.set(date, [...(groups.get(date) || []), asset]);
+    groups.set(date, [...(groups.get(date) || []), entry]);
   });
   return Array.from(groups.entries());
 }
@@ -108,9 +111,12 @@ function imageFilesFromTransfer(event: DragEvent) {
 }
 
 export function AssetLibrary(props: AssetLibraryProps) {
+  const { generations, markRevealed } = useGalleryGenerations(props.generationQueue ?? [], props.assets);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [targetCollectionId, setTargetCollectionId] = useState("");
   const [collectionToolsOpen, setCollectionToolsOpen] = useState(false);
+  // Which product family's send buttons the cards lead with; remembered per browser.
+  const [sendFamily, setSendFamily] = useState<SendFamily>(DEFAULT_SEND_FAMILY);
   const assetGridStyle = {
     gridTemplateColumns: `repeat(${props.gridSize}, minmax(0, 1fr))`
   };
@@ -131,21 +137,34 @@ export function AssetLibrary(props: AssetLibraryProps) {
       : [...props.collectionFilter, option];
     props.onCollectionFilterChange(next.length === collectionFilterChipOptions.length ? [] : next);
   }
-  const visibleAssetIds = new Set(mediaAssets.map((asset) => asset.id));
-  const query = props.searchQuery.trim().toLowerCase();
-  const entries = galleryEntries(props.assets, props.generations || []).filter((entry) => {
-    if (entry.asset) return visibleAssetIds.has(entry.asset.id);
-    const job = entry.generation!.job;
-    const matchesMedia = filterAll || (job.kind === "video" ? filterHas("videos") : filterHas("images"));
-    return matchesMedia && (!query || `${job.title} ${job.operation}`.toLowerCase().includes(query));
-  });
-  const groupedAssets = showAssets ? groupAssetsByDate(entries) : [];
-  // Exactly what the grid shows, in the order it shows it, so paging the
-  // lightbox walks the gallery rather than some other list.
-  const visibleOrder = groupedAssets.flatMap(([, dateAssets]) => dateAssets.flatMap((entry) => entry.asset ? [entry.asset] : []));
+  const visibleGenerations = showAssets && !props.openedCollection ? generations.filter(({ job }) => {
+    if (props.searchQuery && !`${job.title} ${job.operation}`.toLowerCase().includes(props.searchQuery.toLowerCase())) return false;
+    if (filterAll || (filterHas("images") && filterHas("videos"))) return true;
+    return filterHas("videos") ? job.kind === "video" : job.kind !== "video";
+  }) : [];
+  const groupedAssets = showAssets ? groupAssetsByDate(galleryEntries(mediaAssets, visibleGenerations)) : [];
+  const visibleOrder = groupedAssets.flatMap(([, entries]) => entries.flatMap((entry) => entry.asset ? [entry.asset] : []));
   function onImageImport(event: ChangeEvent<HTMLInputElement>) {
     props.onImportImages(Array.from(event.target.files || []));
     event.target.value = "";
+  }
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SEND_FAMILY_KEY);
+      if (isSendFamily(stored)) setSendFamily(stored);
+    } catch {
+      /* the preference is optional */
+    }
+  }, []);
+
+  function chooseSendFamily(family: SendFamily) {
+    setSendFamily(family);
+    try {
+      localStorage.setItem(SEND_FAMILY_KEY, family);
+    } catch {
+      /* the choice still holds for this visit */
+    }
   }
 
   useEffect(() => {
@@ -202,6 +221,21 @@ export function AssetLibrary(props: AssetLibraryProps) {
                 onClick={() => toggleFilterChip(option)}
               >
                 {collectionFilterLabels[option]}
+              </button>
+            ))}
+          </div>
+          <div className="assetSendFamilyPicker" role="group" aria-label="Send buttons shown on each card">
+            <span>Send to</span>
+            {SEND_FAMILIES.map((family) => (
+              <button
+                type="button"
+                key={family}
+                className={sendFamily === family ? "active" : ""}
+                aria-pressed={sendFamily === family}
+                onClick={() => chooseSendFamily(family)}
+                title={sendFamilyLabels[family].title}
+              >
+                {sendFamilyLabels[family].label}
               </button>
             ))}
           </div>
@@ -325,7 +359,6 @@ export function AssetLibrary(props: AssetLibraryProps) {
           collections={props.collections}
           searchQuery={props.searchQuery}
           showCollections={showCollections}
-          compact={!filterHas("collections")}
           openedCollection={props.openedCollection}
           assets={props.assets}
           gridSize={props.gridSize}
@@ -345,7 +378,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
           <section className="assetDateGroup" key={date}>
             <div className="assetDateHeader">
               <strong>{date}</strong>
-              <span>{dateAssets.filter((entry) => entry.asset).length} saved{dateAssets.some((entry) => !entry.asset) ? ` · ${dateAssets.filter((entry) => !entry.asset).length} in queue` : ""}</span>
+              <span>{dateAssets.length} asset{dateAssets.length === 1 ? "" : "s"}</span>
             </div>
             <div className="assetGrid" style={assetGridStyle}>
               {dateAssets.map((entry) => {
@@ -357,6 +390,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   badges={props.assetBadges[asset.id] || []}
                   isSelected={props.selectedAssetIds.includes(asset.id)}
                   metadataOpen={props.metadataAssetId === asset.id}
+                  sendFamily={sendFamily}
                   key={asset.id}
                   onToggleSelected={props.onToggleSelected}
                   onToggleMetadata={props.onToggleMetadata}
@@ -369,6 +403,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   onSendToWorkspace={props.onSendToWorkspace}
                   onSendToVtoGarment={props.onSendToVtoGarment}
                   onSendToFlux3Keyframe={props.onSendToFlux3Keyframe}
+                  onSendToFlux3Image={props.onSendToFlux3Image}
                   onSendToFlux3Continue={props.onSendToFlux3Continue}
                   onSendToEdit={props.onSendToEdit}
                   onSendToUpscale={props.onSendToUpscale}
@@ -378,7 +413,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                 /> : null;
                 return entry.generation ? <GalleryGenerationCard
                   key={entry.key} generation={entry.generation} asset={asset} aspectRatio={props.aspectRatio}
-                  onRevealed={props.onGenerationRevealed || ignoreGenerationReveal}
+                  onRevealed={markRevealed}
                 >{card}</GalleryGenerationCard> : card;
               })}
             </div>

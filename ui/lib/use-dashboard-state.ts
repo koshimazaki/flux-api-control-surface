@@ -33,8 +33,10 @@ import type { GenerationQueueJob } from "@/lib/generation-queue";
 import {
   flux3MediaFromAsset,
   type Flux3InputMedia,
+  type Flux3PromptSeed,
   type Flux3SourceMode
 } from "@/lib/flux3-video";
+import { normalizeCameraRecord } from "@/lib/camera-language";
 import { getBflModel } from "@/lib/provider-registry";
 import { parseReferenceDragPayload } from "@/lib/reference-drag";
 import type { VideoEditSourceInput } from "@/lib/video-edit";
@@ -44,6 +46,14 @@ import { useAssetLibrary } from "@/lib/dashboard/use-asset-library";
 import { useAssetCollections } from "@/lib/dashboard/use-asset-collections";
 import { glyphPreviewBackgroundForSvg, type GlyphPreviewBackground } from "@/lib/glyph-svg";
 import { useBalance } from "@/lib/dashboard/use-balance";
+import { useFlux3ImageRun } from "@/lib/dashboard/use-flux3-image-run";
+import {
+  addAsNextBoxReference,
+  addAsNextReference,
+  openAsEditSource,
+  type Flux3ImageGalleryTarget
+} from "@/lib/dashboard/flux3-image-inbox";
+import { updateStoredFlux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
 import { useGlyphLabCache } from "@/lib/dashboard/use-glyph-lab-cache";
 import { usePromptLibrary } from "@/lib/dashboard/use-prompt-library";
 import { IMAGE_PROMPT_LIBRARY_ID, VIDEO_PROMPT_LIBRARY_ID } from "@/lib/prompt-library-groups";
@@ -63,6 +73,7 @@ import type {
   DashboardTab,
   ImageWorkspaceMode,
   ReferenceImage,
+  SourceImageMode,
   ReferenceRole,
   WorkspaceMode,
   ApiKeyStatus
@@ -137,7 +148,7 @@ export function useDashboardState() {
   const [flux3StartVideo, setFlux3StartVideo] = useState<Flux3InputMedia | null>(null);
   // Seeds carry a nonce so re-sending the same prompt or clip still re-applies
   // inside workspaces that keep their own editing state.
-  const [flux3PromptSeed, setFlux3PromptSeed] = useState<{ text: string; nonce: number } | null>(null);
+  const [flux3PromptSeed, setFlux3PromptSeed] = useState<Flux3PromptSeed | null>(null);
   const [upscaleSourceSeed, setUpscaleSourceSeed] = useState<(VideoUpscaleSourceInput & { nonce: number }) | null>(
     null
   );
@@ -240,11 +251,11 @@ export function useDashboardState() {
   function sourceAssetIdForMode(mode: WorkspaceMode) {
     if (mode === "vto") return vtoSourceAssetId;
     if (mode === "glyphs") return glyphSourceAssetId;
-    if (mode === "erase" || mode === "outpaint" || mode === "deblur") return toolSourceAssetId;
+    if (mode === "erase" || mode === "outpaint" || mode === "deblur" || mode === "flux3_image") return toolSourceAssetId;
     return null;
   }
 
-  function setSourceAssetIdForMode(mode: ImageWorkspaceMode, id: string | null) {
+  function setSourceAssetIdForMode(mode: SourceImageMode, id: string | null) {
     if (mode === "vto") {
       setVtoSourceAssetId(id);
       return;
@@ -427,6 +438,19 @@ export function useDashboardState() {
   });
 
   const { balance, setBalance, isCheckingBalance, checkBalance } = useBalance(apiKey);
+  // Read when a run finishes, which can be long after this render.
+  const workspaceModeRef = useRef(workspaceMode);
+  workspaceModeRef.current = workspaceMode;
+  const { runFlux3Image, isFlux3ImageRunning, flux3ImageRun, dismissFlux3ImageResult } = useFlux3ImageRun({
+    apiKey,
+    setAssets,
+    setRunLog,
+    setSelectedAsset,
+    showsResultInPlace: () => workspaceModeRef.current === "flux3_image",
+    setError,
+    setRecoveryMessage,
+    checkBalance
+  });
   const serverQueue = useServerQueue({ onError: setError });
   const generationQueue = serverQueue.queue as GenerationQueueJob[];
   const generationQueueSummary = serverQueue.summary;
@@ -568,7 +592,10 @@ export function useDashboardState() {
         });
       });
     });
-    if (toolSourceAssetId && (workspaceMode === "erase" || workspaceMode === "outpaint" || workspaceMode === "deblur")) {
+    if (
+      toolSourceAssetId &&
+      (workspaceMode === "erase" || workspaceMode === "outpaint" || workspaceMode === "deblur" || workspaceMode === "flux3_image")
+    ) {
       (badges[toolSourceAssetId] ||= []).push({
         label: workspaceModeLabels[workspaceMode],
         kind: workspaceMode,
@@ -887,7 +914,10 @@ export function useDashboardState() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function sendAssetToFlux3Prompt(asset: AssetRecord) {
-    setFlux3PromptSeed((current) => ({ text: formatPrompt(asset.prompt), nonce: (current?.nonce || 0) + 1 }));
+    // A render made with the camera panel comes back as its scene plus the same camera choice.
+    const camera = normalizeCameraRecord(asset.payload?.camera);
+    const text = camera?.scene ? camera.scene : formatPrompt(asset.prompt);
+    setFlux3PromptSeed((current) => ({ text, camera: camera?.scene ? camera : null, nonce: (current?.nonce || 0) + 1 }));
     setWorkspaceMode("flux3");
     setRecoveryMessage(`Loaded the prompt from ${asset.title || asset.id} into FLUX 3 video.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1015,6 +1045,29 @@ export function useDashboardState() {
     setVtoGarmentAsset(slotIndex, asset);
     return slotIndex + 1;
   }
+  /** Gallery buttons: the image becomes the FLUX 3 Image edit source, fills the next free reference slot, or the next box without a reference. */
+  function sendAssetToFlux3Image(asset: AssetRecord, target: Flux3ImageGalleryTarget) {
+    if (asset.mediaType === "video") {
+      setRecoveryMessage("FLUX 3 Image takes images, not videos.");
+      return;
+    }
+    const label = asset.title || asset.id;
+    // Sending an image to the stage is work on the stage, so a result shown over it steps aside.
+    dismissFlux3ImageResult();
+    if (target === "source") setSourceAssetIdForMode("flux3_image", asset.id);
+    const result = updateStoredFlux3ImageDraft((draft) =>
+      target === "source"
+        ? openAsEditSource(draft, asset.id, label)
+        : target === "box"
+          ? addAsNextBoxReference(draft, asset.id, label)
+          : addAsNextReference(draft, asset.id, label)
+    );
+    setError("");
+    setSelectedAsset(null);
+    setWorkspaceMode("flux3_image");
+    setRecoveryMessage(result?.message ?? "This browser's storage is unavailable, so the FLUX 3 Image draft could not be updated.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
   function sendAssetToNextFlux3Keyframe(asset: AssetRecord) {
     if (asset.mediaType === "video") {
       setRecoveryMessage("FLUX 3 keyframes take images. Drag videos into the continuation slot instead.");
@@ -1120,6 +1173,10 @@ export function useDashboardState() {
     }
     if (workspaceMode === "upscale") {
       setError("Use the Video Upscale controls in the upscale workspace.");
+      return;
+    }
+    if (workspaceMode === "flux3_image") {
+      setError("Use the FLUX 3 Image controls in its workspace.");
       return;
     }
     if (!toolSourceAsset) {
@@ -1278,7 +1335,7 @@ export function useDashboardState() {
     setBatchMode, setBatchCount, setFlux3SourceMode, setFlux3Keyframes, setFlux3StartVideo, setSourceAssetIdForMode,
     setVtoGarmentAssetIds, setToolMask, setVtoPromptText, setOutpaintPromptText, setToolDilatePixels, setToolGuidance,
     setToolSteps, setToolSafetyTolerance, setToolOutputFormat, setOutpaintOffsetX, setOutpaintOffsetY, setOutpaintMode,
-    setOutpaintAutoCrop, setRecoveryMessage
+    setOutpaintAutoCrop, setRecoveryMessage, dismissFlux3ImageResult
   });
 
   return {
@@ -1348,6 +1405,10 @@ export function useDashboardState() {
     clearVtoGarment,
     toolMask,
     setToolMask,
+    runFlux3Image,
+    isFlux3ImageRunning,
+    flux3ImageRun,
+    dismissFlux3ImageResult,
     toolBrushSize,
     setToolBrushSize,
     toolDilatePixels,
@@ -1388,6 +1449,7 @@ export function useDashboardState() {
     sendAssetToEdit,
     sendVideoToEdit,
     sendAssetToNextFlux3Keyframe,
+    sendAssetToFlux3Image,
     revealAssetLocally,
     setAudioAssignments,
     searchQuery,
