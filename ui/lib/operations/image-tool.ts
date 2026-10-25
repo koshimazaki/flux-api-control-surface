@@ -1,3 +1,4 @@
+import { bflUserBlocker, bflUserPayload } from "@/lib/bfl-user.mjs";
 import {
   contentTypeForExtension,
   imageToDataUrl,
@@ -19,6 +20,7 @@ import type { OperationAdapter, OperationFinalizeInput, PreparedOperation } from
 export type ToolName = "erase" | "vto" | "outpaint" | "deblur";
 
 export type ToolBody = {
+  user?: string | null;
   apiKey?: string;
   tool?: ToolName;
   image?: string;
@@ -138,6 +140,8 @@ function validateToolBody(tool: ToolName, body: ToolBody) {
 
 async function prepare(rawBody: Record<string, any>, origin = "http://localhost") {
   const body = rawBody as ToolBody;
+  const userError = bflUserBlocker(body.user);
+  if (userError) return { error: userError, status: 400 };
   const tool = body.tool;
   const toolConfig = tool ? getBflImageTool(tool) : undefined;
   if (!tool || !toolConfig) return { error: `Unknown tool: ${tool || "(none)"}`, status: 400 };
@@ -220,7 +224,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
     title,
     prompt: body.prompt?.trim() || `[${tool} pass, no prompt]`,
     endpoint: toolConfig.endpoint,
-    payload: buildToolPayload(tool, preparedBody, outputFormat),
+    payload: { ...buildToolPayload(tool, preparedBody, outputFormat), ...bflUserPayload(body.user) },
     sourceAssetIds: [body.sourceAssetId, ...(body.garmentAssetIds || [])].filter((value): value is string =>
       Boolean(value)
     ),

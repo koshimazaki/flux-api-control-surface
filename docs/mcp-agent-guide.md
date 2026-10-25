@@ -66,6 +66,15 @@ only whether a key is configured; they never return the raw key.
 
 ## Local Tools And Commands
 
+Paid image generation, FLUX 3 Image (including Klein), image tools, FLUX 3 Video,
+Video Edit and Video Upscale accept an optional `user` field in their JSON
+payloads. It is an opaque end-user identifier: `null` or 1–256 Unicode characters,
+without NUL characters. Omit it to leave the provider default unchanged. Spaces
+and other valid characters are forwarded verbatim; this field is separate from
+the API key. The current Klein finetuned endpoint rejects explicit `user` because
+its published contract does not document the field. CLI commands use the same
+payloads, and queued requests retain the identifier when recovering after a restart.
+
 Each row is one capability with its two names. `tests/cli-coverage.test.ts`
 fails if a tool is added without a command, or if the two stop sharing a route.
 

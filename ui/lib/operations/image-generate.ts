@@ -1,3 +1,4 @@
+import { bflUserBlocker, bflUserPayload } from "@/lib/bfl-user.mjs";
 import {
   contentTypeForExtension,
   imageToDataUrl,
@@ -23,6 +24,7 @@ import type { ReferenceImage } from "@/lib/types";
 import type { OperationAdapter, OperationFinalizeInput, PreparedOperation } from "./types";
 
 export type GenerateBody = {
+  user?: string | null;
   apiKey?: string;
   model?: string;
   prompt?: string;
@@ -144,10 +146,15 @@ function buildRunSettings(options: {
 
 async function prepare(rawBody: Record<string, any>, origin = "http://localhost") {
   const body = rawBody as GenerateBody;
+  const userError = bflUserBlocker(body.user);
+  if (userError) return { error: userError, status: 400 };
   const prompt = body.prompt?.trim();
   // When a finetuneId is present, generation targets the hosted klein finetuned
   // endpoint with klein-9b capabilities, regardless of the requested model.
   const finetune = resolveFinetuneGeneration(body);
+  if (finetune && body.user !== undefined) {
+    return { error: "user is not documented for the Klein finetuned endpoint.", status: 400 };
+  }
   const requestedModel = body.model || "pro-preview";
   const modelConfig = finetune ? bflFinetunedKleinModel() : getBflModel(requestedModel);
 
@@ -174,7 +181,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
 
   const endpointName = finetune ? finetune.endpoint : modelConfig.endpoint;
   const outputFormat = body.outputFormat || "png";
-  const payload: Record<string, unknown> = { prompt, width, height, output_format: outputFormat };
+  const payload: Record<string, unknown> = { prompt, width, height, output_format: outputFormat, ...bflUserPayload(body.user) };
   const shouldUpsample = modelConfig.supportsPromptUpsampling && body.promptUpsampling !== false;
   if (typeof body.seed === "number") payload.seed = body.seed;
   if (modelConfig.supportsPromptUpsampling && !shouldUpsample) payload.disable_pup = true;

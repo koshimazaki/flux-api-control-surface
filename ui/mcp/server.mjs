@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { bflUserSchema } from "../lib/bfl-user.mjs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -111,6 +112,7 @@ const selectionSchema = z
 const imageInputSchema = z.string().min(1);
 const seedSchema = z.number().nullable().optional();
 const toolBaseSchema = z.object({
+  user: bflUserSchema,
   apiKey: z.string().optional(),
   image: imageInputSchema.describe("Source image URL, data URL, or raw base64."),
   seed: seedSchema,
@@ -517,6 +519,7 @@ server.registerTool(
       creativity: z.union([z.literal(0), z.literal(1)]).optional().describe("0 precise, 1 creative."),
       prompt: z.string().max(4000).optional(),
       safetyTolerance: z.number().int().min(0).max(4).optional(),
+      user: bflUserSchema,
       title: z.string().max(160).optional(),
       sourceAssetId: z.string().optional(),
       sourceName: z.string().optional(),
@@ -542,7 +545,7 @@ server.registerTool(
   {
     title: "Edit Video with FLUX",
     description:
-      "Edit and locally save an MP4 with FLUX Video Edit from one text instruction: remove, add, replace or recolor objects, change signs or dialogue, restyle or relight the scene. Duration, aspect ratio and audio follow the source; above 720p returns at 720p. The documented request is video + prompt + safetyTolerance only — no image references, masks or seeds. Chain passes by sending a result URL back as inputVideo.",
+      "Edit and locally save an MP4 with FLUX Video Edit from one text instruction: remove, add, replace or recolor objects, change signs or dialogue, restyle or relight the scene. Duration, aspect ratio and audio follow the source; above 720p returns at 720p. The documented request is video + prompt + safetyTolerance and optional user — no image references, masks or seeds. Chain passes by sending a result URL back as inputVideo.",
     inputSchema: {
       inputVideo: z
         .string()
@@ -550,6 +553,7 @@ server.registerTool(
         .describe("Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL. MP4 up to 50 MB and 15 seconds."),
       prompt: z.string().min(1).max(4096).describe("The change to make, and nothing else; everything unmentioned stays as filmed."),
       safetyTolerance: z.number().int().min(0).max(4).optional(),
+      user: bflUserSchema,
       title: z.string().max(160).optional(),
       sourceAssetId: z.string().optional(),
       sourceName: z.string().optional(),
