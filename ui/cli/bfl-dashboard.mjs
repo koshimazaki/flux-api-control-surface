@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import "../scripts/check-node.mjs";
 
 import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";

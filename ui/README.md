@@ -1,5 +1,15 @@
 # FLUX API Control Surface
 
+Use **Node.js 26.12.1 or a newer 26.x patch/minor** (October 21, 2026 security fixes).
+From this directory run `nvm install && nvm use`, then reinstall dependencies
+with `npm ci`. Restart the dashboard and any MCP/CLI processes after upgrading;
+already-running processes keep their old runtime. Configure MCP launchers to use
+that Node executable when they launch `mcp/server.mjs` directly.
+
+Runtime pins live in `.nvmrc` and `.node-version`; npm rejects older runtimes.
+See the [official security release](https://nodejs.org/en/blog/release/v26.12.1/).
+
+
 Local Next.js control surface for FLUX 3 Image, FLUX.2 images and FLUX 3
 video: prompts, batch permutations, Video Script keyframe batches, reference
 images, image tools, a server-owned generation queue, model evaluation, assets,
