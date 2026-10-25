@@ -223,3 +223,10 @@ describe("October 22 exact FLUX 3 output sizing", () => {
     expect(() => buildFlux3ImagePayload({ mode: "precise", source: SOURCE, frame: FRAME, regions: [region()], settings: { width: 1024, height: 1024 } })).toThrow(/frame aspect/);
   });
 });
+
+describe("switching from standard to Klein settings", () => {
+  it("drops standard-only version and match_input instead of resetting every Klein setting", () => {
+    expect(normalizeFlux3ImageSettings({ model: "flux-3-image-klein", resolution: "match_input", version: "latest", safetyTolerance: 5, width: 1024, height: 768 }))
+      .toMatchObject({ model: "flux-3-image-klein", resolution: null, safetyTolerance: 5, width: 1024, height: 768 });
+  });
+});

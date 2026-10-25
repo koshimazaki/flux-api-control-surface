@@ -79,14 +79,15 @@ export function Flux3ImageSettingsFields({ settings, onChange, estimate, aspectL
               onChange={(event) => set({ [side]: event.target.value === "" ? null : Number(event.target.value) })} />
           </label>)}
       </div>
-      <small className="flux3SettingsNote">Set width and height together to override resolution and aspect. Standard: up to 16.8 MP, or 4 MP with references. Filtering levels depend on organization approval.</small>
       {aspectNote && <small className="flux3SettingsNote">{aspectNote}</small>}
       {klein ? <small className="flux3SettingsNote">Width and height override resolution and aspect for unboxed runs (up to 16.8 MP). Boxed edits and layouts keep their frame. Filtering levels depend on organization approval.</small> :
+        <>
+        <small className="flux3SettingsNote">Set width and height together to override resolution and aspect. Standard: up to 16.8 MP, or 4 MP with references. Filtering levels depend on organization approval.</small>
         <label className="toggle flux3Toggle" title="Lets FLUX 3 ground the prompt in web and image search">
           <input type="checkbox" checked={settings.grounding} onChange={(event) => set({ grounding: event.target.checked })} />
           {settings.grounding ? <Globe size={16} /> : <GlobeLock size={16} />}
           Grounding: web and image search
-        </label>}
+        </label></>}
       <div className="flux3CostBox">
         <div><span>Model</span><strong>{FLUX3_IMAGE_MODEL_LABELS[model]}</strong></div>
         <div><span>Estimate</span><strong>{estimate === null ? "Not listed" : `$${estimate.toFixed(3)}`}</strong></div>

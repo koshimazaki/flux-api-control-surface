@@ -87,9 +87,10 @@ export const defaultFlux3ImageSettings: Flux3ImageSettings = {
 export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings {
   const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   if (record.model === FLUX3_IMAGE_KLEIN_MODEL) {
-    // Stored drafts from the provisional route also carried standard-only grounding.
-    // Drop that obsolete field on restore; explicit API requests still reject it.
-    const restored = Object.fromEntries(Object.entries(record).filter(([key]) => key !== "grounding"));
+    // Stored drafts and model switches can carry standard-only grounding, version
+    // or match_input. Drop them on restore; explicit API requests still reject them.
+    const restored = Object.fromEntries(Object.entries(record).filter(([key, entry]) =>
+      key !== "grounding" && key !== "version" && !(key === "resolution" && entry === "match_input")));
     const checked = flux3ImageKleinSchema.safeParse({ prompt: "", ...kleinSettingsPayload(restored) });
     const parsed = checked.success ? checked.data : flux3ImageKleinSchema.parse({ prompt: "" });
     return {
