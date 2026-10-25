@@ -166,7 +166,7 @@ The workspace mode switcher exposes FLUX image tools on any gallery output:
   written into the prompt as BFL's `[top, left, bottom, right]` rows on a
   0 to 1000 grid. Each box has its own colour and drags from inside; arrows
   nudge it and Delete removes it. Settings are aspect ratio, resolution
-  (`768sq`, `1k`, `2k`, `4k`), grounding and safety tolerance. Generate clicks
+  (`768sq`, `1k`, `1.5k`, `2k`, `4k`, or `match_input` for edits), exact paired width/height, grounding and safety tolerance 0–7 (organization approval applies). Generate clicks
   stack on the job queue. While a job runs the stage shows a waiting field,
   and the result arrives through it with Edit this, Open and Close.
 - **Erase** (`flux-tools/erase-v1`): paint a mask directly on the image

@@ -3,6 +3,7 @@ import { buildGenerationTiming } from "@/lib/generation-capture";
 import {
   buildVideoUpscalePayload,
   estimateVideoUpscaleUsd,
+  videoUpscaleOutputSize,
   redactVideoUpscalePayload,
   VIDEO_UPSCALE_ENDPOINT,
   VIDEO_UPSCALE_MODEL,
@@ -52,8 +53,8 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
         sourceWidth: body.sourceWidth,
         sourceHeight: body.sourceHeight,
         durationSeconds: body.durationSeconds,
-        outputWidth: body.sourceWidth ? Math.round(body.sourceWidth * (body.upscaleFactor ?? 2)) : undefined,
-        outputHeight: body.sourceHeight ? Math.round(body.sourceHeight * (body.upscaleFactor ?? 2)) : undefined,
+        outputWidth: videoUpscaleOutputSize(body)?.width,
+        outputHeight: videoUpscaleOutputSize(body)?.height,
         estimatedUsd: estimateVideoUpscaleUsd(body)
       }
     } satisfies PreparedOperation;

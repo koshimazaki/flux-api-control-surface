@@ -476,7 +476,7 @@ server.registerTool(
   {
     title: "Generate FLUX 3 Image",
     description:
-      "Generate and locally save a FLUX 3 image. Modes: t2i (prompt; optional layout boxes with frame), i2i (up to ten references), edit (whole-image edit of a source), precise (an edit with boxes on the source: each box {x, y, width, height, action: change|keep|move|remove, prompt, reference?, target? for move} in source pixels, plus frame {width, height}). Boxes are converted to BFL's [top, left, bottom, right] 0-1000 rows in the prompt. Settings: aspectRatio, resolution (768sq, 1k, 2k, 4k), grounding, safetyTolerance. There is no mask. Select Klein with settings.model=flux-3-image-klein: no grounding; resolution may be null/omitted or 768sq|1k|1.5k|2k|4k, safetyTolerance integer 0..7, outputFormat jpeg|png, seed integer 0..4294967295 or null, steps integer 1..16 or null, paired width/height integers 64..6256 (product <=16822272) or null. Default format jpeg, safety 2, steps 16; omitted resolution uses 1k for text or source size for edits. Klein pricing is not listed.",
+      "Generate and locally save a FLUX 3 image. Modes: t2i (prompt; optional layout boxes with frame), i2i (up to ten references), edit (whole-image edit of a source), precise (an edit with boxes on the source: each box {x, y, width, height, action: change|keep|move|remove, prompt, reference?, target? for move} in source pixels, plus frame {width, height}). Boxes are converted to BFL's [top, left, bottom, right] 0-1000 rows in the prompt. Settings: aspectRatio, resolution (768sq, 1k, 1.5k, 2k, 4k, match_input for edits), grounding, safetyTolerance (0..7; organization approval applies), version (latest), paired width/height (256..6256, product <=16822272; <=4194304 with references). Exact dimensions override resolution and aspect; boxed requests must preserve frame aspect. Unpriced tiers and exact sizes have no estimate. There is no mask. Select Klein with settings.model=flux-3-image-klein: no grounding; resolution may be null/omitted or 768sq|1k|1.5k|2k|4k, safetyTolerance integer 0..7, outputFormat jpeg|png, seed integer 0..4294967295 or null, steps integer 1..16 or null, paired width/height integers 64..6256 (product <=16822272) or null. Default format jpeg, safety 2, steps 16; omitted resolution uses 1k for text or source size for edits. Klein pricing is not listed.",
     inputSchema: {
       payload: z.record(z.string(), z.unknown())
     },
@@ -510,13 +510,13 @@ server.registerTool(
   {
     title: "Upscale Video with FLUX 3",
     description:
-      "Upscale and locally save an MP4 with FLUX 3 Video Upscale. Supports 1.5×–3×, precise or creative recovery, an optional detail prompt, and safety tolerance 0–4.",
+      "Upscale and locally save an MP4 with FLUX 3 Video Upscale. Supports 1.5×–3×, precise or creative recovery, an optional detail prompt, and safety tolerance 0–7 (organization approval applies). Input max 3.7 MP (2560×1440); output capped at 13.75 MP with a reduced effective factor.",
     inputSchema: {
       inputVideo: z.string().min(1).describe("Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL."),
       upscaleFactor: z.number().min(1.5).max(3).optional(),
       creativity: z.union([z.literal(0), z.literal(1)]).optional().describe("0 precise, 1 creative."),
       prompt: z.string().max(4000).optional(),
-      safetyTolerance: z.number().int().min(0).max(4).optional(),
+      safetyTolerance: z.number().int().min(0).max(7).optional(),
       title: z.string().max(160).optional(),
       sourceAssetId: z.string().optional(),
       sourceName: z.string().optional(),
@@ -527,7 +527,7 @@ server.registerTool(
         .positive()
         .lt(20.5)
         .optional()
-        .describe("Measured source seconds. FLUX 3's own 20 s renders may report slightly over 20 from container metadata; the API rounds to whole seconds.")
+        .describe("Measured source seconds. FLUX 3's own 20 s renders may report slightly over 20 from container metadata; this dashboard allows less than 20.5 seconds; the provider upscales the first 20 seconds.")
     },
     annotations: {
       destructiveHint: false,

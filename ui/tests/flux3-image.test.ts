@@ -119,7 +119,7 @@ describe("FLUX 3 Image request blocker", () => {
     // Priced per image by resolution; the unpriced 1.5k tier is not offered.
     expect(estimateFlux3ImageUsd({ mode: "t2i", prompt: "a fox" })).toBe(0.048);
     expect(estimateFlux3ImageUsd({ mode: "t2i", prompt: "a fox", settings: { resolution: "4k" } })).toBe(0.607);
-    expect(normalizeFlux3ImageSettings({ resolution: "1.5k" }).resolution).toBe("1k");
+    expect(normalizeFlux3ImageSettings({ resolution: "1.5k" }).resolution).toBe("1.5k");
   });
 
   it("selects the Klein endpoint for generation and edits, with an unknown price", () => {
@@ -202,5 +202,24 @@ describe("box drawing and Erase's mask", () => {
   it("makes every mask pixel fully selected or not", () => {
     const pixels = new Uint8ClampedArray([200, 200, 200, 255, 90, 90, 90, 255, 128, 128, 128, 255]);
     expect(Array.from(hardenMaskPixels(pixels))).toEqual([255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255]);
+  });
+});
+
+
+describe("October 22 exact FLUX 3 output sizing", () => {
+  it("forwards paired dimensions and leaves unpriced estimates unknown", () => {
+    const request = { mode: "t2i" as const, prompt: "fox", settings: { width: 1280, height: 720, version: "latest" as const } };
+    expect(buildFlux3ImagePayload(request).payload).toMatchObject({ width: 1280, height: 720, version: "latest" });
+    expect(estimateFlux3ImageUsd(request)).toBeNull();
+    expect(estimateFlux3ImageUsd({ ...request, settings: { resolution: "1.5k" } })).toBeNull();
+    expect(buildFlux3ImagePayload({ mode: "edit", source: SOURCE, prompt: "dusk", settings: { resolution: "match_input" } }).payload.resolution).toBe("match_input");
+  });
+  it("rejects incomplete, oversized and misplaced dimensions before submission", () => {
+    for (const settings of [{ width: 1024 }, { width: 255, height: 512 }, { width: 6256, height: 6256 }, { width: 1024.5, height: 512 }]) {
+      expect(() => buildFlux3ImagePayload({ mode: "t2i", prompt: "fox", settings })).toThrow();
+    }
+    expect(() => buildFlux3ImagePayload({ mode: "edit", source: SOURCE, prompt: "dusk", settings: { width: 4096, height: 2048 } })).toThrow(/4194304/);
+    expect(() => buildFlux3ImagePayload({ mode: "t2i", prompt: "fox", settings: { resolution: "match_input" } })).toThrow(/reference/);
+    expect(() => buildFlux3ImagePayload({ mode: "precise", source: SOURCE, frame: FRAME, regions: [region()], settings: { width: 1024, height: 1024 } })).toThrow(/frame aspect/);
   });
 });
