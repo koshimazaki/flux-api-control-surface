@@ -10,6 +10,7 @@ import type { GenerationQueueJob, GenerationQueueSummary } from "@/lib/generatio
 import { BFL_IMAGE_OPTION_MIME } from "@/lib/reference-drag";
 import {
   estimateVideoUpscaleUsd,
+  videoUpscaleOutputSize,
   videoUpscaleRequestBlocker,
   type VideoUpscaleCreativity,
   type VideoUpscaleRequest,
@@ -79,6 +80,7 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
   }), [creativity, factor, prompt, safetyTolerance, source]);
   const blocker = videoUpscaleRequestBlocker(request);
   const estimatedUsd = estimateVideoUpscaleUsd(request);
+  const outputSize = videoUpscaleOutputSize(request);
 
   useEffect(() => {
     let cancelled = false;
@@ -275,11 +277,11 @@ export function VideoUpscaleWorkspace(props: VideoUpscaleWorkspaceProps) {
         <label>Upscale factor <span>{factor.toFixed(1)}×</span><input type="range" min="1.5" max="3" step="0.1" value={factor} onChange={(event) => setFactor(Number(event.target.value))} /></label>
         <div className="videoUpscaleTarget">
           <span>Target</span>
-          <strong>{source?.width && source?.height ? `${Math.round(source.width * factor)} × ${Math.round(source.height * factor)}` : factor >= 2.5 ? "Up to 4K" : "Up to 2K"}</strong>
+          <strong>{outputSize ? `~${outputSize.width} × ${outputSize.height}` : factor >= 2.5 ? "Up to 4K" : "Up to 2K"}</strong>
           <small>{source?.duration ? `${source.duration.toFixed(1)} sec · source ${source.width} × ${source.height}` : "Source metadata appears after selection."}</small>
         </div>
         <label>Optional detail prompt<textarea rows={5} value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe texture or detail to recover without changing the shot…" /></label>
-        <label>Safety<select value={safetyTolerance} onChange={(event) => setSafetyTolerance(Number(event.target.value))}>{[0, 1, 2, 3, 4].map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
+        <label>Safety<select value={safetyTolerance} onChange={(event) => setSafetyTolerance(Number(event.target.value))}>{[0, 1, 2, 3, 4, 5, 6, 7].map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
         <div className="videoUpscaleCost"><span>Estimate</span><strong>{estimatedUsd === null ? "After source metadata" : `$${estimatedUsd.toFixed(2)}`}</strong><small>{creativity ? "$0.10" : "$0.07"} per output MP-second</small></div>
         {(error || warning) && <p className={error ? "errorBox" : "flux3Warning"}>{error || warning}</p>}
         <JobQueue queue={props.generationQueue} summary={props.generationQueueSummary} concurrency={props.generationQueueConcurrency} controls={props.generationQueueControls} />

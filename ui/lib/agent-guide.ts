@@ -81,6 +81,7 @@ export const agentWorkflowGuide = {
       steps: [
         `POST ${agentRouteMap.flux3Image} with mode t2i, i2i, edit or precise (or call generate_flux3_image, or npm run --silent cli -- generate-flux3-image)`,
         "Place elements with boxes rather than a mask: layout[] for text to image, regions[] with an action (change, keep, move, remove) for a precise edit, each in the pixels of frame { width, height }",
+        "Standard Image accepts settings.width and settings.height together (256..6256 each, up to 16822272 pixels; 4194304 with references), resolution match_input for edits or 1.5k, version latest, and safetyTolerance 0..7 subject to organization approval. Exact dimensions override resolution/aspect; box frame aspect must be preserved. Unpriced sizes have no estimate.",
         "The server writes the boxes into the prompt as BFL's [top, left, bottom, right] rows on a 0-1000 grid; a precise edit keeps the source's aspect ratio",
         `Add wait=false to get a queue job id at once and follow it through ${agentRouteMap.queue}`,
         "Without wait=false the call waits up to about five minutes; a longer render answers with timedOut and its queueJobId and keeps running, so follow that job instead of sending the request again",
@@ -92,6 +93,7 @@ export const agentWorkflowGuide = {
       steps: [
         `GET ${agentRouteMap.outputs} or ${agentRouteMap.flux3Video}`,
         `POST ${agentRouteMap.videoUpscale} with inputVideo and upscaleFactor 1.5 through 3`,
+        "Sources are limited to 3.7 MP per frame; the provider caps output at 13.75 MP and upscales only the first 20 seconds. Filtering levels 0..7 require organization approval.",
         `GET ${agentRouteMap.videoUpscale} for the saved source/result comparison URLs`,
         `GET ${agentRouteMap.outputs} to recover the result in Assets`
       ]

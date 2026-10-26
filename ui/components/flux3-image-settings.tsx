@@ -7,7 +7,7 @@ import {
 } from "@/lib/flux3-image";
 
 const resolutionLabels: Record<Flux3ImageResolution, string> = {
-  "768sq": "768 (draft)", "1k": "1K", "1.5k": "1.5K", "2k": "2K", "4k": "4K (slow)"
+  "768sq": "768 (draft)", "1k": "1K", "1.5k": "1.5K", "2k": "2K", "4k": "4K (slow)", "match_input": "Match input (edits)"
 };
 
 type Flux3ImageSettingsFieldsProps = {
@@ -54,7 +54,7 @@ export function Flux3ImageSettingsFields({ settings, onChange, estimate, aspectL
         <div className="themedSelectField">
           <span>Filtering</span>
           <ThemedSelect label="Filtering" value={String(settings.safetyTolerance)}
-            options={Array.from({ length: klein ? 8 : 5 }, (_, level) => ({ value: String(level), label: level === 0 ? "0 (strictest)" : String(level) }))}
+            options={Array.from({ length: 8 }, (_, level) => ({ value: String(level), label: level === 0 ? "0 (strictest)" : String(level) }))}
             onChange={(level) => set({ safetyTolerance: Number(level) })} />
         </div>
         {klein && <>
@@ -72,20 +72,22 @@ export function Flux3ImageSettingsFields({ settings, onChange, estimate, aspectL
             <input type="number" min={0} max={4294967295} step={1} placeholder="Random" value={settings.seed ?? ""}
               onChange={(event) => set({ seed: event.target.value === "" ? null : Number(event.target.value) })} />
           </label>
+        </>}
           {(["width", "height"] as const).map((side) => <label key={side}>
             {side === "width" ? "Width (px)" : "Height (px)"}
-            <input type="number" min={64} max={6256} step={1} placeholder="Auto" value={settings[side] ?? ""} disabled={aspectLocked}
+            <input type="number" min={klein ? 64 : 256} max={6256} step={1} placeholder="Auto" value={settings[side] ?? ""} disabled={klein && aspectLocked}
               onChange={(event) => set({ [side]: event.target.value === "" ? null : Number(event.target.value) })} />
           </label>)}
-        </>}
       </div>
       {aspectNote && <small className="flux3SettingsNote">{aspectNote}</small>}
       {klein ? <small className="flux3SettingsNote">Width and height override resolution and aspect for unboxed runs (up to 16.8 MP). Boxed edits and layouts keep their frame. Filtering levels depend on organization approval.</small> :
+        <>
+        <small className="flux3SettingsNote">Set width and height together to override resolution and aspect. Standard: up to 16.8 MP, or 4 MP with references. Filtering levels depend on organization approval.</small>
         <label className="toggle flux3Toggle" title="Lets FLUX 3 ground the prompt in web and image search">
           <input type="checkbox" checked={settings.grounding} onChange={(event) => set({ grounding: event.target.checked })} />
           {settings.grounding ? <Globe size={16} /> : <GlobeLock size={16} />}
           Grounding: web and image search
-        </label>}
+        </label></>}
       <div className="flux3CostBox">
         <div><span>Model</span><strong>{FLUX3_IMAGE_MODEL_LABELS[model]}</strong></div>
         <div><span>Estimate</span><strong>{estimate === null ? "Not listed" : `$${estimate.toFixed(3)}`}</strong></div>

@@ -310,7 +310,7 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     category: "generation",
     auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     body: {
-      t2i: "mode=t2i, prompt, settings { aspectRatio, resolution (768sq|1k|2k|4k), grounding, safetyTolerance }; optional layout[] boxes { x, y, width, height, prompt } with frame { width, height }. A resolution or aspectRatio outside the lists is refused, not replaced.",
+      t2i: "mode=t2i, prompt, settings { aspectRatio, resolution (768sq|1k|1.5k|2k|4k|match_input for edits), paired width/height (256..6256; <=16822272 pixels, <=4194304 with references), version=latest, grounding, safetyTolerance (0..7; organization approval applies) }; optional layout[] boxes { x, y, width, height, prompt } with frame { width, height }. A resolution or aspectRatio outside the lists is refused, not replaced.",
       klein: "settings.model=flux-3-image-klein; aspectRatio (auto or published ratios), resolution (null/omitted keeps API default: 1k text or source size edit; 768sq|1k|1.5k|2k|4k), safetyTolerance integer 0..7 (default 2, organization approval applies), outputFormat jpeg|png (default jpeg), seed null or integer 0..4294967295, steps null or integer 1..16 (omitted uses 16), width/height null or paired integers 64..6256 (product <=16822272, override aspect/resolution). No grounding, version or extra settings. Klein price is unknown.",
       i2i: "mode=i2i, prompt, references[1..10] (URL, data URL, or /api/outputs/<id>/image), settings",
       edit: "mode=edit, prompt, source (one image), settings",
@@ -355,11 +355,11 @@ export const dashboardAgentRoutes: AgentRoute[] = [
     category: "tools",
     auth: "Uses apiKey in request body, BFL_API_KEY/FLUX_API_KEY server env, or macOS Keychain.",
     body: {
-      inputVideo: "Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL; MP4 up to 50 MB and 20 seconds.",
-      upscaleFactor: "1.5 through 3 (default 2)",
+      inputVideo: "Raw base64, data URL, HTTP(S) URL, or a saved local dashboard video URL; MP4 up to 50 MB and 3.7 MP per frame. Only the first 20 seconds are upscaled; this dashboard accepts durations below 20.5 seconds.",
+      upscaleFactor: "1.5 through 3 (default 2); provider caps output at 13.75 MP, reducing the effective scale",
       creativity: "0 precise or 1 creative (default 1)",
       prompt: "Optional detail guidance",
-      safetyTolerance: "0 through 4 (default 2)"
+      safetyTolerance: "0 through 7 (default 2; organization approval applies)"
     },
     example: {
       inputVideo: "/api/bfl/flux3-video/<saved-id>",

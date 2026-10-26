@@ -179,8 +179,13 @@ filesystem paths.
   `{ x, y, width, height, action, prompt, reference?, target? }` where `action`
   is `change`, `keep`, `move` or `remove`.
 
-`settings` takes `aspectRatio`, `resolution` (`768sq`, `1k`, `2k`, `4k`),
-`grounding` and `safetyTolerance` (0 to 4). The API has no mask, seed or output
+`settings` takes `aspectRatio`, `resolution` (`768sq`, `1k`, `1.5k`, `2k`, `4k`, or
+`match_input` for edits), paired `width`/`height` (256–6256 per side, at most
+16822272 pixels, or 4194304 with references), `version: "latest"`,
+`grounding` and `safetyTolerance` (0 to 7, subject to organization approval).
+Exact dimensions override resolution and aspect. Boxed requests must preserve
+their frame aspect ratio. Exact sizes and unpriced tiers have no local price estimate;
+the run log records actual credits. The API has no mask, seed or output
 format. Boxes are written into the prompt as BFL's `[top, left, bottom, right]`
 rows on a 0 to 1000 grid, each named `<id>` in the caption. A precise edit sends
 `aspect_ratio: auto` so the grid lines up with the source.

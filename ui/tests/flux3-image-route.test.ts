@@ -76,7 +76,7 @@ describe("FLUX 3 Image route", () => {
     const response = await post({
       mode: "t2i",
       prompt: "  a glass fox at dawn ",
-      settings: { aspectRatio: "16:9", resolution: "2k", grounding: false, safetyTolerance: 9 },
+      settings: { aspectRatio: "16:9", resolution: "2k", grounding: false, safetyTolerance: 7 },
       title: "glass fox"
     });
     const body = await response.json();
@@ -86,7 +86,7 @@ describe("FLUX 3 Image route", () => {
       "POST",
       "https://api.bfl.ai/v1/flux-3-image",
       "test-key",
-      { prompt: "a glass fox at dawn", aspect_ratio: "16:9", resolution: "2k", grounding: false, safety_tolerance: 4 }
+      { prompt: "a glass fox at dawn", aspect_ratio: "16:9", resolution: "2k", grounding: false, safety_tolerance: 7 }
     ]);
     expect(mocks.saveOutputFiles).toHaveBeenCalledWith(expect.objectContaining({ title: "glass fox", prompt: "a glass fox at dawn" }));
     expect(body.flux3Image).toMatchObject({ mode: "t2i", imageCount: 0, settings: { resolution: "2k" } });
@@ -107,14 +107,24 @@ describe("FLUX 3 Image route", () => {
     await vi.waitFor(() => expect(mocks.saveOutputFiles).toHaveBeenCalled(), { timeout: 5_000 });
   });
 
+  it("forwards exact image dimensions and version", async () => {
+    mockSuccess();
+    const response = await post({ mode: "t2i", prompt: "fox", settings: { width: 1280, height: 720, version: "latest", safetyTolerance: 7 } });
+    expect(response.status).toBe(200);
+    expect(submitted()?.[3]).toMatchObject({ width: 1280, height: 720, version: "latest", safety_tolerance: 7 });
+  });
+
+  it("forwards the unpriced 1.5k tier", async () => {
+    mockSuccess();
+    const response = await post({ mode: "t2i", prompt: "fox", settings: { resolution: "1.5k" } });
+    expect(response.status).toBe(200);
+    expect(submitted()?.[3]).toMatchObject({ resolution: "1.5k" });
+  });
+
   it("refuses a size or shape it does not send, rather than quietly making a 1k image", async () => {
     mockSuccess();
-    const unpriced = await post({ mode: "t2i", prompt: "fox", settings: { resolution: "1.5k" } });
-    expect(unpriced.status).toBe(400);
-    expect((await unpriced.json()).error).toBe("FLUX 3 Image resolution 1.5k has no listed price, so it is not offered here. Use 768sq, 1k, 2k, 4k.");
-
     const misspelt = await post({ mode: "t2i", prompt: "fox", settings: { resolution: "2K" } });
-    expect((await misspelt.json()).error).toMatch(/resolution must be one of 768sq, 1k, 2k, 4k, not "2K"/);
+    expect((await misspelt.json()).error).toMatch(/resolution must be one of 768sq, 1k, 1.5k, 2k, 4k, match_input, not "2K"/);
 
     const shape = await post({ mode: "t2i", prompt: "fox", settings: { aspectRatio: "16:10" } });
     expect(shape.status).toBe(400);

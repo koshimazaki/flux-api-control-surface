@@ -20,7 +20,7 @@ export type { Flux3Box, Flux3BoxAction, Flux3ImageRegion, Flux3ImageRequestRegio
 /**
  * FLUX 3 Image on `POST /v1/flux-3-image` (published 1 October 2026): a
  * prompt, one to ten `images`, `aspect_ratio`, `resolution`, `grounding`,
- * `safety_tolerance` and `version`, and nothing else. Four ways in:
+ * `width`, `height`, `safety_tolerance` and `version`. Four ways in:
  *
  * - t2i: text to image, optionally laid out with boxes (layout rows)
  * - i2i: image to image from up to ten references named "image 1", "image 2"…
@@ -45,17 +45,17 @@ export const FLUX3_IMAGE_MODEL_LABELS = {
 /** `images`: "one to 10 total", references or the edit source alike. */
 export const FLUX3_IMAGE_MAX_REFERENCES = 10;
 
-/** `resolution`: the four documented, priced tiers; `1k` is the API's default. */
-export const FLUX3_IMAGE_RESOLUTIONS = ["768sq", "1k", "2k", "4k"] as const;
+/** Published resolution tiers; only some have a listed price. */
+export const FLUX3_IMAGE_RESOLUTIONS = ["768sq", "1k", "1.5k", "2k", "4k", "match_input"] as const;
 /** Price per image by resolution, from BFL's pricing page (1 October 2026). */
-export const FLUX3_IMAGE_PRICE_USD: Record<(typeof FLUX3_IMAGE_RESOLUTIONS)[number], number> = {
+export const FLUX3_IMAGE_PRICE_USD: Partial<Record<(typeof FLUX3_IMAGE_RESOLUTIONS)[number], number>> = {
   "768sq": 0.041,
   "1k": 0.048,
   "2k": 0.1,
   "4k": 0.607
 };
 export type Flux3ImageAspectRatio = (typeof FLUX3_IMAGE_ASPECT_RATIOS)[number];
-export type Flux3ImageResolution = (typeof FLUX3_IMAGE_KLEIN_RESOLUTIONS)[number];
+export type Flux3ImageResolution = (typeof FLUX3_IMAGE_RESOLUTIONS)[number];
 export type Flux3ImageModel = typeof FLUX3_IMAGE_MODEL | typeof FLUX3_IMAGE_KLEIN_MODEL;
 
 /** The published settings, with the API's own defaults. */
@@ -67,11 +67,12 @@ export type Flux3ImageSettings = {
   outputFormat?: "jpeg" | "png";
   seed?: number | null;
   steps?: number | null;
+  version?: "latest";
   width?: number | null;
   height?: number | null;
   /** Lets the prompt be grounded in web and image search; on by default. */
   grounding?: boolean;
-  /** Moderation tolerance, 0 (strictest) to 4 for standard, 7 for Klein. */
+  /** Moderation tolerance, 0 (strictest) to 7; organization approval applies. */
   safetyTolerance: number;
 };
 
@@ -86,9 +87,10 @@ export const defaultFlux3ImageSettings: Flux3ImageSettings = {
 export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings {
   const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   if (record.model === FLUX3_IMAGE_KLEIN_MODEL) {
-    // Stored drafts from the provisional route also carried standard-only grounding.
-    // Drop that obsolete field on restore; explicit API requests still reject it.
-    const restored = Object.fromEntries(Object.entries(record).filter(([key]) => key !== "grounding"));
+    // Stored drafts and model switches can carry standard-only grounding, version
+    // or match_input. Drop them on restore; explicit API requests still reject them.
+    const restored = Object.fromEntries(Object.entries(record).filter(([key, entry]) =>
+      key !== "grounding" && key !== "version" && !(key === "resolution" && entry === "match_input")));
     const checked = flux3ImageKleinSchema.safeParse({ prompt: "", ...kleinSettingsPayload(restored) });
     const parsed = checked.success ? checked.data : flux3ImageKleinSchema.parse({ prompt: "" });
     return {
@@ -110,8 +112,9 @@ export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings 
     resolution: resolution ?? defaultFlux3ImageSettings.resolution,
     grounding: typeof record.grounding === "boolean" ? record.grounding : defaultFlux3ImageSettings.grounding,
     safetyTolerance: Number.isFinite(tolerance)
-      ? Math.round(clampValue(tolerance, 0, 4))
-      : defaultFlux3ImageSettings.safetyTolerance
+      ? Math.round(clampValue(tolerance, 0, 7))
+      : defaultFlux3ImageSettings.safetyTolerance,
+    ...Object.fromEntries(["width", "height", "version"].filter((key) => key in record).map((key) => [key, record[key]]))
   };
 }
 
@@ -119,8 +122,7 @@ export function normalizeFlux3ImageSettings(value: unknown): Flux3ImageSettings 
  * Names a setting an outside request (an agent, MCP or the CLI) asked for that
  * this surface does not send. Saved drafts are normalized quietly; a request
  * is refused instead, so a caller never pays for a size or shape it did not
- * ask for. BFL also accepts `1.5k`, but lists no price for it, so it is not
- * offered for the standard model here.
+ * ask for. Unpriced tiers and exact sizes have no local cost estimate.
  */
 export function flux3ImageSettingsBlocker(value: unknown) {
   const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -128,12 +130,17 @@ export function flux3ImageSettingsBlocker(value: unknown) {
     return `Unknown FLUX 3 Image model: ${JSON.stringify(record.model)}. Use flux-3-image or flux-3-image-klein.`;
   }
   if (record.model === FLUX3_IMAGE_KLEIN_MODEL) return kleinSettingsBlocker(value);
-  const { resolution, aspectRatio } = record;
+  const { resolution, aspectRatio, width, height } = record;
+  if (record.safetyTolerance !== undefined && (!Number.isInteger(record.safetyTolerance) || Number(record.safetyTolerance) < 0 || Number(record.safetyTolerance) > 7)) return "Safety tolerance must be an integer between 0 and 7 (organization approval applies).";
+  if ((width != null) !== (height != null)) return "Set width and height together.";
+  if (width != null && (!Number.isInteger(width) || Number(width) < 256 || Number(width) > 6256 || !Number.isInteger(height) || Number(height) < 256 || Number(height) > 6256)) {
+    return "Width and height must be integers between 256 and 6256 pixels.";
+  }
+  if (width != null && Number(width) * Number(height) > 16822272) return "width × height must be at most 16822272 pixels.";
+  if (record.version !== undefined && record.version !== "latest") return "FLUX 3 Image version must be latest.";
   const given = (setting: unknown) => setting !== undefined && setting !== null && setting !== "";
   if (given(resolution) && !FLUX3_IMAGE_RESOLUTIONS.some((tier) => tier === resolution)) {
-    return resolution === "1.5k"
-      ? `FLUX 3 Image resolution 1.5k has no listed price, so it is not offered here. Use ${FLUX3_IMAGE_RESOLUTIONS.join(", ")}.`
-      : `FLUX 3 Image resolution must be one of ${FLUX3_IMAGE_RESOLUTIONS.join(", ")}, not ${JSON.stringify(resolution)}.`;
+    return `FLUX 3 Image resolution must be one of ${FLUX3_IMAGE_RESOLUTIONS.join(", ")}, not ${JSON.stringify(resolution)}.`;
   }
   if (given(aspectRatio) && !FLUX3_IMAGE_ASPECT_RATIOS.some((ratio) => ratio === aspectRatio)) {
     return `FLUX 3 Image aspectRatio must be one of ${FLUX3_IMAGE_ASPECT_RATIOS.join(", ")}, not ${JSON.stringify(aspectRatio)}.`;
@@ -218,7 +225,9 @@ function toPayload(request: Flux3ImageRequest): Record<string, unknown> {
     aspect_ratio: aspectRatio,
     resolution: settings.resolution,
     grounding: settings.grounding,
-    safety_tolerance: settings.safetyTolerance
+    safety_tolerance: settings.safetyTolerance,
+    ...(settings.width != null && settings.height != null ? { width: settings.width, height: settings.height } : {}),
+    ...(settings.version ? { version: settings.version } : {})
   };
 }
 
@@ -227,9 +236,11 @@ export const FLUX3_IMAGE_API: Flux3ImageApi | null = {
   endpoint: "flux-3-image",
   toPayload,
   estimateUsd: (request) => {
-    const resolution = normalizeFlux3ImageSettings(request.settings).resolution;
+    const settings = normalizeFlux3ImageSettings(request.settings);
+    if (settings.width != null && settings.height != null) return null;
+    const resolution = settings.resolution;
     return resolution && resolution in FLUX3_IMAGE_PRICE_USD
-      ? FLUX3_IMAGE_PRICE_USD[resolution as keyof typeof FLUX3_IMAGE_PRICE_USD] : null;
+      ? FLUX3_IMAGE_PRICE_USD[resolution as keyof typeof FLUX3_IMAGE_PRICE_USD] ?? null : null;
   }
 };
 
@@ -279,6 +290,13 @@ export function flux3ImageInputBlocker(input: Flux3ImageRequest) {
 
 /** The input problem first, then what the API cannot take yet; null only when a request could be sent. */
 export function flux3ImageRequestBlocker(input: Flux3ImageRequest, api: Flux3ImageApi | null = apiFor(input)) {
+  const settings = input.settings;
+  if (settings?.model !== FLUX3_IMAGE_KLEIN_MODEL) {
+    const images = flux3ImageInputs(input);
+    if (settings?.resolution === "match_input" && settings.width == null && !images.length) return "match_input requires a reference image.";
+    if (images.length && settings?.width != null && settings.height != null && settings.width * settings.height > 4194304) return "Exact output with reference images must be at most 4194304 pixels.";
+    if (settings?.width != null && settings.height != null && input.frame && (input.mode === "precise" || usedLayout(input).length > 0) && settings.width * input.frame.height !== settings.height * input.frame.width) return "Exact width and height must preserve the box frame aspect ratio.";
+  }
   return flux3ImageSettingsBlocker(input.settings) ?? flux3ImageInputBlocker(input) ?? (api ? flux3ImageScopeBlocker(input) : FLUX3_IMAGE_API_PENDING);
 }
 
