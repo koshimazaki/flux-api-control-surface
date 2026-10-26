@@ -1,5 +1,13 @@
 # BFL Asset Archive Worker
 
+Use **Node.js 26.12.1 or a newer 26.x patch/minor** (October 21, 2026 security fixes).
+From this directory run `nvm install && nvm use`, then reinstall dependencies
+with `npm ci`. Restart any running `wrangler dev` session after upgrading;
+already-running processes keep their old runtime.
+
+Runtime pins live in `.nvmrc` and `.node-version`; npm rejects older runtimes.
+See the [official security release](https://nodejs.org/en/blog/release/v26.12.1/).
+
 Token-protected Cloudflare Worker for durable BFL outputs.
 
 - R2 stores the generated PNG, `.prompt.txt`, and `.json` metadata under
