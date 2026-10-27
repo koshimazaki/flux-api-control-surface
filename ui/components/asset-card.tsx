@@ -1,8 +1,10 @@
+import { canRecreateAsset } from "@/lib/generation-recipe";
 import {
   BookmarkPlus,
   Check,
   Clipboard,
   Download,
+  RotateCcw,
   Expand,
   Film,
   FolderSearch,
@@ -47,6 +49,7 @@ type AssetCardProps = AssetSendHandlers & {
   onRevealAsset?: (asset: AssetRecord) => void;
   onDelete: (id: string) => void;
   onToggleFavorite: (id: string) => void;
+  onRecreate?: (asset: AssetRecord) => void;
   onSavePromptToLibrary: (asset: AssetRecord) => void;
 };
 
@@ -309,6 +312,7 @@ export function AssetCard(props: AssetCardProps) {
         )}
       </div>
       <div className="assetButtons">
+        {props.onRecreate && canRecreateAsset(asset) && <button type="button" onClick={() => props.onRecreate?.(asset)} title="Recreate — load saved inputs and settings" aria-label="Recreate saved setup"><RotateCcw size={15} /></button>}
         <AssetSendActions
           asset={asset}
           family={props.sendFamily}

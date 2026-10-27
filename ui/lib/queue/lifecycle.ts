@@ -1,3 +1,4 @@
+import { saveGenerationRecipe } from "@/lib/generation-recipe-store";
 import { BFL_API_BASE, bflJson, getCredits, resolveApiKey } from "@/lib/bfl-server";
 import { FLUX3_IMAGE_MODEL, FLUX3_IMAGE_KLEIN_MODEL } from "@/lib/flux3-image";
 import { measured } from "@/lib/generation-capture";
@@ -355,6 +356,15 @@ export async function finalizeQueueJob(jobId: string, options: PollStepOptions =
         recovery: job.recovery
       }
     });
+    if (outcome.result.assetId) {
+      try {
+        await saveGenerationRecipe(outcome.result.assetId, runtime.kind, runtime.operation, runtime.body);
+      } catch {
+        // The output is already safely saved. A recipe failure must never
+        // turn a successful paid generation into a retryable job.
+        outcome.response.warning = [outcome.response.warning, "Output saved, but its reusable settings could not be saved."].filter(Boolean).join(" ");
+      }
+    }
     runtime.response = outcome.response;
 
     const now = Date.now();

@@ -1,3 +1,4 @@
+import type { Flux3ImageDraft } from "@/lib/dashboard/use-flux3-image-draft";
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { persistAssetImage } from "@/lib/dashboard-assets";
 import { flux3ImageModel, type Flux3ImageRequest } from "@/lib/flux3-image";
@@ -8,6 +9,7 @@ import type { AssetRecord, ReferenceImage, RunLogEntry } from "@/lib/types";
 /** One FLUX 3 Image run as the workspace hands it over. */
 export type Flux3ImageRunInput = {
   request: Flux3ImageRequest;
+  draft?: Flux3ImageDraft;
   title: string;
   /** Library ids behind the references or the edit source. */
   sourceAssetIds: string[];
@@ -398,6 +400,7 @@ export function useFlux3ImageRun(deps: Flux3ImageRunDeps) {
       const jobId = await submitFlux3ImageRun(
         {
           ...input.request,
+          draft: input.draft,
           apiKey: deps.apiKey || undefined,
           title: input.title,
           sourceAssetIds: input.sourceAssetIds,

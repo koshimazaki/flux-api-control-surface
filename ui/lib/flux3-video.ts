@@ -17,6 +17,8 @@ export type Flux3InputMedia = {
   kind: "image" | "video";
   source: string;
   assetId?: string;
+  /** Original timestamp for a restored timed keyframe. */
+  seconds?: number;
 };
 
 export function flux3MediaFromAsset(asset: {

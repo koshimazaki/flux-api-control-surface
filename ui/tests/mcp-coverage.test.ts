@@ -42,6 +42,7 @@ const INTERNAL_ONLY = [
   // drive work through the queue tools; these exist for diagnostics and repair.
   "/api/bfl/jobs"
 ];
+const KNOWN_RECREATE_GAP = ["/api/outputs/recreate/[id]", "/api/outputs/recreate/media/[file]"];
 const KNOWN_AUDIO_GAP = ["/api/audio/guide", "/api/audio/slice"];
 
 describe("local MCP tool registry", () => {
@@ -170,11 +171,12 @@ describe("MCP coverage gaps stay explicit", () => {
     );
     // If this fails because a new route appeared, either add an MCP tool for it
     // or classify it (discovery/internal/known-gap) — that is the whole point.
-    expect(uncovered.sort()).toEqual([...KNOWN_AUDIO_GAP].sort());
+    expect(uncovered.sort()).toEqual([...KNOWN_AUDIO_GAP, ...KNOWN_RECREATE_GAP].sort());
   });
 
   it("documents the audio/binary HTTP-only gap honestly in the parity notes", () => {
     expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("audio");
+    expect(localMcpParityNotes.httpOnly.toLowerCase()).toContain("recreate");
     // Collections are wrapped now, so the notes no longer list them as a gap.
     expect(localMcpParityNotes.httpOnly.toLowerCase()).not.toContain("collection");
   });

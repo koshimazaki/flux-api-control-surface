@@ -6,7 +6,6 @@ import { SelectorGroup, SelectorOption } from "@/components/ui/selector-group";
 import {
   referenceDisplayName,
   referencePreviewSrc,
-  referenceRoleConfig,
   referenceTargetToken,
   referenceToken
 } from "@/lib/reference-roles";
@@ -34,7 +33,7 @@ type PromptEditorProps = {
   onEnvironmentSelect: (environment: string) => void;
   onReferenceDropPayload: (payload: string) => number | null | void;
   onReferenceFiles: (files: File[]) => Promise<number[]>;
-  referenceControls?: ReactNode;
+  referenceControls?: (summary: ReactNode) => ReactNode;
 };
 
 export function PromptEditor({
@@ -134,6 +133,68 @@ export function PromptEditor({
     insertImageTokens(slots);
   }
 
+  const referenceSummary =
+    (promptSourceAsset || activeReferences.length > 0) && (
+      <div className="promptReferenceStrip">
+        {promptSourceAsset && (
+          <div className="promptSourceNotice">
+            <strong>Prompt source</strong>
+            <span>{promptSourceAsset.title || promptSourceAsset.id}</span>
+          </div>
+        )}
+        {activeReferences.length > 0 && (
+          <>
+            <div className="promptReferenceHeader">
+              <strong>Submitted with references</strong>
+              <span>{activeReferences.length} image{activeReferences.length === 1 ? "" : "s"}</span>
+            </div>
+            <div className="promptReferenceChips">
+              {activeReferences.map(({ reference, index }) => {
+                const preview = referencePreviewSrc(reference);
+                const token = referenceToken(index);
+                const roleToken = referenceTargetToken(reference, index);
+                return (
+                  <button
+                    type="button"
+                    key={reference.id}
+                    className="promptReferenceChip"
+                    title={`Insert ${roleToken} (${token})`}
+                    draggable
+                    onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
+                    onClick={() => insertPromptToken(roleToken)}
+                  >
+                    {preview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={preview} alt="" />
+                    ) : (
+                      <i>{index + 1}</i>
+                    )}
+                    <b>{roleToken}</b>
+                    <em>{token}</em>
+                    <span>{referenceDisplayName(reference, index)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <details className="submittedPromptDetails">
+              <summary>Submission preview</summary>
+              <p>{submittedReferenceCue}</p>
+              <div className="submittedPromptBox">
+                <div>
+                  <strong>Submitted prompt</strong>
+                  <button type="button" onClick={() => void copyText(submittedPrompt)}>
+                    <Clipboard size={14} />
+                    Copy
+                  </button>
+                </div>
+                <textarea value={submittedPrompt} readOnly spellCheck={false} />
+              </div>
+            </details>
+          </>
+        )}
+      </div>
+    );
+
   return (
     <section
       className="panel editor"
@@ -204,69 +265,7 @@ export function PromptEditor({
         spellCheck={false}
       />
 
-      {referenceControls}
-
-      {(promptSourceAsset || activeReferences.length > 0) && (
-        <div className="promptReferenceStrip">
-          {promptSourceAsset && (
-            <div className="promptSourceNotice">
-              <strong>Prompt source</strong>
-              <span>{promptSourceAsset.title || promptSourceAsset.id}</span>
-            </div>
-          )}
-          {activeReferences.length > 0 && (
-            <>
-              <div className="promptReferenceHeader">
-                <strong>Submitted with references</strong>
-                <span>{activeReferences.length} image{activeReferences.length === 1 ? "" : "s"}</span>
-              </div>
-              <div className="promptReferenceChips">
-                {activeReferences.map(({ reference, index }) => {
-                  const role = referenceRoleConfig(reference.role, index);
-                  const preview = referencePreviewSrc(reference);
-                  const token = referenceToken(index);
-                  const roleToken = referenceTargetToken(reference, index);
-                  return (
-                    <button
-                      type="button"
-                      key={reference.id}
-                      className="promptReferenceChip"
-                      title={`Insert ${roleToken} (${token})`}
-                      draggable
-                      onDragStart={(event) => setReferenceDragData(event.dataTransfer, reference, index)}
-                      onClick={() => insertPromptToken(roleToken)}
-                    >
-                      {preview ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={preview} alt="" />
-                      ) : (
-                        <i>{index + 1}</i>
-                      )}
-                      <b>{roleToken}</b>
-                      <em>{token}</em>
-                      <span>{referenceDisplayName(reference, index)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <details className="submittedPromptDetails">
-                <summary>Submission preview</summary>
-                <p>{submittedReferenceCue}</p>
-                <div className="submittedPromptBox">
-                  <div>
-                    <strong>Submitted prompt</strong>
-                    <button type="button" onClick={() => void copyText(submittedPrompt)}>
-                      <Clipboard size={14} />
-                      Copy
-                    </button>
-                  </div>
-                  <textarea value={submittedPrompt} readOnly spellCheck={false} />
-                </div>
-              </details>
-            </>
-          )}
-        </div>
-      )}
+      {referenceControls ? referenceControls(referenceSummary) : referenceSummary}
 
       <div className="editorActions">
         <button onClick={onImport}>

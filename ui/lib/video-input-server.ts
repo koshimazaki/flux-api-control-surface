@@ -68,6 +68,14 @@ async function readLocalVideo(pointer: LocalVideoPointer): Promise<ResolvedVideo
 
 export async function resolveVideoInput(value: string, origin = "http://localhost"): Promise<ResolvedVideoInput> {
   const trimmed = value.trim();
+  const { recipeMediaName } = await import("./generation-recipe");
+  const recipeFile = recipeMediaName(trimmed, origin);
+  if (recipeFile) {
+    const { readRecipeMedia } = await import("./generation-recipe-store");
+    const media = await readRecipeMedia(recipeFile);
+    if (!media || media.type !== "video/mp4") throw new Error("The saved recipe video is no longer available locally — re-add the clip.");
+    return { buffer: media.buffer, contentType: media.type, sourceName: recipeFile };
+  }
   const dataUrl = trimmed.match(/^data:([^;,]+);base64,([\s\S]+)$/);
   if (dataUrl) {
     return { buffer: Buffer.from(dataUrl[2], "base64"), contentType: dataUrl[1], sourceName: "source.mp4" };

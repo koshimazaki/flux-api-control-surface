@@ -103,36 +103,36 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 2px;
-  transform: translateX(-1px);
-  background: var(--acc-intel);
-  box-shadow: 0 0 14px var(--acc-intel);
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(230, 241, 246, 0.55);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
   pointer-events: none;
 }
 .videoCompareDivider i {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 28px;
-  height: 44px;
+  width: 22px;
+  height: 26px;
   transform: translate(-50%, -50%);
-  border: 1px solid var(--acc-intel);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--surface-sunken) 86%, transparent);
-  box-shadow: var(--elev-2);
+  border: 1px solid rgba(230, 241, 246, 0.3);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.82);
 }
 .videoCompareDivider i::before,
 .videoCompareDivider i::after {
   content: "";
   position: absolute;
   top: 50%;
-  width: 5px;
-  height: 5px;
-  border-top: 1px solid var(--acc-intel);
-  border-left: 1px solid var(--acc-intel);
+  width: 4px;
+  height: 4px;
+  border-top: 1px solid rgba(230, 241, 246, 0.85);
+  border-left: 1px solid rgba(230, 241, 246, 0.85);
 }
-.videoCompareDivider i::before { left: 6px; transform: translateY(-50%) rotate(-45deg); }
-.videoCompareDivider i::after { right: 6px; transform: translateY(-50%) rotate(135deg); }
+.videoCompareDivider i::before { left: 4px; transform: translateY(-50%) rotate(-45deg); }
+.videoCompareDivider i::after { right: 4px; transform: translateY(-50%) rotate(135deg); }
+.videoCompareStage:has(input:focus-visible) .videoCompareDivider i { outline: 2px solid var(--acc-intel); outline-offset: 3px; }
 .videoCompareLabel {
   position: absolute;
   top: 10px;

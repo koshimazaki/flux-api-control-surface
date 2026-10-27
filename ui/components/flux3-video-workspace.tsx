@@ -1,3 +1,4 @@
+import { flux3Recreation, type RecreationSeed } from "@/lib/asset-recreation";
 import { GenerationWait } from "@/components/ui/generation-wait";
 import { generationJobMatchesWorkspace, pendingGenerationJobs } from "@/lib/generation-view";
 import { Download, Film, PencilLine, ScanLine, Sparkles, Video, WandSparkles, Volume2, VolumeX } from "lucide-react";
@@ -8,6 +9,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { JobQueue, type JobQueueControls } from "@/components/ui/job-queue";
 import { PanelHeader } from "@/components/ui/panel-header";
 import { RunButton } from "@/components/ui/run-button";
+import { CubeLoader } from "@/components/ui/cube-loader";
 import type { VideoEditSourceInput } from "@/lib/video-edit";
 import { usePauseHiddenMedia } from "@/lib/use-pause-hidden-media";
 import { videoAspectFromEvent, videoStageStyle, type VideoStageAspect } from "@/lib/video-stage";
@@ -33,6 +35,7 @@ import type { AssetRecord } from "@/lib/types";
 type Flux3VideoWorkspaceProps = {
   /** False while another video tool is on screen: this one stays mounted but hidden. */
   active: boolean;
+  recreation?: RecreationSeed | null;
   apiKey: string;
   assets: AssetRecord[];
   mode: Flux3SourceMode;
@@ -123,12 +126,24 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
     if (props.promptSeed.camera) restoreCamera(props.promptSeed.camera);
   }, [props.promptSeed, restoreCamera]);
 
+  useEffect(() => {
+    if (!props.recreation || ["video-edit", "video-upscale"].includes(props.recreation.recipe.operation)) return;
+    const restored = flux3Recreation(props.recreation.recipe);
+    if (restored.camera) restoreCamera(restored.camera);
+    else setCameraDirection(current => ({ ...current, enabled: false }));
+    setPrompt(restored.prompt); setAspectRatio(restored.aspectRatio); setDuration(restored.duration);
+    setResolution(restored.resolution); setGenerateAudio(restored.generateAudio);
+    setSafetyTolerance(restored.safetyTolerance); setDraft(restored.draft); setError("");
+  }, [props.recreation, restoreCamera, setCameraDirection]);
+
   const requestInput = useMemo<Flux3VideoRequest>(
     () => ({
       mode,
       prompt: directedPrompt,
       camera: camera ?? undefined,
       keyframes: keyframes.map((item) => item.source),
+      timedKeyframes: keyframes.length && keyframes.every(item => typeof item.seconds === "number")
+        ? keyframes.map(item => [item.seconds!, item.source]) : undefined,
       startVideo: startVideo?.source,
       aspectRatio,
       duration,
@@ -139,7 +154,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
     }),
     [aspectRatio, camera, directedPrompt, draft, duration, generateAudio, keyframes, mode, resolution, safetyTolerance, startVideo]
   );
-  const blocker = flux3RequestBlocker(requestInput);
+  const blocker = mode === "i2v" && keyframes.some(frame => !frame.source) ? "Replace the missing saved keyframe before generating." : flux3RequestBlocker(requestInput);
   const estimatedUsd = estimateFlux3VideoUsd(requestInput);
 
   useEffect(() => {
@@ -245,7 +260,7 @@ export function Flux3VideoWorkspace(props: Flux3VideoWorkspaceProps) {
       const response = await fetch("/api/bfl/flux3-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...input, apiKey: props.apiKey || undefined, title })
+        body: JSON.stringify({ ...input, keyframeAssetIds: keyframes.map(item => item.assetId || ""), startVideoAssetId: startVideo?.assetId, apiKey: props.apiKey || undefined, title })
       });
       const data = await response.json();
       if (!response.ok) {

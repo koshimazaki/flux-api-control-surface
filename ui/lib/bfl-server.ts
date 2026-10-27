@@ -144,6 +144,14 @@ function localOutputIdFromUrl(value: string, origin?: string) {
 
 export async function resolveImageInput(value?: string, origin?: string, fallbackOutputId?: string | null) {
   if (!value) return value;
+  const { recipeMediaName } = await import("./generation-recipe");
+  const recipeFile = recipeMediaName(value.trim(), origin);
+  if (recipeFile) {
+    const { readRecipeMedia } = await import("./generation-recipe-store");
+    const media = await readRecipeMedia(recipeFile);
+    if (!media || !media.type.startsWith("image/")) throw new Error("The saved recipe image is no longer available locally — re-add the image.");
+    return media.buffer.toString("base64");
+  }
   const outputId = localOutputIdFromUrl(value.trim(), origin);
   if (outputId) {
     if (outputId.source === "remote") {

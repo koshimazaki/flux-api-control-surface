@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { resolveVideoInput } from "@/lib/video-input-server";
 import { patchOutputMetadataFile, resolveImageInput } from "@/lib/bfl-server";
 import { applyCameraChoice } from "@/lib/camera-language";
 import {
@@ -64,7 +65,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
         );
       }
     }
-    if (body.mode === "v2v") prepared.startVideo = normalizeBinaryInput(body.startVideo);
+    if (body.mode === "v2v" && body.startVideo) prepared.startVideo = (await resolveVideoInput(body.startVideo, origin)).buffer.toString("base64");
     if (body.mode === "draft_enhance") {
       if (body.draftCacheId) {
         draftSource = await findFlux3VideoOutput(body.draftCacheId, "draft-cache");

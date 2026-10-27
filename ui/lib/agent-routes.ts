@@ -721,7 +721,7 @@ export const localMcpParityNotes = {
   wrapper:
     "The stdio MCP wrapper covers the local JSON dashboard routes for discovery, assets, collections, prompts, planning, generation, the server-owned generation queue, evaluation, image tools, references, glyphs, credits, caption job prep, and finetune dataset/registry workflows. The CLI mirrors it tool for tool.",
   httpOnly:
-    "Audio guide rendering and audio slicing remain HTTP/UI workflows because those routes return binary media. Browser waveform analysis, drag/drop import, mask painting, box drawing, and live React control remain UI or browser-automation workflows."
+    "Recreate recipe retrieval and saved input media remain HTTP/UI helpers. Audio guide rendering and audio slicing remain HTTP/UI workflows because those routes return binary media. Browser waveform analysis, drag/drop import, mask painting, box drawing, and live React control remain UI or browser-automation workflows."
 };
 
 export const mcpStatusRoutes = Array.from(

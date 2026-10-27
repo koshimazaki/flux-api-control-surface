@@ -7,6 +7,7 @@ import { afterAll } from "vitest";
 // into the real outputs workspace and cannot see each other's jobs.
 const dir = mkdtempSync(path.join(tmpdir(), "bfl-queue-test-"));
 process.env.BFL_QUEUE_DIR = dir;
+process.env.BFL_RECIPE_DIR = path.join(dir, "recipes");
 
 afterAll(() => {
   rmSync(dir, { recursive: true, force: true });

@@ -17,9 +17,12 @@ import type { ReferenceImage } from "@/lib/types";
 import { imageGenerateAdapter } from "./image-generate";
 import type { OperationAdapter, OperationFinalizeInput, PreparedOperation } from "./types";
 
+import { normalizeFlux3ImageDraft } from "@/lib/flux3-image-draft";
+
 export { FLUX3_IMAGE_OPERATION };
 
 export type Flux3ImageRouteBody = Flux3ImageRequest & {
+  draft?: unknown;
   apiKey?: string;
   title?: string;
   operation?: string;
@@ -82,7 +85,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
   if (typeof body.prompt !== "string" && body.prompt !== undefined) return { error: "prompt must be a string.", status: 400 };
   if (body.settings?.model === FLUX3_IMAGE_KLEIN_MODEL) {
     const allowed = new Set(["mode", "prompt", "references", "source", "mask", "regions", "layout", "frame", "settings", "apiKey", "title", "operation", "sourceAssetIds", "referenceMeta", "wait"]);
-    const extra = Object.keys(body).filter((key) => !allowed.has(key));
+    const extra = Object.keys(body).filter((key) => key !== "draft" && !allowed.has(key));
     if (extra.length) return { error: `Unknown Klein request fields: ${extra.join(", ")}. Use settings for model options.`, status: 400 };
     if (body.references !== undefined && (!Array.isArray(body.references) || body.references.some((image) => typeof image !== "string"))) {
       return { error: "references must be an array of strings.", status: 400 };
@@ -153,6 +156,7 @@ async function prepare(rawBody: Record<string, any>, origin = "http://localhost"
       referenceWeight: undefined,
       referenceMeta: body.referenceMeta,
       flux3Image: {
+        ...(body.draft ? { draft: normalizeFlux3ImageDraft(body.draft) } : {}),
         mode: request.mode,
         settings: request.settings,
         imageCount: images.length,

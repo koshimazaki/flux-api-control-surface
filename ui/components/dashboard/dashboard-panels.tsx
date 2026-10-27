@@ -89,6 +89,7 @@ export function DashboardPanels({ state }: { state: DashboardState }) {
           onRecover={state.recoverStoredAssets}
           onImportImages={(files) => void state.importImageAssetFiles(files)}
           onToggleFavorite={state.toggleFavorite}
+          onRecreate={(asset) => void state.recreateAsset(asset)}
           onSendToPrompt={state.sendAssetToPrompt}
           onSendToWorkspace={state.sendAssetToWorkspace}
           onSendToVtoGarment={state.sendAssetToNextVtoGarment}

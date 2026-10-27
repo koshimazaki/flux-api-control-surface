@@ -11,6 +11,7 @@
   background: none;
   box-shadow: none;
   backdrop-filter: none;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* An invisible strip down each edge — nothing of the button shows, only the
@@ -25,7 +26,7 @@
   display: grid;
   place-items: center;
   padding: 0;
-  color: rgba(243, 241, 230, 0.45);
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   transition: color 160ms ease;
 }
@@ -33,7 +34,11 @@
 .lightboxStep.previous { left: 0; }
 .lightboxStep.next { right: 0; }
 
-.dsgn-root .lightboxStep:hover { color: var(--cream, #f3f1e6); }
+.lightboxStep:hover,
+.lightboxStep:focus-visible,
+.dsgn-root .lightboxStep:hover,
+.dsgn-root .lightboxStep:focus-visible { color: #fff; }
+.lightboxStep svg { filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7)); }
 /* The global button rule nudges on press; an edge strip must not shift. */
 .lightboxStep:active { transform: none; }
 

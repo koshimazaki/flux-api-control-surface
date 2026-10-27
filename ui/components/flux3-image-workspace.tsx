@@ -162,6 +162,7 @@ export function Flux3ImageWorkspace(props: Flux3ImageWorkspaceProps) {
     const assets = inputs.filter((asset, index, all): asset is AssetRecord => !!asset && all.indexOf(asset) === index);
     setNotice("");
     void props.onRun({
+      draft,
       request,
       title: flux3ImageRunTitle(draft),
       sourceAssetIds: assets.map((asset) => asset.id),

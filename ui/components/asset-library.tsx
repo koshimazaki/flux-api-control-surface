@@ -73,6 +73,7 @@ type AssetLibraryProps = {
   onRecover: () => void;
   onImportImages: (files: File[]) => void;
   onToggleFavorite: (id: string) => void;
+  onRecreate?: (asset: AssetRecord) => void;
   onSendToPrompt: (asset: AssetRecord) => void;
   onSendToWorkspace: (asset: AssetRecord, mode: ImageToolMode) => void;
   onSendToVtoGarment: (asset: AssetRecord) => void;
@@ -397,6 +398,7 @@ export function AssetLibrary(props: AssetLibraryProps) {
                   onDownload={props.onDownload}
                   onDelete={props.onDelete}
                   onToggleFavorite={props.onToggleFavorite}
+                  onRecreate={props.onRecreate}
                   onSendToPrompt={props.onSendToPrompt}
                   onSendToWorkspace={props.onSendToWorkspace}
                   onSendToVtoGarment={props.onSendToVtoGarment}

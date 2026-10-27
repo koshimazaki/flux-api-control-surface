@@ -69,6 +69,17 @@ function mockSuccess() {
 const submitted = () => mocks.bflJson.mock.calls.find(([method]) => method === "POST");
 
 describe("FLUX 3 Image route", () => {
+  it("accepts a saved Klein draft without forwarding UI fields to the provider", async () => {
+    mockSuccess();
+    const response = await post({ mode: "t2i", prompt: "a glass fox",
+      settings: { model: "flux-3-image-klein", seed: 0 },
+      draft: { mode: "t2i", prompts: { t2i: "a glass fox" }, settings: { model: "flux-3-image-klein", seed: 0 } }
+    });
+    expect(response.status).toBe(200);
+    expect(submitted()?.[3]).not.toHaveProperty("draft");
+    expect((await response.json()).flux3Image.draft).toMatchObject({ prompts: { t2i: "a glass fox" }, settings: { seed: 0 } });
+  });
+
   afterEach(() => vi.clearAllMocks());
 
   it("sends text to image with the published fields only, then saves it like any image", async () => {

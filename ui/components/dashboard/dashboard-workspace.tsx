@@ -138,6 +138,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
         {modeTabs}
         {promptLibrary}
         <Flux3VideoWorkspace
+          recreation={state.videoRecreation}
           active={isFlux3Mode}
           apiKey={state.apiKey}
           assets={state.assets}
@@ -159,6 +160,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           libraryPrompt={state.visiblePrompts.find((prompt) => prompt.id === state.activeId)?.prompt}
         />
         <VideoEditWorkspace
+          recreation={state.videoRecreation}
           active={isEditMode}
           apiKey={state.apiKey}
           assets={state.assets}
@@ -172,6 +174,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
           generationQueueControls={state.generationQueueControls}
         />
         <VideoUpscaleWorkspace
+          recreation={state.videoRecreation}
           active={isUpscaleMode}
           apiKey={state.apiKey}
           assets={state.assets}
@@ -239,7 +242,7 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
             onEnvironmentSelect={state.updateComboEnvironment}
             onReferenceDropPayload={state.addAssetToPromptReferences}
             onReferenceFiles={state.addPromptReferenceFiles}
-            referenceControls={
+            referenceControls={(summary) => (
               <GenerateReferenceControls
                 references={state.references}
                 maxReferences={state.activeModelConfig.maxReferences}
@@ -257,8 +260,10 @@ export function DashboardWorkspace({ state }: { state: DashboardState }) {
                 onNormalizeReferencesChange={state.setNormalizeReferences}
                 onReferenceFiles={state.addReferenceFiles}
                 onReferenceDropPayload={state.addReferenceFromDragPayload}
-              />
-            }
+              >
+                {summary}
+              </GenerateReferenceControls>
+            )}
             onImport={state.importPromptJson}
             onSave={() => void state.savePrompt()}
             onSaveAsNew={() => void state.savePrompt(true)}

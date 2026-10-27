@@ -17,20 +17,20 @@
 
 /* The box is reserved before the picture exists, so the picture fades in on
    arrival rather than snapping into a freshly sized card. */
-.assetImageButton img,
-.assetImageButton video {
+.assetCard .assetImageButton img,
+.assetCard .assetImageButton video {
   opacity: 0;
   transition: opacity 220ms var(--ease-out, ease);
 }
 
-.assetImageButton img.assetMediaReady,
-.assetImageButton video.assetMediaReady {
+.assetCard .assetImageButton img.assetMediaReady,
+.assetCard .assetImageButton video.assetMediaReady {
   opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .assetImageButton img,
-  .assetImageButton video {
+  .assetCard .assetImageButton img,
+  .assetCard .assetImageButton video {
     opacity: 1;
     transition: none;
   }
