@@ -81,6 +81,9 @@ wiki-dashboard/
 
 # Nested working clone of this same repo (Codex workspace) — never commit.
 /flux-api-control-surface/
+# Codex hand-off material (patches, bundles, whole repo clones) and local research notes.
+/tmp/
+/research/
 
 # Root-level dependency and output directories (ui/ and cloudflare/ have their own).
 /node_modules/
